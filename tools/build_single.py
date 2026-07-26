@@ -17,8 +17,6 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / 'cas-fansite-single.html'
 
 CSS = ['css/style.css']
-JS = ['js/assets.js', 'js/data.js', 'js/quizzes.js',
-      'js/collage.js', 'js/lyrics.js', 'js/quiz.js', 'js/main.js']
 
 
 def data_uri(path: pathlib.Path) -> str:
@@ -39,9 +37,17 @@ def main() -> int:
         raise SystemExit('could not find the stylesheet <link> to inline')
 
     # ---- inline the scripts ----------------------------------------------
+    # Read the list off the page itself, in document order, so adding or
+    # removing a script never leaves this builder pointing at a stale file.
+    scripts = re.findall(r'<script src="(js/[^"]+)"></script>', html)
+    if not scripts:
+        raise SystemExit('no <script src="js/…"> tags found in index.html')
+    missing = [s for s in scripts if not (ROOT / s).exists()]
+    if missing:
+        raise SystemExit(f'index.html references missing script(s): {missing}')
     js = '\n'.join(
         f'/* ===== {p} ===== */\n' + (ROOT / p).read_text(encoding='utf-8')
-        for p in JS)
+        for p in scripts)
     script_block = '<script>\n' + js.replace('</script>', r'<\/script>') + '\n</script>\n'
     html, n = re.subn(
         r'(?:[ \t]*<script src="js/[^"]+"></script>\n)+',

@@ -105,10 +105,9 @@ const DECOR = [
   { host: '#singles', key: 'cut/vinyl', x: 3, y: 62, w: 150, rot: 6, op: 0.3, dur: 29, sm: false },
   { host: '#singles', key: 'cut/censored', x: 78, y: 84, w: 140, rot: -12, op: 0.4, dur: 20, sm: false },
 
-  // lyrics / api
-  { host: '#lyrics', key: 'cut/headphones', x: 90, y: 6, w: 130, rot: 5, op: 0.28, dur: 24, sm: false },
-  { host: '#lyrics', key: 'cut/yourlips_serif', x: 1, y: 72, w: 190, rot: -4, op: 0.24, blend: 'screen', dur: 26, sm: false },
-  { host: '#lyrics', key: 'cut/cry_player', x: 74, y: 90, w: 210, rot: 3, op: 0.3, dur: 21, sm: false },
+  { host: '#discography', key: 'cut/headphones', x: 88, y: 34, w: 130, rot: 5, op: 0.24, dur: 24, sm: false },
+  { host: '#discography', key: 'cut/yourlips_serif', x: 1, y: 58, w: 190, rot: -4, op: 0.2, blend: 'screen', dur: 26, sm: false },
+  { host: '#singles', key: 'cut/cry_player', x: 60, y: 40, w: 200, rot: 3, op: 0.22, dur: 21, sm: false },
 
   // quiz
   { host: '#quiz', key: 'cut/eight_ball', x: 8, y: 12, w: 84, rot: 8, op: 0.4, dur: 19, sm: false },

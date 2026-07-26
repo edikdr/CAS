@@ -1,7 +1,7 @@
 # Cigarettes After Sex — Fan Sanctuary
 
 A fan-made, unofficial single-page site: cut-paper collage design, full discography,
-timecoded lyric lines with a karaoke playhead, a live public-API console, and four quizzes.
+timecoded lyric lines, a designed 30-second preview player, and four quizzes.
 
 Everything is vanilla HTML/CSS/JS. **No frameworks, no build step, no CDN, no external
 JavaScript** — the page works with the network switched off.
@@ -29,7 +29,9 @@ xdg-open cas-fansite-single.html
 ```
 
 Serving over `http://` rather than `file://` is recommended for the multi-file edition:
-some browsers refuse `fetch()` from `file://`, which affects the live API console only.
+some browsers block network requests from `file://`, which is what the preview lookup
+needs. Everything else — the collage, the words, the windows, the quizzes — works either
+way, with no network at all.
 
 ### Rebuilding
 
@@ -90,33 +92,60 @@ page behind is scroll-locked.
 
 ---
 
-## Lyrics & API
+## Player
 
-Three tabs.
+Each record carries its own player, designed in the same cut-paper language as the
+rest of the page — a spinning sleeve, a scrub bar, prev/play/next. There is no
+third-party embed anywhere on the site.
 
-**Synced lyrics.** Eight tracks with timecoded lines and a transport (play/pause, ±10 s,
-line-by-line stepping, scrub bar). The active line highlights and auto-scrolls. Because a
-static page has no audio stream, the playhead is a *virtual clock* — it advances itself
-and lights the line whose timecode has passed. Export the current track as a standard
-`.lrc` file, or copy it to the clipboard.
+Playback is a **30-second preview** per track, resolved at runtime. One audio element
+serves the whole page: whichever player face holds the cued track drives the transport,
+the rest sit idle showing their own subject. Starting a track from the ▶ on a row cues it
+in that record's player; opening a song's window while something else is playing does not
+interrupt it.
 
-> The bundled lines are **short signature excerpts** with approximate fan timings — enough
-> to follow a song's shape, not a full lyric sheet. Full lyrics are not reproduced here.
-> Press **Fetch full LRC from LRCLIB** to pull real synced lyrics from the open LRCLIB
-> database at runtime; the parser accepts standard `[mm:ss.xx]` LRC.
+When a preview cannot be resolved — offline, or the lookup is refused — the transport
+still runs on an internal clock so the controls behave, and the face says the preview is
+unavailable and points at the full-track links instead. Nothing technical surfaces in the
+interface.
 
-**API endpoints.** Reference cards for five keyless public APIs — LRCLIB, iTunes Search,
-MusicBrainz, Cover Art Archive and Spotify embed/oEmbed — with the request paths, what
-each parameter does, and a sample response shape.
+## Track window
 
-**Live console.** Pick an endpoint, edit the artist/track, see the exact URL, send the
-request, and read the raw JSON with status code, latency and payload size. A failed
-browser request is explained (CORS / offline / `file://`) instead of printing
-`TypeError`. There is also a **Download this site's dataset** button that exports the
-page's own discography, line-up and LRC excerpts as JSON.
+Clicking any track row opens it (the ▶ button only previews — it does not open the
+window):
 
-All five APIs are keyless, so requests go straight from the browser. A host that does not
-send CORS headers will refuse — that is a browser rule, not a broken URL.
+* the **words**, as short signature lines each carrying a `[mm:ss]` timecode
+* **Follow along**, which walks a marker down the lines on the song's own timeline;
+  clicking any line moves the marker there
+* a **preview player** for that track
+* the **video on YouTube**
+* **where to listen in full** — Spotify, Apple Music, YouTube Music, Bandcamp, Deezer
+
+Tracks with no transcribed lines still open, with the links and an honest empty state.
+
+Closing works the same four ways as the member window: **×**, a **click outside**,
+**Escape**, and **← →** move through the record.
+
+> The bundled lines are **short signature excerpts** with approximate fan timings —
+> enough to follow a song's shape, not a full lyric sheet. Full lyrics are not
+> reproduced here.
+
+## Discography
+
+Six releases, 48 tracks, including the early El Paso material that streaming does not
+carry:
+
+| Year | Release | Tracks |
+|---|---|---|
+| 2009 | I Can See You (EP, self-released) | 4 |
+| 2011 | Romans 13:9 (demo album) | 11 |
+| 2012 | I. (EP) | 4 |
+| 2017 | Cigarettes After Sex | 10 |
+| 2019 | Cry | 9 |
+| 2024 | X's | 10 |
+
+Plus 18 singles and covers. Durations are left as `—` where no reliable runtime exists
+for the unreleased material rather than being invented.
 
 ---
 
@@ -142,10 +171,11 @@ through what you answered, and finishing gives a score with a verdict.
 index.html                  markup only
 css/style.css               all styling
 js/assets.js                generated key → path map for all 99 assets
-js/data.js                  members, discography, singles, LRC excerpts, API catalogue
+js/data.js                  members, discography, singles, lyric excerpts, platform links
 js/quizzes.js               the four question decks
 js/collage.js               ransom() letters, floating cut-outs, ash canvas, reveals
-js/lyrics.js                synced-lyrics player + API console
+js/player.js                preview player engine + player faces
+js/trackmodal.js            the track window: words, video, platforms
 js/quiz.js                  quiz engine
 js/main.js                  rendering, member modal, search
 assets/letters/{warm,mono}/ 52 cut paper letters

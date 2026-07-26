@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Cigarettes After Sex — Fan Sanctuary</title>
-<meta name="description" content="A fan-made sanctuary for Cigarettes After Sex: cut-paper collage, full discography, synced lyric timecodes, public music APIs and four quizzes." />
+<meta name="description" content="A fan-made sanctuary for Cigarettes After Sex: cut-paper collage, full discography, lyric timecodes, 30-second previews and four quizzes." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
@@ -22,7 +22,6 @@
     <li><a href="#members">Members</a></li>
     <li><a href="#discography">Albums</a></li>
     <li><a href="#singles">Singles</a></li>
-    <li><a href="#lyrics">Lyrics &amp; API</a></li>
     <li><a href="#quiz">Quizzes</a></li>
   </ul>
 </nav>
@@ -37,7 +36,7 @@
     <p class="hero-sub">Ambient pop. Slowcore. Desire wrapped in reverb — cut out and taped back together.</p>
     <div class="hero-cta">
       <a href="#discography" class="btn solid">Enter the discography</a>
-      <a href="#lyrics" class="btn">Synced lyrics &amp; API</a>
+      <a href="#members" class="btn">Meet the line-up</a>
     </div>
   </div>
 </header>
@@ -54,13 +53,14 @@
         <p>Cigarettes After Sex formed in 2008 in El Paso, Texas, around songwriter Greg Gonzalez. The name came from a private moment — intimacy, then the quiet ritual afterwards.</p>
         <p>The earliest recordings happened inside a four-story stairwell at the University of Texas at El Paso. That building is the reverb you hear on the <em>I.</em> EP (2012), and on “Nothing’s Gonna Hurt You Baby”, a song that sat almost unheard until recommendation algorithms found it years later.</p>
         <p>After a move to Brooklyn came the single “Affection” (2015) and then the self-titled debut in 2017 on Partisan Records. Hushed androgynous vocals, endless reverb, lyrics about wanting people — it became a global mood. <em>Cry</em> followed in 2019, written in a villa on Mallorca. <em>X’s</em> arrived in 2024.</p>
+        <p>Before any of that there were the El Paso years: the <em>I Can See You</em> EP (2009) and the long demo album <em>Romans 13:9</em> (2011), which circulated among fans rather than being pressed.</p>
         <p>Current core: Greg Gonzalez (vocals, guitar), Randall Miller (bass), Jacob Tomsky (drums).</p>
         <div class="fact-strip">
           <span class="fact" style="--r:-1.2deg">Ambient pop</span>
           <span class="fact" style="--r:.8deg">Dream pop</span>
           <span class="fact" style="--r:-.6deg">Slowcore</span>
           <span class="fact" style="--r:1.1deg">Partisan Records</span>
-          <span class="fact" style="--r:-.9deg">5 releases</span>
+          <span class="fact" style="--r:-.9deg">6 releases</span>
           <span class="fact" style="--r:.5deg">18 singles</span>
         </div>
       </div>
@@ -91,6 +91,7 @@
     <div class="section-head reveal">
       <div class="eyebrow">Complete Discography</div>
       <h2 class="ransom lg" data-ransom-static="Albums and Tracks"></h2>
+      <p class="lede">Tap any track for the words, the video and everywhere it plays. Each record has its own player.</p>
     </div>
     <div class="search-row reveal">
       <div class="search-wrap">
@@ -112,122 +113,6 @@
       <p class="lede">Newest first — including the covers: Brooks &amp; Dunn, REO Speedwagon, Radiohead, The Doors.</p>
     </div>
     <div class="singles-grid" id="singlesGrid"></div>
-  </div>
-</section>
-
-<!-- ============================= LYRICS + API ============================= -->
-<section id="lyrics" class="bg-collage bg-c4" style="--collage-op:.07">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">Data</div>
-      <h2 class="ransom lg" data-ransom-static="Lyrics and API"></h2>
-      <p class="lede">Lyric lines with timecodes, a karaoke playhead, and every public music API this page can talk to — with a live request console.</p>
-    </div>
-
-    <div class="api-tabs reveal">
-      <button type="button" class="tab active" data-pane="player" style="--r:-.8deg">Synced lyrics</button>
-      <button type="button" class="tab" data-pane="endpoints" style="--r:.6deg">API endpoints</button>
-      <button type="button" class="tab" data-pane="console" style="--r:-.4deg">Live console</button>
-    </div>
-
-    <!-- ---------- pane: player ---------- -->
-    <div data-pane-body="player">
-      <div class="track-chips" id="trackChips"></div>
-      <div class="lyrics-shell">
-        <div class="player paper torn-b reveal">
-          <span class="tape tl" aria-hidden="true"></span>
-          <div class="now">Now cueing</div>
-          <h3 id="nowTrack">—</h3>
-          <p class="from" id="nowFrom">—</p>
-
-          <div class="seek" id="seek" role="slider" tabindex="0"
-               aria-label="Seek within the track" aria-valuemin="0" aria-valuemax="100">
-            <span class="fill" id="seekFill"></span>
-            <span class="head" id="seekHead"></span>
-          </div>
-          <div class="times"><span id="tNow">0:00</span><span id="tEnd">0:00</span></div>
-
-          <div class="transport">
-            <button type="button" class="tbtn" id="btnPrevLine" aria-label="Previous line">|&lt;</button>
-            <button type="button" class="tbtn" id="btnBack" aria-label="Back 10 seconds">&#8810;</button>
-            <button type="button" class="tbtn play" id="btnPlay" aria-label="Play">&#9654;</button>
-            <button type="button" class="tbtn" id="btnFwd" aria-label="Forward 10 seconds">&#8811;</button>
-            <button type="button" class="tbtn" id="btnNextLine" aria-label="Next line">&gt;|</button>
-          </div>
-
-          <p class="player-note">
-            Virtual playhead — a static page has no audio stream, so the clock
-            runs on its own and lights the line whose timecode has passed.
-            Use the Spotify players in the discography for sound.
-          </p>
-        </div>
-
-        <div class="lrc-col">
-          <div class="lrc paper torn-t reveal">
-            <div class="status-line">
-              <span class="dot-i ok"></span>
-              <span>source: <span id="lrcSource">bundled excerpt</span></span>
-            </div>
-            <div id="lrcBody"></div>
-          </div>
-          <div class="lyrics-toolbar">
-            <button type="button" class="btn ghost" id="btnFetchLrc">Fetch full LRC from LRCLIB</button>
-            <button type="button" class="btn ghost" id="btnCopyLrc">Copy .lrc</button>
-            <button type="button" class="btn ghost" id="btnDownloadLrc">Download .lrc</button>
-          </div>
-          <div class="status-line" id="lrcNote" style="margin-top:.9rem"></div>
-          <p class="excerpt-note">
-            The bundled lines are <strong>short signature excerpts</strong> with approximate
-            fan timings — enough to follow the shape of a song, not a full lyric sheet.
-            Press <em>Fetch full LRC</em> to pull real synced lyrics from LRCLIB when you are online.
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ---------- pane: endpoints ---------- -->
-    <div data-pane-body="endpoints" hidden>
-      <div class="api-grid" id="apiGrid"></div>
-    </div>
-
-    <!-- ---------- pane: console ---------- -->
-    <div data-pane-body="console" hidden>
-      <div class="console-shell">
-        <div class="console-form paper reveal">
-          <span class="tape tr" aria-hidden="true"></span>
-          <div class="field">
-            <label for="apiSelect">Endpoint</label>
-            <select id="apiSelect"></select>
-          </div>
-          <div class="field">
-            <label for="qArtist">Artist</label>
-            <input type="text" id="qArtist" value="Cigarettes After Sex" />
-          </div>
-          <div class="field">
-            <label for="qTrack">Track</label>
-            <input type="text" id="qTrack" value="Apocalypse" />
-          </div>
-          <label style="font-family:var(--type);font-size:.56rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-dim)">Request URL</label>
-          <div class="url-preview" id="urlPreview"></div>
-          <div style="display:flex;gap:.6rem;flex-wrap:wrap">
-            <button type="button" class="btn solid" id="btnRun">Send request</button>
-            <button type="button" class="btn ghost" id="btnDataset">Download this site’s dataset</button>
-          </div>
-        </div>
-        <div class="console-out paper reveal">
-          <div class="status-line" id="consoleStatus"><span class="dot-i"></span> idle</div>
-          <pre class="out" id="consoleOut">Pick an endpoint and send a request.
-
-Every API listed here is keyless. Requests go straight from your
-browser, so a host that does not send CORS headers will refuse —
-that is a browser rule, not a broken URL.</pre>
-          <p class="hint-box">
-            Serve the folder over http:// rather than opening the file directly
-            for the best results — <code>python3 -m http.server</code> is enough.
-          </p>
-        </div>
-      </div>
-    </div>
   </div>
 </section>
 
@@ -279,6 +164,51 @@ that is a browser rule, not a broken URL.</pre>
   <div class="footer-xoxo"><img id="footerXoxo" src="" alt="XOXO cut from paper letters" /></div>
 </footer>
 
+<!-- ============================= TRACK MODAL ============================= -->
+<div class="modal-overlay" id="trackModal" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Track">
+  <div class="modal track-modal">
+    <button type="button" class="modal-close" id="tmClose" aria-label="Close track">&times;</button>
+
+    <div class="tm-head">
+      <div class="tm-eyebrow" id="tmEyebrow"></div>
+      <h3 class="tm-title" id="tmTitle"></h3>
+      <div class="tm-dur" id="tmDur"></div>
+    </div>
+
+    <div class="cas-player compact" id="tmPlayer"></div>
+
+    <div class="tm-section">
+      <div class="tm-legend">
+        <span>Words</span>
+        <span class="tm-follow-wrap">
+          <span class="tm-follow-time" id="tmFollowTime">0:00 / 0:00</span>
+          <button type="button" class="tm-follow" id="tmFollow">Follow along</button>
+        </span>
+      </div>
+      <div class="tm-lyrics" id="tmLyrics"></div>
+      <p class="tm-foot" id="tmLyricsFoot" hidden>
+        Short signature lines with approximate timings — tap a line to jump the marker.
+      </p>
+    </div>
+
+    <div class="tm-section">
+      <div class="tm-legend"><span>Watch</span></div>
+      <a class="btn solid tm-video" id="tmVideo" target="_blank" rel="noopener">Video on YouTube →</a>
+    </div>
+
+    <div class="tm-section">
+      <div class="tm-legend"><span>Listen in full</span></div>
+      <div class="tm-platforms" id="tmPlatforms"></div>
+    </div>
+
+    <div class="modal-nav">
+      <button type="button" class="btn ghost" id="tmPrev">← Previous track</button>
+      <button type="button" class="btn ghost" id="tmNext">Next track →</button>
+    </div>
+    <p class="modal-hint">Esc or a click outside closes · ← → move through the record</p>
+  </div>
+</div>
+
 <!-- ============================= MEMBER MODAL ============================= -->
 <div class="modal-overlay" id="memberModal" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Member profile">
   <div class="modal">
@@ -303,7 +233,8 @@ that is a browser rule, not a broken URL.</pre>
 <script src="js/data.js"></script>
 <script src="js/quizzes.js"></script>
 <script src="js/collage.js"></script>
-<script src="js/lyrics.js"></script>
+<script src="js/player.js"></script>
+<script src="js/trackmodal.js"></script>
 <script src="js/quiz.js"></script>
 <script src="js/main.js"></script>
 </body>

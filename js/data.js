@@ -1,7 +1,7 @@
 /* ============================================================
    CAS Fan Sanctuary — data layer
-   Members, discography, singles, timecoded lyric excerpts,
-   API endpoint catalogue.
+   Members, discography, singles, timecoded lyric excerpts
+   and the platform links each track opens on.
    ============================================================ */
 
 const MEMBERS = [
@@ -134,8 +134,35 @@ const ALBUMS = [
     type: 'EP (self-released)',
     spotifyAlbum: null,
     cover: { art: 'assets/cut/vinyl.webp', tone: 'warm' },
-    note: 'The first self-released EP, pressed while the project was still entirely in El Paso.',
-    tracks: [{ name: 'I Can See You', duration: '—' }]
+    note: 'The first self-released EP, made while the project was still entirely in El Paso.',
+    tracks: [
+      { name: 'I Can See You', duration: '—' },
+      { name: 'Never Let Me Go', duration: '—' },
+      { name: 'Your Hair Should Be Black and Long', duration: '—' },
+      { name: "Where's My Heart", duration: '—' }
+    ]
+  },
+  {
+    id: 'romans',
+    title: 'Romans 13:9',
+    year: 2011,
+    type: 'Demo album',
+    spotifyAlbum: null,
+    cover: { art: 'assets/cut/cig_heart.webp', tone: 'warm' },
+    note: 'A long, largely unreleased demo album from the El Paso years — the writing that led into the stairwell sessions. Circulated among fans rather than pressed.',
+    tracks: [
+      { name: 'Our Last Day', duration: '—' },
+      { name: 'The Night Train', duration: '—' },
+      { name: 'You', duration: '—' },
+      { name: "Please Don't Cry", duration: '—' },
+      { name: 'Woman with a Crow (The Last Train)', duration: '—' },
+      { name: 'Sing', duration: '—' },
+      { name: 'Lay Here', duration: '—' },
+      { name: 'Every Light Is Out', duration: '—' },
+      { name: "I Can't Stop These Tears from Falling", duration: '—' },
+      { name: 'Run Towards Your Fears', duration: '—' },
+      { name: 'Do You Know Where I Should Go?', duration: '—' }
+    ]
   },
   {
     id: 'i',
@@ -241,8 +268,8 @@ const SINGLES = [
    Timecoded lyric EXCERPTS.
    Short signature lines only, for identification/study — the
    full lyrics are not reproduced here. Timings are approximate
-   fan transcriptions; use the LRCLIB button in the API panel to
-   pull real synced lyrics when you are online.
+   fan transcriptions used by the follow-along marker in the
+   track window.
    ------------------------------------------------------------ */
 const LYRICS = [
   {
@@ -323,138 +350,39 @@ const LYRICS = [
 ];
 
 /* ------------------------------------------------------------
-   Public API catalogue — everything the lyrics panel can talk to.
+   Where to hear each track. Search links rather than hard-coded
+   ids: they resolve for every release without going stale.
    ------------------------------------------------------------ */
-const API_CATALOGUE = [
-  {
-    id: 'lrclib',
-    name: 'LRCLIB',
-    tag: 'Synced lyrics · no key',
-    base: 'https://lrclib.net/api',
-    desc: 'Open lyrics database. Returns both plain lyrics and <code>syncedLyrics</code> in LRC format — i.e. every line prefixed with a <code>[mm:ss.xx]</code> timecode, which is exactly what the player above consumes.',
-    endpoints: [
-      { m: 'GET', p: '/get?artist_name={artist}&track_name={track}', d: 'Exact match. Optional <code>album_name</code> and <code>duration</code> (seconds) sharpen the result.' },
-      { m: 'GET', p: '/get/{id}', d: 'Fetch one record by LRCLIB id.' },
-      { m: 'GET', p: '/search?q={query}', d: 'Fuzzy search, returns an array of candidates.' },
-      { m: 'GET', p: '/search?artist_name={artist}&track_name={track}', d: 'Field-scoped search.' }
-    ],
-    sample: `{
-  "id": 3396226,
-  "trackName": "Apocalypse",
-  "artistName": "Cigarettes After Sex",
-  "albumName": "Cigarettes After Sex",
-  "duration": 290,
-  "instrumental": false,
-  "plainLyrics": "Your lips, my lips…",
-  "syncedLyrics": "[00:34.00] Your lips, my lips…"
-}`,
-    live: true
-  },
-  {
-    id: 'itunes',
-    name: 'iTunes Search API',
-    tag: 'Artwork · 30s previews · no key',
-    base: 'https://itunes.apple.com',
-    desc: 'Apple’s public catalogue search. Useful for high-resolution cover art (<code>artworkUrl100</code> — swap <code>100x100</code> for <code>1000x1000</code>) and a 30-second <code>previewUrl</code> MP3 you can actually attach to an <code>&lt;audio&gt;</code> element.',
-    endpoints: [
-      { m: 'GET', p: '/search?term={query}&entity=song&limit=25', d: 'Track search.' },
-      { m: 'GET', p: '/search?term={query}&entity=album', d: 'Release search.' },
-      { m: 'GET', p: '/lookup?id={collectionId}&entity=song', d: 'Full track list for one release.' }
-    ],
-    sample: `{
-  "resultCount": 1,
-  "results": [{
-    "trackName": "Apocalypse",
-    "collectionName": "Cigarettes After Sex",
-    "trackTimeMillis": 290000,
-    "artworkUrl100": "…/100x100bb.jpg",
-    "previewUrl": "…/preview.m4a"
-  }]
-}`,
-    live: true
-  },
-  {
-    id: 'musicbrainz',
-    name: 'MusicBrainz',
-    tag: 'Release metadata · no key',
-    base: 'https://musicbrainz.org/ws/2',
-    desc: 'The open music encyclopaedia. Canonical release groups, dates, labels and credits. Send a descriptive <code>User-Agent</code> and stay under ~1 request/second.',
-    endpoints: [
-      { m: 'GET', p: '/artist?query={name}&fmt=json', d: 'Resolve the artist MBID.' },
-      { m: 'GET', p: '/release-group?artist={mbid}&type=album&fmt=json', d: 'Every album release group.' },
-      { m: 'GET', p: '/recording?query=artist:{name}&fmt=json', d: 'Recordings, with lengths in ms.' }
-    ],
-    sample: `{
-  "release-groups": [{
-    "title": "X's",
-    "first-release-date": "2024-07-12",
-    "primary-type": "Album"
-  }]
-}`,
-    live: true
-  },
-  {
-    id: 'coverart',
-    name: 'Cover Art Archive',
-    tag: 'Cover art · no key',
-    base: 'https://coverartarchive.org',
-    desc: 'Cover images keyed by MusicBrainz release / release-group MBID. Pairs directly with the MusicBrainz lookups above.',
-    endpoints: [
-      { m: 'GET', p: '/release-group/{mbid}', d: 'JSON index of available images.' },
-      { m: 'GET', p: '/release-group/{mbid}/front-500', d: 'Front cover, 500 px, as an image.' }
-    ],
-    sample: `{ "images": [{ "front": true, "image": "https://…/front.jpg" }] }`,
-    live: true
-  },
-  {
-    id: 'spotify',
-    name: 'Spotify Embed / oEmbed',
-    tag: 'Playback · no key',
-    base: 'https://open.spotify.com',
-    desc: 'The only no-key way to get real playback in a static page. The album players in the discography section are these iframes. oEmbed returns the ready-made embed HTML for any Spotify URL.',
-    endpoints: [
-      { m: 'IFRAME', p: '/embed/album/{albumId}', d: 'Album player.' },
-      { m: 'IFRAME', p: '/embed/track/{trackId}', d: 'Single-track player.' },
-      { m: 'GET', p: 'https://open.spotify.com/oembed?url={spotifyUrl}', d: 'Embed metadata as JSON.' }
-    ],
-    sample: `{ "title": "Apocalypse", "thumbnail_url": "…", "html": "<iframe …>" }`,
-    live: false
-  }
+const PLATFORMS = [
+  { id: 'spotify', name: 'Spotify',
+    url: (t) => `https://open.spotify.com/search/${encodeURIComponent(t + ' Cigarettes After Sex')}` },
+  { id: 'apple', name: 'Apple Music',
+    url: (t) => `https://music.apple.com/search?term=${encodeURIComponent(t + ' Cigarettes After Sex')}` },
+  { id: 'ytmusic', name: 'YouTube Music',
+    url: (t) => `https://music.youtube.com/search?q=${encodeURIComponent(t + ' Cigarettes After Sex')}` },
+  { id: 'bandcamp', name: 'Bandcamp',
+    url: () => 'https://cigarettesaftersex.bandcamp.com' },
+  { id: 'deezer', name: 'Deezer',
+    url: (t) => `https://www.deezer.com/search/${encodeURIComponent(t + ' Cigarettes After Sex')}` }
 ];
 
-/* Local dataset export — the site's own data, as an API would serve it. */
-function buildDataset() {
-  return {
-    generated: new Date().toISOString(),
-    source: 'CAS Fan Sanctuary — fan-made, unofficial',
-    artist: {
-      name: 'Cigarettes After Sex',
-      formed: 2008,
-      origin: 'El Paso, Texas, United States',
-      based: 'Brooklyn, New York',
-      genres: ['ambient pop', 'dream pop', 'slowcore', 'indie pop'],
-      label: 'Partisan Records'
-    },
-    members: MEMBERS.map(m => ({
-      name: m.name, role: m.role, status: m.status,
-      years: m.years, instruments: m.instruments
-    })),
-    releases: ALBUMS.map(a => ({
-      id: a.id, title: a.title, year: a.year, type: a.type,
-      spotifyAlbumId: a.spotifyAlbum,
-      trackCount: a.tracks.length,
-      tracks: a.tracks.map((t, i) => ({
-        no: i + 1, name: t.name, duration: t.duration,
-        spotifyTrackId: t.id || null
-      }))
-    })),
-    singles: SINGLES,
-    lyricExcerpts: LYRICS.map(l => ({
-      track: l.track, album: l.album, duration: l.duration,
-      lines: l.lines.length,
-      lrc: l.lines.map(x => `[${fmtLrc(x.t)}] ${x.text}`)
-    }))
-  };
+function videoUrl(track) {
+  return 'https://www.youtube.com/results?search_query='
+    + encodeURIComponent(`Cigarettes After Sex ${track} official video`);
+}
+
+function spotifyTrackUrl(track, id) {
+  return id
+    ? `https://open.spotify.com/track/${id}`
+    : `https://open.spotify.com/search/${encodeURIComponent(track + ' Cigarettes After Sex')}`;
+}
+
+function lyricsFor(trackName) {
+  return LYRICS.find(l => l.track.toLowerCase() === String(trackName).toLowerCase()) || null;
+}
+
+function albumOf(trackName) {
+  return ALBUMS.find(a => a.tracks.some(t => t.name.toLowerCase() === String(trackName).toLowerCase())) || null;
 }
 
 function fmtLrc(sec) {

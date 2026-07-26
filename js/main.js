@@ -188,27 +188,22 @@ function renderAlbums(filter = '') {
         <div class="album-sub">${album.year} · ${esc(album.type)}</div>
         ${album.note ? `<p class="album-note">${esc(album.note)}</p>` : ''}
         <ol class="tracklist">
-          ${tracks.map((t, i) => `
-            <li class="track">
-              <span class="track-num">${String(album.tracks.indexOf(t) + 1).padStart(2, '0')}</span>
+          ${tracks.map((t) => {
+            const i = album.tracks.indexOf(t);
+            return `
+            <li class="track" data-album="${esc(album.id)}" data-index="${i}" tabindex="0"
+                role="button" aria-label="${esc(t.name)} — open words and links">
+              <span class="track-num">${String(i + 1).padStart(2, '0')}</span>
+              <button type="button" class="track-play" data-play="${i}"
+                      aria-label="Preview ${esc(t.name)}">&#9654;</button>
               <span class="track-name">${esc(t.name)}</span>
+              ${hasLyrics(t.name) ? '<span class="track-flag">words</span>' : ''}
               <span class="track-dur">${esc(t.duration)}</span>
-              <span class="track-links">
-                ${hasLyrics(t.name) ? `<button type="button" data-lyric="${esc(t.name)}">Lyrics</button>` : ''}
-                <a href="${t.id
-                  ? `https://open.spotify.com/track/${t.id}`
-                  : `https://open.spotify.com/search/${encodeURIComponent(t.name + ' Cigarettes After Sex')}`}"
-                   target="_blank" rel="noopener">${t.id ? 'Play' : 'Find'}</a>
-              </span>
-            </li>`).join('')}
+              <span class="track-open" aria-hidden="true">open</span>
+            </li>`;
+          }).join('')}
         </ol>
-        ${album.spotifyAlbum ? `
-          <div class="spotify-embed">
-            <iframe src="https://open.spotify.com/embed/album/${album.spotifyAlbum}?theme=0"
-              width="100%" height="152" frameborder="0" loading="lazy"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              title="${esc(album.title)} on Spotify"></iframe>
-          </div>` : ''}
+        <div class="cas-player" data-album-player="${esc(album.id)}"></div>
       </div>`;
     host.appendChild(el);
   });
@@ -220,10 +215,26 @@ function renderAlbums(filter = '') {
   // cut-paper album titles
   $$('[data-ransom]', host).forEach((el, i) => ransom(el, el.dataset.ransom, { start: i }));
 
-  // "Lyrics" jumps straight into the synced player
-  $$('[data-lyric]', host).forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (typeof Lyrics !== 'undefined') Lyrics.select(btn.dataset.lyric, { scroll: true });
+  // a designed player per record, in place of any third-party embed
+  $$('[data-album-player]', host).forEach(el => {
+    el.innerHTML = playerFaceHTML({ compact: false });
+    bindPlayerFace(el, 'album', el.dataset.albumPlayer);
+  });
+
+  // the row opens the words; the ▶ button only previews
+  $$('.track', host).forEach(row => {
+    const open = () => TrackModal.open(row.dataset.album, Number(row.dataset.index));
+    row.addEventListener('click', e => {
+      if (e.target.closest('.track-play')) return;
+      open();
+    });
+    row.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+    });
+    const pb = row.querySelector('.track-play');
+    if (pb) pb.addEventListener('click', e => {
+      e.stopPropagation();
+      Player.playTrack(row.dataset.album, Number(pb.dataset.play));
     });
   });
 
@@ -272,8 +283,9 @@ document.addEventListener('DOMContentLoaded', () => {
   Modal.init();
   renderAlbums();
   renderSingles();
-  // `const Lyrics = …` is a lexical global, not a property of window
-  if (typeof Lyrics !== 'undefined') Lyrics.init();
+  // `const Player = …` is a lexical global, not a property of window
+  if (typeof Player !== 'undefined') Player.init();
+  if (typeof TrackModal !== 'undefined') TrackModal.init();
   if (typeof Quiz !== 'undefined') Quiz.init();
 
   const search = $('#searchInput');
@@ -281,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
     search.addEventListener('input', e => renderAlbums(e.target.value));
     // "/" focuses search from anywhere
     document.addEventListener('keydown', e => {
-      if (e.key === '/' && !Modal.isOpen() && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
+      if (e.key === '/' && !Modal.isOpen() && !TrackModal.isOpen() && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
         e.preventDefault(); search.focus();
       }
     });

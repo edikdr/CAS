@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cigarettes After Sex — Fan Sanctuary</title>
+<meta name="description" content="A fan-made sanctuary for Cigarettes After Sex: cut-paper collage, full discography, synced lyric timecodes, public music APIs and four quizzes." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<canvas id="ash" aria-hidden="true"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+
+<nav>
+  <a href="#top" class="brand"><span class="dot" aria-hidden="true"></span> Cigarettes After Sex</a>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#members">Members</a></li>
+    <li><a href="#discography">Albums</a></li>
+    <li><a href="#singles">Singles</a></li>
+    <li><a href="#lyrics">Lyrics &amp; API</a></li>
+    <li><a href="#quiz">Quizzes</a></li>
+  </ul>
+</nav>
+
+<!-- ============================= HERO ============================= -->
+<header class="hero" id="top">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="hero-collage" aria-hidden="true"></div>
+  <div class="hero-inner">
+    <div class="hero-tag">EST. 2008 · EL PASO, TEXAS</div>
+    <h1 class="ransom xl" id="heroTitle"></h1>
+    <p class="hero-sub">Ambient pop. Slowcore. Desire wrapped in reverb — cut out and taped back together.</p>
+    <div class="hero-cta">
+      <a href="#discography" class="btn solid">Enter the discography</a>
+      <a href="#lyrics" class="btn">Synced lyrics &amp; API</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============================= ABOUT ============================= -->
+<section id="about" class="bg-collage bg-c4" style="--collage-op:.08">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">The Band</div>
+      <h2 class="ransom lg" data-ransom-static="El Paso to Everywhere"></h2>
+    </div>
+    <div class="about-grid">
+      <div class="about-text reveal">
+        <p>Cigarettes After Sex formed in 2008 in El Paso, Texas, around songwriter Greg Gonzalez. The name came from a private moment — intimacy, then the quiet ritual afterwards.</p>
+        <p>The earliest recordings happened inside a four-story stairwell at the University of Texas at El Paso. That building is the reverb you hear on the <em>I.</em> EP (2012), and on “Nothing’s Gonna Hurt You Baby”, a song that sat almost unheard until recommendation algorithms found it years later.</p>
+        <p>After a move to Brooklyn came the single “Affection” (2015) and then the self-titled debut in 2017 on Partisan Records. Hushed androgynous vocals, endless reverb, lyrics about wanting people — it became a global mood. <em>Cry</em> followed in 2019, written in a villa on Mallorca. <em>X’s</em> arrived in 2024.</p>
+        <p>Current core: Greg Gonzalez (vocals, guitar), Randall Miller (bass), Jacob Tomsky (drums).</p>
+        <div class="fact-strip">
+          <span class="fact" style="--r:-1.2deg">Ambient pop</span>
+          <span class="fact" style="--r:.8deg">Dream pop</span>
+          <span class="fact" style="--r:-.6deg">Slowcore</span>
+          <span class="fact" style="--r:1.1deg">Partisan Records</span>
+          <span class="fact" style="--r:-.9deg">5 releases</span>
+          <span class="fact" style="--r:.5deg">18 singles</span>
+        </div>
+      </div>
+      <div class="about-visual reveal">
+        <figure class="pin p1"><img src="assets/bg/collage1.webp" alt="Fan collage of Cigarettes After Sex imagery" loading="lazy" /></figure>
+        <figure class="pin p2"><img src="assets/bg/collage5.webp" alt="Cut-and-paste collage of album references" loading="lazy" /></figure>
+        <figure class="pin p3"><img src="assets/cut/polaroid_xs.webp" alt="Polaroid of the X's album sleeve" loading="lazy" /></figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= MEMBERS ============================= -->
+<section id="members" class="bg-collage bg-c2" style="--collage-op:.1">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">The People</div>
+      <h2 class="ransom lg" data-ransom-static="Members"></h2>
+      <p class="lede">Eight names have passed through the line-up. Open any card for the full profile — photo, role, years and the longer story.</p>
+    </div>
+    <div class="members-grid" id="membersGrid"></div>
+  </div>
+</section>
+
+<!-- ============================= DISCOGRAPHY ============================= -->
+<section id="discography" class="bg-collage bg-c3" style="--collage-op:.07">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Complete Discography</div>
+      <h2 class="ransom lg" data-ransom-static="Albums and Tracks"></h2>
+    </div>
+    <div class="search-row reveal">
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Search tracks, albums or a year…  ( press / )"
+               aria-label="Search tracks and albums" />
+        <div class="search-meta" id="searchMeta"></div>
+      </div>
+    </div>
+    <div class="albums" id="albumsList"></div>
+  </div>
+</section>
+
+<!-- ============================= SINGLES ============================= -->
+<section id="singles" class="bg-collage bg-c5" style="--collage-op:.07">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Singles &amp; Covers</div>
+      <h2 class="ransom lg" data-ransom-static="Singles and Covers"></h2>
+      <p class="lede">Newest first — including the covers: Brooks &amp; Dunn, REO Speedwagon, Radiohead, The Doors.</p>
+    </div>
+    <div class="singles-grid" id="singlesGrid"></div>
+  </div>
+</section>
+
+<!-- ============================= LYRICS + API ============================= -->
+<section id="lyrics" class="bg-collage bg-c4" style="--collage-op:.07">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Data</div>
+      <h2 class="ransom lg" data-ransom-static="Lyrics and API"></h2>
+      <p class="lede">Lyric lines with timecodes, a karaoke playhead, and every public music API this page can talk to — with a live request console.</p>
+    </div>
+
+    <div class="api-tabs reveal">
+      <button type="button" class="tab active" data-pane="player" style="--r:-.8deg">Synced lyrics</button>
+      <button type="button" class="tab" data-pane="endpoints" style="--r:.6deg">API endpoints</button>
+      <button type="button" class="tab" data-pane="console" style="--r:-.4deg">Live console</button>
+    </div>
+
+    <!-- ---------- pane: player ---------- -->
+    <div data-pane-body="player">
+      <div class="track-chips" id="trackChips"></div>
+      <div class="lyrics-shell">
+        <div class="player paper torn-b reveal">
+          <span class="tape tl" aria-hidden="true"></span>
+          <div class="now">Now cueing</div>
+          <h3 id="nowTrack">—</h3>
+          <p class="from" id="nowFrom">—</p>
+
+          <div class="seek" id="seek" role="slider" tabindex="0"
+               aria-label="Seek within the track" aria-valuemin="0" aria-valuemax="100">
+            <span class="fill" id="seekFill"></span>
+            <span class="head" id="seekHead"></span>
+          </div>
+          <div class="times"><span id="tNow">0:00</span><span id="tEnd">0:00</span></div>
+
+          <div class="transport">
+            <button type="button" class="tbtn" id="btnPrevLine" aria-label="Previous line">|&lt;</button>
+            <button type="button" class="tbtn" id="btnBack" aria-label="Back 10 seconds">&#8810;</button>
+            <button type="button" class="tbtn play" id="btnPlay" aria-label="Play">&#9654;</button>
+            <button type="button" class="tbtn" id="btnFwd" aria-label="Forward 10 seconds">&#8811;</button>
+            <button type="button" class="tbtn" id="btnNextLine" aria-label="Next line">&gt;|</button>
+          </div>
+
+          <p class="player-note">
+            Virtual playhead — a static page has no audio stream, so the clock
+            runs on its own and lights the line whose timecode has passed.
+            Use the Spotify players in the discography for sound.
+          </p>
+        </div>
+
+        <div class="lrc-col">
+          <div class="lrc paper torn-t reveal">
+            <div class="status-line">
+              <span class="dot-i ok"></span>
+              <span>source: <span id="lrcSource">bundled excerpt</span></span>
+            </div>
+            <div id="lrcBody"></div>
+          </div>
+          <div class="lyrics-toolbar">
+            <button type="button" class="btn ghost" id="btnFetchLrc">Fetch full LRC from LRCLIB</button>
+            <button type="button" class="btn ghost" id="btnCopyLrc">Copy .lrc</button>
+            <button type="button" class="btn ghost" id="btnDownloadLrc">Download .lrc</button>
+          </div>
+          <div class="status-line" id="lrcNote" style="margin-top:.9rem"></div>
+          <p class="excerpt-note">
+            The bundled lines are <strong>short signature excerpts</strong> with approximate
+            fan timings — enough to follow the shape of a song, not a full lyric sheet.
+            Press <em>Fetch full LRC</em> to pull real synced lyrics from LRCLIB when you are online.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- pane: endpoints ---------- -->
+    <div data-pane-body="endpoints" hidden>
+      <div class="api-grid" id="apiGrid"></div>
+    </div>
+
+    <!-- ---------- pane: console ---------- -->
+    <div data-pane-body="console" hidden>
+      <div class="console-shell">
+        <div class="console-form paper reveal">
+          <span class="tape tr" aria-hidden="true"></span>
+          <div class="field">
+            <label for="apiSelect">Endpoint</label>
+            <select id="apiSelect"></select>
+          </div>
+          <div class="field">
+            <label for="qArtist">Artist</label>
+            <input type="text" id="qArtist" value="Cigarettes After Sex" />
+          </div>
+          <div class="field">
+            <label for="qTrack">Track</label>
+            <input type="text" id="qTrack" value="Apocalypse" />
+          </div>
+          <label style="font-family:var(--type);font-size:.56rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-dim)">Request URL</label>
+          <div class="url-preview" id="urlPreview"></div>
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+            <button type="button" class="btn solid" id="btnRun">Send request</button>
+            <button type="button" class="btn ghost" id="btnDataset">Download this site’s dataset</button>
+          </div>
+        </div>
+        <div class="console-out paper reveal">
+          <div class="status-line" id="consoleStatus"><span class="dot-i"></span> idle</div>
+          <pre class="out" id="consoleOut">Pick an endpoint and send a request.
+
+Every API listed here is keyless. Requests go straight from your
+browser, so a host that does not send CORS headers will refuse —
+that is a browser rule, not a broken URL.</pre>
+          <p class="hint-box">
+            Serve the folder over http:// rather than opening the file directly
+            for the best results — <code>python3 -m http.server</code> is enough.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= QUIZZES ============================= -->
+<section id="quiz" class="bg-collage bg-c1" style="--collage-op:.08">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Interactive</div>
+      <h2 class="ransom lg" data-ransom-static="How well do you know them"></h2>
+      <p class="lede">Four quizzes, 63 questions. Pick a deck.</p>
+    </div>
+
+    <div class="quiz-tabs reveal" id="quizTabs"></div>
+
+    <div class="quiz-card paper torn-b reveal">
+      <span class="tape tl" aria-hidden="true"></span>
+      <span class="tape br" aria-hidden="true"></span>
+
+      <div id="quizStage">
+        <div class="quiz-meta">
+          <span id="quizWhich">—</span>
+          <span id="quizCount">0 / 0</span>
+        </div>
+        <div class="quiz-bar"><span id="quizBarFill"></span></div>
+        <p class="quiz-q" id="quizQuestion">Loading…</p>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-verdict" id="quizVerdict"></div>
+        <div class="quiz-nav">
+          <button type="button" class="btn ghost" id="quizPrev">← Prev</button>
+          <button type="button" class="btn" id="quizNext">Next →</button>
+        </div>
+        <p class="modal-hint" id="quizBlurb"></p>
+      </div>
+
+      <div class="quiz-done" id="quizDone" hidden>
+        <div class="quiz-score" id="quizFinalScore">0 / 0</div>
+        <p id="quizFinalWord"></p>
+        <button type="button" class="btn solid" id="quizRestart">Run it again</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= FOOTER ============================= -->
+<footer>
+  <p>Fan-made sanctuary. Not affiliated with the band or Partisan Records.</p>
+  <p>All music rights belong to Cigarettes After Sex / Partisan Records. Lyric lines appear as short excerpts for identification only.</p>
+  <p>Collage built from fan artwork · letters scanned from a ransom-note alphabet sheet</p>
+  <div class="footer-xoxo"><img id="footerXoxo" src="" alt="XOXO cut from paper letters" /></div>
+</footer>
+
+<!-- ============================= MEMBER MODAL ============================= -->
+<div class="modal-overlay" id="memberModal" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Member profile">
+  <div class="modal">
+    <button type="button" class="modal-close" id="modalClose" aria-label="Close profile">&times;</button>
+    <div class="modal-figure" id="modalFigure"></div>
+    <div class="modal-body">
+      <div class="modal-role" id="modalRole"></div>
+      <h3 class="modal-name" id="modalName"></h3>
+      <p class="modal-lead" id="modalLead"></p>
+      <div class="modal-text" id="modalText"></div>
+      <dl class="modal-meta" id="modalMeta"></dl>
+      <div class="modal-nav">
+        <button type="button" class="btn ghost" id="modalPrev">← Previous</button>
+        <button type="button" class="btn ghost" id="modalNext">Next →</button>
+      </div>
+      <p class="modal-hint">Esc or a click outside closes · ← → walks the line-up</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/assets.js"></script>
+<script src="js/data.js"></script>
+<script src="js/quizzes.js"></script>
+<script src="js/collage.js"></script>
+<script src="js/lyrics.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -257,15 +257,19 @@ function renderSingles() {
   if (!host) return;
   host.innerHTML = '';
   [...SINGLES].reverse().forEach((s, i) => {
-    const card = document.createElement('div');
+    const card = document.createElement('button');
+    card.type = 'button';
     card.className = 'single-card reveal';
     card.style.setProperty('--tilt', ((i % 4) - 1.5) * 0.4 + 'deg');
+    card.setAttribute('aria-label', `Open ${s.title}`);
     card.innerHTML = `
       <div class="yr">${s.year}</div>
       <h4>${esc(s.title)}</h4>
       ${s.note ? `<p class="note">${esc(s.note)}</p>` : ''}
-      <a class="go" href="https://open.spotify.com/search/${encodeURIComponent(s.title + ' Cigarettes After Sex')}"
-         target="_blank" rel="noopener">Open on Spotify →</a>`;
+      <span class="go">Words & platforms →</span>`;
+    card.addEventListener('click', () => {
+      if (typeof TrackModal !== 'undefined') TrackModal.openSingle(s.title);
+    });
     host.appendChild(card);
   });
   observeReveals(host);

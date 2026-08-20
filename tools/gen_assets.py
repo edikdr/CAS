@@ -4,12 +4,34 @@ The single-file builder rewrites the values in this map to data URIs."""
 import pathlib, json
 
 root = pathlib.Path(__file__).resolve().parent.parent
+
+# Fallbacks for keys the page asks for that have no file of their own: each
+# one stands in for another cut-out. They are declared here rather than left
+# in the generated file by hand, because regenerating would silently drop them
+# and the collage would come up short a few pieces with only a console warning.
+# A real file of the right name always wins — these only fill gaps.
+ALIASES = {
+    'bg/stage':             'assets/bg/collage3.webp',
+    'cut/cry_player':       'assets/cut/album_couple.webp',
+    'cut/fingerprint_heart': 'assets/cut/heart_anatomy.webp',
+    'cut/stars_red':        'assets/cut/stars_blue.webp',
+}
+
 files = sorted(p for p in (root / 'assets').rglob('*.webp'))
 entries = []
 for p in files:
     rel = p.relative_to(root).as_posix()          # assets/cut/eye.webp
     key = rel[len('assets/'):].rsplit('.', 1)[0]  # cut/eye
     entries.append((key, rel))
+
+have = {k for k, _ in entries}
+for key, rel in ALIASES.items():
+    if key in have:
+        continue                                  # the real cut-out exists
+    if not (root / rel).exists():
+        raise SystemExit(f'alias {key!r} points at missing file {rel!r}')
+    entries.append((key, rel))
+entries.sort()
 
 lines = [
     '/* ============================================================',

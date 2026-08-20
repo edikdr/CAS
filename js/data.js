@@ -358,6 +358,8 @@ const PLATFORMS = [
     url: (t) => `https://open.spotify.com/search/${encodeURIComponent(t + ' Cigarettes After Sex')}` },
   { id: 'apple', name: 'Apple Music',
     url: (t) => `https://music.apple.com/search?term=${encodeURIComponent(t + ' Cigarettes After Sex')}` },
+  { id: 'itunes', name: 'iTunes',
+    url: (t) => `https://itunes.apple.com/search?term=${encodeURIComponent(t + ' Cigarettes After Sex')}` },
   { id: 'ytmusic', name: 'YouTube Music',
     url: (t) => `https://music.youtube.com/search?q=${encodeURIComponent(t + ' Cigarettes After Sex')}` },
   { id: 'bandcamp', name: 'Bandcamp',
@@ -377,8 +379,130 @@ function spotifyTrackUrl(track, id) {
     : `https://open.spotify.com/search/${encodeURIComponent(track + ' Cigarettes After Sex')}`;
 }
 
+/* Apple's search API supports JSONP, which keeps the static archive working
+   without a server-side proxy or a secret key. */
+const _trackMetaCache = new Map();
+function iTunesJSONP(url) {
+  return new Promise((resolve, reject) => {
+    const callback = `cas_itunes_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => cleanup(new Error('iTunes timeout')), 12000);
+    function cleanup(error) {
+      clearTimeout(timer);
+      delete window[callback];
+      script.remove();
+      if (error) reject(error);
+    }
+    window[callback] = data => { cleanup(); resolve(data); };
+    script.onerror = () => cleanup(new Error('iTunes failed'));
+    script.src = `${url}${url.includes('?') ? '&' : '?'}callback=${callback}`;
+    document.head.appendChild(script);
+  });
+}
+
+async function trackMetaFor(trackName) {
+  const key = String(trackName).toLowerCase();
+  if (_trackMetaCache.has(key)) return _trackMetaCache.get(key);
+  try {
+    const data = await iTunesJSONP(`https://itunes.apple.com/search?term=${encodeURIComponent(`Cigarettes After Sex ${trackName}`)}&entity=song&limit=12`);
+    const rows = (data.results || []).filter(row => /cigarettes after sex/i.test(row.artistName || ''));
+    const exact = rows.find(row => String(row.trackName || '').toLowerCase() === key) || rows[0] || null;
+    const meta = exact ? {
+      previewUrl: exact.previewUrl || null,
+      artworkUrl: (exact.artworkUrl100 || '').replace('100x100', '600x600'),
+      trackViewUrl: exact.trackViewUrl || null,
+      collectionName: exact.collectionName || ''
+    } : null;
+    _trackMetaCache.set(key, meta);
+    return meta;
+  } catch {
+    _trackMetaCache.set(key, null);
+    return null;
+  }
+}
+
+const _lyricsCache = new Map();
+
 function lyricsFor(trackName) {
-  return LYRICS.find(l => l.track.toLowerCase() === String(trackName).toLowerCase()) || null;
+  const key = String(trackName).toLowerCase();
+  if (_lyricsCache.has(key)) return _lyricsCache.get(key);
+  const local = LYRICS.find(l => l.track.toLowerCase() === key) || null;
+  if (local) {
+    _lyricsCache.set(key, local);
+    return local;
+  }
+  return null;
+}
+
+/** Silent background load. Never surfaces source or network details in UI. */
+async function ensureLyrics(trackName) {
+  const key = String(trackName).toLowerCase();
+  if (_lyricsCache.has(key)) return _lyricsCache.get(key);
+
+  const local = LYRICS.find(l => l.track.toLowerCase() === key) || null;
+  if (local && local.lines && local.lines.length > 3) {
+    _lyricsCache.set(key, local);
+    return local;
+  }
+
+  try {
+    const q = encodeURIComponent(`${trackName} Cigarettes After Sex`);
+    const res = await fetch(`https://lrclib.net/api/search?q=${q}`, {
+      headers: { Accept: 'application/json' }
+    });
+    if (!res.ok) throw new Error('no');
+    const rows = await res.json();
+    const hit = (rows || []).find(r =>
+      /cigarettes after sex/i.test(r.artistName || '') &&
+      (r.trackName || '').toLowerCase() === key
+    ) || (rows || []).find(r => /cigarettes after sex/i.test(r.artistName || '')) || (rows || [])[0];
+
+    if (!hit) {
+      if (local) { _lyricsCache.set(key, local); return local; }
+      _lyricsCache.set(key, null);
+      return null;
+    }
+
+    let lines = [];
+    let duration = hit.duration || 240;
+    if (hit.syncedLyrics) {
+      lines = parseLrc(hit.syncedLyrics);
+    } else if (hit.plainLyrics) {
+      const plain = hit.plainLyrics.split(/\n/).map(s => s.trim()).filter(Boolean);
+      const step = duration / Math.max(1, plain.length);
+      lines = plain.map((text, i) => ({ t: Math.round(i * step * 10) / 10, text }));
+    }
+
+    if (!lines.length && local) {
+      _lyricsCache.set(key, local);
+      return local;
+    }
+
+    const set = {
+      track: hit.trackName || trackName,
+      album: hit.albumName || '',
+      duration,
+      lines: lines.slice(0, 48)
+    };
+    _lyricsCache.set(key, set);
+    return set;
+  } catch {
+    if (local) { _lyricsCache.set(key, local); return local; }
+    _lyricsCache.set(key, null);
+    return null;
+  }
+}
+
+function parseLrc(raw) {
+  const out = [];
+  const re = /\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]\s*(.+)/g;
+  let m;
+  while ((m = re.exec(raw)) !== null) {
+    const t = parseInt(m[1], 10) * 60 + parseInt(m[2], 10) + (m[3] ? parseInt(m[3].padEnd(3, '0').slice(0, 3), 10) / 1000 : 0);
+    const text = m[4].trim();
+    if (text) out.push({ t, text });
+  }
+  return out;
 }
 
 function albumOf(trackName) {

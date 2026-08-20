@@ -73,12 +73,38 @@ function ransom(el, text, opts = {}) {
 /* ------------------------------------------------------------
    Floating cut-outs. Each entry is placed inside a host section.
    x/y are percentages, w is a width in px (clamped on mobile).
+
+   An entry may also carry riders — `overlay` (a second cut-out), `glow`
+   (the coal's halo) and `ash` (flakes falling off it). All three mount
+   *inside* the entry's own box rather than beside it, so they inherit its
+   rotation and drift instead of running their own, and their x/y/w are
+   percentages of that box. That is what keeps the smoke, the glow and the
+   ash registered to the coal at every viewport width and at every point in
+   the drift cycle, without a line of layout code.
+
+   `motion: true` on a rider means it moves by itself. Those are left unmounted
+   under reduced motion: the stylesheet already stops CSS animation, but no
+   stylesheet can hold an animated image still.
    ------------------------------------------------------------ */
 const DECOR = [
   // hero
   { host: '.hero', key: 'cut/fingerprint_heart', x: 78, y: 16, w: 210, rot: -9, op: 0.5, blend: 'screen', dur: 19 },
   { host: '.hero', key: 'cut/yourlips_torn', x: 4, y: 60, w: 250, rot: 3, op: 0.42, blend: 'screen', dur: 23, sm: false },
-  { host: '.hero', key: 'cut/cig_lit', x: 30, y: 7, w: 340, rot: -2, op: 0.34, blend: 'screen', dur: 27, sm: false },
+  {
+    host: '.hero', key: 'cut/cig_lit', x: 2.7, y: 49.4, w: 615, rot: -2, op: 0.6,
+    blend: 'screen', dur: 27, sm: false,
+    // All three riders below are anchored off the coal, which sits at
+    // (82.81%, 74.35%) of the cigarette scan. The scan carries a wide
+    // transparent margin so its baked-in bloom is not cut off by the edge of
+    // the image, which is why the coal is nowhere near the corner of the frame.
+    //
+    // The plume's stem thins out to nothing, so it is registered by the last
+    // row of its own frame that still carries weight, (53.11%, 90.47%), not by
+    // the last row that carries anything — otherwise the join reads as a gap.
+    overlay: { key: 'cut/smoke', x: 65.0, y: -41.21, w: 33.53, op: 0.66, motion: true },
+    glow: { x: 82.81, y: 74.35, r: 110, motion: true },
+    ash: { x: 82.3, y: 76.13, n: 9, motion: true }
+  },
   { host: '.hero', key: 'cut/moon_sm', x: 86, y: 72, w: 130, rot: 6, op: 0.4, blend: 'screen', dur: 25, sm: false },
   { host: '.hero', key: 'cut/stars_red', x: 8, y: 12, w: 165, rot: -7, op: 0.6, dur: 21, sm: false },
 
@@ -119,6 +145,7 @@ const DECOR = [
 
 function mountDecor() {
   const parallax = [];
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   DECOR.forEach((d, idx) => {
     const host = document.querySelector(d.host);
     if (!host) return;
@@ -144,13 +171,80 @@ function mountDecor() {
     img.draggable = false;
     box.appendChild(img);
 
+    const glow = d.glow;
+    if (glow && !(glow.motion && reduced)) {
+      const g = document.createElement('span');
+      g.className = 'ember-glow';
+      g.setAttribute('aria-hidden', 'true');
+      g.style.left = glow.x + '%';
+      g.style.top = glow.y + '%';
+      g.style.setProperty('--r', glow.r + 'px');
+      box.appendChild(g);
+    }
+
+    const ash = d.ash;
+    if (ash && !(ash.motion && reduced)) {
+      const holder = document.createElement('span');
+      holder.className = 'ash-fall';
+      holder.setAttribute('aria-hidden', 'true');
+      holder.style.left = ash.x + '%';
+      holder.style.top = ash.y + '%';
+      const rnd = seeded('ash' + d.key);
+      for (let i = 0; i < (ash.n || 9); i++) {
+        const flake = document.createElement('i');
+        const dur = 6.4 + rnd() * 5.4;
+        const s = 1.8 + rnd() * 1.9;
+        flake.style.setProperty('--s', s.toFixed(1) + 'px');
+        // flakes are flat, not beads, so let each one be a little squat
+        flake.style.setProperty('--sh', (s * (0.58 + rnd() * 0.42)).toFixed(1) + 'px');
+        // ash comes off the whole rim of the coal, not one pixel of it, so give
+        // each flake its own departure point — otherwise they read as a dotted
+        // line falling from a single spot
+        flake.style.left = (rnd() * 17 - 8.5).toFixed(1) + 'px';
+        flake.style.top = (rnd() * 9 - 4.5).toFixed(1) + 'px';
+        flake.style.setProperty('--dx', (rnd() * 62 - 31).toFixed(1) + 'px');
+        // kept short: the coal sits low in the hero, and the hero clips its
+        // overflow, so a long fall would end at a hard horizontal line
+        flake.style.setProperty('--dy', (52 + rnd() * 46).toFixed(0) + 'px');
+        flake.style.setProperty('--rot', (110 + rnd() * 300).toFixed(0) + 'deg');
+        flake.style.setProperty('--o', (0.34 + rnd() * 0.46).toFixed(2));
+        flake.style.setProperty('--d', dur.toFixed(2) + 's');
+        // a negative delay starts each flake mid-fall, so the page does not
+        // open with nine of them leaving the coal in the same instant
+        flake.style.setProperty('--delay', (-rnd() * dur).toFixed(2) + 's');
+        // most of what comes off is spent ash; the odd one is still an ember
+        flake.style.setProperty('--c', rnd() < 0.26 ? '214,132,84' : '196,167,125');
+        holder.appendChild(flake);
+      }
+      box.appendChild(holder);
+    }
+
+    const ov = d.overlay;
+    if (ov && !(ov.motion && reduced)) {
+      const osrc = asset(ov.key);
+      if (osrc) {
+        const oi = document.createElement('img');
+        oi.className = 'deco-overlay';
+        oi.src = osrc;
+        oi.alt = '';
+        oi.setAttribute('aria-hidden', 'true');
+        oi.loading = 'lazy';
+        oi.draggable = false;
+        oi.style.left = ov.x + '%';
+        oi.style.top = ov.y + '%';
+        oi.style.width = ov.w + '%';
+        if (ov.op != null) oi.style.opacity = ov.op;
+        box.appendChild(oi);
+      }
+    }
+
     if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
     host.appendChild(box);
     parallax.push({ box, speed: 0.012 + (idx % 5) * 0.006 });
   });
 
   // gentle scroll parallax on top of the drift animation
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (reduced) return;
   let raf = null;
   const onScroll = () => {
     if (raf) return;

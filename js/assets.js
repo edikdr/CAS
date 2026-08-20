@@ -39,6 +39,7 @@ const ASSET = {
   "cut/people_write": "assets/cut/people_write.webp",
   "cut/pick_heals": "assets/cut/pick_heals.webp",
   "cut/polaroid_xs": "assets/cut/polaroid_xs.webp",
+  "cut/smoke": "assets/cut/smoke.webp",
   "cut/stars_blue": "assets/cut/stars_blue.webp",
   "cut/stars_red": "assets/cut/stars_red.webp",
   "cut/think_bubble": "assets/cut/think_bubble.webp",

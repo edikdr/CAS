@@ -21,17 +21,28 @@ const Player = {
   vt: 0,              // virtual playhead
   vtimer: null,
   resolving: false,
+  pendingSeek: null,  // frac to apply once metadata is ready
   cache: new Map(),   // "track" -> url | null
 
   init() {
     this.audio = new window.Audio();
-    this.audio.preload = 'none';
+    this.audio.preload = 'auto';
     this.audio.addEventListener('timeupdate', () => this.paint());
-    this.audio.addEventListener('ended', () => this.next());
+    this.audio.addEventListener('ended', () => {
+      this.audio.pause();
+      this.next();
+    });
     this.audio.addEventListener('play', () => this.paint());
     this.audio.addEventListener('pause', () => this.paint());
+    this.audio.addEventListener('loadedmetadata', () => {
+      if (this.pendingSeek != null) {
+        const frac = this.pendingSeek;
+        this.pendingSeek = null;
+        this.seek(frac);
+      }
+      this.paint();
+    });
     this.audio.addEventListener('error', () => {
-      // stream died mid-flight: fall back to the internal clock
       if (this.cue) this.startVirtual();
     });
   },
@@ -43,12 +54,17 @@ const Player = {
 
   owns(face) {
     if (!this.cue) return false;
-    if (face.scope === 'album') return face.albumId === this.cue.albumId;
-    // the modal face only drives the transport when the cued track is the one
-    // the window is actually showing — otherwise browsing a song's words while
-    // something else plays would hand it the wrong track to pause
-    return typeof TrackModal !== 'undefined'
-      && this.cue.albumId === TrackModal.albumId
+    if (face.scope === 'album') {
+      return face.albumId === this.cue.albumId;
+    }
+    // modal face
+    if (typeof TrackModal === 'undefined') return false;
+    // pure single mode: both sides have no album
+    if (this.cue.albumId == null && TrackModal.single) {
+      return this.cue.name === TrackModal.single.name;
+    }
+    // album track open in modal
+    return this.cue.albumId === TrackModal.albumId
       && this.cue.index === TrackModal.index;
   },
 
@@ -71,12 +87,13 @@ const Player = {
 
   isPlaying() {
     if (this.virtual) return this.vtimer !== null;
-    return this.audio && !this.audio.paused && !this.audio.ended;
+    return !!(this.audio && this.audio.src && !this.audio.paused && !this.audio.ended);
   },
 
   time() {
     if (this.virtual) return this.vt;
-    return Math.min(PREVIEW_LEN, this.audio ? this.audio.currentTime : 0);
+    if (!this.audio || !this.audio.src) return 0;
+    return Math.min(PREVIEW_LEN, this.audio.currentTime || 0);
   },
 
   /* ---------- cue / play ---------- */
@@ -88,21 +105,38 @@ const Player = {
     const same = this.cue && this.cue.albumId === albumId && this.cue.index === index;
     if (same) { this.toggle(); return; }
 
+    this._loadAndPlay(name, album.title, albumId, index);
+  },
+
+  async playTitle(name, albumLabel) {
+    const same = this.cue && this.cue.name === name && this.cue.albumId == null;
+    if (same) { this.toggle(); return; }
+    this._loadAndPlay(name, albumLabel || 'Single', null, 0);
+  },
+
+  async _loadAndPlay(name, albumTitle, albumId, index) {
     this.stopVirtual();
-    this.cue = { albumId, index, name, album: album.title };
+    if (this.audio) {
+      this.audio.pause();
+      this.audio.removeAttribute('src');
+      this.audio.load();
+    }
+    this.pendingSeek = null;
+    this.cue = { albumId, index, name, album: albumTitle };
+    this.virtual = false;
     this.resolving = true;
     this.paint();
 
-    const url = await this.previewUrl(name, album.title);
+    const url = await this.previewUrl(name, albumTitle);
     this.resolving = false;
-    if (!this.cue || this.cue.name !== name) return;   // superseded
+    if (!this.cue || this.cue.name !== name) return;
 
     if (url) {
       this.virtual = false;
       this.audio.src = url;
       try {
         await this.audio.play();
-      } catch {
+      } catch (e) {
         this.startVirtual();
       }
     } else {
@@ -112,27 +146,56 @@ const Player = {
   },
 
   toggle() {
+    if (!this.cue) return;
     if (this.virtual) {
-      this.vtimer ? this.stopVirtual(true) : this.startVirtual();
+      if (this.vtimer) this.stopVirtual(true);
+      else this.startVirtual();
       this.paint();
       return;
     }
-    if (!this.audio.src) return;
-    if (this.audio.paused) this.audio.play().catch(() => this.startVirtual());
-    else this.audio.pause();
+    if (!this.audio || !this.audio.src) {
+      // no stream yet — fall back to virtual so the UI still responds
+      this.startVirtual();
+      this.paint();
+      return;
+    }
+    if (this.audio.paused) {
+      this.audio.play().then(() => this.paint()).catch(() => {
+        this.startVirtual();
+        this.paint();
+      });
+    } else {
+      this.audio.pause();
+      this.paint();
+    }
   },
 
   seek(frac) {
     const t = Math.max(0, Math.min(PREVIEW_LEN, frac * PREVIEW_LEN));
-    if (this.virtual) { this.vt = t; }
-    else if (this.audio.src && isFinite(this.audio.duration)) {
-      this.audio.currentTime = Math.min(t, this.audio.duration - 0.05);
+    if (this.virtual) {
+      this.vt = t;
+      this.paint();
+      return;
     }
+    if (!this.audio || !this.audio.src) return;
+
+    // metadata may not be ready yet (common with short iTunes previews)
+    if (!isFinite(this.audio.duration) || this.audio.duration === 0) {
+      this.pendingSeek = frac;
+      // still update visual playhead so the user sees the scrub
+      this.vt = t;
+      this.paint();
+      return;
+    }
+    try {
+      this.audio.currentTime = Math.min(t, Math.max(0, this.audio.duration - 0.05));
+    } catch (_) {}
     this.paint();
   },
 
   step(dir) {
     if (!this.cue) return;
+    if (this.cue.albumId == null) return; // pure single — no neighbours
     const album = ALBUMS.find(a => a.id === this.cue.albumId);
     if (!album) return;
     const n = (this.cue.index + dir + album.tracks.length) % album.tracks.length;
@@ -141,24 +204,33 @@ const Player = {
 
   next() { this.step(1); },
 
-  /* Show a track on the faces without starting it, so the window you just
-     opened describes the song you opened rather than whatever played last. */
+  /* Show a track on the faces without starting it. */
   cueOnly(albumId, index) {
     const album = ALBUMS.find(a => a.id === albumId);
     if (!album || !album.tracks[index]) return;
     const same = this.cue && this.cue.albumId === albumId && this.cue.index === index;
     if (same) { this.paint(); return; }
     this.stopVirtual();
-    if (this.audio) { this.audio.pause(); this.audio.removeAttribute('src'); }
+    if (this.audio) {
+      this.audio.pause();
+      this.audio.removeAttribute('src');
+      this.audio.load();
+    }
     this.virtual = false;
+    this.pendingSeek = null;
     this.cue = { albumId, index, name: album.tracks[index].name, album: album.title };
     this.paint();
   },
 
   stop() {
     this.stopVirtual();
-    if (this.audio) { this.audio.pause(); }
+    if (this.audio) {
+      this.audio.pause();
+      this.audio.removeAttribute('src');
+      this.audio.load();
+    }
     this.cue = null;
+    this.pendingSeek = null;
     this.paint();
   },
 
@@ -166,14 +238,19 @@ const Player = {
   startVirtual() {
     this.virtual = true;
     clearInterval(this.vtimer);
+    // if we already have a visual position from a failed seek, keep it
+    if (this.vt <= 0 || this.vt >= PREVIEW_LEN) this.vt = 0;
     let last = performance.now();
     this.vtimer = setInterval(() => {
       const now = performance.now();
       this.vt += (now - last) / 1000;
       last = now;
-      if (this.vt >= PREVIEW_LEN) { this.vt = PREVIEW_LEN; this.stopVirtual(true); }
+      if (this.vt >= PREVIEW_LEN) {
+        this.vt = PREVIEW_LEN;
+        this.stopVirtual(true);
+      }
       this.paint();
-    }, 100);
+    }, 80);
   },
 
   stopVirtual(keepPos) {
@@ -186,25 +263,8 @@ const Player = {
   async previewUrl(name, albumTitle) {
     const key = name.toLowerCase();
     if (this.cache.has(key)) return this.cache.get(key);
-    let url = null;
-    try {
-      const term = `Cigarettes After Sex ${name}`;
-      const res = await fetch(
-        `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=12`,
-        { headers: { Accept: 'application/json' } });
-      if (res.ok) {
-        const data = await res.json();
-        const rows = (data.results || []).filter(r =>
-          /cigarettes after sex/i.test(r.artistName || ''));
-        const exact = rows.find(r =>
-          (r.trackName || '').toLowerCase() === key &&
-          (r.collectionName || '').toLowerCase().includes(String(albumTitle).toLowerCase()));
-        const loose = rows.find(r => (r.trackName || '').toLowerCase() === key);
-        url = (exact || loose || rows[0] || {}).previewUrl || null;
-      }
-    } catch {
-      url = null;
-    }
+    const meta = await trackMetaFor(name);
+    const url = meta ? meta.previewUrl : null;
     this.cache.set(key, url);
     return url;
   }
@@ -286,7 +346,9 @@ function bindPlayerFace(root, scope, albumId, onEmptyPlay, subjectFn) {
     }
   };
 
-  root.querySelector('[data-cp-act="toggle"]').addEventListener('click', () => {
+  root.querySelector('[data-cp-act="toggle"]').addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     // nothing cued yet, or this face is not the one holding the cue:
     // start what this face is about instead of toggling someone else's track
     if (!Player.cue || !Player.owns(face)) {
@@ -296,18 +358,46 @@ function bindPlayerFace(root, scope, albumId, onEmptyPlay, subjectFn) {
     }
     Player.toggle();
   });
-  root.querySelector('[data-cp-act="prev"]').addEventListener('click', () => Player.step(-1));
-  root.querySelector('[data-cp-act="next"]').addEventListener('click', () => Player.step(1));
+  root.querySelector('[data-cp-act="prev"]').addEventListener('click', (e) => {
+    e.preventDefault();
+    Player.step(-1);
+  });
+  root.querySelector('[data-cp-act="next"]').addEventListener('click', (e) => {
+    e.preventDefault();
+    Player.step(1);
+  });
 
+  // ---- scrub: click + drag (pointer events work on both mouse and touch) ----
   const seekAt = (clientX) => {
     const r = bar.getBoundingClientRect();
-    Player.seek((clientX - r.left) / r.width);
+    const frac = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+    Player.seek(frac);
   };
-  bar.addEventListener('click', e => { if (Player.cue) seekAt(e.clientX); });
+
+  let dragging = false;
+  bar.addEventListener('pointerdown', e => {
+    if (!Player.cue || !Player.owns(face)) return;
+    dragging = true;
+    bar.setPointerCapture(e.pointerId);
+    seekAt(e.clientX);
+    e.preventDefault();
+  });
+  bar.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    seekAt(e.clientX);
+  });
+  bar.addEventListener('pointerup', e => {
+    if (!dragging) return;
+    dragging = false;
+    try { bar.releasePointerCapture(e.pointerId); } catch (_) {}
+  });
+  bar.addEventListener('pointercancel', () => { dragging = false; });
+
+  // keyboard
   bar.addEventListener('keydown', e => {
-    if (!Player.cue) return;
+    if (!Player.cue || !Player.owns(face)) return;
     if (e.key === 'ArrowRight') { e.preventDefault(); Player.seek((Player.time() + 3) / PREVIEW_LEN); }
-    if (e.key === 'ArrowLeft') { e.preventDefault(); Player.seek((Player.time() - 3) / PREVIEW_LEN); }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); Player.seek((Player.time() - 3) / PREVIEW_LEN); }
   });
 
   Player.register(face);

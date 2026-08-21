@@ -53,6 +53,8 @@ function ransom(el, text, opts = {}) {
         cell.setAttribute('aria-hidden', 'true');
         cell.style.setProperty('--r', `${rot}deg`);
         cell.style.setProperty('--dy', `${(rnd() * 4 - 2).toFixed(1)}px`);
+        // index along the heading, so the burn can travel rather than snap
+        cell.style.setProperty('--i', String(i - 1));
 
         const img = document.createElement('img');
         img.className = 'ch-a';
@@ -125,6 +127,13 @@ function watchDeferred() {
     const head = e.target.closest && e.target.closest('.ransom');
     if (head) armDeferred(head);
   }, { passive: true });
+  // touch has no hover: tapping a heading lights it, tapping again puts it out
+  document.addEventListener('click', e => {
+    const head = e.target.closest && e.target.closest('.ransom');
+    if (!head) return;
+    armDeferred(head);
+    head.classList.toggle('lit');
+  });
 }
 
 /* ------------------------------------------------------------
@@ -162,6 +171,10 @@ const DECOR = [
     glow: { x: 82.81, y: 74.35, r: 110, motion: true },
     ash: { x: 82.3, y: 76.13, n: 9, motion: true }
   },
+  // the venue marquee, set against the dark on the far side from the cigarette.
+  // `cls: 'sign'` marks it a lit box rather than paper: the stylesheet flickers
+  // it and lays a haze on the wall behind it.
+  { host: '.hero', key: 'cut/sign_soldout', x: 54, y: 79, w: 420, wSm: 250, rot: -3, op: 0.78, blend: 'screen', dur: 31, cls: 'sign' },
   { host: '.hero', key: 'cut/moon_sm', x: 86, y: 72, w: 130, rot: 6, op: 0.4, blend: 'screen', dur: 25, sm: false },
   { host: '.hero', key: 'cut/stars_red', x: 8, y: 12, w: 165, rot: -7, op: 0.6, dur: 21, sm: false },
 
@@ -170,6 +183,9 @@ const DECOR = [
   { host: '#about', key: 'cut/time_444', x: 3, y: 78, w: 110, rot: -8, op: 0.34, blend: 'screen', dur: 18, sm: false },
   { host: '#about', key: 'cut/eiffel', x: 90, y: 58, w: 78, rot: 5, op: 0.3, blend: 'screen', dur: 26, sm: false },
   { host: '#about', key: 'cut/note', x: 84, y: 8, w: 92, rot: -11, op: 0.36, blend: 'screen', dur: 20, sm: false },
+  // the venue marquee. `cls: 'sign'` marks it as a lit box rather than paper:
+  // the stylesheet flickers it and throws a haze around it.
+  { host: '#about', key: 'cut/art_feather', x: 5, y: 10, w: 190, rot: 9, op: 0.3, blend: 'screen', dur: 24, sm: false },
 
   // members
   { host: '#members', key: 'cut/think_bubble', x: 68, y: 2, w: 260, rot: -3, op: 0.34, blend: 'screen', dur: 24, sm: false },
@@ -182,11 +198,13 @@ const DECOR = [
   { host: '#discography', key: 'cut/tracklist_box', x: 2, y: 30, w: 130, rot: 4, op: 0.3, blend: 'screen', dur: 25, sm: false },
   { host: '#discography', key: 'cut/cig_pack', x: 92, y: 56, w: 150, rot: -8, op: 0.26, blend: 'screen', dur: 27, sm: false },
   { host: '#discography', key: 'cut/marquee', x: 1, y: 82, w: 175, rot: 3, op: 0.26, dur: 22, sm: false },
+  { host: '#discography', key: 'cut/art_disc', x: 45, y: 93, w: 172, rot: 5, op: 0.24, blend: 'screen', dur: 33, sm: false },
 
   // singles
   { host: '#singles', key: 'cut/stars_blue', x: 88, y: 10, w: 96, rot: -9, op: 0.42, blend: 'screen', dur: 18, sm: false },
   { host: '#singles', key: 'cut/vinyl', x: 3, y: 62, w: 150, rot: 6, op: 0.3, dur: 29, sm: false },
   { host: '#singles', key: 'cut/censored', x: 78, y: 84, w: 140, rot: -12, op: 0.4, dur: 20, sm: false },
+  { host: '#singles', key: 'cut/art_jets', x: 6, y: 6, w: 175, rot: -4, op: 0.32, blend: 'screen', dur: 28, sm: false },
 
   { host: '#discography', key: 'cut/headphones', x: 88, y: 34, w: 130, rot: 5, op: 0.24, dur: 24, sm: false },
   { host: '#discography', key: 'cut/yourlips_serif', x: 1, y: 58, w: 190, rot: -4, op: 0.2, blend: 'screen', dur: 26, sm: false },
@@ -197,8 +215,28 @@ const DECOR = [
   { host: '#quiz', key: 'cut/good_night', x: 82, y: 16, w: 165, rot: -7, op: 0.34, blend: 'screen', dur: 23, sm: false },
   { host: '#quiz', key: 'cut/people_write', x: 4, y: 80, w: 165, rot: 5, op: 0.3, blend: 'screen', dur: 25, sm: false },
   { host: '#quiz', key: 'cut/music_heals', x: 88, y: 82, w: 82, rot: -10, op: 0.42, dur: 18, sm: false },
-  { host: '#quiz', key: 'cut/forever', x: 46, y: 94, w: 150, rot: 2, op: 0.34, dur: 27, sm: false }
+  { host: '#quiz', key: 'cut/forever', x: 46, y: 94, w: 150, rot: 2, op: 0.34, dur: 27, sm: false },
+  { host: '#quiz', key: 'cut/art_plane', x: 43, y: 38, w: 178, rot: -6, op: 0.22, dur: 30, sm: false }
 ];
+
+/**
+ * Stop a cut-out drifting while it is nowhere near the viewport.
+ *
+ * Every cut-out runs an endless drift, and the page carries a few dozen of
+ * them down five long sections — so without this the browser is compositing
+ * the whole collage at all times to animate the sliver of it anyone can
+ * actually see. The margin is generous, so a piece is always already moving
+ * by the time it scrolls in.
+ */
+const decoIdle = ('IntersectionObserver' in window)
+  ? new IntersectionObserver(entries => {
+      entries.forEach(e => e.target.classList.toggle('rest', !e.isIntersecting));
+    }, { rootMargin: '260px 0px' })
+  : null;
+
+function idleWhenOffscreen(box) {
+  if (decoIdle) decoIdle.observe(box);
+}
 
 function mountDecor() {
   const parallax = [];
@@ -210,7 +248,8 @@ function mountDecor() {
     if (!src) return;
 
     const box = document.createElement('div');
-    box.className = 'deco float' + (d.blend === 'screen' ? ' screen' : '') + (d.sm === false ? ' hide-sm' : '');
+    box.className = 'deco float' + (d.blend === 'screen' ? ' screen' : '')
+      + (d.sm === false ? ' hide-sm' : '') + (d.cls ? ' ' + d.cls : '');
     box.style.left = d.x + '%';
     box.style.top = d.y + '%';
     box.style.setProperty('--w', d.w + 'px');
@@ -304,6 +343,7 @@ function mountDecor() {
     if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
     host.appendChild(box);
     parallax.push({ box, speed: 0.012 + (idx % 5) * 0.006 });
+    idleWhenOffscreen(box);
   });
 
   // gentle scroll parallax on top of the drift animation

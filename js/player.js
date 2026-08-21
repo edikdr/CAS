@@ -278,7 +278,8 @@ function playerFaceHTML(opts) {
   const { compact } = opts;
   return `
     <div class="cp-sleeve" aria-hidden="true">
-      <span class="cp-disc"></span>
+      <span class="cp-disc"><span class="cp-center"></span></span>
+      <span class="cp-sheen"></span>
       <span class="cp-spindle"></span>
     </div>
     <div class="cp-body">
@@ -335,6 +336,19 @@ function bindPlayerFace(root, scope, albumId, onEmptyPlay, subjectFn) {
       q('now').textContent = fmtClock(s.t);
       q('len').textContent = fmtClock(s.len);
       bar.setAttribute('aria-valuenow', Math.round(s.t));
+      // put the record's own sleeve art on its label. Album-scoped faces know
+      // their album outright; the shared face has to find it from whatever is
+      // cued, which is why this reads the subject rather than the id alone.
+      const art = coverFor(albumId, subject);
+      if (art !== root.dataset.art) {
+        root.dataset.art = art || '';
+        // Resolved against the document before it goes into a custom property:
+        // a relative url() substituted through var() is resolved against the
+        // stylesheet that used it, which would look for it under css/.
+        const href = art ? new URL(art, document.baseURI).href : '';
+        root.style.setProperty('--cp-art', href ? `url("${href}")` : 'none');
+        root.classList.toggle('has-art', !!art);
+      }
       const btn = root.querySelector('[data-cp-act="toggle"]');
       btn.innerHTML = s.playing ? '&#10073;&#10073;' : '&#9654;';
       btn.setAttribute('aria-label', s.playing ? 'Pause' : 'Play');
@@ -403,6 +417,20 @@ function bindPlayerFace(root, scope, albumId, onEmptyPlay, subjectFn) {
   Player.register(face);
   return face;
 }
+
+/**
+ * The cover art to spin on the label, or '' if the record is not identified.
+ * @param {string|null} albumId  set on album-scoped faces
+ * @param {{album?:string}|null} subject  whatever the face is currently about
+ */
+function coverFor(albumId, subject) {
+  let album = albumId ? ALBUMS.find(a => a.id === albumId) : null;
+  if (!album && subject && subject.album) {
+    album = ALBUMS.find(a => a.title === subject.album);
+  }
+  return (album && album.cover && album.cover.art) || '';
+}
+
 
 function fmtClock(sec) {
   sec = Math.max(0, Math.floor(sec || 0));

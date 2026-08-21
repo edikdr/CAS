@@ -76,15 +76,46 @@ body::after {
   gap: 0.035em;
   white-space: nowrap;
 }
+/* Each glyph is a cell holding two scans of the same letter — the plain tile
+   and its burnt twin — so hovering can cross-fade between them in place. */
+.ransom .ch {
+  position: relative;
+  display: block;
+  transform: rotate(var(--r, 0deg)) translateY(var(--dy, 0px));
+  transition: transform 0.45s var(--ease);
+}
 .ransom img {
   display: block;
   height: 1em; width: auto;
-  transform: rotate(var(--r, 0deg)) translateY(var(--dy, 0px));
-  box-shadow: 1px 2px 0 rgba(0,0,0,0.55), 3px 4px 7px rgba(0,0,0,0.35);
   border-radius: 1px;
-  transition: transform 0.45s var(--ease);
   user-select: none;
 }
+.ransom .ch-a {
+  box-shadow: 1px 2px 0 rgba(0,0,0,0.55), 3px 4px 7px rgba(0,0,0,0.35);
+  transition: opacity 0.5s var(--ease);
+}
+/* tools/gen_letters.py crops the white scanner frame off before burning — a
+   pristine white border inside a charred edge reads as a mistake — then pads
+   with clean paper for the fire to eat. Because the frames vary in thickness,
+   the burnt scan is a slightly different fraction of the plain one for each
+   letter; this is the median that script reports, so a glyph may change size
+   a little as it catches. Re-run it after touching PAD_FRAC and use the
+   number it prints. */
+.ransom .ch-b {
+  --burnt-scale: 1.04;
+  position: absolute; left: 50%; top: 50%;
+  height: calc(1em * var(--burnt-scale));
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  border-radius: 0;
+  /* drop-shadow, not box-shadow: it follows the alpha, where box-shadow would
+     hang a crisp rectangle behind a silhouette the fire left ragged */
+  filter: drop-shadow(1px 2px 0 rgba(0,0,0,0.55)) drop-shadow(3px 4px 7px rgba(0,0,0,0.35));
+  transition: opacity 0.5s var(--ease);
+  pointer-events: none;
+}
+.ransom .ch:hover .ch-a { opacity: 0; }
+.ransom .ch:hover .ch-b { opacity: 1; }
 /* punctuation / digits fall back to a paper chip */
 .ransom .chip {
   display: inline-flex; align-items: center; justify-content: center;
@@ -101,8 +132,8 @@ body::after {
 .ransom.md { font-size: clamp(1.1rem, 2.6vw, 1.5rem); }
 .ransom.sm { font-size: 0.92rem; }
 /* letters lift a little as a group on hover — tactile, not bouncy */
-.ransom:hover img:nth-child(odd)  { transform: rotate(calc(var(--r, 0deg) * 1.5)) translateY(calc(var(--dy, 0px) - 2px)); }
-.ransom:hover img:nth-child(even) { transform: rotate(calc(var(--r, 0deg) * 0.4)) translateY(calc(var(--dy, 0px) + 2px)); }
+.ransom:hover .ch:nth-child(odd)  { transform: rotate(calc(var(--r, 0deg) * 1.5)) translateY(calc(var(--dy, 0px) - 2px)); }
+.ransom:hover .ch:nth-child(even) { transform: rotate(calc(var(--r, 0deg) * 0.4)) translateY(calc(var(--dy, 0px) + 2px)); }
 
 /* ============================================================
    PAPER SURFACES
@@ -150,6 +181,7 @@ body::after {
    ============================================================ */
 .deco {
   position: absolute; pointer-events: none; z-index: 0;
+  width: var(--w, 160px);
   will-change: transform;
 }
 .deco img {
@@ -654,7 +686,7 @@ body.modal-open { overflow: hidden; }
 }
 /* the mono set includes near-black tiles; a hairline edge keeps every letter
    readable where the sleeve behind it is also dark */
-.sleeve-front .ransom img {
+.sleeve-front .ransom .ch-a {
   outline: 1px solid rgba(233,227,216,0.28);
   box-shadow: 1px 2px 0 rgba(0,0,0,0.7), 0 0 10px rgba(0,0,0,0.6);
 }
@@ -670,7 +702,9 @@ body.modal-open { overflow: hidden; }
 .sleeve:hover .sleeve-back { transform: rotate(-8deg) translate(-15px, 9px); }
 .sleeve:hover .sleeve-mid  { transform: rotate(6.5deg) translate(13px, -8px); }
 
-.album-meta h3 { font-family: var(--serif); font-size: clamp(1.4rem, 3vw, 1.9rem); font-weight: 400; margin-bottom: 0.25rem; }
+/* the album title is set in cut letters like the other headings; .ransom
+   brings its own flex layout and sizing, so only the spacing is set here */
+.album-meta h3 { font-weight: 400; margin-bottom: 0.55rem; }
 .album-sub { font-family: var(--type); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.9rem; }
 .album-note { color: var(--muted); font-style: italic; margin-bottom: 1.4rem; max-width: 560px; }
 .tracklist { list-style: none; }
@@ -1061,6 +1095,9 @@ footer a:hover { color: var(--gold); }
   .album { grid-template-columns: 1fr; gap: 1.6rem; }
   .sleeve { max-width: 300px; }
   .deco.hide-sm { display: none; }
+  /* a cut-out sized for a desktop hero would run off a phone; entries that
+     carry a narrow width fall back to it here */
+  .deco { width: var(--w-sm, var(--w, 160px)); }
   .about-visual { height: 330px; }
   .modal-figure img { height: 220px; }
   .modal-body { padding: 0 1.15rem 1.5rem; }

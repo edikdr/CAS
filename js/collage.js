@@ -48,14 +48,33 @@ function ransom(el, text, opts = {}) {
       if (HAS_LETTER.test(low)) {
         const set = LETTER_SETS[i % LETTER_SETS.length];
         i++;
+        const cell = document.createElement('span');
+        cell.className = 'ch';
+        cell.setAttribute('aria-hidden', 'true');
+        cell.style.setProperty('--r', `${rot}deg`);
+        cell.style.setProperty('--dy', `${(rnd() * 4 - 2).toFixed(1)}px`);
+
         const img = document.createElement('img');
+        img.className = 'ch-a';
         img.src = asset(`letters/${set}/${low}`);
         img.alt = '';
-        img.setAttribute('aria-hidden', 'true');
         img.draggable = false;
-        img.style.setProperty('--r', `${rot}deg`);
-        img.style.setProperty('--dy', `${(rnd() * 4 - 2).toFixed(1)}px`);
-        word.appendChild(img);
+        cell.appendChild(img);
+
+        // the burnt twin, revealed on hover. Its src is withheld until
+        // armDeferred() runs, so a page that is never hovered never pays for
+        // a second alphabet — see armDeferred above.
+        const burnt = asset(`letters/burnt-${set}/${low}`);
+        if (burnt) {
+          const b = document.createElement('img');
+          b.className = 'ch-b';
+          b.alt = '';
+          b.draggable = false;
+          b.decoding = 'async';
+          b.dataset.src = burnt;
+          cell.appendChild(b);
+        }
+        word.appendChild(cell);
       } else {
         // digits, punctuation, & — a small paper chip carries them
         const chip = document.createElement('span');
@@ -68,6 +87,44 @@ function ransom(el, text, opts = {}) {
     });
     el.appendChild(word);
   });
+}
+
+/**
+ * Hand out the sources that were deliberately withheld.
+ *
+ * Two things on this page are heavy and not needed for the first paint: the
+ * burnt alphabet, which nobody sees until they hover a heading, and the smoke
+ * plume, which is 84 animated frames of alpha. Both are built with their url
+ * parked in data-src so the browser never queues them behind the content, and
+ * both are released here once the page has gone quiet.
+ */
+function armDeferred(root) {
+  (root || document).querySelectorAll('img[data-src]').forEach(img => {
+    img.src = img.dataset.src;
+    img.removeAttribute('data-src');
+  });
+}
+
+function watchDeferred() {
+  const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1200));
+  let started = false;
+  const start = () => {
+    if (started) return;
+    started = true;
+    idle(() => armDeferred(), { timeout: 1500 });
+  };
+  // Normally this waits for load, so the deferred set never competes with the
+  // page's own images. But load also waits on the font stylesheet, and a
+  // third party that hangs rather than fails would strand these forever — so
+  // a timer releases them regardless.
+  addEventListener('load', start, { once: true });
+  setTimeout(start, 3000);
+  // a hover that beats either one arms that heading on the spot, so a letter
+  // is never caught unarmed
+  document.addEventListener('pointerover', e => {
+    const head = e.target.closest && e.target.closest('.ransom');
+    if (head) armDeferred(head);
+  }, { passive: true });
 }
 
 /* ------------------------------------------------------------
@@ -91,8 +148,8 @@ const DECOR = [
   { host: '.hero', key: 'cut/fingerprint_heart', x: 78, y: 16, w: 210, rot: -9, op: 0.5, blend: 'screen', dur: 19 },
   { host: '.hero', key: 'cut/yourlips_torn', x: 4, y: 60, w: 250, rot: 3, op: 0.42, blend: 'screen', dur: 23, sm: false },
   {
-    host: '.hero', key: 'cut/cig_lit', x: 2.7, y: 49.4, w: 615, rot: -2, op: 0.6,
-    blend: 'screen', dur: 27, sm: false,
+    host: '.hero', key: 'cut/cig_lit', x: 8.2, y: 54.7, w: 520, wSm: 300, rot: -2, op: 0.72,
+    blend: 'screen', dur: 27,
     // All three riders below are anchored off the coal, which sits at
     // (82.81%, 74.35%) of the cigarette scan. The scan carries a wide
     // transparent margin so its baked-in bloom is not cut off by the edge of
@@ -156,7 +213,11 @@ function mountDecor() {
     box.className = 'deco float' + (d.blend === 'screen' ? ' screen' : '') + (d.sm === false ? ' hide-sm' : '');
     box.style.left = d.x + '%';
     box.style.top = d.y + '%';
-    box.style.width = d.w + 'px';
+    box.style.setProperty('--w', d.w + 'px');
+    // a narrower width for phones, picked up by the media query in the
+    // stylesheet; everything riding inside the box is sized in percentages
+    // of it, so the whole assembly scales with this one number
+    if (d.wSm) box.style.setProperty('--w-sm', d.wSm + 'px');
     box.style.opacity = d.op;
     box.style.setProperty('--rot', (d.rot || 0) + 'deg');
     box.style.setProperty('--dur', (d.dur || 20) + 's');
@@ -225,10 +286,12 @@ function mountDecor() {
       if (osrc) {
         const oi = document.createElement('img');
         oi.className = 'deco-overlay';
-        oi.src = osrc;
+        // withheld like the burnt letters: the plume is the heaviest single
+        // asset on the page and none of the first paint depends on it
+        oi.dataset.src = osrc;
         oi.alt = '';
         oi.setAttribute('aria-hidden', 'true');
-        oi.loading = 'lazy';
+        oi.decoding = 'async';
         oi.draggable = false;
         oi.style.left = ov.x + '%';
         oi.style.top = ov.y + '%';

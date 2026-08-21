@@ -184,7 +184,7 @@ function renderAlbums(filter = '') {
         </div>
       </div>
       <div class="album-meta">
-        <h3>${esc(album.title)}</h3>
+        <h3 class="ransom md" data-ransom="${esc(album.title)}"></h3>
         <div class="album-sub">${album.year} · ${esc(album.type)}</div>
         ${album.note ? `<p class="album-note">${esc(album.note)}</p>` : ''}
         <ol class="tracklist">
@@ -304,6 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   mountDecor();
+  watchDeferred();
   startAsh();
   observeReveals();
   watchNav();

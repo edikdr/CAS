@@ -185,7 +185,7 @@ const ALBUMS = [
     year: 2017,
     type: 'Album',
     spotifyAlbum: '2mxFsS5yylSTHNivV53HoA',
-    cover: { art: 'assets/cut/album_couple.webp', tone: 'mono' },
+    cover: { art: 'assets/photo/cover_self.webp', tone: 'sleeve' },
     note: 'The self-titled debut on Partisan Records. The record that turned a bedroom sound into a global mood.',
     tracks: [
       { name: 'K.', id: '3Mlhgm39yBpuCwyZB8d8Md', duration: '5:19' },

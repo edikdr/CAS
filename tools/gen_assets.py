@@ -3,6 +3,8 @@
 The single-file builder rewrites the values in this map to data URIs."""
 import pathlib, json
 
+from PIL import Image
+
 root = pathlib.Path(__file__).resolve().parent.parent
 
 # Fallbacks for keys the page asks for that have no file of their own: each
@@ -44,6 +46,21 @@ lines = [
 ]
 for key, rel in entries:
     lines.append(f"  {json.dumps(key)}: {json.dumps(rel)},")
+lines += [
+    '};',
+    '',
+    '/* Aspect ratio (w/h) of every asset.',
+    '   Both the letter tiles and the floating cut-outs reserve their boxes',
+    '   from this before the image itself has loaded. Without it a box is laid',
+    '   out at zero height, and anything positioned as a percentage inside it',
+    '   — the coal\'s glow, the ash, the smoke — lands at the top and then drops',
+    '   into place once the scan arrives. */',
+    'const ASSET_AR = {',
+]
+for key, rel in entries:
+    with Image.open(root / rel) as im:
+        w, h = im.size
+    lines.append(f"  {json.dumps(key)}: {w / h:.4f},")
 lines += [
     '};',
     '',

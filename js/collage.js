@@ -58,9 +58,14 @@ function ransom(el, text, opts = {}) {
 
         const img = document.createElement('img');
         img.className = 'ch-a';
-        img.src = asset(`letters/${set}/${low}`);
+        const plainKey = `letters/${set}/${low}`;
+        img.src = asset(plainKey);
         img.alt = '';
+        img.decoding = 'async';
         img.draggable = false;
+        // hold the glyph's box before its scan arrives; see ASSET_AR
+        const ar = ASSET_AR[plainKey];
+        if (ar) cell.style.setProperty('--ar', String(ar));
         cell.appendChild(img);
 
         // the burnt twin, revealed on hover. Its src is withheld until
@@ -174,7 +179,14 @@ const DECOR = [
   // the venue marquee, set against the dark on the far side from the cigarette.
   // `cls: 'sign'` marks it a lit box rather than paper: the stylesheet flickers
   // it and lays a haze on the wall behind it.
-  { host: '.hero', key: 'cut/sign_soldout', x: 54, y: 79, w: 420, wSm: 250, rot: -3, op: 0.78, blend: 'screen', dur: 31, cls: 'sign' },
+  // Sized against the viewport, not pinned to a pixel width: at 420px fixed it
+  // ran off the right of the hero on every screen narrower than ~1000px, and
+  // the hero clips its overflow, so the sign lost its own text. left + width
+  // now stays inside 100% at every size, and on a phone it moves in from the
+  // edge and takes more of the width so it stays readable.
+  { host: '.hero', key: 'cut/sign_soldout', x: 54, xSm: 16, y: 79,
+    w: 'min(420px, 42vw)', wSm: 'min(420px, 78vw)',
+    rot: -3, op: 0.78, blend: 'screen', dur: 31, cls: 'sign' },
   { host: '.hero', key: 'cut/moon_sm', x: 86, y: 72, w: 130, rot: 6, op: 0.4, blend: 'screen', dur: 25, sm: false },
   { host: '.hero', key: 'cut/stars_red', x: 8, y: 12, w: 165, rot: -7, op: 0.6, dur: 21, sm: false },
 
@@ -250,13 +262,24 @@ function mountDecor() {
     const box = document.createElement('div');
     box.className = 'deco float' + (d.blend === 'screen' ? ' screen' : '')
       + (d.sm === false ? ' hide-sm' : '') + (d.cls ? ' ' + d.cls : '');
-    box.style.left = d.x + '%';
+    // Width and left go in as custom properties rather than straight inline,
+    // so the small-screen media query in the stylesheet can override them —
+    // an inline style would outrank it. A number means px; a string is used
+    // verbatim, which is how a cut-out can be sized against the viewport
+    // instead of being pinned to a width that runs off a narrow screen.
+    const len = (v) => (typeof v === 'number' ? v + 'px' : v);
+    box.style.setProperty('--x', d.x + '%');
     box.style.top = d.y + '%';
-    box.style.setProperty('--w', d.w + 'px');
-    // a narrower width for phones, picked up by the media query in the
-    // stylesheet; everything riding inside the box is sized in percentages
-    // of it, so the whole assembly scales with this one number
-    if (d.wSm) box.style.setProperty('--w-sm', d.wSm + 'px');
+    box.style.setProperty('--w', len(d.w));
+    // Hold the box's height before the cut-out has loaded. Riders are placed
+    // as percentages of it, so without this the glow and the ash sit at the
+    // top of a zero-height box and drop into place when the scan arrives.
+    const boxAr = ASSET_AR[d.key];
+    if (boxAr) box.style.aspectRatio = String(boxAr);
+    // everything riding inside the box is sized in percentages of it, so
+    // these two numbers scale the whole assembly
+    if (d.wSm != null) box.style.setProperty('--w-sm', len(d.wSm));
+    if (d.xSm != null) box.style.setProperty('--x-sm', d.xSm + '%');
     box.style.opacity = d.op;
     box.style.setProperty('--rot', (d.rot || 0) + 'deg');
     box.style.setProperty('--dur', (d.dur || 20) + 's');

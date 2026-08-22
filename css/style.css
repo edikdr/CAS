@@ -90,6 +90,12 @@ body::after {
   border-radius: 1px;
   user-select: none;
 }
+/* The cell holds the glyph's whole box — both axes — from its scan's aspect
+   ratio, so the line is laid out correctly before a single tile has
+   downloaded. Reserving width alone is not enough: height:auto then leaves the
+   row collapsed until the image arrives, and the shift just moves axis. */
+.ransom .ch { width: calc(1em * var(--ar, 0.85)); height: 1em; }
+.ransom .ch-a { width: 100%; height: 100%; }
 .ransom .ch-a {
   box-shadow: 1px 2px 0 rgba(0,0,0,0.55), 3px 4px 7px rgba(0,0,0,0.35);
 }
@@ -133,6 +139,13 @@ body::after {
   border-radius: 1px;
 }
 .ransom.xl { font-size: clamp(2.1rem, 7.2vw, 4.5rem); }
+/* The hero title is empty in the markup and filled by ransom() on boot, so
+   there is nothing to lay out at first paint and the whole centred block
+   jumps when the letters arrive — measured as the page's single largest
+   layout shift. It sets two lines at every width from 320px up, and .ransom
+   is line-height 1 with a 0.34em row gap, so the box it will need is exactly
+   2.34em. min-height, not height: a longer heading may still wrap further. */
+.hero .ransom.xl { min-height: 2.34em; }
 .ransom.lg { font-size: clamp(1.5rem, 4.4vw, 2.5rem); }
 .ransom.md { font-size: clamp(1.1rem, 2.6vw, 1.5rem); }
 .ransom.sm { font-size: 0.92rem; }
@@ -186,6 +199,7 @@ body::after {
    ============================================================ */
 .deco {
   position: absolute; pointer-events: none; z-index: 0;
+  left: var(--x, 0);
   width: var(--w, 160px);
   will-change: transform;
 }
@@ -421,7 +435,13 @@ nav .brand .dot {
   transform: scale(1.08);
   pointer-events: none;
 }
-.hero-inner { position: relative; z-index: 5; text-align: center; max-width: 980px; }
+.hero-inner {
+  position: relative; z-index: 5; text-align: center;
+  /* width, not just max-width: as a flex item this box is otherwise sized by
+     its content, so it opens at the width of the sub-heading and springs out
+     to 980px the moment ransom() fills the title — the page's largest shift */
+  width: 100%; max-width: 980px;
+}
 .hero .ransom { justify-content: center; }
 .hero-tag {
   display: inline-block;
@@ -1271,9 +1291,12 @@ footer a:hover { color: var(--gold); }
   .album { grid-template-columns: 1fr; gap: 1.6rem; }
   .sleeve { max-width: 300px; }
   .deco.hide-sm { display: none; }
-  /* a cut-out sized for a desktop hero would run off a phone; entries that
-     carry a narrow width fall back to it here */
-  .deco { width: var(--w-sm, var(--w, 160px)); }
+  /* a cut-out placed for a desktop hero would run off a phone; entries that
+     carry small-screen values fall back to them here */
+  .deco {
+    width: var(--w-sm, var(--w, 160px));
+    left: var(--x-sm, var(--x, 0));
+  }
   .about-visual { height: 330px; }
   .modal-figure img { height: 220px; }
   .modal-body { padding: 0 1.15rem 1.5rem; }

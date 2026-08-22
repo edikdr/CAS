@@ -279,37 +279,58 @@ function renderSingles() {
    BOOT
    ------------------------------------------------------------ */
 document.addEventListener('DOMContentLoaded', () => {
-  // headings
+  // ---- what the first screen is made of --------------------------------
   ransom($('#heroTitle'), 'Cigarettes After Sex');
-  $$('[data-ransom-static]').forEach((el, i) => ransom(el, el.dataset.ransomStatic, { start: i % 2 }));
-
-  renderMembers();
-  Modal.init();
-  renderAlbums();
-  renderSingles();
-  // `const Player = …` is a lexical global, not a property of window
-  if (typeof Player !== 'undefined') Player.init();
-  if (typeof TrackModal !== 'undefined') TrackModal.init();
-  if (typeof Quiz !== 'undefined') Quiz.init();
-
-  const search = $('#searchInput');
-  if (search) {
-    search.addEventListener('input', e => renderAlbums(e.target.value));
-    // "/" focuses search from anywhere
-    document.addEventListener('keydown', e => {
-      if (e.key === '/' && !Modal.isOpen() && !TrackModal.isOpen() && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
-        e.preventDefault(); search.focus();
-      }
-    });
-  }
-
   mountDecor();
   watchDeferred();
   startAsh();
-  observeReveals();
   watchNav();
+  Modal.init();
 
-  // footer XOXO cut-out
-  const xo = $('#footerXoxo');
-  if (xo) xo.src = asset('cut/xoxo');
+  /**
+   * Everything below the fold.
+   *
+   * The discography alone builds five thousand pixels of tracklists and
+   * player faces, none of it on screen when the page opens, and building it
+   * inline held the main thread for a sixth of a second at a stretch. It runs
+   * after the hero has painted instead.
+   */
+  const below = () => {
+    $$('[data-ransom-static]').forEach((el, i) => ransom(el, el.dataset.ransomStatic, { start: i % 2 }));
+    renderMembers();
+    renderAlbums();
+    renderSingles();
+    // `const Player = …` is a lexical global, not a property of window
+    if (typeof Player !== 'undefined') Player.init();
+    if (typeof TrackModal !== 'undefined') TrackModal.init();
+    if (typeof Quiz !== 'undefined') Quiz.init();
+
+    const search = $('#searchInput');
+    if (search) {
+      search.addEventListener('input', e => renderAlbums(e.target.value));
+      // "/" focuses search from anywhere
+      document.addEventListener('keydown', e => {
+        if (e.key === '/' && !Modal.isOpen() && !TrackModal.isOpen() && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
+          e.preventDefault(); search.focus();
+        }
+      });
+    }
+
+    observeReveals();
+
+    // footer XOXO cut-out
+    const xo = $('#footerXoxo');
+    if (xo) xo.src = asset('cut/xoxo');
+  };
+
+  if (location.hash) {
+    // arrived at #discography or similar: the target has to exist before the
+    // browser can scroll to it, so this one pays the cost up front
+    below();
+    const target = document.getElementById(location.hash.slice(1));
+    if (target) requestAnimationFrame(() => target.scrollIntoView());
+  } else {
+    // two frames, so the hero is on screen before the rest is built
+    requestAnimationFrame(() => requestAnimationFrame(below));
+  }
 });

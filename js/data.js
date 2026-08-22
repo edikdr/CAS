@@ -133,7 +133,7 @@ const ALBUMS = [
     year: 2009,
     type: 'EP (self-released)',
     spotifyAlbum: null,
-    cover: { art: 'assets/cut/vinyl.webp', tone: 'warm' },
+    cover: { art: 'assets/photo/cover_wordmark.webp', tone: 'sleeve' },
     note: 'The first self-released EP, made while the project was still entirely in El Paso.',
     tracks: [
       { name: 'I Can See You', duration: '—' },
@@ -148,7 +148,7 @@ const ALBUMS = [
     year: 2011,
     type: 'Demo album',
     spotifyAlbum: null,
-    cover: { art: 'assets/cut/cig_heart.webp', tone: 'warm' },
+    cover: { art: 'assets/photo/cover_wordmark.webp', tone: 'sleeve' },
     note: 'A long, largely unreleased demo album from the El Paso years — the writing that led into the stairwell sessions. Circulated among fans rather than pressed.',
     tracks: [
       { name: 'Our Last Day', duration: '—' },
@@ -206,7 +206,7 @@ const ALBUMS = [
     year: 2019,
     type: 'Album',
     spotifyAlbum: '63yRRBtLX8eqbOLD6f0y9U',
-    cover: { art: 'assets/cut/cd_disc.webp', tone: 'disc' },
+    cover: { art: 'assets/photo/cover_cry.webp', tone: 'sleeve' },
     note: 'Written and recorded away from the city, in a villa on Mallorca. Warmer, slower, further gone.',
     tracks: [
       { name: "Don't Let Me Go", duration: '4:22' },

@@ -129,6 +129,10 @@ def main() -> int:
     if n != 1:
         raise SystemExit('could not find the <script> tags to inline')
 
+    # A preload is for a file the browser has yet to discover; here every image
+    # is already inline, so honouring one would base64 it a second time.
+    html = re.sub(r'[ \t]*<link rel="preload" as="image"[^>]*>\n', '', html)
+
     # ---- whatever the markup itself names ---------------------------------
     html = HTML_REF.sub(lambda m: assets.uri(m.group(1)) or m.group(0), html)
 

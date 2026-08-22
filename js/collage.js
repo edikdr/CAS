@@ -159,7 +159,6 @@ function watchDeferred() {
    ------------------------------------------------------------ */
 const DECOR = [
   // hero
-  { host: '.hero', key: 'cut/fingerprint_heart', x: 78, y: 16, w: 210, rot: -9, op: 0.5, blend: 'screen', dur: 19 },
   { host: '.hero', key: 'cut/yourlips_torn', x: 4, y: 60, w: 250, rot: 3, op: 0.42, blend: 'screen', dur: 23, sm: false },
   {
     host: '.hero', key: 'cut/cig_lit', x: 8.2, y: 54.7, w: 520, wSm: 300, rot: -2, op: 0.72,
@@ -188,7 +187,6 @@ const DECOR = [
     w: 'min(420px, 42vw)', wSm: 'min(420px, 78vw)',
     rot: -3, op: 0.78, blend: 'screen', dur: 31, cls: 'sign' },
   { host: '.hero', key: 'cut/moon_sm', x: 86, y: 72, w: 130, rot: 6, op: 0.4, blend: 'screen', dur: 25, sm: false },
-  { host: '.hero', key: 'cut/stars_red', x: 8, y: 12, w: 165, rot: -7, op: 0.6, dur: 21, sm: false },
 
   // about
   { host: '#about', key: 'cut/eye', x: 46, y: 3, w: 128, rot: 4, op: 0.4, blend: 'screen', dur: 22, sm: false },

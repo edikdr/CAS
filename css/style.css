@@ -201,8 +201,12 @@ body::after {
   position: absolute; pointer-events: none; z-index: 0;
   left: var(--x, 0);
   width: var(--w, 160px);
-  will-change: transform;
 }
+/* will-change only while the piece is actually drifting. It forces a
+   compositing layer, and a paused cut-out off screen has no use for one — the
+   page carries a few dozen of them, so holding a layer each was memory spent
+   on nothing. */
+.deco:not(.rest) { will-change: transform; }
 .deco img {
   display: block; width: 100%; height: auto;
   image-rendering: -webkit-optimize-contrast;
@@ -401,6 +405,17 @@ nav .brand:hover { color: var(--gold); }
   overflow: hidden;
   padding: 6rem 1.4rem 4rem;
 }
+.hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(to bottom, rgba(7,6,10,0.42) 0%, rgba(7,6,10,0.78) 55%, var(--bg) 100%),
+    url('../assets/bg/collage3.webp');
+  background-size: cover, cover;
+  background-position: center, center 22%;
+  filter: grayscale(38%) contrast(1.14) brightness(0.66);
+  animation: slowZoom 34s ease-in-out infinite alternate;
+}
+@keyframes slowZoom { from { transform: scale(1.04); } to { transform: scale(1.12); } }
 .hero-collage {
   position: absolute; inset: 0; z-index: 1;
   background-image: url('../assets/bg/collage3.webp');

@@ -12,12 +12,7 @@ root = pathlib.Path(__file__).resolve().parent.parent
 # in the generated file by hand, because regenerating would silently drop them
 # and the collage would come up short a few pieces with only a console warning.
 # A real file of the right name always wins — these only fill gaps.
-ALIASES = {
-    'bg/stage':             'assets/bg/collage3.webp',
-    'cut/cry_player':       'assets/cut/album_couple.webp',
-    'cut/fingerprint_heart': 'assets/cut/heart_anatomy.webp',
-    'cut/stars_red':        'assets/cut/stars_blue.webp',
-}
+ALIASES = {}
 
 files = sorted(p for p in (root / 'assets').rglob('*.webp'))
 entries = []
@@ -73,3 +68,29 @@ lines += [
 ]
 (root / 'js' / 'assets.js').write_text('\n'.join(lines), encoding='utf-8')
 print(f'wrote js/assets.js with {len(entries)} assets')
+
+# ---- report assets nothing on the page actually asks for -------------------
+# They cost nothing to leave on disk but the single-file builder base64s every
+# path it finds, so a cut-out dropped from the collage keeps shipping until
+# somebody notices. This makes that visible instead.
+import re
+html = (root / 'index.html').read_text(encoding='utf-8')
+sources = [root / f for f in re.findall(r'<script src="(js/[^"]+)"></script>', html)
+           if f != 'js/assets.js']
+blob = html + (root / 'css' / 'style.css').read_text(encoding='utf-8')
+blob += '\n'.join(f.read_text(encoding='utf-8') for f in sources if f.exists())
+
+def asked_for(key, rel):
+    if key.startswith('letters/'):
+        return True                      # built from a template string
+    return any(q + key + q in blob for q in '"\'`') or rel in blob
+
+live = {rel for key, rel in entries if asked_for(key, rel)}
+dead = [(rel, (root / rel).stat().st_size) for key, rel in entries if rel not in live]
+if dead:
+    dead = sorted(set(dead), key=lambda x: -x[1])
+    total = sum(s for _, s in dead)
+    print(f'  ! {len(dead)} asset(s) nothing asks for, {total/1024:.0f} KB '
+          f'({total*4/3/1024:.0f} KB once inlined):')
+    for rel, size in dead[:8]:
+        print(f'      {rel}  {size/1024:.1f} KB')

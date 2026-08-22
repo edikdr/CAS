@@ -374,16 +374,6 @@ nav .brand {
   text-decoration: none; opacity: 0.9;
 }
 nav .brand:hover { color: var(--gold); }
-/* the dot smoulders rather than sits — the same slow breath as the coal in
-   the hero, so the two read as one idea */
-nav .brand .dot {
-  width: 6px; height: 6px; background: var(--red-star); border-radius: 50%;
-  animation: brandEmber 4.2s ease-in-out infinite alternate;
-}
-@keyframes brandEmber {
-  from { opacity: 0.55; box-shadow: 0 0 0 rgba(179,42,60,0); }
-  to   { opacity: 1;    box-shadow: 0 0 9px rgba(214,132,84,0.75); }
-}
 .nav-links { display: flex; gap: 1.5rem; list-style: none; flex-wrap: wrap; }
 .nav-links a {
   position: relative;
@@ -411,17 +401,6 @@ nav .brand .dot {
   overflow: hidden;
   padding: 6rem 1.4rem 4rem;
 }
-.hero-bg {
-  position: absolute; inset: 0; z-index: 0;
-  background-image:
-    linear-gradient(to bottom, rgba(7,6,10,0.42) 0%, rgba(7,6,10,0.78) 55%, var(--bg) 100%),
-    url('../assets/bg/collage3.webp');
-  background-size: cover, cover;
-  background-position: center, center 22%;
-  filter: grayscale(38%) contrast(1.14) brightness(0.66);
-  animation: slowZoom 34s ease-in-out infinite alternate;
-}
-@keyframes slowZoom { from { transform: scale(1.04); } to { transform: scale(1.12); } }
 .hero-collage {
   position: absolute; inset: 0; z-index: 1;
   background-image: url('../assets/bg/collage3.webp');

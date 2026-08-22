@@ -148,7 +148,7 @@ const ALBUMS = [
     year: 2011,
     type: 'Demo album',
     spotifyAlbum: null,
-    cover: { art: 'assets/photo/cover_wordmark.webp', tone: 'sleeve' },
+    cover: { art: 'assets/photo/cover_romans.webp', tone: 'sleeve' },
     note: 'A long, largely unreleased demo album from the El Paso years — the writing that led into the stairwell sessions. Circulated among fans rather than pressed.',
     tracks: [
       { name: 'Our Last Day', duration: '—' },

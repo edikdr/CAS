@@ -170,7 +170,7 @@ const ALBUMS = [
     year: 2012,
     type: 'EP',
     spotifyAlbum: '5fzwP4FRJjFQBBmhKJwpWn',
-    cover: { art: 'assets/photo/cover_i.webp', tone: 'sleeve' },
+    cover: { art: 'assets/cut/polaroid_xs.webp', tone: 'mono' },
     note: 'Recorded in a four-story stairwell at the University of Texas at El Paso. Years later the algorithms found it.',
     tracks: [
       { name: "Nothing's Gonna Hurt You Baby", duration: '4:46' },
@@ -226,7 +226,7 @@ const ALBUMS = [
     year: 2024,
     type: 'Album',
     spotifyAlbum: '10i6evsxSFs2fuPQRWvI6I',
-    cover: { art: 'assets/cut/polaroid_xs.webp', tone: 'mono' },
+    cover: { art: 'assets/photo/cover_xs.webp', tone: 'sleeve' },
     note: 'Seven years after the debut: the same reverb, a harder edge, more Texas in the guitar.',
     tracks: [
       { name: "X's", duration: '3:33' },

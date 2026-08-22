@@ -133,7 +133,7 @@ const ALBUMS = [
     year: 2009,
     type: 'EP (self-released)',
     spotifyAlbum: null,
-    cover: { art: 'assets/photo/cover_wordmark.webp', tone: 'sleeve' },
+    cover: { art: 'assets/cut/vinyl.webp', tone: 'mono' },
     note: 'The first self-released EP, made while the project was still entirely in El Paso.',
     tracks: [
       { name: 'I Can See You', duration: '—' },
@@ -170,7 +170,7 @@ const ALBUMS = [
     year: 2012,
     type: 'EP',
     spotifyAlbum: '5fzwP4FRJjFQBBmhKJwpWn',
-    cover: { art: 'assets/cut/filmstrip.webp', tone: 'mono' },
+    cover: { art: 'assets/photo/cover_i.webp', tone: 'sleeve' },
     note: 'Recorded in a four-story stairwell at the University of Texas at El Paso. Years later the algorithms found it.',
     tracks: [
       { name: "Nothing's Gonna Hurt You Baby", duration: '4:46' },
@@ -185,7 +185,7 @@ const ALBUMS = [
     year: 2017,
     type: 'Album',
     spotifyAlbum: '2mxFsS5yylSTHNivV53HoA',
-    cover: { art: 'assets/photo/cover_self.webp', tone: 'sleeve' },
+    cover: { art: 'assets/photo/cover_wordmark.webp', tone: 'sleeve' },
     note: 'The self-titled debut on Partisan Records. The record that turned a bedroom sound into a global mood.',
     tracks: [
       { name: 'K.', id: '3Mlhgm39yBpuCwyZB8d8Md', duration: '5:19' },

@@ -708,7 +708,24 @@ body.paged .section.page-active>.wrap>.section-head{
   box-shadow:0 22px 56px rgba(0,0,0,.5),inset 0 1px 0 rgba(242,237,225,.05);
   transition:transform .45s cubic-bezier(.2,.7,.3,1),border-color .4s,box-shadow .45s;
 }
+/* Второй поток света идёт навстречу первому: два слоя постоянно
+   пересобирают свечение, поэтому оно не выглядит зациклённым. */
 .quiz-card::after{
+  content:"";position:absolute;inset:-18%;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(36% 30% at 70% 30%, rgba(242,237,225,.11), transparent 74%),
+    radial-gradient(32% 27% at 26% 74%, rgba(201,168,106,.16), transparent 74%);
+  animation:auroraCounter 31s ease-in-out infinite;
+}
+@keyframes auroraCounter{
+  0%,100%{transform:translate3d(0,0,0)}
+  36%    {transform:translate3d(-5%,4%,0)}
+  70%    {transform:translate3d(4.5%,-3%,0)}
+}
+/* Номер испытания — на заголовке; ближайший позиционированный предок
+   у него теперь сама карточка. */
+.quiz-title{position:static}
+.quiz-title::after{
   content:counter(trial, upper-roman);
   position:absolute;top:16px;right:24px;pointer-events:none;
   font-family:var(--font-display);font-size:46px;line-height:1;letter-spacing:.04em;
@@ -717,7 +734,7 @@ body.paged .section.page-active>.wrap>.section-head{
 .quiz-card:hover{transform:translateY(-6px);border-color:rgba(201,168,106,.36);
   box-shadow:0 30px 66px rgba(0,0,0,.6),inset 0 1px 0 rgba(242,237,225,.07)}
 .quiz-title{
-  position:relative;font-family:var(--font-display);font-size:27px;letter-spacing:.035em;
+  font-family:var(--font-display);font-size:27px;letter-spacing:.035em;
   margin-bottom:8px;padding-right:56px;
   background:linear-gradient(180deg,#F7F2E6,#D6BE8C);-webkit-background-clip:text;
   background-clip:text;color:transparent;
@@ -791,8 +808,6 @@ body.paged .section.page-active>.wrap>.section-head{
 .live-card{border:1px solid var(--line);border-radius:var(--radius);padding:18px;
   background:rgba(242,237,225,.03);margin-top:22px}
 .live-kicker{margin-bottom:8px}
-.ll-name{font-size:15px}
-.ll-sub{font-size:12.5px;color:var(--muted)}
 
 /* ============================================================
    ПОДВАЛ
@@ -920,11 +935,28 @@ body.paged .section.page-active>.wrap>.section-head{
 /* ---------- Ссылки «слушать» ---------- */
 .listen-list{display:flex;flex-direction:column;gap:9px;margin-top:12px}
 .listen-link{
-  position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:15px 19px;border-radius:13px;border:1px solid var(--line);color:var(--ivory);
+  position:relative;display:flex;align-items:center;gap:15px;
+  padding:13px 19px;border-radius:13px;border:1px solid var(--line);color:var(--ivory);
   font-size:14.5px;overflow:hidden;background:rgba(242,237,225,.02);
   transition:border-color .32s,background .32s,padding-left .32s;
 }
+/* Плитка со знаком площадки — та же огранка, что у сигилов участников */
+.ll-mark{
+  flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border-radius:11px;
+  border:1px solid rgba(201,168,106,.26);
+  background:linear-gradient(158deg,rgba(242,237,225,.07),rgba(242,237,225,.015));
+  color:var(--gold-2);
+  box-shadow:inset 0 1px 0 rgba(242,237,225,.07);
+  transition:color .32s,border-color .32s,box-shadow .32s,transform .45s cubic-bezier(.2,.7,.3,1);
+}
+.ll-mark svg{width:21px;height:21px}
+.listen-link:hover .ll-mark{
+  color:#F2E3BE;border-color:rgba(201,168,106,.6);transform:scale(1.06);
+  box-shadow:inset 0 1px 0 rgba(242,237,225,.12),0 0 20px rgba(201,168,106,.28);
+}
+.ll-text{min-width:0}
+.ll-name{display:block;font-size:14.5px;line-height:1.35}
+.ll-sub{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
 .listen-link::before{
   content:"";position:absolute;left:0;top:0;bottom:0;width:2px;
   background:linear-gradient(180deg,transparent,var(--gold),transparent);
@@ -934,7 +966,11 @@ body.paged .section.page-active>.wrap>.section-head{
   color:var(--ivory);padding-left:25px}
 .listen-link:hover::before{transform:scaleY(1)}
 .listen-note{font-size:12px;color:var(--muted);margin-top:14px;line-height:1.6}
-.listen-embed{margin-top:16px;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+/* Плеер площадки грузится по сети: пока он пуст, рамка не должна
+   светиться белым посреди тёмной модалки. */
+.listen-embed{margin-top:16px;border-radius:14px;overflow:hidden;border:1px solid var(--line);
+  background:linear-gradient(168deg,#12141A,#0B0D12);color-scheme:dark;min-height:82px}
+.listen-embed iframe{display:block;border:0;background:transparent}
 
 /* ---------- Текст песни: бумажный лист поверх камня ---------- */
 .lyrics-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;
@@ -953,14 +989,19 @@ body.paged .section.page-active>.wrap>.section-head{
 .lyrics-text{
   position:relative;list-style:none;
   margin:0 0 4px;padding:34px 30px 36px;
+  /* Три слоя фактуры: крупное волокно, мелкое зерно и продольные полосы.
+     Тон приглушён и притемнён по краям, чтобы лист садился в подложку,
+     а не светился поверх неё. */
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='.55'/%3E%3C/svg%3E"),
-    linear-gradient(168deg,#DED2B4 0%,#CFC2A2 58%,#BFB392 100%);
-  background-blend-mode:multiply,normal;
-  color:#181509;
+    radial-gradient(118% 88% at 50% 46%, transparent 30%, rgba(24,20,11,.62) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035 0.62' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.42'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='.62'/%3E%3C/svg%3E"),
+    linear-gradient(168deg,#A79A7C 0%,#978A6F 56%,#82765D 100%);
+  background-blend-mode:multiply,multiply,multiply,normal;
+  color:#191509;
   font-family:var(--font-display);font-size:clamp(17px,2vw,20.5px);line-height:1.78;
   letter-spacing:.012em;
-  box-shadow:0 22px 52px rgba(0,0,0,.6);
+  box-shadow:0 22px 52px rgba(0,0,0,.68),inset 0 0 58px rgba(26,21,12,.46);
   transform:rotate(-.45deg);
   -webkit-clip-path:polygon(0 1.4%,9% .2%,23% 1.6%,41% .3%,58% 1.5%,74% .2%,89% 1.4%,100% .4%,100% 98.6%,88% 99.8%,72% 98.4%,55% 99.7%,38% 98.5%,21% 99.8%,8% 98.6%,0 99.6%);
           clip-path:polygon(0 1.4%,9% .2%,23% 1.6%,41% .3%,58% 1.5%,74% .2%,89% 1.4%,100% .4%,100% 98.6%,88% 99.8%,72% 98.4%,55% 99.7%,38% 98.5%,21% 99.8%,8% 98.6%,0 99.6%);
@@ -969,8 +1010,8 @@ body.paged .section.page-active>.wrap>.section-head{
 .lyrics-text::before{
   content:"";position:absolute;top:-12px;left:50%;width:138px;height:27px;z-index:2;
   transform:translateX(-50%) rotate(-2.2deg);
-  background:linear-gradient(180deg,rgba(246,240,222,.86),rgba(198,186,156,.72));
-  box-shadow:0 4px 12px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.18) inset;
+  background:linear-gradient(180deg,rgba(206,196,170,.78),rgba(158,148,124,.66));
+  box-shadow:0 4px 12px rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.10) inset;
   -webkit-clip-path:polygon(0 20%,8% 4%,24% 15%,41% 2%,58% 13%,74% 3%,90% 14%,100% 6%,97% 88%,82% 97%,66% 88%,50% 99%,33% 89%,17% 98%,5% 89%,1% 96%);
           clip-path:polygon(0 20%,8% 4%,24% 15%,41% 2%,58% 13%,74% 3%,90% 14%,100% 6%,97% 88%,82% 97%,66% 88%,50% 99%,33% 89%,17% 98%,5% 89%,1% 96%);
 }
@@ -978,7 +1019,7 @@ body.paged .section.page-active>.wrap>.section-head{
 .lyrics-stanza:last-child{margin-bottom:0}
 .lyrics-section{
   font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:.24em;
-  text-transform:uppercase;color:#6B5B36;margin:1.5em 0 .55em;
+  text-transform:uppercase;color:#57492B;margin:1.5em 0 .55em;
 }
 .lyrics-section:first-child{margin-top:0}
 .lyrics-synced{counter-reset:none}
@@ -986,11 +1027,11 @@ body.paged .section.page-active>.wrap>.section-head{
   display:grid;grid-template-columns:46px 1fr;gap:12px;align-items:baseline;
   padding:1px 8px 1px 0;margin-left:-8px;border-radius:6px;transition:background .25s;
 }
-.lyrics-line:hover{background:rgba(107,91,54,.13)}
+.lyrics-line:hover{background:rgba(46,38,20,.16)}
 .lyrics-rest{height:.7em;list-style:none}
 .lyrics-section-row{list-style:none}
 .lyrics-time{
-  font-family:var(--font-body);font-size:10.5px;color:#7E6C42;
+  font-family:var(--font-body);font-size:10.5px;color:#665732;
   font-variant-numeric:tabular-nums;letter-spacing:.06em;
 }
 .lyrics-time[hidden]{display:none}
@@ -1091,9 +1132,9 @@ body.paged .section.page-active>.wrap>.section-head{
 }
 /* Мягкий дрейф световых пятен — только transform, без перерисовки фона. */
 @keyframes auroraDrift{
-  0%,100%{transform:translate3d(0,0,0) scale(1)}
-  30%    {transform:translate3d(3.5%,-2.5%,0) scale(1.07)}
-  62%    {transform:translate3d(-3%,2.5%,0) scale(1.02)}
+  0%,100%{transform:translate3d(0,0,0)}
+  30%    {transform:translate3d(4.5%,-3.5%,0)}
+  62%    {transform:translate3d(-4%,3.5%,0)}
 }
 
 /* Переливающаяся окантовка: конический градиент по рамке,
@@ -1207,7 +1248,9 @@ body.paged .page-active .lore-block{
 .glossary dd{color:var(--bone);opacity:.86;font-size:14.5px;line-height:1.65}
 @media (max-width:620px){.glossary>div{grid-template-columns:1fr;gap:6px}}
 
-.eras{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(232px,1fr))}
+.eras{display:grid;gap:14px;grid-template-columns:repeat(3,1fr)}
+@media (max-width:900px){.eras{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.eras{grid-template-columns:1fr}}
 .era{
   position:relative;padding:20px 20px 22px;border-radius:16px;border:1px solid var(--line);
   background:linear-gradient(168deg,rgba(23,26,33,.9),rgba(11,13,18,.94));
@@ -1247,13 +1290,138 @@ body.paged .page-active .lore-block{
 
 /* Карточка испытания: свечение под текстом теперь медленно вращается */
 .quiz-card::before{
-  content:"";position:absolute;inset:-30%;z-index:-1;pointer-events:none;
+  content:"";position:absolute;inset:-18%;z-index:-1;pointer-events:none;
   background:
-    radial-gradient(42% 34% at 20% 26%, rgba(201,168,106,.20), transparent 72%),
-    radial-gradient(38% 30% at 78% 58%, rgba(78,143,140,.15),  transparent 74%),
-    radial-gradient(34% 28% at 46% 92%, rgba(180,85,63,.13),   transparent 74%);
-  animation:auroraDrift 34s ease-in-out infinite;
+    radial-gradient(42% 34% at 20% 26%, rgba(201,168,106,.22), transparent 72%),
+    radial-gradient(38% 30% at 78% 58%, rgba(78,143,140,.17),  transparent 74%),
+    radial-gradient(34% 28% at 46% 92%, rgba(180,85,63,.15),   transparent 74%);
+  animation:auroraDrift 26s ease-in-out infinite, auroraBreathe 11s ease-in-out infinite;
   opacity:.9;
+}
+@keyframes auroraCounter{
+  0%,100%{transform:translate3d(0,0,0) scale(1.04)}
+  36%    {transform:translate3d(-4%,3%,0) scale(1)}
+  70%    {transform:translate3d(3%,-2.5%,0) scale(1.08)}
+}
+@keyframes auroraBreathe{0%,100%{opacity:.72}50%{opacity:1}}
+
+/* Облегчённый режим — включается сценарием после замера реального ритма */
+.lean .quiz-card::after{display:none}
+.lean .decoder-panel::after,.lean .preview-player::after,.lean .album-card::after{animation:none}
+.lean .collage .cut{animation:none}
+
+/* ============================================================
+   LORE — навигация, символы, теории
+   ============================================================ */
+.lore-nav{
+  position:sticky;top:64px;z-index:6;
+  display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+  margin:-8px 0 40px;padding:10px 0;
+  background:linear-gradient(180deg,rgba(6,7,10,.94) 62%,rgba(6,7,10,0));
+}
+.lore-nav::-webkit-scrollbar{display:none}
+.lore-nav a{
+  flex:0 0 auto;padding:8px 15px;border-radius:999px;border:1px solid var(--line);
+  font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);
+  background:rgba(242,237,225,.02);transition:color .3s,border-color .3s,background .3s;
+}
+.lore-nav a:hover{color:var(--ivory);border-color:rgba(201,168,106,.4);background:rgba(201,168,106,.09)}
+
+/* Врезка, отделяющая факты от прочтений */
+.lore-pull{
+  position:relative;margin:52px auto;max-width:660px;text-align:center;padding:0 24px;
+}
+.lore-pull::before,.lore-pull::after{
+  content:"";position:absolute;top:50%;width:14%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--line-2),transparent);
+}
+.lore-pull::before{left:0}
+.lore-pull::after{right:0}
+.lore-pull p{
+  font-family:var(--font-display);font-size:clamp(19px,2.3vw,25px);line-height:1.45;
+  color:var(--bone);letter-spacing:.015em;
+}
+.lore-pull em{font-style:italic;color:var(--gold-2)}
+.lore-pull cite{
+  display:block;margin-top:12px;font-family:var(--font-body);font-style:normal;
+  font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);
+}
+
+/* ---------- Символы ---------- */
+.symbols{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(248px,1fr))}
+.symbol{
+  padding:22px 22px 24px;border-radius:16px;border:1px solid var(--line);
+  background:linear-gradient(168deg,rgba(23,26,33,.9),rgba(11,13,18,.94));
+  transition:transform .45s cubic-bezier(.2,.7,.3,1),border-color .4s,box-shadow .45s;
+}
+.symbol:hover{transform:translateY(-5px);border-color:rgba(201,168,106,.32);
+  box-shadow:0 18px 42px rgba(0,0,0,.5)}
+.symbol-mark{
+  display:grid;place-items:center;width:46px;height:46px;margin-bottom:15px;
+  border-radius:12px;border:1px solid rgba(201,168,106,.26);color:var(--gold-2);
+  background:linear-gradient(158deg,rgba(242,237,225,.07),rgba(242,237,225,.015));
+  box-shadow:inset 0 1px 0 rgba(242,237,225,.07);
+  transition:color .35s,border-color .35s,box-shadow .35s;
+}
+.symbol-mark svg{width:24px;height:24px}
+.symbol:hover .symbol-mark{color:#F2E3BE;border-color:rgba(201,168,106,.55);
+  box-shadow:inset 0 1px 0 rgba(242,237,225,.12),0 0 20px rgba(201,168,106,.24)}
+.symbol h4{
+  font-family:var(--font-display);font-size:20px;font-weight:400;letter-spacing:.04em;
+  margin-bottom:8px;
+}
+.symbol p{color:var(--muted);font-size:13.5px;line-height:1.66}
+.symbol p i{color:var(--bone);font-style:italic}
+
+/* ---------- Теории ---------- */
+.theories{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));align-items:stretch}
+.theory{
+  position:relative;padding:24px 24px 26px;border-radius:16px;border:1px solid var(--line);
+  background:linear-gradient(168deg,rgba(22,25,32,.9),rgba(10,12,17,.94));
+  transition:transform .45s cubic-bezier(.2,.7,.3,1),border-color .4s,box-shadow .45s;
+}
+.theory:hover{transform:translateY(-4px);border-color:rgba(201,168,106,.3);
+  box-shadow:0 18px 44px rgba(0,0,0,.5)}
+.theory-head{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;
+  column-gap:12px;row-gap:10px;margin-bottom:13px;
+}
+.theory-no{
+  grid-column:1;grid-row:1;
+  font-family:var(--font-display);font-size:26px;line-height:1;color:transparent;
+  -webkit-text-stroke:1px rgba(201,168,106,.45);
+}
+.theory-head h4{
+  grid-column:1 / -1;grid-row:2;
+  font-family:var(--font-display);font-size:21px;font-weight:400;letter-spacing:.03em;
+  line-height:1.26;
+}
+.theory-tag{
+  grid-column:3;grid-row:1;justify-self:end;
+  font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  padding:4px 10px;border-radius:999px;border:1px solid currentColor;opacity:.9;
+}
+.theory-tag[data-weight="widely"]{color:var(--gold)}
+.theory-tag[data-weight="well"]{color:#7FB3AF}
+.theory-tag[data-weight="emerging"]{color:#A9A9A0}
+.theory-tag[data-weight="contested"]{color:#C58270}
+.theory p{color:var(--bone);opacity:.84;font-size:14px;line-height:1.68}
+
+/* Редакционная оговорка — намеренно не карточка, а заметка на полях */
+.theory-note{
+  margin-top:22px;padding:22px 24px;border-radius:14px;
+  border:1px solid rgba(201,168,106,.22);border-left:2px solid rgba(201,168,106,.55);
+  background:linear-gradient(120deg,rgba(201,168,106,.06),rgba(242,237,225,.015));
+}
+.theory-note h4{
+  font-family:var(--font-display);font-size:19px;font-weight:400;letter-spacing:.035em;
+  margin-bottom:9px;color:var(--gold-2);
+}
+.theory-note p{color:var(--bone);opacity:.85;font-size:13.5px;line-height:1.7;max-width:78ch}
+
+@media (max-width:760px){
+  .lore-nav{top:56px;margin-bottom:30px}
+  .theories,.symbols{grid-template-columns:1fr}
 }
 
 </style>
@@ -1429,19 +1597,30 @@ body.paged .page-active .lore-block{
 
 <div class="glyphline wrap" data-glyphword="EDEN" aria-hidden="true"></div>
 
-<!-- ================= LORE / MEMBERS ================= -->
+<!-- ================= LORE ================= -->
 <section class="section" id="lore">
   <i class="dec cut-red_scream" aria-hidden="true" style="bottom:0;right:-3%;width:min(24vw,278px);--rot:2deg"></i>
-  <i class="dec cut-demon_face" aria-hidden="true" style="top:4%;left:-5%;width:min(26vw,298px);--rot:-3deg"></i>
-  <i class="dec cut-hooded" aria-hidden="true" style="bottom:8%;left:3%;width:min(18vw,204px);--rot:4deg"></i>
-  <i class="dec cut-angel" aria-hidden="true" style="top:29%;right:6%;width:min(12vw,138px);--rot:-5deg"></i>
+  <i class="dec cut-demon_face" aria-hidden="true" style="top:3%;left:-5%;width:min(26vw,298px);--rot:-3deg"></i>
+  <i class="dec cut-hooded" aria-hidden="true" style="bottom:14%;left:2%;width:min(18vw,204px);--rot:4deg"></i>
+  <i class="dec cut-angel" aria-hidden="true" style="top:44%;right:4%;width:min(12vw,138px);--rot:-5deg"></i>
   <i class="dec cut-wordmark_ser" aria-hidden="true" style="top:1%;left:30%;width:min(26vw,298px);--rot:-1.2deg"></i>
   <div class="wrap">
     <div class="section-head">
       <p class="caps">Masks and silence</p>
       <h2 class="section-title">Lore</h2>
+      <p class="section-sub">What the collective has actually said, and what its audience has built on top of that. The two are kept apart on this page.</p>
     </div>
-    <div class="lore-grid">
+
+    <nav class="lore-nav" aria-label="Sections of the lore">
+      <a href="#lore-foundations">Foundations</a>
+      <a href="#lore-vocabulary">Vocabulary</a>
+      <a href="#lore-eras">Eras</a>
+      <a href="#lore-symbols">Symbols</a>
+      <a href="#lore-theories">Theories</a>
+      <a href="#lore-ceremony">Ceremony</a>
+    </nav>
+
+    <div class="lore-grid" id="lore-foundations">
       <div class="lore-text">
         <p><b>Sleep Token</b> are an anonymous British collective. The members conceal their identities behind masks and are known as <b>Vessel, II, III and IV</b>.</p>
         <p>The music is framed as worship of an entity called <b>Sleep</b>: albums become offerings, live shows become rituals, and messages are sometimes written in a dedicated alphabet.</p>
@@ -1459,13 +1638,16 @@ body.paged .page-active .lore-block{
           </ol>
         </div>
         <div id="loreLive"></div>
-
       </div>
-
       <div class="members" id="membersGrid"></div>
     </div>
 
-        <div class="lore-block">
+    <blockquote class="lore-pull">
+      <p>Everything past this line is read <em>into</em> the work, not stated by it.</p>
+      <cite>House rule of this archive</cite>
+    </blockquote>
+
+    <div class="lore-block" id="lore-vocabulary">
       <h3>The Ritual Vocabulary</h3>
       <p class="lore-note">Terms the band and its audience use. Beyond the few official statements, every reading below is fan interpretation rather than confirmed canon.</p>
       <dl class="glossary">
@@ -1479,7 +1661,7 @@ body.paged .page-active .lore-block{
       </dl>
     </div>
 
-    <div class="lore-block">
+    <div class="lore-block" id="lore-eras">
       <h3>Eras</h3>
       <p class="lore-note">Six offerings, each with its own weather.</p>
       <div class="eras">
@@ -1498,12 +1680,133 @@ body.paged .page-active .lore-block{
       </div>
     </div>
 
-    <div class="lore-block">
+    <div class="lore-block" id="lore-symbols">
+      <h3>Recurring Symbols</h3>
+      <p class="lore-note">Images that come back often enough that the audience treats them as vocabulary. What each one means is argued over; that it recurs is not.</p>
+      <div class="symbols">
+        <article class="symbol">
+          <span class="symbol-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="7.1"/><path d="M12 5.9 17.1 13 12 20.1 6.9 13Z"/><path d="M12 1.6v2.3M8.7 2.9l1 2.1M15.3 2.9l-1 2.1"/></svg></span>
+          <h4>The sigil</h4>
+          <p>Interlocking uprights with a rising sun caught inside them. Read most often as something held rather than something free — light kept behind bars.</p>
+        </article>
+        <article class="symbol">
+          <span class="symbol-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.4"/><circle cx="9.2" cy="9.4" r="1.5"/><circle cx="14.6" cy="14.2" r="2.1"/><circle cx="9.6" cy="15.6" r=".9"/></svg></span>
+          <h4>The moon</h4>
+          <p>Constant across sleeves and lyrics. Usually taken as the watcher: present every night, reflecting light it does not make, never answering.</p>
+        </article>
+        <article class="symbol">
+          <span class="symbol-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8.5c2.6-2 4.6-2 7 0s4.4 2 7 0 4.6-2 5-.6"/><path d="M2.5 13.2c2.6-2 4.6-2 7 0s4.4 2 7 0 4.6-2 5-.6"/><path d="M2.5 17.9c2.6-2 4.6-2 7 0s4.4 2 7 0 4.6-2 5-.6"/></svg></span>
+          <h4>Water</h4>
+          <p>Depth as pressure rather than calm. Drowning imagery peaks on <i>This Place Will Become Your Tomb</i>, where being submerged and being held get described the same way.</p>
+        </article>
+        <article class="symbol">
+          <span class="symbol-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7.4v9"/><path d="M12 9.2C9.6 5.4 4.4 5 3.4 8.2c-1 3.2 3 6.2 8.6 6.6"/><path d="M12 9.2c2.4-3.8 7.6-4.2 8.6-1 1 3.2-3 6.2-8.6 6.6"/><path d="M12 7.4 10.6 4.9M12 7.4l1.4-2.5"/></svg></span>
+          <h4>The moth</h4>
+          <p>Drawn to a light that will kill it. The most compact statement of the whole project, which is why it ended up on so much of the merchandise.</p>
+        </article>
+        <article class="symbol">
+          <span class="symbol-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.4 4.6h11.2v9.1c0 3.5-2.5 5.7-5.6 5.7s-5.6-2.2-5.6-5.7z"/><path d="M9.1 9.6h1.9M13 9.6h1.9"/><path d="M10.4 14.4h3.2"/></svg></span>
+          <h4>The mask</h4>
+          <p>Not a disguise so much as a role. The face is removed so the voice can belong to the ritual instead of to a person with a biography.</p>
+        </article>
+        <article class="symbol">
+          <span class="symbol-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.4c1.9 2.1 2.9 3.6 2.9 5.1a2.9 2.9 0 0 1-5.8 0c0-1.5 1-3 2.9-5.1Z"/><path d="M8.6 12.1h6.8v8.3H8.6z"/><path d="M8.6 15.4h6.8"/></svg></span>
+          <h4>The candle</h4>
+          <p>The live shows are lit rather than staged. Candles put the audience in a congregation instead of a crowd, which is the whole point of the framing.</p>
+        </article>
+        <article class="symbol">
+          <span class="symbol-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.6 9.4h16.8"/><path d="M4.6 9.4 7 14.2 9.4 9.4 11.8 14.2 14.2 9.4 16.6 14.2 19 9.4"/><path d="M3.6 18.2h16.8"/></svg></span>
+          <h4>Teeth</h4>
+          <p>Appetite runs under the devotion — feeding, biting, swallowing. Worship and hunger keep getting described with the same vocabulary.</p>
+        </article>
+        <article class="symbol">
+          <span class="symbol-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.4 11.6h15.2c0 4.3-3.4 7.1-7.6 7.1s-7.6-2.8-7.6-7.1Z"/><path d="M12 11.6V8.2M9 8.4c.6-1.6.4-2.9-.6-4M15 8.4c-.6-1.6-.4-2.9.6-4"/></svg></span>
+          <h4>The offering</h4>
+          <p>Each record is framed as something given up. What is offered is usually the self, and the return on it is never confirmed.</p>
+        </article>
+      </div>
+    </div>
+
+    <div class="lore-block" id="lore-theories">
+      <h3>Popular Theories</h3>
+      <p class="lore-note">Readings the fandom has settled into. None of them are confirmed — the band explains nothing — so each one carries how widely it is held rather than how true it is.</p>
+      <div class="theories">
+        <article class="theory">
+          <div class="theory-head">
+            <span class="theory-no">01</span>
+            <h4>Sleep is a person</h4>
+            <span class="theory-tag" data-weight="widely">widely held</span>
+          </div>
+          <p>The most common reading: the deity is a way of writing about someone. Devotional grammar — offering, worship, surrender — is used because ordinary love-song grammar could not carry that intensity without sounding absurd. Supporters point at how physical the lyrics get, and at how often the addressed figure behaves like a partner rather than a god.</p>
+        </article>
+        <article class="theory">
+          <div class="theory-head">
+            <span class="theory-no">02</span>
+            <h4>One story across the records</h4>
+            <span class="theory-tag" data-weight="widely">widely held</span>
+          </div>
+          <p>Read in sequence, the albums track a single arc: infatuation, dependency, collapse, and an aftermath that refuses resolution. Under this reading the recurring images are not decoration but continuity — the same relationship revisited from a later, more damaged position each time.</p>
+        </article>
+        <article class="theory">
+          <div class="theory-head">
+            <span class="theory-no">03</span>
+            <h4>The worship goes unanswered</h4>
+            <span class="theory-tag" data-weight="well">well supported</span>
+          </div>
+          <p>Almost nothing in the catalogue depicts the entity responding. Offerings are made, rites are performed, and the silence stays. Fans read this as the actual subject: not faith, but the cost of sustaining faith without evidence.</p>
+        </article>
+        <article class="theory">
+          <div class="theory-head">
+            <span class="theory-no">04</span>
+            <h4>Eden is a place you cannot return to</h4>
+            <span class="theory-tag" data-weight="widely">widely held</span>
+          </div>
+          <p>The title asks to be taken back somewhere, which means the speaker is already outside it. The record is heard less as a homecoming than as a demand made in full knowledge that it will not be granted.</p>
+        </article>
+        <article class="theory">
+          <div class="theory-head">
+            <span class="theory-no">05</span>
+            <h4>Arcadia keeps the rot</h4>
+            <span class="theory-tag" data-weight="emerging">emerging</span>
+          </div>
+          <p>The pastoral imagery of the most recent era is read as deliberately unstable — beauty presented with something wrong underneath it, in the tradition of the old inscription where the speaker of the phrase is death itself.</p>
+        </article>
+        <article class="theory">
+          <div class="theory-head">
+            <span class="theory-no">06</span>
+            <h4>The numbering is the point</h4>
+            <span class="theory-tag" data-weight="well">well supported</span>
+          </div>
+          <p>Calling the members II, III and IV rather than naming them is read as a design decision rather than a gimmick: it keeps attention on the ceremony and makes the collective replaceable in a way individuals are not.</p>
+        </article>
+        <article class="theory">
+          <div class="theory-head">
+            <span class="theory-no">07</span>
+            <h4>The alphabet is participation</h4>
+            <span class="theory-tag" data-weight="well">well supported</span>
+          </div>
+          <p>The signs are simple enough to be broken by anyone who cares to try. Fans read this as intentional: the audience is handed something to decode, which turns passive listening into an act performed for the ritual.</p>
+        </article>
+        <article class="theory">
+          <div class="theory-head">
+            <span class="theory-no">08</span>
+            <h4>Motifs answer each other</h4>
+            <span class="theory-tag" data-weight="contested">contested</span>
+          </div>
+          <p>Listeners trace lines, chords and images that recur across records and hear them as deliberate callbacks. Others argue the recurrence is simply a consistent writer returning to a small set of obsessions. Both readings survive the evidence.</p>
+        </article>
+      </div>
+      <aside class="theory-note">
+        <h4>One thing this archive will not host</h4>
+        <p>Speculation about who the members are outside the masks. Names surface periodically and get traded around; none of it is published here. The anonymity is the work’s central device, and dismantling it for sport is both beside the point and unkind to people who never asked to be identified. Everything above concerns the songs, not the persons behind them.</p>
+      </aside>
+    </div>
+
+    <div class="lore-block" id="lore-ceremony">
       <h3>How a Ceremony Runs</h3>
       <p>Shows are staged as rites rather than concerts: low light and candles, masks kept on, almost no stage talk. The set is paced like a service — invocation, offering, collapse — and the ensemble carries the parts a single voice cannot.</p>
       <p>The silence around the project is part of it. No interviews, no faces, no explanations of the lyrics; what is left is the record, the mark and the alphabet. That refusal is why so much of what circulates about the band — including much of this page — is interpretation offered by listeners, not statement issued by the band.</p>
     </div>
-
   </div>
 </section>
 
@@ -2151,10 +2454,45 @@ async function loadLoreLive(){
     }
   }catch(err){}
 }
-const linkArrow = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>';
+/* Знаки площадок нарисованы одной гравюрной линией, как сигилы участников:
+   узнаваемая форма, но в оформлении страницы, а не в фирменных цветах. */
+const MARK_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+const PLATFORM_MARKS = {
+  spotify: MARK_OPEN +
+    '<circle cx="12" cy="12" r="9.2"/><path d="M7.1 9.3c3.3-.9 6.7-.6 9.7.9"/>' +
+    '<path d="M7.8 12.4c2.7-.7 5.6-.4 8 .8"/><path d="M8.5 15.4c2.1-.5 4.3-.3 6.2.7"/></svg>',
+  apple: MARK_OPEN +
+    '<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M10.2 15.4V8.8l5-1.2v6.3"/>' +
+    '<ellipse cx="8.8" cy="15.7" rx="1.5" ry="1.3"/><ellipse cx="13.8" cy="14.3" rx="1.5" ry="1.3"/></svg>',
+  youtube: MARK_OPEN +
+    '<rect x="2.6" y="5.4" width="18.8" height="13.2" rx="4"/><path d="M10.4 9.5 15.5 12l-5.1 2.5z"/></svg>',
+  bandcamp: MARK_OPEN +
+    '<path d="M3.5 16.7 9.4 7.3h11.1l-5.9 9.4z"/><path d="M9.4 7.3 7 16.7"/></svg>',
+  instagram: MARK_OPEN +
+    '<rect x="3.4" y="3.4" width="17.2" height="17.2" rx="5"/><circle cx="12" cy="12" r="4.1"/>' +
+    '<circle cx="16.9" cy="7.1" r=".95" fill="currentColor" stroke="none"/></svg>',
+  site: MARK_OPEN +
+    '<circle cx="12" cy="13" r="7.1"/><path d="M12 5.9 17.1 13 12 20.1 6.9 13Z"/>' +
+    '<path d="M12 1.6v2.3M8.7 2.9l1 2.1M15.3 2.9l-1 2.1"/>' +
+    '<circle cx="12" cy="13" r="1.4" fill="currentColor" stroke="none"/></svg>',
+  link: MARK_OPEN + '<path d="M7 17 17 7M9 7h8v8"/></svg>'
+};
+function platformOf(href){
+  const h = String(href);
+  if(h.indexOf('spotify.com') > -1) return 'spotify';
+  if(h.indexOf('apple.com') > -1) return 'apple';
+  if(h.indexOf('youtube.com') > -1 || h.indexOf('youtu.be') > -1) return 'youtube';
+  if(h.indexOf('bandcamp.com') > -1) return 'bandcamp';
+  if(h.indexOf('instagram.com') > -1) return 'instagram';
+  if(h.indexOf('sleep-token.com') > -1) return 'site';
+  return 'link';
+}
 function listenLink(href, name, sub){
-  return '<a class="listen-link" href="'+href+'" target="_blank" rel="noopener noreferrer">'+
-    '<span><span class="ll-name">'+esc(name)+'</span><br><span class="ll-sub">'+esc(sub)+'</span></span>'+linkArrow+'</a>';
+  const kind = platformOf(href);
+  return '<a class="listen-link" data-platform="'+kind+'" href="'+esc(href)+'" target="_blank" rel="noopener noreferrer">'+
+    '<span class="ll-mark" aria-hidden="true">'+PLATFORM_MARKS[kind]+'</span>'+
+    '<span class="ll-text"><span class="ll-name">'+esc(name)+'</span>'+
+    '<span class="ll-sub">'+esc(sub)+'</span></span></a>';
 }
 const ITUNES_CACHE = new Map();
 const ITUNES_STORAGE_KEY = 'st_itunes_cache_v2';
@@ -2606,6 +2944,9 @@ var BG = (function(){
     tuned = true;
     samples.sort(function(a, b){ return a - b; });
     var med = samples[samples.length >> 1];
+    /* Слабой машине достаётся оформление попроще: часть декоративных
+       слоёв снимается, они самые дорогие для программного композитинга. */
+    if(med > 24) document.documentElement.classList.add('lean');
     if(med > 40){
       var sq = document.getElementById('squid');
       if(sq) sq.style.display = 'none';

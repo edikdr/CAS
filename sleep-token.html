@@ -442,8 +442,6 @@ body.paged .section.page-active>.wrap>.section-head{
   background-position:center;background-repeat:no-repeat;
   filter:grayscale(.32) contrast(1.09);transition:filter .6s,transform .9s;
 }
-.album-art::after{content:"";position:absolute;inset:0;
-  box-shadow:inset 0 -46px 60px rgba(0,0,0,.42),inset 0 0 0 1px rgba(242,237,225,.05)}
 .album-card:hover .album-art{filter:grayscale(0) contrast(1.14);transform:scale(1.035)}
 .album-body{padding:16px 18px 18px;position:relative;z-index:1}
 .album-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
@@ -712,8 +710,6 @@ body.paged .section.page-active>.wrap>.section-head{
   box-shadow:0 22px 56px rgba(0,0,0,.5),inset 0 1px 0 rgba(242,237,225,.05);
   transition:transform .45s cubic-bezier(.2,.7,.3,1),border-color .4s,box-shadow .45s;
 }
-.quiz-card::before{content:"";position:absolute;inset:-42% 34% 46% -22%;pointer-events:none;
-  background:radial-gradient(circle,rgba(201,168,106,.16),transparent 68%)}
 .quiz-card::after{
   content:counter(trial, upper-roman);
   position:absolute;top:16px;right:24px;pointer-events:none;
@@ -1080,6 +1076,172 @@ body.paged .section.page-active>.wrap>.section-head{
     transition-duration:.001ms !important;scroll-behavior:auto !important}
 }
 
+/* ============================================================
+   ЖИВЫЕ ГРАДИЕНТЫ
+   Угол конического градиента объявлен через @property, поэтому
+   его можно анимировать напрямую — кольцо вращается как свойство,
+   а не как перерисовка фона. Там, где @property не поддержан,
+   элементы просто остаются статичными.
+   ============================================================ */
+@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+@keyframes spinAng{to{--ang:360deg}}
+@keyframes sweep{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+
+/* Переливающаяся окантовка: конический градиент по рамке,
+   середина вырезана маской. */
+.aurora-ring{position:relative;isolation:isolate}
+.aurora-ring::after{
+  content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  border-radius:inherit;padding:1px;
+  background:conic-gradient(from var(--ang),
+    rgba(201,168,106,.85), rgba(78,143,140,.55) 22%, rgba(180,85,63,.45) 44%,
+    rgba(242,237,225,.65) 62%, rgba(201,168,106,.30) 80%, rgba(201,168,106,.85));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+          mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:.5;animation:spinAng 14s linear infinite;
+}
+.aurora-ring:hover::after{opacity:.9}
+
+/* Заголовки разделов переливаются медленной волной */
+.section-title,.hero-title{
+  background:linear-gradient(100deg,
+    var(--ivory) 0%, var(--gold-2) 18%, var(--ivory) 34%,
+    #BFD6D4 50%, var(--ivory) 66%, var(--gold-2) 84%, var(--ivory) 100%);
+  background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:sweep 13s linear infinite;
+  text-shadow:none;
+}
+.hero-sub{
+  background:linear-gradient(100deg,var(--bone) 10%,var(--gold-2) 35%,var(--bone) 60%,#B6CFCD 80%,var(--bone) 100%);
+  background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:sweep 17s linear infinite;
+  opacity:1;
+}
+
+/* ============================================================
+   ОТКЛИК КНОПОК
+   ============================================================ */
+.btn,.tbtn,.chip,.quiz-option,.listen-link,.album-card,.sheet-close{
+  -webkit-tap-highlight-color:transparent;
+}
+.btn{position:relative;overflow:hidden;isolation:isolate}
+/* Блик, пробегающий по кнопке при наведении */
+.btn::after{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(105deg,transparent 38%,rgba(242,237,225,.20) 50%,transparent 62%);
+  transform:translateX(-120%);transition:transform .7s cubic-bezier(.2,.7,.3,1);
+}
+.btn:hover::after{transform:translateX(120%)}
+.btn:active,.tbtn:active,.chip:active,.quiz-option:not(:disabled):active,
+.listen-link:active,.sheet-close:active{
+  transform:scale(.965);
+  transition:transform .09s ease-out;
+}
+.btn-gold:active{box-shadow:inset 0 0 22px rgba(201,168,106,.45),0 0 26px rgba(201,168,106,.28)}
+.btn-solid:active{box-shadow:inset 0 0 22px rgba(0,0,0,.22)}
+.album-card:active{transform:translateY(-2px) scale(.99);transition:transform .1s ease-out}
+
+/* Волна от нажатия — элемент создаётся сценарием и сам себя убирает */
+.ripple{
+  position:absolute;border-radius:50%;pointer-events:none;z-index:3;
+  background:radial-gradient(circle, rgba(201,168,106,.45), rgba(201,168,106,0) 70%);
+  transform:translate(-50%,-50%) scale(0);
+  animation:rippleOut .62s cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes rippleOut{to{transform:translate(-50%,-50%) scale(1);opacity:0}}
+
+/* ============================================================
+   ПОЯВЛЕНИЕ ЭЛЕМЕНТОВ ВНУТРИ СТРАНИЦЫ
+   ============================================================ */
+@keyframes riseIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+body.paged .page-active .album-card,
+body.paged .page-active .quiz-card,
+body.paged .page-active .member,
+body.paged .page-active .era,
+body.paged .page-active .glossary>div,
+body.paged .page-active .lore-block{
+  animation:riseIn .5s cubic-bezier(.22,.7,.3,1) both;
+  animation-delay:calc(var(--i,0) * 55ms + 120ms);
+}
+.album-card:nth-child(1),.quiz-card:nth-child(1),.member:nth-child(1),.era:nth-child(1),.glossary>div:nth-child(1),.lore-block:nth-child(1){--i:0}
+.album-card:nth-child(2),.quiz-card:nth-child(2),.member:nth-child(2),.era:nth-child(2),.glossary>div:nth-child(2),.lore-block:nth-child(2){--i:1}
+.album-card:nth-child(3),.quiz-card:nth-child(3),.member:nth-child(3),.era:nth-child(3),.glossary>div:nth-child(3),.lore-block:nth-child(3){--i:2}
+.album-card:nth-child(4),.quiz-card:nth-child(4),.member:nth-child(4),.era:nth-child(4),.glossary>div:nth-child(4),.lore-block:nth-child(4){--i:3}
+.album-card:nth-child(5),.era:nth-child(5),.glossary>div:nth-child(5){--i:4}
+.era:nth-child(6),.glossary>div:nth-child(6){--i:5}
+.glossary>div:nth-child(7){--i:6}
+
+/* ============================================================
+   LORE — расширенные блоки
+   ============================================================ */
+.lore-block{margin-top:44px}
+.lore-block>h3{
+  font-family:var(--font-display);font-size:26px;font-weight:400;letter-spacing:.04em;
+  margin-bottom:10px;
+}
+.lore-note{color:var(--muted);font-size:13px;line-height:1.65;margin-bottom:20px;max-width:62ch}
+.glossary{display:grid;gap:2px}
+.glossary>div{
+  display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:baseline;
+  padding:14px 16px;border-radius:12px;border:1px solid transparent;
+  transition:background .3s,border-color .3s;
+}
+.glossary>div:hover{background:rgba(242,237,225,.035);border-color:var(--line)}
+.glossary dt{
+  font-family:var(--font-display);font-size:19px;letter-spacing:.05em;color:var(--gold-2);
+}
+.glossary dd{color:var(--bone);opacity:.86;font-size:14.5px;line-height:1.65}
+@media (max-width:620px){.glossary>div{grid-template-columns:1fr;gap:6px}}
+
+.eras{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(232px,1fr))}
+.era{
+  position:relative;padding:20px 20px 22px;border-radius:16px;border:1px solid var(--line);
+  background:linear-gradient(168deg,rgba(23,26,33,.9),rgba(11,13,18,.94));
+  transition:transform .45s cubic-bezier(.2,.7,.3,1),border-color .4s,box-shadow .45s;
+}
+.era:hover{transform:translateY(-5px);border-color:rgba(201,168,106,.3);
+  box-shadow:0 18px 42px rgba(0,0,0,.5)}
+.era-year{
+  font-size:11px;letter-spacing:.2em;color:var(--gold);display:block;margin-bottom:8px;
+}
+.era h4{
+  font-family:var(--font-display);font-size:21px;font-weight:400;letter-spacing:.03em;
+  margin-bottom:9px;line-height:1.2;
+}
+.era p{color:var(--muted);font-size:13.5px;line-height:1.65}
+
+/* Переливающееся кольцо на ключевых панелях */
+.decoder-panel,.preview-player,.album-card{position:relative;isolation:isolate}
+.decoder-panel::after,.preview-player::after,.album-card::after{
+  content:"";position:absolute;inset:0;z-index:3;pointer-events:none;
+  border-radius:inherit;padding:1px;
+  background:conic-gradient(from var(--ang),
+    rgba(201,168,106,.85), rgba(78,143,140,.55) 22%, rgba(180,85,63,.45) 44%,
+    rgba(242,237,225,.65) 62%, rgba(201,168,106,.28) 80%, rgba(201,168,106,.85));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+          mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:.34;animation:spinAng 16s linear infinite;
+  transition:opacity .45s;
+}
+.decoder-panel:hover::after,.preview-player:hover::after,.album-card:hover::after{opacity:.85}
+/* у карточки альбома ::after прежде рисовал внутреннюю тень — переносим её в арт */
+.album-art::after{content:"";position:absolute;inset:0;
+  box-shadow:inset 0 -46px 60px rgba(0,0,0,.42),inset 0 0 0 1px rgba(242,237,225,.05)}
+
+/* Карточка испытания: свечение под текстом теперь медленно вращается */
+.quiz-card::before{
+  content:"";position:absolute;inset:-30%;z-index:-1;pointer-events:none;
+  background:conic-gradient(from var(--ang),
+    rgba(201,168,106,.16), rgba(78,143,140,.10) 28%, transparent 52%,
+    rgba(180,85,63,.10) 74%, rgba(201,168,106,.16));
+  animation:spinAng 30s linear infinite;
+  opacity:.85;
+}
+
 </style>
 </head>
 <body>
@@ -1200,9 +1362,8 @@ body.paged .section.page-active>.wrap>.section-head{
 
 <!-- ================= ДЕКОДЕР ================= -->
 <section class="section" id="decoder">
-  <i class="dec cut-logo_runes" aria-hidden="true" style="top:6%;left:1%;width:min(13vw,138px);--rot:-3deg"></i>
+  <i class="dec cut-logo_runes" aria-hidden="true" style="bottom:6%;left:1%;width:min(12vw,130px);--rot:-3deg"></i>
   <i class="dec cut-angel_wings" aria-hidden="true" style="bottom:2%;right:-2%;width:min(22vw,248px);--rot:3deg"></i>
-  <i class="dec cut-card_sunset" aria-hidden="true" style="top:11%;right:4%;width:min(14vw,162px);--rot:4deg"></i>
   <div class="wrap">
     <div class="section-head">
       <p class="caps">Ritual alphabet</p>
@@ -1261,6 +1422,7 @@ body.paged .section.page-active>.wrap>.section-head{
   <i class="dec cut-hooded" aria-hidden="true" style="bottom:8%;left:3%;width:min(18vw,204px);--rot:4deg"></i>
   <i class="dec cut-angel" aria-hidden="true" style="top:29%;right:6%;width:min(12vw,138px);--rot:-5deg"></i>
   <i class="dec cut-wordmark_ser" aria-hidden="true" style="top:1%;left:30%;width:min(26vw,298px);--rot:-1.2deg"></i>
+  <i class="dec cut-card_sunset" aria-hidden="true" style="bottom:26%;right:2%;width:min(13vw,150px);--rot:4deg"></i>
   <div class="wrap">
     <div class="section-head">
       <p class="caps">Masks and silence</p>
@@ -1284,9 +1446,51 @@ body.paged .section.page-active>.wrap>.section-head{
           </ol>
         </div>
         <div id="loreLive"></div>
+
       </div>
+
       <div class="members" id="membersGrid"></div>
     </div>
+
+        <div class="lore-block">
+      <h3>The Ritual Vocabulary</h3>
+      <p class="lore-note">Terms the band and its audience use. Beyond the few official statements, every reading below is fan interpretation rather than confirmed canon.</p>
+      <dl class="glossary">
+        <div><dt>Sleep</dt><dd>The entity the collective addresses. Named as the object of worship, never explained — most songs are written as if spoken to it, or to a person standing in its place.</dd></div>
+        <div><dt>Vessel</dt><dd>The vocalist. The name suggests a carrier rather than an author: someone the offering passes through.</dd></div>
+        <div><dt>II, III, IV</dt><dd>The rest of the collective, numbered instead of named. The numbering keeps the focus on the ritual rather than on the players.</dd></div>
+        <div><dt>Espera</dt><dd>The masked vocal ensemble that joins the live ceremonies, layering choral texture over the heavier passages.</dd></div>
+        <div><dt>Worship</dt><dd>What the audience is called, and what a show is framed as. Records are offerings; a tour is a season of rites.</dd></div>
+        <div><dt>The sigil</dt><dd>The interlocking mark used across sleeves and stages, with a rising sun caught inside the frame.</dd></div>
+        <div><dt>The alphabet</dt><dd>A set of signs used in artwork and announcements, letter for letter against the Latin alphabet. The <a href="#decoder">encoder</a> on this page writes with it.</dd></div>
+      </dl>
+    </div>
+
+    <div class="lore-block">
+      <h3>Eras</h3>
+      <p class="lore-note">Six offerings, each with its own weather.</p>
+      <div class="eras">
+        <article class="era"><span class="era-year">2016</span><h4>One</h4>
+          <p>The first EP. Sparse, hymn-like, more devotional than heavy — the vocabulary of worship arrives fully formed.</p></article>
+        <article class="era"><span class="era-year">2017</span><h4>Two</h4>
+          <p>The mythology widens and the masks harden. Softness and violence start sitting in the same song.</p></article>
+        <article class="era"><span class="era-year">2019</span><h4>Sundowning</h4>
+          <p>Released a track at a time, each at sundown, so the record assembled itself in public over months.</p></article>
+        <article class="era"><span class="era-year">2021</span><h4>This Place Will Become Your Tomb</h4>
+          <p>Oceanic and enclosed. The pressure imagery that runs through the sleeve runs through the mixing too.</p></article>
+        <article class="era"><span class="era-year">2023</span><h4>Take Me Back To Eden</h4>
+          <p>The widest record: soul, ambient, breakbeat and metal in one breath. “The Summoning” carried it far past the existing audience.</p></article>
+        <article class="era"><span class="era-year">2025</span><h4>Even In Arcadia</h4>
+          <p>Beauty with something wrong underneath — a garden that keeps its unease.</p></article>
+      </div>
+    </div>
+
+    <div class="lore-block">
+      <h3>How a Ceremony Runs</h3>
+      <p>Shows are staged as rites rather than concerts: low light and candles, masks kept on, almost no stage talk. The set is paced like a service — invocation, offering, collapse — and the ensemble carries the parts a single voice cannot.</p>
+      <p>The silence around the project is part of it. No interviews, no faces, no explanations of the lyrics; what is left is the record, the mark and the alphabet. That refusal is why so much of what circulates about the band — including much of this page — is interpretation offered by listeners, not statement issued by the band.</p>
+    </div>
+
   </div>
 </section>
 
@@ -2471,17 +2675,17 @@ var BG = (function(){
      завиток, усиливающийся к кончику. */
   function target(a, k, t){
     var u = k / (SEG - 1);
-    var amp = 0.011 + 0.041 * Math.pow(u, 1.55);
+    var amp = 0.014 + 0.055 * Math.pow(u, 1.5);
     var wave =
-        Math.sin(t * 0.16 + a.seed * 2.1 + k * 0.135) +
-        0.55 * Math.sin(t * 0.099 - a.seed * 1.3 + k * 0.077) +
-        0.28 * Math.sin(t * 0.235 + a.seed * 0.7 - k * 0.21);
+        Math.sin(t * 0.30 + a.seed * 2.1 + k * 0.150) +
+        0.58 * Math.sin(t * 0.185 - a.seed * 1.3 + k * 0.085) +
+        0.32 * Math.sin(t * 0.435 + a.seed * 0.7 - k * 0.22);
     var curl = 0.0135 * Math.pow(u, 2.15) * a.curl * 6.0;
     return amp * wave + curl;
   }
 
   function drawArm(a, t){
-    var ang = a.base + Math.sin(t * 0.045 + a.seed) * 0.10 + t * 0.012;
+    var ang = a.base + Math.sin(t * 0.085 + a.seed) * 0.16 + t * 0.020;
     var x = CX + Math.cos(ang) * R * 0.115;
     var y = CY + Math.sin(ang) * R * 0.135;
 
@@ -2490,7 +2694,7 @@ var BG = (function(){
     for(var k = 0; k < SEG; k++){
       var tg = target(a, k, t);
       /* временное сглаживание — тентакль «догоняет» цель, без рывков */
-      a.ang[k] = a.ready ? a.ang[k] + (tg - a.ang[k]) * 0.045 : tg;
+      a.ang[k] = a.ready ? a.ang[k] + (tg - a.ang[k]) * 0.085 : tg;
       dir += a.ang[k];
       var u  = k / (SEG - 1);
       var sl = R * 0.0295 * a.len * (1 - 0.30 * u);
@@ -2559,7 +2763,7 @@ var BG = (function(){
   }
 
   function drawMantle(t){
-    var wob = Math.sin(t * 0.13) * 0.055;
+    var wob = Math.sin(t * 0.22) * 0.075;
     ctx.save();
     ctx.translate(CX, CY);
     ctx.rotate(t * 0.012 + wob);
@@ -2603,7 +2807,7 @@ var BG = (function(){
 
   resize();
   if(reduce) BG.once(function(){ frame(t0 + 3200); });
-  else BG.add(frame, 12, 'squid');
+  else BG.add(frame, 20, 'squid');
 
   /* Параллакс фоновых слоёв */
   var stack = document.querySelector('.deep');
@@ -2745,6 +2949,33 @@ var BG = (function(){
     var el = document.getElementById(key);
     if(el) io.observe(el); else run(key);
   });
+})();
+
+/* ============================================================
+   ВОЛНА ОТ НАЖАТИЯ на кнопках и карточках.
+   Один короткоживущий элемент на клик, удаляется по окончании
+   анимации — постоянных слоёв не добавляется.
+   ============================================================ */
+(function(){
+  'use strict';
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var SEL = '.btn, .tbtn, .chip, .quiz-option, .listen-link, .album-card, .sheet-close, .charmap-cell';
+
+  document.addEventListener('pointerdown', function(e){
+    var el = e.target.closest(SEL);
+    if(!el || el.disabled) return;
+    var box = el.getBoundingClientRect();
+    var size = Math.max(box.width, box.height) * 2.1;
+    var r = document.createElement('span');
+    r.className = 'ripple';
+    r.style.width = r.style.height = size + 'px';
+    r.style.left = (e.clientX - box.left) + 'px';
+    r.style.top  = (e.clientY - box.top) + 'px';
+    if(getComputedStyle(el).position === 'static') el.style.position = 'relative';
+    if(getComputedStyle(el).overflow === 'visible') r.style.mixBlendMode = 'screen';
+    el.appendChild(r);
+    r.addEventListener('animationend', function(){ r.remove(); }, {once:true});
+  }, {passive:true});
 })();
 </script>
 

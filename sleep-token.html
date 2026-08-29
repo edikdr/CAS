@@ -139,8 +139,8 @@
 :root{
   --bg:#06070A;
   --bg2:#0A0C11;
-  --surface:rgba(17,19,25,.72);
-  --card:rgba(20,22,29,.78);
+  --surface:rgba(17,19,25,.48);
+  --card:rgba(20,22,29,.50);
   --line:rgba(242,237,225,.10);
   --line-2:rgba(242,237,225,.20);
   --ivory:#F2EDE1;
@@ -304,10 +304,10 @@ body.paged .section.page-active>.wrap>.section-head{
 .topbar{
   position:fixed;top:0;left:0;right:0;z-index:50;
   /* без backdrop-filter: он пересчитывал размытие подложки на каждом кадре прокрутки */
-  background:linear-gradient(180deg,rgba(6,7,10,.94),rgba(6,7,10,.72));
+  background:linear-gradient(180deg,rgba(6,7,10,.80),rgba(6,7,10,.46));
   border-bottom:1px solid transparent;transition:border-color .4s,background .4s;
 }
-.topbar.scrolled{border-bottom-color:var(--line);background:rgba(6,7,10,.88)}
+.topbar.scrolled{border-bottom-color:var(--line);background:rgba(6,7,10,.74)}
 .topbar-inner{display:flex;align-items:center;justify-content:space-between;height:64px;gap:16px}
 .brand{display:flex;align-items:center;gap:11px;color:var(--ivory);flex:0 0 auto}
 .brand .cut{width:30px;height:auto;filter:brightness(1.6) drop-shadow(0 0 8px rgba(201,168,106,.5))}
@@ -447,7 +447,7 @@ body.paged .section.page-active>.wrap>.section-head{
 .albums-grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
 .album-card{
   position:relative;text-align:left;border:1px solid var(--line);border-radius:var(--radius);
-  background:linear-gradient(168deg,rgba(23,26,33,.94),rgba(11,13,18,.96));overflow:hidden;
+  background:linear-gradient(168deg,rgba(23,26,33,.60),rgba(11,13,18,.66));overflow:hidden;
   transition:transform .45s cubic-bezier(.2,.7,.3,1),border-color .4s,box-shadow .45s;
 }
 .album-card::before{  /* клочок ленты держим внутри скруглённого бокса */
@@ -568,7 +568,7 @@ body.paged .section.page-active>.wrap>.section-head{
 .track-count{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
 .track-list{
   border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
-  background:linear-gradient(180deg,rgba(17,19,25,.94),rgba(10,12,16,.96));
+  background:linear-gradient(180deg,rgba(17,19,25,.58),rgba(10,12,16,.66));
 }
 .track-row{
   display:flex;align-items:center;gap:15px;padding:13px 18px;
@@ -611,7 +611,7 @@ body.paged .section.page-active>.wrap>.section-head{
     linear-gradient(var(--gold-mark),var(--gold-mark)),linear-gradient(var(--gold-mark),var(--gold-mark)),
     linear-gradient(var(--gold-mark),var(--gold-mark)),linear-gradient(var(--gold-mark),var(--gold-mark)),
     radial-gradient(120% 90% at 50% 0%, rgba(201,168,106,.09), transparent 62%),
-    linear-gradient(168deg,rgba(24,26,33,.92),rgba(9,10,14,.94));
+    linear-gradient(168deg,rgba(24,26,33,.62),rgba(9,10,14,.68));
   background-repeat:no-repeat;
   background-size:
     26px 1px,1px 26px, 26px 1px,1px 26px,
@@ -648,7 +648,7 @@ body.paged .section.page-active>.wrap>.section-head{
 /* Поле ввода — разлинованная плита */
 .decoder-input{
   width:100%;padding:15px 17px;border-radius:12px;border:1px solid var(--line);
-  background-color:rgba(4,5,8,.66);
+  background-color:rgba(4,5,8,.40);
   background-image:repeating-linear-gradient(180deg,transparent 0 27px,rgba(242,237,225,.055) 27px 28px);
   background-position:0 12px;
   outline:none;resize:vertical;font-size:15px;line-height:28px;letter-spacing:.02em;
@@ -671,8 +671,8 @@ body.paged .section.page-active>.wrap>.section-head{
   display:flex;flex-direction:column;gap:10px;overflow:auto;
 }
 .decoder-output::before{
-  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.14;
-  background:var(--cut-glyph_big) center/108px auto no-repeat;
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.30;
+  background:var(--cut-sigil_roses) center/152px auto no-repeat;
 }
 .decoder-output>*{position:relative;z-index:1}
 .decoder-output .st-glyph{filter:drop-shadow(0 0 9px rgba(201,168,106,.45))}
@@ -720,12 +720,12 @@ body.paged .section.page-active>.wrap>.section-head{
 .quiz-card{
   position:relative;overflow:hidden;counter-increment:trial;text-align:left;
   border:1px solid var(--line);border-radius:20px;padding:28px 26px 26px;
-  background-color:rgba(11,13,17,.9);
+  background-color:rgba(11,13,17,.42);
   /* вуаль поверх сигила задаёт его силу точнее, чем blend-режим */
   background-image:
-    linear-gradient(rgba(10,12,16,.84),rgba(10,12,16,.84)),
+    linear-gradient(rgba(10,12,16,.52),rgba(10,12,16,.52)),
     var(--cut-glyph_big),
-    linear-gradient(166deg,rgba(29,33,41,.96),rgba(11,13,18,.97));
+    linear-gradient(166deg,rgba(29,33,41,.60),rgba(11,13,18,.66));
   background-repeat:no-repeat,no-repeat,no-repeat;
   background-position:center,right -22px bottom -18px,center;
   background-size:cover,164px auto,cover;
@@ -769,20 +769,7 @@ body.paged .section.page-active>.wrap>.section-head{
   background:linear-gradient(90deg,var(--gold),transparent)}
 .quiz-question{position:relative;font-family:var(--font-display);font-size:21px;line-height:1.42;
   min-height:60px;margin-bottom:18px}
-/* Список статичен, чтобы его ::before считал координаты от карточки:
-   это третий слой перелива — узкий контрастный блик, который проходит
-   по карточке трансформом, без перерисовки фона. */
-.quiz-options{display:flex;flex-direction:column;gap:9px}
-.quiz-options::before{
-  content:"";position:absolute;inset:-8% -70%;z-index:-1;pointer-events:none;
-  background:linear-gradient(100deg,
-    transparent 40%, rgba(242,237,225,.05) 46%, rgba(201,168,106,.16) 50%,
-    rgba(242,237,225,.05) 54%, transparent 60%);
-  animation:sweepAcross 9s ease-in-out infinite;
-}
-@keyframes sweepAcross{
-  0%,100%{transform:translate3d(-26%,0,0)}
-  50%    {transform:translate3d(26%,0,0)}
+.quiz-options{display:flex;flex-direction:column;gap:9px;position:relative}
 }
 /* Вариант ответа: ромбовидный маркер слева, как в рунных списках */
 .quiz-option{
@@ -875,8 +862,8 @@ body.paged .section.page-active>.wrap>.section-head{
    ============================================================ */
 .overlay{
   position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;
-  background:radial-gradient(90% 70% at 50% 40%, rgba(6,8,11,.74), rgba(3,4,6,.92));
-  backdrop-filter:blur(12px) saturate(.85);-webkit-backdrop-filter:blur(12px) saturate(.85);
+  background:radial-gradient(90% 70% at 50% 40%, rgba(6,8,11,.58), rgba(3,4,6,.80));
+  backdrop-filter:blur(7px) saturate(.9);-webkit-backdrop-filter:blur(7px) saturate(.9);
   padding:0;animation:fade .32s ease;
 }
 .overlay[hidden]{display:none}
@@ -888,7 +875,7 @@ body.paged .section.page-active>.wrap>.section-head{
 .sheet{
   position:relative;width:min(760px,100%);max-height:92svh;overflow:auto;isolation:isolate;
   border:1px solid var(--line);border-bottom:none;border-radius:22px 22px 0 0;
-  background:linear-gradient(180deg,#14161C 0%,#0C0E13 44%,#08090D 100%);
+  background:linear-gradient(180deg,rgba(20,22,28,.80) 0%,rgba(12,14,19,.84) 44%,rgba(8,9,13,.88) 100%);
   box-shadow:0 -10px 90px rgba(0,0,0,.78),0 0 0 1px rgba(201,168,106,.08);
   animation:rise .45s cubic-bezier(.2,.75,.3,1);
   scrollbar-width:thin;scrollbar-color:rgba(201,168,106,.35) transparent;
@@ -943,7 +930,7 @@ body.paged .section.page-active>.wrap>.section-head{
 .sheet-head{
   display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
   padding:24px 28px 14px;position:sticky;top:0;z-index:3;
-  background:linear-gradient(180deg,#13151B 66%,rgba(19,21,27,0));
+  background:linear-gradient(180deg,rgba(19,21,27,.88) 62%,rgba(19,21,27,0));
 }
 .sheet-kicker{margin-bottom:8px;display:flex;align-items:center;gap:9px;color:var(--gold);opacity:.88}
 .sheet-kicker::before{content:"";width:7px;height:7px;flex:0 0 7px;transform:rotate(45deg);
@@ -1292,7 +1279,7 @@ body.paged .page-active .lore-block{
 @media (max-width:560px){.eras{grid-template-columns:1fr}}
 .era{
   position:relative;padding:20px 20px 22px;border-radius:16px;border:1px solid var(--line);
-  background:linear-gradient(168deg,rgba(23,26,33,.9),rgba(11,13,18,.94));
+  background:linear-gradient(168deg,rgba(23,26,33,.58),rgba(11,13,18,.64));
   transition:transform .45s cubic-bezier(.2,.7,.3,1),border-color .4s,box-shadow .45s;
 }
 .era:hover{transform:translateY(-5px);border-color:rgba(201,168,106,.3);
@@ -1409,7 +1396,7 @@ body.paged .page-active .lore-block{
 .symbols{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(248px,1fr))}
 .symbol{
   padding:22px 22px 24px;border-radius:16px;border:1px solid var(--line);
-  background:linear-gradient(168deg,rgba(23,26,33,.9),rgba(11,13,18,.94));
+  background:linear-gradient(168deg,rgba(23,26,33,.58),rgba(11,13,18,.64));
   transition:transform .45s cubic-bezier(.2,.7,.3,1),border-color .4s,box-shadow .45s;
 }
 .symbol:hover{transform:translateY(-5px);border-color:rgba(201,168,106,.32);
@@ -1435,7 +1422,7 @@ body.paged .page-active .lore-block{
 .theories{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));align-items:stretch}
 .theory{
   position:relative;padding:24px 24px 26px;border-radius:16px;border:1px solid var(--line);
-  background:linear-gradient(168deg,rgba(22,25,32,.9),rgba(10,12,17,.94));
+  background:linear-gradient(168deg,rgba(22,25,32,.58),rgba(10,12,17,.64));
   transition:transform .45s cubic-bezier(.2,.7,.3,1),border-color .4s,box-shadow .45s;
 }
 .theory:hover{transform:translateY(-4px);border-color:rgba(201,168,106,.3);

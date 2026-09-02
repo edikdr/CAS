@@ -7,6 +7,7 @@ editable edition, and no API keys anywhere in the source.
 
 - `the-neighbourhood-single.html` — double-click it; every asset is embedded.
 - `index.html` — the editable multi-file source using `css/`, `js/` and `assets/`.
+- `dist/the-neighbourhood-complete-standalone.zip` — the packaged copy of both.
 
 ## What is on the page
 

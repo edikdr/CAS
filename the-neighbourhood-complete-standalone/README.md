@@ -16,9 +16,41 @@ editable edition, and no API keys anywhere in the source.
 | 01 Manifesto | Band summary, replaced live by the Wikimedia REST summary |
 | 02 Discography | Nine releases; each opens a modal with the full tracklist |
 | Player | 30-second previews, a real audio visualiser, and a live API status row |
-| 03 Origin story | Founding history, timeline, codex and corrections (`LORE` in `js/data.js`) |
-| 04 People | Six members, current and former, with profile modals |
-| 05 Fan tests | Four 15-question quizzes with reshuffled answer positions |
+| 03 Origin story | Founding history, four eras, timeline, codex, symbols and corrections |
+| 04 Contact sheet | Two archive portrait plates in the house monochrome treatment |
+| 05 People | Six members, current and former, with detailed profile modals |
+| 06 Fan tests | Four 15-question quizzes with reshuffled answer positions |
+
+## Motion and depth
+
+Three independent layers move behind the content, and every one of them stops
+dead under `prefers-reduced-motion`.
+
+- **Particles** (`js/particles.js`) — one fixed canvas carrying fine dust, soft
+  glow and a star sprite. It watches which section is behind it via `data-tone`
+  and crossfades between `screen` on the black sections and `multiply` on the
+  paper ones, so the same motes read as light on black and as ink on paper.
+- **Collage drift** — every scattered paper object floats on its own cycle and
+  shifts with scroll parallax.
+- **Reveal** — content lifts in as it enters the viewport, then the class and
+  attribute are removed again so hover transforms are never fought over.
+
+## The star
+
+`assets/star-glow.webp` is cut out of the supplied overlay clip. The star sits on
+black in the source, so the alpha channel is derived from luminance with the low
+end clipped: that removes the diagonal light streak and the watermark band while
+keeping the star and its tight halo. It is composited back with `mix-blend-mode:
+screen`, which makes the remaining dark halo disappear completely against the
+dark sections — the reason it blends rather than sits on top. It appears twice:
+once large in the hero, and again as a drifting sprite in the particle field.
+
+## Black-to-white seams
+
+Sections no longer butt against each other. A `.seam` block sits between each
+change of tone and ramps one base colour into the next over 130-280px with an
+eased, seven-stop alpha gradient plus a grain overlay, which also keeps the long
+ramp from banding.
 
 ## The collage layer
 

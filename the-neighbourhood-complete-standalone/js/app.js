@@ -497,7 +497,13 @@
             <div class="member-copy">
               <h3 class="member-role">${esc(member.role)}</h3>
               <blockquote>${esc(member.bio)}</blockquote>
+              <p class="member-signature">${esc(member.signature)}</p>
+              <dl class="member-facts">${(member.facts || []).map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
               <p class="member-lore">${esc(member.lore)}</p>
+              <div class="member-on">${(member.on || []).map(id => {
+                const record = ALBUMS.find(album => album.id === id);
+                return record ? `<i>${esc(record.title)}</i>` : '';
+              }).join('')}</div>
               <a class="member-link" href="https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(member.name)}" target="_blank" rel="noopener">READ MORE ↗</a>
             </div>
           </div>`
@@ -520,6 +526,32 @@
         <span class="lore-year">${esc(entry.year)}</span>
         <div><h4>${esc(entry.title)}</h4><p>${esc(entry.body)}</p></div>
       </li>`).join('');
+
+    const ERA_SHADES = [
+      ['rgba(231,176,192,.30)', 'rgba(112,96,104,.42)'],
+      ['rgba(143,167,196,.30)', 'rgba(84,98,116,.44)'],
+      ['rgba(196,190,206,.26)', 'rgba(74,74,88,.46)'],
+      ['rgba(214,214,220,.34)', 'rgba(96,96,104,.44)']
+    ];
+    $('#loreEras').innerHTML = LORE.eras.map((era, index) => {
+      const [a, b] = ERA_SHADES[index % ERA_SHADES.length];
+      return `<article class="era-card" style="--era-a:${a};--era-b:${b}">
+        <div class="era-tag"><span>${esc(era.tag)}</span><span>${esc(era.years)}</span></div>
+        <h4>${esc(era.title)}</h4>
+        <p class="era-mood">${esc(era.mood)}</p>
+        <p>${esc(era.body)}</p>
+        <div class="era-marks">${era.marks.map(mark => `<i>${esc(mark)}</i>`).join('')}</div>
+      </article>`;
+    }).join('');
+
+    const GLYPHS = { house: 'house', palm: 'palmCircle', mono: 'monoSplit', moon: 'moon' };
+    $('#loreSymbols').innerHTML = LORE.symbols.map((symbol, index) => {
+      const builder = Collage.PIECES[GLYPHS[symbol.glyph]] || Collage.PIECES.house;
+      return `<div class="lore-symbol">
+        <figure>${builder(Collage.seeded(2200 + index * 131))}</figure>
+        <div><h4>${esc(symbol.name)}</h4><p>${esc(symbol.body)}</p></div>
+      </div>`;
+    }).join('');
 
     $('#loreCodex').innerHTML = LORE.codex.map(row => `<div><dt>${esc(row.k)}</dt><dd>${esc(row.v)}</dd></div>`).join('');
 
@@ -586,10 +618,74 @@
     if (marker) marker.className = anyLive ? 'live' : Object.values(status).every(e => e.state === 'idle') ? '' : 'offline';
   }
 
+  /* ---- reveal on scroll ------------------------------------------------- */
+
+  const REVEAL = [
+    ['.section-head', 0], ['.manifesto-copy', 0], ['.album-card', 45], ['.lore-card', 70],
+    ['.era-card', 70], ['.lore-entry', 40], ['.lore-symbol', 60], ['.lore-myth', 70],
+    ['.plate', 90], ['.member-card', 55], ['.quiz-tabs', 0], ['.player-panel', 0]
+  ];
+
+  function revealAll() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const pending = new Set();
+    REVEAL.forEach(([selector, stagger]) => {
+      $$(selector).forEach((element, index) => {
+        if (element.dataset.reveal !== undefined) return;
+        element.setAttribute('data-reveal', '');
+        if (stagger) element.style.setProperty('--reveal-delay', `${Math.min(index, 7) * stagger}ms`);
+        pending.add(element);
+      });
+    });
+    if (!pending.size) return;
+
+    /* hand the element back to its own styles once it has landed, so hover
+       transforms are never fought over by the reveal transition */
+    const release = (element, wait) => setTimeout(() => {
+      element.classList.remove('revealed');
+      element.removeAttribute('data-reveal');
+      element.style.removeProperty('--reveal-delay');
+    }, wait);
+
+    /* A rAF-throttled sweep rather than IntersectionObserver: a fast or
+       programmatic scroll can jump an element past the observer entirely and
+       leave it stuck at zero opacity. */
+    let ticking = false;
+    const sweep = () => {
+      ticking = false;
+      const limit = window.innerHeight * .94;
+      pending.forEach(element => {
+        const box = element.getBoundingClientRect();
+        if (box.bottom < -240) {
+          /* already scrolled past — show it with no animation at all */
+          element.style.setProperty('--reveal-delay', '0s');
+          element.classList.add('revealed');
+          pending.delete(element);
+          release(element, 0);
+        } else if (box.top < limit) {
+          element.classList.add('revealed');
+          pending.delete(element);
+          release(element, 1400);
+        }
+      });
+      if (!pending.size) {
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onScroll);
+      }
+    };
+    const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(sweep); } };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    sweep();
+  }
+
   /* ---- init ---------------------------------------------------------------- */
 
   function init() {
     Collage.build();
+    Particles.build();
     renderAlbums();
     renderMembers();
     renderLore();
@@ -657,6 +753,7 @@
     });
 
     /* open on the song that started everything */
+    revealAll();
     playTrack(2, 3, false);
     Api.wiki().then(text => { if (text) $('#bandBio').textContent = text; });
     warmCatalogue();

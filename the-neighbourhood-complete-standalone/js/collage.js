@@ -217,6 +217,37 @@ const Collage = (() => {
         <path class="ink-sheen" fill="none" stroke-width="2" d="M22 38h46"/>
       </svg>`;
     },
+    palmCircle() {
+      return `<svg viewBox="0 0 140 140" class="pc pc-palm">
+        <circle class="ink-paper" cx="70" cy="70" r="64"/>
+        <path class="ink-dark" d="M70 6a64 64 0 0 1 0 128z" opacity=".08"/>
+        <g class="ink-cut-dark">
+          <path d="M70 42c-13 0-24 7-28 17 7-6 16-9 24-8-9 3-16 9-19 17 7-7 16-10 25-9-8 5-13 12-15 20h13c1-13 6-24 14-31 8 7 13 18 14 31h13c-2-8-7-15-15-20 9-1 18 2 25 9-3-8-10-14-19-17 8-1 17 2 24 8-4-10-15-17-28-17z"/>
+          <path d="M20 96c9-6 18-6 25 0 7-6 16-6 25 0 9-6 18-6 25 0 7-6 16-6 25 0v9c-9-6-18-6-25 0-7-6-16-6-25 0-9-6-18-6-25 0-7-6-16-6-25 0z"/>
+          <path d="M92 30c4-4 9-6 14-6-4 3-7 7-8 12z"/>
+        </g>
+      </svg>`;
+    },
+    monoSplit() {
+      return `<svg viewBox="0 0 140 140" class="pc pc-mono">
+        <circle class="ink-dark" cx="70" cy="70" r="64"/>
+        <path class="ink-paper" d="M70 6a64 64 0 0 1 0 128z"/>
+        <circle class="ink-line" fill="none" stroke-width="2" cx="70" cy="70" r="64"/>
+        <text class="ink-cut-light" x="38" y="78" font-size="17" text-anchor="middle">000</text>
+        <text class="ink-cut-dark" x="102" y="78" font-size="17" text-anchor="middle">FFF</text>
+      </svg>`;
+    },
+    starShot(rand) {
+      /* the star lifted out of the overlay clip, drawn back as a paper cut-out */
+      const r = () => (rand() - .5) * 2.4;
+      return `<svg viewBox="0 0 130 130" class="pc pc-starshot">
+        <defs><radialGradient id="nb-halo-${Math.floor(rand() * 1e6)}" cx=".5" cy=".5" r=".5">
+          <stop offset=".38" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+        </radialGradient></defs>
+        <polygon class="ink-paper" points="${starPoints(65, 66, 50 + r(), 20 + r(), rand, 2)}"/>
+        <polygon class="ink-line" fill="none" stroke-width="1.5" opacity=".5" points="${starPoints(65, 66, 56, 23, rand, 4)}"/>
+      </svg>`;
+    },
     stamp() {
       return `<svg viewBox="0 0 130 130" class="pc pc-stamp">
         <circle class="ink-line" fill="none" stroke-width="3" cx="65" cy="65" r="58"/>
@@ -243,8 +274,8 @@ const Collage = (() => {
   /* ---- scatter ---------------------------------------------------------- */
 
   const SETS = {
-    dark: ['starPink', 'starSilver', 'starOutline', 'tape', 'tornNote', 'polaroid', 'vinyl', 'moon', 'house', 'bow', 'heartPatch', 'ransom', 'scribble', 'musicNote', 'filmstrip', 'stamp', 'lips'],
-    paper: ['starOutline', 'starPink', 'tape', 'tornNote', 'notepaper', 'polaroid', 'vinyl', 'house', 'bow', 'ransom', 'scribble', 'musicNote', 'barcode', 'clip', 'stamp'],
+    dark: ['starPink', 'starSilver', 'starOutline', 'starShot', 'tape', 'tornNote', 'polaroid', 'vinyl', 'moon', 'house', 'palmCircle', 'monoSplit', 'bow', 'heartPatch', 'ransom', 'scribble', 'musicNote', 'filmstrip', 'stamp', 'lips'],
+    paper: ['starOutline', 'starPink', 'tape', 'tornNote', 'notepaper', 'polaroid', 'vinyl', 'house', 'palmCircle', 'monoSplit', 'bow', 'ransom', 'scribble', 'musicNote', 'barcode', 'clip', 'stamp'],
     sparse: ['starOutline', 'tape', 'scribble', 'starSilver', 'musicNote']
   };
 
@@ -252,6 +283,7 @@ const Collage = (() => {
     starPink: [58, 128], starSilver: [46, 104], starOutline: [34, 84], tape: [150, 300],
     tornNote: [140, 240], notepaper: [110, 175], polaroid: [96, 180], vinyl: [80, 165],
     moon: [78, 160], house: [70, 145], bow: [90, 175], heartPatch: [70, 140],
+    palmCircle: [64, 132], monoSplit: [58, 118], starShot: [44, 116],
     lips: [78, 150], ransom: [96, 190], scribble: [120, 240], musicNote: [44, 92],
     filmstrip: [130, 240], barcode: [90, 165], clip: [46, 92], stamp: [70, 130]
   };
@@ -337,5 +369,5 @@ const Collage = (() => {
     parallax(layers);
   }
 
-  return { build, PIECES, place };
+  return { build, PIECES, place, seeded: rng };
 })();

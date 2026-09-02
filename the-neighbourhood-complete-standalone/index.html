@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Unofficial interactive fan archive dedicated to The Neighbourhood">
+  <title>THE NBHD. — Unofficial Fan Archive</title>
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800&family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="mini-logo" href="#top"><span>THE</span><b>NBHD.</b></a>
+    <nav aria-label="Навигация"><a href="#archive">ARCHIVE</a><a href="#lore">LORE</a><a href="#members">PEOPLE</a><a href="#quiz">TESTS</a></nav>
+    <a class="spotify-link" href="https://open.spotify.com/artist/77SW9BnxLY8rJ0RciFqkHh" target="_blank" rel="noopener">SPOTIFY ↗</a>
+  </header>
+
+  <main>
+    <section class="hero" id="top" data-debris="dark:16" data-keepout="0.46,0.42">
+      <div class="noise"></div>
+      <img class="hero-collage hero-collage-left" src="assets/collage-black.webp" alt="">
+      <img class="hero-collage hero-collage-right" src="assets/collage-void.webp" alt="">
+      <div class="hero-copy">
+        <p class="eyebrow">NEWBURY PARK, CA / SINCE 2011</p>
+        <h1><span>THE</span> NEIGHBOURHOOD</h1>
+        <p class="hero-lead">A monochrome fan archive for the songs that made California feel cold.</p>
+        <div class="hero-actions"><a href="#archive" class="button button-dark">ENTER THE VOID ↓</a><button class="round-play" id="heroPlay" aria-label="Включить превью">▶</button></div>
+      </div>
+      <div class="hero-stamp"><span>WE WERE TOO CLOSE</span><b>★</b><span>TO THE STARS</span></div>
+      <p class="scroll-mark">SCROLL TO LISTEN <i></i></p>
+    </section>
+
+    <section class="manifesto" data-debris="paper:13" data-keepout="0.44,0.40">
+      <div class="manifesto-quote">“I’m sorry, I’m not sorry.”</div>
+      <div><p class="section-kicker">01 / THE BAND</p><h2>BLACK, WHITE<br>AND EVERYTHING<br>IN BETWEEN.</h2></div>
+      <div class="manifesto-copy"><p id="bandBio">California alternative band formed in 2011, known for monochrome visual language and a blend of rock, R&amp;B and electronic pop.</p><div class="source-row"><i id="dataStatus"></i> LIVE DATA: WIKIMEDIA + ITUNES</div></div>
+      <img class="palm-mark" src="assets/moon-mark.webp" alt="Пальмы и океан — символика Wiped Out">
+    </section>
+
+    <section class="archive" id="archive" data-debris="paper:11" data-keepout="0.50,0.46">
+      <div class="section-head"><div><p class="section-kicker">02 / DISCOGRAPHY</p><h2>SELECT A RECORD</h2></div><p>Каталог собран офлайн, а треклисты, обложки и 30‑секундные превью подтягиваются вживую из iTunes. Откройте релиз, затем выберите трек.</p></div>
+      <div class="album-grid" id="albumGrid"></div>
+    </section>
+
+    <section class="player-section" data-debris="dark:13" data-keepout="0.54,0.50">
+      <img class="player-collage" src="assets/polaroid-board.webp" alt="">
+      <div class="player-panel">
+        <div class="player-topline"><span>NBHD RADIO / 30 SEC</span><span id="vizMode">IDLE</span></div>
+        <div class="player-main">
+          <div class="cover-small"><img id="playerCover" src="assets/album-wiped-out.webp" alt="Обложка"><span>NOW PLAYING</span></div>
+          <div class="track-info"><p>THE NEIGHBOURHOOD</p><h2 id="playerTitle">Select a track</h2><span id="playerAlbum">Wiped Out!</span><blockquote id="lyricPreview" hidden></blockquote></div>
+        </div>
+        <div class="waveform" id="waveform" aria-hidden="true"></div>
+        <div class="player-controls">
+          <button id="prevTrack" aria-label="Предыдущий трек">‹</button>
+          <button class="main-play" id="mainPlay" aria-label="Воспроизвести">▶</button>
+          <button id="nextTrack" aria-label="Следующий трек">›</button>
+          <span id="timeNow">0:00</span>
+          <input id="seek" aria-label="Позиция" type="range" min="0" max="30" step="0.1" value="0">
+          <span id="timeEnd">0:30</span>
+          <label>VOL <input id="volume" aria-label="Громкость" type="range" min="0" max="1" step="0.05" value="0.75"></label>
+        </div>
+        <div class="player-foot">
+          <p class="player-note" id="playerNote">Choose a track from a record.</p>
+          <ul class="signal-check" id="signalCheck" aria-label="Состояние публичных API"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="lore" id="lore" data-debris="dark:15" data-keepout="0.56,0.52">
+      <div class="section-head light"><div><p class="section-kicker">03 / ORIGIN STORY</p><h2>HOW IT ALL BEGAN</h2></div><p>Откуда взялась группа, почему в названии британская «u» и как чёрно-белое правило стало фирменным знаком.</p></div>
+      <div class="lore-origin" id="loreOrigin"></div>
+      <div class="lore-split">
+        <div class="lore-timeline-wrap">
+          <h3 class="lore-h3">TIMELINE</h3>
+          <ol class="lore-timeline" id="loreTimeline"></ol>
+        </div>
+        <aside class="lore-aside">
+          <h3 class="lore-h3">CODEX</h3>
+          <dl class="lore-codex" id="loreCodex"></dl>
+          <h3 class="lore-h3">MYTHS &amp; CORRECTIONS</h3>
+          <div class="lore-myths" id="loreMyths"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="people" id="members" data-debris="dark:11" data-keepout="0.52,0.48">
+      <div class="section-head light"><div><p class="section-kicker">04 / PEOPLE</p><h2>FACES IN THE STATIC</h2></div><p>Нажмите на карточку, чтобы открыть профиль участника.</p></div>
+      <div class="member-grid" id="memberGrid"></div>
+    </section>
+
+    <section class="interlude" data-debris="paper:10" data-keepout="0.48,0.44">
+      <img src="assets/too-close.webp" alt="We were too close to the stars">
+      <div><p>THE NBHD / NIGHT MODE</p><h2>“THE MUSIC<br>IS MY DRUG.”</h2><span>REFLECTIONS ON REPEAT — 03:04 AM</span></div>
+      <img src="assets/void-board.webp" alt="The NBHD hand-drawn collage">
+    </section>
+
+    <section class="quiz" id="quiz" data-debris="dark:11" data-keepout="0.56,0.52">
+      <div class="section-head light"><div><p class="section-kicker">05 / FAN TESTS</p><h2>HOW DEEP ARE YOU IN?</h2></div><p>Четыре теста по 15 вопросов. Позиции правильных ответов перемешиваются при каждом запуске.</p></div>
+      <div class="quiz-tabs" id="quizTabs"></div>
+      <div class="quiz-paper">
+        <div class="quiz-title"><span id="quizEyebrow"></span><h3 id="quizTitle"></h3><b id="quizProgress"></b></div>
+        <div class="questions" id="questions"></div>
+        <div class="quiz-submit"><div id="quizResult"><p>Ответьте на вопросы и проверьте результат.</p></div><button id="quizSubmit">CHECK ANSWERS</button></div>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="footer-logo"><span>THE</span> NBHD.</div><p>UNOFFICIAL FAN ARCHIVE / NO SERVER / NO API KEYS</p><div><a href="#top">BACK TO TOP ↑</a><a href="https://musicbrainz.org/artist/adf13cf6-5384-482a-9ab1-a798b67104b2" target="_blank" rel="noopener">MUSICBRAINZ ↗</a></div></footer>
+
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <section class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalHeading">
+      <header class="modal-head">
+        <div class="modal-titles">
+          <p class="modal-kicker" id="modalKicker"></p>
+          <h2 class="modal-heading" id="modalHeading"></h2>
+        </div>
+        <button class="modal-close" id="modalClose" aria-label="Закрыть">×</button>
+      </header>
+      <div class="modal-body" id="modalContent"></div>
+    </section>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/collage.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/visualizer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

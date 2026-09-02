@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 
-const SCRIPTS = ['js/data.js', 'js/collage.js', 'js/particles.js', 'js/api.js', 'js/visualizer.js', 'js/app.js'];
+const SCRIPTS = ['js/data.js', 'js/collage.js', 'js/particles.js', 'js/genius.js', 'js/api.js', 'js/visualizer.js', 'js/app.js'];
 const MIME = { '.webp': 'image/webp', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg' };
 
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');

@@ -3,6 +3,15 @@
 An unofficial, monochrome fan archive. No server, no database, no build step for the
 editable edition, and no API keys anywhere in the source.
 
+## Two halves
+
+- **The archive** — `index.html` and the single-file build. No server, no build
+  step, no keys. Everything below works with nothing running.
+- **`server/`** — an optional Express service that puts the Genius API behind
+  our own origin: annotations, official song backgrounds, artist bios, metrics
+  and cover versions. Off until `NBHD_CONFIG.geniusService` in `js/data.js`
+  points at it. See `server/README.md`.
+
 ## Open it
 
 - `the-neighbourhood-single.html` — double-click it; every asset is embedded.
@@ -79,14 +88,23 @@ The page stacks several full-viewport effects, so it is compositing-bound rather
 than script-bound. Measured over four alternating runs of a full-page scroll at
 1440x960, against the previous build:
 
-| | before | after |
-| --- | --- | --- |
-| median frame | 61.9ms | 51.1ms |
-| 95th percentile frame | 118.9ms | 102.1ms |
-| total blocking time | 279ms | 209ms |
-| load / first paint | 500ms / 508ms | 411ms / 416ms |
+| | first build | after pass 1 | after pass 2 |
+| --- | --- | --- | --- |
+| median frame | 61.9ms | 51.1ms | 28.3ms |
+| 95th percentile frame | 118.9ms | 102.1ms | 65.3ms |
+| total blocking time | 279ms | 209ms | 44ms |
+| load / first paint | 500 / 508ms | 411 / 416ms | 310 / 268ms |
 
-Nothing about the design changed to get there. The wins were:
+**Pass 2** removed the page-wide grain sheet. It was a fixed, viewport-sized
+layer blended with `mix-blend-mode: overlay`, which forced the compositor to
+re-read the backdrop on every scrolled frame, and it was the most expensive
+single thing on the page. Measured against a frozen render it moved the image by
+a mean of 0.95 levels out of 255, with **no pixel differing by more than 4** — so
+nothing visible was traded for it. Grain that actually reads is still there: the
+hero's `.noise` layer and the era cards. The topbar blur went from 15px to 10px,
+and three assets that nothing referenced were deleted.
+
+**Pass 1** changes, none of which altered the design:
 
 - Every `<img>` carries its intrinsic `width` and `height`, so nothing reflows
   as images arrive.

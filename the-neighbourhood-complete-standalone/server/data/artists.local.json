@@ -1,0 +1,341 @@
+{
+  "note": "Local overrides. Any field present here wins over Genius in /api/artists/:id/hybrid. geniusId links a local entry to a Genius artist page.",
+  "artists": {
+    "jesse-rutherford": {
+      "slug": "jesse-rutherford",
+      "name": "Jesse Rutherford",
+      "geniusId": null,
+      "role": "lead vocals / lyrics",
+      "years": "2011 — present",
+      "status": "current",
+      "bio": "The voice and central visual presence of The Neighbourhood. Rutherford writes from somewhere between detachment and confession, and sings almost every line as if he is trying not to wake anybody.",
+      "signature": "A close-mic, half-spoken delivery that keeps the volume down and the nerve exposed.",
+      "image": "assets/member-jesse.webp",
+      "on": [
+        "i-love-you",
+        "black-and-white",
+        "wiped-out",
+        "the-neighbourhood",
+        "chip-chrome"
+      ],
+      "facts": [
+        [
+          "ROLE",
+          "Vocals, lyrics"
+        ],
+        [
+          "SINCE",
+          "2011"
+        ],
+        [
+          "ALTER EGO",
+          "Chip Chrome"
+        ],
+        [
+          "SOLO",
+          "“&” (2017)"
+        ]
+      ],
+      "listen": [
+        [
+          "Sweater Weather",
+          "I Love You.",
+          "The whole delivery in one song: warm words sung cold, never once pushed."
+        ],
+        [
+          "R.I.P. 2 My Youth",
+          "Wiped Out!",
+          "The rare moment he lets the volume off the leash."
+        ],
+        [
+          "Chip Chrome",
+          "Chip Chrome & The Mono-Tones",
+          "Sixty seconds of him introducing a character instead of himself."
+        ]
+      ],
+      "socials": {}
+    },
+    "zach-abels": {
+      "slug": "zach-abels",
+      "name": "Zach Abels",
+      "geniusId": null,
+      "role": "lead guitar",
+      "years": "2011 — present",
+      "status": "current",
+      "bio": "A founding member whose guitar work gives the songs their haze. He plays around the vocal rather than over it, leaving the space that makes the records feel as cold as they do.",
+      "signature": "Clipped, chiming motifs with more air than noise — the band’s West Coast contour.",
+      "image": "assets/member-zach.webp",
+      "on": [
+        "i-love-you",
+        "black-and-white",
+        "wiped-out",
+        "the-neighbourhood",
+        "chip-chrome"
+      ],
+      "facts": [
+        [
+          "ROLE",
+          "Lead guitar"
+        ],
+        [
+          "SINCE",
+          "2011"
+        ],
+        [
+          "FOUNDING",
+          "Yes"
+        ],
+        [
+          "KNOWN FOR",
+          "The Sweater Weather figure"
+        ]
+      ],
+      "listen": [
+        [
+          "Sweater Weather",
+          "I Love You.",
+          "The muted opening figure — four bars that became a signature."
+        ],
+        [
+          "Daddy Issues",
+          "Wiped Out!",
+          "Long, clean intervals left hanging over the bass."
+        ],
+        [
+          "Scary Love",
+          "The Neighbourhood",
+          "Guitar used as a pad rather than a lead."
+        ]
+      ],
+      "socials": {}
+    },
+    "jeremy-freedman": {
+      "slug": "jeremy-freedman",
+      "name": "Jeremy Freedman",
+      "geniusId": null,
+      "role": "guitar",
+      "years": "2011 — present",
+      "status": "current",
+      "bio": "Founding guitarist. His parts sit underneath rather than on top, holding the harmonic floor while the lead guitar and the vocal take the light.",
+      "signature": "Texture and counter-line: the low harmonic weather the songs move through.",
+      "image": "assets/member-freedman.webp",
+      "on": [
+        "i-love-you",
+        "black-and-white",
+        "wiped-out",
+        "the-neighbourhood",
+        "chip-chrome"
+      ],
+      "facts": [
+        [
+          "ROLE",
+          "Guitar"
+        ],
+        [
+          "SINCE",
+          "2011"
+        ],
+        [
+          "FOUNDING",
+          "Yes"
+        ],
+        [
+          "PLACE",
+          "Underneath the mix"
+        ]
+      ],
+      "listen": [
+        [
+          "Afraid",
+          "I Love You.",
+          "The second guitar holding the harmonic floor under the hook."
+        ],
+        [
+          "The Beach",
+          "Wiped Out!",
+          "Texture doing the work of an arrangement."
+        ],
+        [
+          "Void",
+          "The Neighbourhood",
+          "Where the two guitar parts finally trade places."
+        ]
+      ],
+      "socials": {}
+    },
+    "mikey-margott": {
+      "slug": "mikey-margott",
+      "name": "Mikey Margott",
+      "geniusId": null,
+      "role": "bass",
+      "years": "2011 — present",
+      "status": "current",
+      "bio": "Founding bassist. The band’s R&B and hip-hop leanings live mostly in the bass, which is why a guitar band from Ventura County has always grooved more than it should.",
+      "signature": "Patient, round and further forward than a rock record would usually allow.",
+      "image": "assets/member-margott.webp",
+      "on": [
+        "i-love-you",
+        "black-and-white",
+        "wiped-out",
+        "the-neighbourhood",
+        "chip-chrome"
+      ],
+      "facts": [
+        [
+          "ROLE",
+          "Bass"
+        ],
+        [
+          "SINCE",
+          "2011"
+        ],
+        [
+          "FOUNDING",
+          "Yes"
+        ],
+        [
+          "CARRIES",
+          "The groove"
+        ]
+      ],
+      "listen": [
+        [
+          "Daddy Issues",
+          "Wiped Out!",
+          "Bass carrying the melody while everything else recedes."
+        ],
+        [
+          "Prey",
+          "Wiped Out!",
+          "The clearest case of the band grooving instead of strumming."
+        ],
+        [
+          "Softcore",
+          "The Neighbourhood",
+          "A line that walks rather than anchors."
+        ]
+      ],
+      "socials": {}
+    },
+    "brandon-fried": {
+      "slug": "brandon-fried",
+      "name": "Brandon Fried",
+      "geniusId": null,
+      "role": "drums / former member",
+      "years": "2014 — 2022",
+      "status": "former",
+      "bio": "The band’s drummer through three major eras: Wiped Out!, the self-titled record and Chip Chrome & The Mono-Tones.",
+      "signature": "Tight, unhurried pocket playing built for songs that never rush.",
+      "image": "assets/member-brandon.webp",
+      "on": [
+        "wiped-out",
+        "the-neighbourhood",
+        "chip-chrome"
+      ],
+      "facts": [
+        [
+          "ROLE",
+          "Drums"
+        ],
+        [
+          "YEARS",
+          "2014 — 2022"
+        ],
+        [
+          "RECORDS",
+          "Three"
+        ],
+        [
+          "STATUS",
+          "Former member"
+        ]
+      ],
+      "listen": [
+        [
+          "Cry Baby",
+          "Wiped Out!",
+          "Pocket playing that refuses to hurry the song."
+        ],
+        [
+          "You Get Me So High",
+          "The Neighbourhood",
+          "Restraint on a track that invites a fill every bar."
+        ]
+      ],
+      "socials": {}
+    },
+    "bryan-sammis": {
+      "slug": "bryan-sammis",
+      "name": "Bryan Sammis",
+      "geniusId": null,
+      "role": "drums / founding member",
+      "years": "2011 — 2014",
+      "status": "former",
+      "bio": "The original drummer. He was there for both 2012 EPs, for “Sweater Weather”, and for I Love You. — the record that turned a Newbury Park band into an international one.",
+      "signature": "The looser, rawer feel of the early EPs and the debut album.",
+      "image": "assets/member-sammis.webp",
+      "on": [
+        "im-sorry",
+        "thank-you",
+        "i-love-you"
+      ],
+      "facts": [
+        [
+          "ROLE",
+          "Drums"
+        ],
+        [
+          "YEARS",
+          "2011 — 2014"
+        ],
+        [
+          "FOUNDING",
+          "Yes"
+        ],
+        [
+          "PLAYED ON",
+          "I Love You."
+        ]
+      ],
+      "listen": [
+        [
+          "Female Robbery",
+          "I Love You.",
+          "The looser, rawer feel of the pre-2014 band."
+        ],
+        [
+          "How",
+          "I Love You.",
+          "The opening track of the record he played on."
+        ]
+      ],
+      "socials": {}
+    },
+    "the-neighbourhood": {
+      "slug": "the-neighbourhood",
+      "name": "The Neighbourhood",
+      "geniusId": 22436,
+      "role": "band",
+      "years": "2011 — present",
+      "status": "current",
+      "bio": "California alternative band formed in 2011 in Newbury Park, known for a standing black-and-white rule across everything it releases.",
+      "image": null,
+      "on": [],
+      "facts": [
+        [
+          "FORMED",
+          "2011"
+        ],
+        [
+          "ORIGIN",
+          "Newbury Park, CA"
+        ],
+        [
+          "LABEL",
+          "Columbia Records"
+        ]
+      ],
+      "socials": {}
+    }
+  }
+}

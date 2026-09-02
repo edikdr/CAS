@@ -654,6 +654,7 @@
           <div class="track-lyrics">
             <h3 class="panel-h">LYRICS</h3>
             <div id="modalLyrics"><p class="modal-loading">REQUESTING LYRICS…</p></div>
+            ${Genius.enabled ? '<div id="geniusPanel" class="genius-panel"><p class="modal-loading">ASKING GENIUS…</p></div>' : ''}
           </div>
         </div>`
     });
@@ -669,6 +670,80 @@
       $$('[data-mode]', target).forEach(other => other.classList.toggle('active', other === button));
       $('.lyrics-lines.synced', target).hidden = button.dataset.mode !== 'synced';
       $('.lyrics-lines.plain', target).hidden = button.dataset.mode !== 'plain';
+    }));
+
+    if (Genius.enabled) paintGenius(album, track, lyrics);
+  }
+
+  /* ---- genius enrichment -------------------------------------------------
+     Everything here is additive and best-effort: the panel simply stays away
+     if the service is unreachable or the song is not on Genius. */
+
+  function annotate(lines, matched) {
+    if (!matched?.lines?.length) return '';
+    const bodies = new Map();
+    const rows = matched.lines.map(row => {
+      if (!row.annotations.length) return `<p>${esc(row.text)}</p>`;
+      const first = row.annotations[0];
+      bodies.set(String(first.id), first);
+      const before = row.text.slice(0, first.start);
+      const span = row.text.slice(first.start, first.end);
+      const after = row.text.slice(first.end);
+      return `<p>${esc(before)}<button class="annot" data-annot="${first.id}">${esc(span)}</button>${esc(after)}</p>`;
+    }).join('');
+
+    return `<h3 class="panel-h">ANNOTATED — ${matched.matched} OF ${matched.total}</h3>
+      <div class="annot-lines">${rows}</div>
+      <div class="annot-pop" id="annotPop" hidden></div>
+      <script type="application/json" id="annotData">${JSON.stringify([...bodies.values()])}<\/script>`;
+  }
+
+  async function paintGenius(album, track, lyrics) {
+    const host = $('#geniusPanel');
+    if (!host) return;
+    const lines = lyrics?.plain?.length ? lyrics.plain : null;
+    const data = await Genius.track(track, album, lines);
+    if (!host.isConnected || $('#modalHeading').textContent !== track.name) return;
+
+    if (!data) {
+      host.innerHTML = '<p class="genius-empty">GENIUS HAS NOTHING FOR THIS TRACK, OR THE SERVICE IS OFFLINE.</p>';
+      return;
+    }
+
+    const stats = data.stats || {};
+    const covers = data.relations?.covers || [];
+    host.innerHTML = `
+      ${data.background?.hasContent ? `
+        <h3 class="panel-h">BACKGROUND</h3>
+        <div class="genius-background">${data.background.html}</div>
+        <small class="genius-credit">Source: <a href="${esc(data.background.sourceUrl)}" target="_blank" rel="noopener">Genius</a></small>` : ''}
+      <dl class="genius-stats">
+        ${stats.pageviews != null ? `<div><dt>PAGEVIEWS</dt><dd>${stats.pageviews.toLocaleString('en-US')}</dd></div>` : ''}
+        ${stats.annotations?.total != null ? `<div><dt>ANNOTATIONS</dt><dd>${stats.annotations.total}</dd></div>` : ''}
+        ${stats.contributors != null ? `<div><dt>CONTRIBUTORS</dt><dd>${stats.contributors}</dd></div>` : ''}
+        ${stats.hot ? '<div><dt>STATUS</dt><dd>HOT</dd></div>' : ''}
+      </dl>
+      ${covers.length ? `<h3 class="panel-h">OTHER VERSIONS</h3>
+        <ul class="genius-covers">${covers.map(row => `
+          <li><span>${esc(row.relationLabel)}</span><b>${esc(row.title)}</b><i>${esc(row.artist || '')}</i>
+          ${row.url ? `<a href="${esc(row.url)}" target="_blank" rel="noopener">OPEN ↗</a>` : ''}</li>`).join('')}</ul>` : ''}
+      ${annotate(lines, data.annotations)}`;
+
+    /* annotation popups */
+    const store = $('#annotData', host);
+    const bodies = store ? JSON.parse(store.textContent) : [];
+    const pop = $('#annotPop', host);
+    $$('[data-annot]', host).forEach(button => button.addEventListener('click', () => {
+      const entry = bodies.find(row => String(row.id) === button.dataset.annot);
+      if (!entry || !pop) return;
+      const open = pop.dataset.for === button.dataset.annot && !pop.hidden;
+      pop.hidden = open;
+      pop.dataset.for = button.dataset.annot;
+      $$('[data-annot]', host).forEach(other => other.classList.toggle('on', !open && other === button));
+      if (!open) {
+        pop.innerHTML = `${entry.body}${entry.url ? `<a href="${esc(entry.url)}" target="_blank" rel="noopener">ON GENIUS ↗</a>` : ''}`;
+        button.after(pop);
+      }
     }));
   }
 

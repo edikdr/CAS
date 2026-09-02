@@ -12,7 +12,13 @@ const NBHD_CONFIG = {
   lyricsSearch: 'https://lrclib.net/api/search',
   wikiSummary: 'https://en.wikipedia.org/api/rest_v1/page/summary/The_Neighbourhood',
   spotifyArtist: 'https://open.spotify.com/artist/77SW9BnxLY8rJ0RciFqkHh',
-  musicbrainz: 'https://musicbrainz.org/artist/adf13cf6-5384-482a-9ab1-a798b67104b2'
+  musicbrainz: 'https://musicbrainz.org/artist/adf13cf6-5384-482a-9ab1-a798b67104b2',
+
+  /* Optional. Point this at the service in server/ to switch on Genius
+     annotations, official song backgrounds, metrics and cover versions.
+     Left empty the archive behaves exactly as it does now, and asks for
+     nothing extra. */
+  geniusService: ''
 };
 
 /* Tempos used only by the fallback visualiser when the Web Audio analyser

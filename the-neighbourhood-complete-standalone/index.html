@@ -49,6 +49,17 @@
 
     <section class="archive" id="archive" data-tone="paper" data-debris="paper:11" data-keepout="0.50,0.46">
       <div class="section-head"><div><p class="section-kicker">02 / DISCOGRAPHY</p><h2>SELECT A RECORD</h2></div><p>Каталог собран офлайн, а треклисты, обложки и 30‑секундные превью подтягиваются вживую из iTunes. Откройте релиз, затем выберите трек.</p></div>
+      <div class="crate">
+        <div class="crate-search">
+          <span class="crate-icon" aria-hidden="true">⌕</span>
+          <input id="trackSearch" type="search" autocomplete="off" placeholder="ПОИСК ПО ТРЕКАМ / SEARCH TRACKS" aria-label="Поиск по трекам">
+          <button id="searchClear" type="button" aria-label="Очистить" hidden>×</button>
+        </div>
+        <button class="crate-fav" id="favOpen" type="button">
+          <span aria-hidden="true">♥</span> FAVOURITES <b id="favCount">0</b>
+        </button>
+      </div>
+      <div class="crate-results" id="searchResults" hidden></div>
       <div class="album-grid" id="albumGrid"></div>
     </section>
 
@@ -86,6 +97,11 @@
       <div class="lore-origin" id="loreOrigin"></div>
 
       <div class="lore-band">
+        <h3 class="lore-h3"><span>THE CRAFT</span></h3>
+        <div class="lore-craft" id="loreCraft"></div>
+      </div>
+
+      <div class="lore-band">
         <h3 class="lore-h3"><span>THE FOUR ERAS</span></h3>
         <div class="lore-eras" id="loreEras"></div>
       </div>
@@ -109,16 +125,8 @@
       </div>
     </section>
 
-    <section class="plates" data-tone="dark" data-debris="dark:8" data-keepout="0.62,0.58">
-      <div class="section-head light"><div><p class="section-kicker">04 / CONTACT SHEET</p><h2>PORTRAIT PLATES</h2></div><p>Кадры из архива в фирменной монохромной обработке. Подписи участников не проставлены — плёнка пришла без них.</p></div>
-      <div class="plate-row">
-        <figure class="plate"><img src="assets/portrait-tank.webp" alt="Портрет из архива, плёнка 01" loading="lazy"><figcaption><b>PLATE 01</b><span>35MM / UNTITLED</span></figcaption></figure>
-        <figure class="plate"><img src="assets/portrait-white.webp" alt="Портрет из архива, плёнка 02" loading="lazy"><figcaption><b>PLATE 02</b><span>35MM / UNTITLED</span></figcaption></figure>
-      </div>
-    </section>
-
     <section class="people" id="members" data-tone="dark" data-debris="dark:11" data-keepout="0.52,0.48">
-      <div class="section-head light"><div><p class="section-kicker">05 / PEOPLE</p><h2>FACES IN THE STATIC</h2></div><p>Нажмите на карточку, чтобы открыть профиль участника.</p></div>
+      <div class="section-head light"><div><p class="section-kicker">04 / PEOPLE</p><h2>FACES IN THE STATIC</h2></div><p>Нажмите на карточку, чтобы открыть профиль участника.</p></div>
       <div class="member-grid" id="memberGrid"></div>
     </section>
 
@@ -133,7 +141,7 @@
     <div class="seam seam-paper-void" aria-hidden="true"></div>
 
     <section class="quiz" id="quiz" data-tone="dark" data-debris="dark:11" data-keepout="0.56,0.52">
-      <div class="section-head light"><div><p class="section-kicker">06 / FAN TESTS</p><h2>HOW DEEP ARE YOU IN?</h2></div><p>Четыре теста по 15 вопросов. Позиции правильных ответов перемешиваются при каждом запуске.</p></div>
+      <div class="section-head light"><div><p class="section-kicker">05 / FAN TESTS</p><h2>HOW DEEP ARE YOU IN?</h2></div><p>Четыре теста по 15 вопросов. Позиции правильных ответов перемешиваются при каждом запуске.</p></div>
       <div class="quiz-tabs" id="quizTabs"></div>
       <div class="quiz-paper">
         <div class="quiz-title"><span id="quizEyebrow"></span><h3 id="quizTitle"></h3><b id="quizProgress"></b></div>

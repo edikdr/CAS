@@ -15,12 +15,12 @@ editable edition, and no API keys anywhere in the source.
 | --- | --- |
 | Hero / collage | A torn-paper collage layer scattered over every section (`js/collage.js`) |
 | 01 Manifesto | Band summary, replaced live by the Wikimedia REST summary |
-| 02 Discography | Nine releases; each opens a modal with the full tracklist |
+| 02 Discography | The four studio albums, plus a vault holding every single, EP, mixtape and compilation |
+| Crate | Track search across the whole catalogue, and favourites kept per browser |
 | Player | 30-second previews, a real audio visualiser, and a live API status row |
-| 03 Origin story | Founding history, four eras, timeline, codex, symbols and corrections |
-| 04 Contact sheet | Two archive portrait plates in the house monochrome treatment |
-| 05 People | Six members, current and former, with detailed profile modals |
-| 06 Fan tests | Four 15-question quizzes with reshuffled answer positions |
+| 03 Origin story | Founding history, craft notes, four eras, timeline, codex, symbols and corrections |
+| 04 People | Six members with portraits, facts, listening notes and profile modals |
+| 05 Fan tests | Four 15-question quizzes with reshuffled answer positions |
 
 ## Motion and depth
 
@@ -28,9 +28,11 @@ Three independent layers move behind the content, and every one of them stops
 dead under `prefers-reduced-motion`.
 
 - **Particles** (`js/particles.js`) — one fixed canvas carrying fine dust, soft
-  glow and a star sprite. It watches which section is behind it via `data-tone`
-  and crossfades between `screen` on the black sections and `multiply` on the
-  paper ones, so the same motes read as light on black and as ink on paper.
+  glow and a star sprite. Motes rise, sway, orbit and spin on independent cycles,
+  and roughly one in eleven is a streak that draws a short comet tail. The canvas
+  watches which section is behind it via `data-tone` and crossfades between
+  `screen` on the black sections and `multiply` on the paper ones, so the same
+  motes read as light on black and as ink on paper.
 - **Collage drift** — every scattered paper object floats on its own cycle and
   shifts with scroll parallax.
 - **Reveal** — content lifts in as it enters the viewport, then the class and
@@ -71,9 +73,28 @@ Density and behaviour are set per section from the markup:
 is the normalised ellipse in the middle of the section that stays clear so the text
 underneath keeps its contrast.
 
+## Search and favourites
+
+The crate above the record grid searches every track in the catalogue by title or
+release, and any row can be starred. Favourites live in `localStorage` under
+`nbhd:favourites`, so they are per browser and never leave the machine. Private
+windows and `file://` origins can refuse storage outright, so every read and write
+is guarded and falls back to memory for the session.
+
 ## The visualiser
 
-`js/visualizer.js` runs the bar row under the player on whichever of two paths is
+The bar row is a **timeline, not a spectrum**. As the clip plays, the bar under
+the playhead samples the audio and is then left alone, so everything behind the
+head is a frozen recording of what was actually heard — the way a voice note looks
+once it has been played. Bars ahead of the head idle low until they are reached,
+and a veil darkens the older history behind a moving playhead line.
+
+Bar height comes from loudness (time-domain RMS) shaped by timbre (spectral
+centroid), with a slow auto-gain so quiet tracks still fill the row. Against a
+test signal, a loud broadband passage draws roughly twelve times taller than a
+quiet low one, with a mid-level tone landing between them.
+
+`js/visualizer.js` feeds that pipeline from whichever of two sources is
 available:
 
 1. **Analyser** — a Web Audio `AnalyserNode` reading the playing preview. The audio
@@ -101,6 +122,9 @@ the player reports the live state of each one.
 
 How the catalogue is assembled:
 
+- The grid carries only the four studio albums. Everything else — both 2012 EPs, the
+  mixtape, the 2018 compilation and the Sweater Weather single — lives in the vault,
+  which also lists every single and EP iTunes knows about when the page is online.
 - Releases marked `partial` in `js/data.js` (the two 2012 EPs, the mixtape and the 2018
   compilation) ship only a small verified seed. For those the iTunes catalogue is treated
   as authoritative and replaces the bundle when the page is online.

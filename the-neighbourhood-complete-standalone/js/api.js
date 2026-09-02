@@ -191,6 +191,48 @@ const Api = (() => {
     }
   }
 
+  /* Every release the store lists that is not a studio album: iTunes suffixes
+     collection names with " - Single" and " - EP", which is a reliable split. */
+  let releaseCache = null;
+
+  async function itunesReleases() {
+    if (releaseCache) return releaseCache;
+    releaseCache = (async () => {
+      const url = `${NBHD_CONFIG.itunesSearch}?term=${encodeURIComponent(NBHD_CONFIG.artist)}&entity=album&limit=200`;
+      const found = await getJSON(url);
+      const seen = new Set();
+      const rows = (found.results || [])
+        .filter(row => isTheBand(row.artistName))
+        .map(row => {
+          const name = String(row.collectionName || '');
+          const single = /\s-\sSingle$/i.test(name);
+          const ep = /\s-\sEP$/i.test(name);
+          if (!single && !ep) return null;
+          return {
+            name: name.replace(/\s-\s(Single|EP)$/i, ''),
+            kind: single ? 'SINGLE' : 'EP',
+            year: String(row.releaseDate || '').slice(0, 4),
+            url: row.collectionViewUrl || null
+          };
+        })
+        .filter(row => {
+          if (!row) return false;
+          const key = `${norm(row.name)}|${row.year}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .sort((a, b) => (b.year || '').localeCompare(a.year || '') || a.name.localeCompare(b.name));
+      setStatus('itunes', 'live', `${rows.length} singles and EPs listed`);
+      return rows;
+    })().catch(error => {
+      noteFailure('itunes', error);
+      releaseCache = null;
+      return [];
+    });
+    return releaseCache;
+  }
+
   /* ---- LRCLIB ---------------------------------------------------------- */
 
   const lyricCache = new Map();
@@ -283,5 +325,5 @@ const Api = (() => {
     }
   }
 
-  return { status, onStatus, setStatus, noteFailure, itunesAlbum, itunesTrack, lyrics, wiki, norm, score };
+  return { status, onStatus, setStatus, noteFailure, itunesAlbum, itunesReleases, itunesTrack, lyrics, wiki, norm, score };
 })();

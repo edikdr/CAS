@@ -35,14 +35,14 @@ const TRACK_TEMPO = {
 const ALBUMS = [
   {
     id: 'im-sorry', title: "I'm Sorry…", year: 2012, kind: 'EP',
-    image: 'assets/album-i-love-you.webp', accent: 'FIRST SIGNAL / 01',
+    image: 'assets/single-mark.webp', accent: 'FIRST SIGNAL / 01',
     partial: true,
     note: 'The first EP. Two songs from it — “Female Robbery” and “Sweater Weather” — already carried the whole band: suburban dread sung softly, in black and white.',
     tracks: [['Female Robbery', '3:29'], ['Sweater Weather', '4:00']]
   },
   {
     id: 'thank-you', title: 'Thank You,', year: 2012, kind: 'EP',
-    image: 'assets/album-sweater-weather.webp', accent: 'SECOND SIGNAL / 02',
+    image: 'assets/single-mark.webp', accent: 'SECOND SIGNAL / 02',
     partial: true,
     note: 'The follow-up EP from the same year, released as the band moved from local shows to a major-label deal.',
     tracks: [['Let It Go', '3:17'], ['Alleyways', '4:27']]
@@ -60,7 +60,7 @@ const ALBUMS = [
   },
   {
     id: 'black-and-white', title: '#000000 & #FFFFFF', year: 2014, kind: 'MIXTAPE',
-    image: 'assets/album-hard-to-imagine.webp', accent: 'HEX / 04',
+    image: 'assets/single-mark.webp', accent: 'HEX / 04',
     partial: true,
     note: 'A mixtape detour into hip-hop production and guest verses — the band testing how far the black-and-white rule could stretch.',
     tracks: [['Honest', '3:22'], ['Jealou$y', '3:41']]
@@ -88,7 +88,7 @@ const ALBUMS = [
   },
   {
     id: 'hard-to-imagine', title: 'Hard to Imagine the Neighbourhood Ever Changing', year: 2018, kind: 'COMPILATION',
-    image: 'assets/album-hard-to-imagine.webp', accent: 'COLLECTED / 07',
+    image: 'assets/single-mark.webp', accent: 'COLLECTED / 07',
     partial: true,
     note: 'The compilation that gathered the self-titled record together with the three 2018 EPs — To Imagine, Hard and Ever Changing — into a single sequence.',
     tracks: [['Scary Love', '3:44'], ['Softcore', '3:26'], ['Reflections', '4:04']]
@@ -106,7 +106,7 @@ const ALBUMS = [
   },
   {
     id: 'sweater-weather', title: 'Sweater Weather', year: 2013, kind: 'SINGLE',
-    image: 'assets/album-sweater-weather.webp', accent: 'SIGNAL / 09',
+    image: 'assets/single-mark.webp', accent: 'SIGNAL / 09',
     note: 'The single that became a permanent cultural signal — warm intimacy framed by cold California air, and years later a second life through streaming.',
     tracks: [['Sweater Weather', '4:00'], ['Sweater Weather (Acoustic)', '4:12']]
   }
@@ -120,6 +120,11 @@ const MEMBERS = [
   {
     name: 'Jesse Rutherford', role: 'lead vocals / lyrics', years: '2011 — present',
     image: 'assets/member-jesse.webp', status: 'current', mark: 'JR',
+    listen: [
+      ['Sweater Weather', 'I Love You.', 'The whole delivery in one song: warm words sung cold, never once pushed.'],
+      ['R.I.P. 2 My Youth', 'Wiped Out!', 'The rare moment he lets the volume off the leash.'],
+      ['Chip Chrome', 'Chip Chrome & The Mono-Tones', 'Sixty seconds of him introducing a character instead of himself.']
+    ],
     signature: 'A close-mic, half-spoken delivery that keeps the volume down and the nerve exposed.',
     on: ['i-love-you', 'black-and-white', 'wiped-out', 'the-neighbourhood', 'chip-chrome'],
     bio: 'The voice and central visual presence of The Neighbourhood. Rutherford writes from somewhere between detachment and confession, and sings almost every line as if he is trying not to wake anybody.',
@@ -129,6 +134,11 @@ const MEMBERS = [
   {
     name: 'Zach Abels', role: 'lead guitar', years: '2011 — present',
     image: 'assets/member-zach.webp', status: 'current', mark: 'ZA',
+    listen: [
+      ['Sweater Weather', 'I Love You.', 'The muted opening figure — four bars that became a signature.'],
+      ['Daddy Issues', 'Wiped Out!', 'Long, clean intervals left hanging over the bass.'],
+      ['Scary Love', 'The Neighbourhood', 'Guitar used as a pad rather than a lead.']
+    ],
     signature: 'Clipped, chiming motifs with more air than noise — the band’s West Coast contour.',
     on: ['i-love-you', 'black-and-white', 'wiped-out', 'the-neighbourhood', 'chip-chrome'],
     bio: 'A founding member whose guitar work gives the songs their haze. He plays around the vocal rather than over it, leaving the space that makes the records feel as cold as they do.',
@@ -137,7 +147,12 @@ const MEMBERS = [
   },
   {
     name: 'Jeremy Freedman', role: 'guitar', years: '2011 — present',
-    image: null, status: 'current', mark: 'JF',
+    image: 'assets/member-freedman.webp', alt: 'assets/member-freedman-alt.webp', status: 'current', mark: 'JF',
+    listen: [
+      ['Afraid', 'I Love You.', 'The second guitar holding the harmonic floor under the hook.'],
+      ['The Beach', 'Wiped Out!', 'Texture doing the work of an arrangement.'],
+      ['Void', 'The Neighbourhood', 'Where the two guitar parts finally trade places.']
+    ],
     signature: 'Texture and counter-line: the low harmonic weather the songs move through.',
     on: ['i-love-you', 'black-and-white', 'wiped-out', 'the-neighbourhood', 'chip-chrome'],
     bio: 'Founding guitarist. His parts sit underneath rather than on top, holding the harmonic floor while the lead guitar and the vocal take the light.',
@@ -146,7 +161,12 @@ const MEMBERS = [
   },
   {
     name: 'Mikey Margott', role: 'bass', years: '2011 — present',
-    image: null, status: 'current', mark: 'MM',
+    image: 'assets/member-margott.webp', status: 'current', mark: 'MM',
+    listen: [
+      ['Daddy Issues', 'Wiped Out!', 'Bass carrying the melody while everything else recedes.'],
+      ['Prey', 'Wiped Out!', 'The clearest case of the band grooving instead of strumming.'],
+      ['Softcore', 'The Neighbourhood', 'A line that walks rather than anchors.']
+    ],
     signature: 'Patient, round and further forward than a rock record would usually allow.',
     on: ['i-love-you', 'black-and-white', 'wiped-out', 'the-neighbourhood', 'chip-chrome'],
     bio: 'Founding bassist. The band’s R&B and hip-hop leanings live mostly in the bass, which is why a guitar band from Ventura County has always grooved more than it should.',
@@ -156,6 +176,10 @@ const MEMBERS = [
   {
     name: 'Brandon Fried', role: 'drums / former member', years: '2014 — 2022',
     image: 'assets/member-brandon.webp', status: 'former', mark: 'BF',
+    listen: [
+      ['Cry Baby', 'Wiped Out!', 'Pocket playing that refuses to hurry the song.'],
+      ['You Get Me So High', 'The Neighbourhood', 'Restraint on a track that invites a fill every bar.']
+    ],
     signature: 'Tight, unhurried pocket playing built for songs that never rush.',
     on: ['wiped-out', 'the-neighbourhood', 'chip-chrome'],
     bio: 'The band’s drummer through three major eras: Wiped Out!, the self-titled record and Chip Chrome & The Mono-Tones.',
@@ -165,6 +189,10 @@ const MEMBERS = [
   {
     name: 'Bryan Sammis', role: 'drums / founding member', years: '2011 — 2014',
     image: null, status: 'former', mark: 'BS',
+    listen: [
+      ['Female Robbery', 'I Love You.', 'The looser, rawer feel of the pre-2014 band.'],
+      ['How', 'I Love You.', 'The opening track of the record he played on.']
+    ],
     signature: 'The looser, rawer feel of the early EPs and the debut album.',
     on: ['im-sorry', 'thank-you', 'i-love-you'],
     bio: 'The original drummer. He was there for both 2012 EPs, for “Sweater Weather”, and for I Love You. — the record that turned a Newbury Park band into an international one.',
@@ -222,6 +250,7 @@ const LORE = {
   ],
 
   timeline: [
+    { year: '2010', title: 'BEFORE THE NAME', body: 'The members are playing around the Thousand Oaks and Newbury Park scene in different configurations, an hour outside Los Angeles and well outside its industry.' },
     { year: '2011', title: 'FORMED IN NEWBURY PARK', body: 'Rutherford, Abels, Freedman, Margott and Sammis start the band in the Thousand Oaks area of Ventura County, California.' },
     { year: '2012', title: 'TWO EPs AND A SIGNAL', body: 'The EPs “I’m Sorry…” and “Thank You,” arrive in the same year. “Sweater Weather” is released as a single and the band signs to Columbia Records.' },
     { year: '2013', title: 'I LOVE YOU.', body: 'The debut album is released on 22 April. “Sweater Weather” reaches No. 1 on Billboard’s Alternative Songs chart and turns a regional band into an international one.' },
@@ -229,6 +258,7 @@ const LORE = {
     { year: '2015', title: 'WIPED OUT!', body: 'Released 30 October. Palms, static and cold water — the record that proved the band was not a single-song act.' },
     { year: '2018', title: 'THE SELF-TITLED YEAR', body: 'Three EPs — To Imagine, Hard and Ever Changing — bracket the self-titled album in March, and are gathered in September as “Hard to Imagine the Neighbourhood Ever Changing”.' },
     { year: '2020', title: 'CHIP CHROME & THE MONO-TONES', body: 'Released 25 September. Rutherford fronts the record in silver paint as Chip Chrome, with the band recast as his backing Mono-Tones.' },
+    { year: '2019', title: 'THE TOURING YEARS', body: 'The band spends the back half of the decade as a live act with four studio records behind it, playing to audiences that arrived at very different points in the catalogue.' },
     { year: '2020s', title: 'THE SECOND LIFE OF A SINGLE', body: '“Sweater Weather” finds an enormous new audience through short-form video and streaming, years after release, and becomes one of the most-streamed alternative songs of its era.' },
     { year: '2022', title: 'A LINEUP CHANGE AND A PAUSE', body: 'The band announces that Brandon Fried is no longer a member, following a publicly made allegation of misconduct against him. Activity slows sharply, with Rutherford turning to solo work.' }
   ],
@@ -238,6 +268,25 @@ const LORE = {
     { glyph: 'palm', name: 'THE PALM CIRCLE', body: 'A palm and a wave inside a sun. The Wiped Out! mark, and the band’s shorthand for California as something you survive rather than enjoy.' },
     { glyph: 'mono', name: '#000000 & #FFFFFF', body: 'The two hex codes the band named a mixtape after, and the only two colours their visual language has ever officially allowed.' },
     { glyph: 'moon', name: 'THE NIGHT SHIFT', body: 'Moons, empty pools and 3 a.m. Almost every song is set after midnight, which is why the archive is lit the way it is.' }
+  ],
+
+  craft: [
+    {
+      head: 'HOW A NEIGHBOURHOOD SONG IS BUILT',
+      body: 'The parts are stacked so that nothing competes for the middle. Rutherford sings close and quiet, the bass takes the melodic weight, one guitar plays a short repeating figure and the other holds the harmony underneath it. Take any of the four away and the song stops sounding like this band.'
+    },
+    {
+      head: 'WHY IT SOUNDS COLD',
+      body: 'Dry drums, very little reverb on the voice, and guitars that leave gaps rather than fill them. The songs are recorded like a room at night with the lights off, which is why warm lyrics keep landing as something closer to dread.'
+    },
+    {
+      head: 'THE LYRIC HABIT',
+      body: 'Almost every song is addressed to one person and set after midnight. The recurring furniture is weather, water, cars, and houses that belong to somebody else. Titles rarely appear more than once inside a song.'
+    },
+    {
+      head: 'ARCHIVE NOTE',
+      body: 'The craft notes above are this archive’s reading of the records, not statements from the band. The timeline, codex and biographies are kept to documented fact.'
+    }
   ],
 
   codex: [
@@ -260,7 +309,9 @@ const LORE = {
     { q: '“Sweater Weather was a slow burn that never charted.”', a: 'It charted immediately — No. 1 on Billboard’s Alternative Songs chart in 2013 — and then charted again, culturally, a decade later through short-form video and streaming.' },
     { q: '“The black-and-white thing is just an album cover.”', a: 'It is a standing rule across artwork, video, photography and merchandise, held for more than a decade and across four studio albums.' },
     { q: '“Chip Chrome is a side project.”', a: 'Chip Chrome is a persona Rutherford performs on a Neighbourhood album, not a separate act. The band appears on the record as his backing group, The Mono-Tones.' },
-    { q: '“They only ever had one drummer.”', a: 'Two. Bryan Sammis played the EPs and I Love You. until 2014; Brandon Fried played from 2014 until 2022.' }
+    { q: '“They only ever had one drummer.”', a: 'Two. Bryan Sammis played the EPs and I Love You. until 2014; Brandon Fried played from 2014 until 2022.' },
+    { q: '“Sweater Weather is about summer.”', a: 'It is about being cold and wanting someone else’s warmth, which is the opposite arrangement. The beach in the video is a winter beach.' },
+    { q: '“The band split up.”', a: 'No formal split has been announced. Activity slowed sharply after 2022 while Rutherford worked on solo material.' }
   ]
 };
 

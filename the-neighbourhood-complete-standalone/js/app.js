@@ -25,12 +25,76 @@
     return 88 + (hash % 42);
   };
 
+  /* ---- favourites -------------------------------------------------------
+     Kept per browser. Private windows and file:// origins can refuse storage
+     entirely, so every access is guarded and falls back to memory. */
+
+  const Fav = (() => {
+    const KEY = 'nbhd:favourites';
+    let ids = new Set();
+    try {
+      const raw = window.localStorage.getItem(KEY);
+      if (raw) ids = new Set(JSON.parse(raw));
+    } catch (_) { /* memory only */ }
+
+    const persist = () => {
+      try { window.localStorage.setItem(KEY, JSON.stringify([...ids])); } catch (_) {}
+    };
+    const id = (album, track) => `${album.id}::${Api.norm(track.name)}`;
+    return {
+      id,
+      has: (album, track) => ids.has(id(album, track)),
+      size: () => ids.size,
+      list: () => [...ids],
+      toggle(album, track) {
+        const key = id(album, track);
+        ids.has(key) ? ids.delete(key) : ids.add(key);
+        persist();
+        return ids.has(key);
+      }
+    };
+  })();
+
+  const heartMarkup = (albumIndex, trackIndex, on) =>
+    `<button class="heart${on ? ' on' : ''}" data-fav="${albumIndex}:${trackIndex}" type="button" aria-pressed="${on}" aria-label="В избранное">♥</button>`;
+
+  function wireHearts(root = document) {
+    $$('[data-fav]', root).forEach(button => button.addEventListener('click', event => {
+      event.stopPropagation();
+      const [albumIndex, trackIndex] = button.dataset.fav.split(':').map(Number);
+      const album = ALBUMS[albumIndex];
+      const track = album?.tracks[trackIndex];
+      if (!track) return;
+      const on = Fav.toggle(album, track);
+      button.classList.toggle('on', on);
+      button.setAttribute('aria-pressed', String(on));
+      paintFavCount();
+    }));
+  }
+
+  function paintFavCount() {
+    const badge = $('#favCount');
+    if (badge) badge.textContent = String(Fav.size());
+  }
+
+  /* resolve a stored favourite back to a live album/track pair */
+  function findFav(key) {
+    const [albumId, name] = key.split('::');
+    const albumIndex = ALBUMS.findIndex(album => album.id === albumId);
+    if (albumIndex < 0) return null;
+    const album = ALBUMS[albumIndex];
+    const trackIndex = album.tracks.findIndex(track => Api.norm(track.name) === name);
+    if (trackIndex < 0) return null;
+    return { album, albumIndex, track: album.tracks[trackIndex], trackIndex };
+  }
+
   /* ---- audio ----------------------------------------------------------- */
 
   const audio = new Audio();
   audio.preload = 'metadata';
   audio.crossOrigin = 'anonymous';
   let corsRetried = false;
+  let currentUrl = null;
 
   const player = {
     albumIndex: 2,
@@ -154,8 +218,12 @@
 
   /* ---- transport -------------------------------------------------------- */
 
+  /* Ask for the stream with CORS so the analyser can read it. A host that
+     refuses the flagged request fails before currentSrc is ever populated, so
+     the retry has to use the URL we asked for, not what the element reports. */
   function loadSource(url) {
     corsRetried = false;
+    currentUrl = url;
     audio.crossOrigin = 'anonymous';
     audio.src = url;
     audio.load();
@@ -177,6 +245,7 @@
     const track = player.track;
     if (!track) return;
     Visualizer.setTempo(tempoFor(track.name));
+    Visualizer.reset();
     paintPlayer();
     updateLyricPreview(album, track, albumIndex, trackIndex);
 
@@ -304,8 +373,15 @@
 
   /* ---- albums ----------------------------------------------------------- */
 
+  /* the four studio albums stand on their own; everything else lives in the vault */
+  const isStudio = (album) => album.kind === 'LP';
+  const vaultReleases = () => ALBUMS.map((album, index) => ({ album, index })).filter(row => !isStudio(row.album));
+
   function renderAlbums() {
-    $('#albumGrid').innerHTML = ALBUMS.map((album, index) => `
+    const studio = ALBUMS.map((album, index) => ({ album, index })).filter(row => isStudio(row.album));
+    const vault = vaultReleases();
+
+    $('#albumGrid').innerHTML = studio.map(({ album, index }) => `
       <button class="album-card" data-album="${index}" aria-label="${esc(album.title)}, ${album.year}">
         <div class="album-image-wrap">
           <img src="${esc(album.image)}" alt="" loading="lazy">
@@ -313,8 +389,55 @@
           <span class="album-open">OPEN ↗</span>
         </div>
         <div class="album-meta"><span>${esc(album.accent)}</span><h3>${esc(album.title)}</h3><b>${album.year}</b></div>
-      </button>`).join('');
+      </button>`).join('') + `
+      <button class="album-card vault-card" id="vaultOpen" aria-label="Синглы, EP и прочие релизы">
+        <div class="album-image-wrap vault-wrap">
+          <span class="vault-count">${vault.length}</span>
+          <ul class="vault-list">${vault.map(({ album }) => `<li><b>${esc(album.title)}</b><i>${esc(album.kind)}</i></li>`).join('')}</ul>
+          <span class="album-open">OPEN ↗</span>
+        </div>
+        <div class="album-meta"><span>THE VAULT / SINGLES</span><h3>Singles &amp; EPs</h3><b>2012—2018</b></div>
+      </button>`;
+
     $$('[data-album]').forEach(button => button.addEventListener('click', () => openAlbum(Number(button.dataset.album))));
+    $('#vaultOpen').addEventListener('click', openVault);
+  }
+
+  async function openVault() {
+    const vault = vaultReleases();
+    openModal({
+      kicker: 'THE VAULT / NON-ALBUM RELEASES',
+      heading: 'Singles & EPs',
+      variant: 'vault',
+      body: `
+        <p class="vault-intro">Всё, что не является студийным альбомом: два EP 2012 года, микстейп, сборник 2018 года и сингл, который всё изменил.</p>
+        <div class="vault-grid">
+          ${vault.map(({ album, index }) => `
+            <button class="vault-item" data-vault="${index}">
+              <img src="${esc(album.image)}" alt="" loading="lazy">
+              <div>
+                <span class="vault-kind">${esc(album.kind)} / ${album.year}</span>
+                <h3>${esc(album.title)}</h3>
+                <p>${esc(album.note)}</p>
+                <i>${album.tracks.length} TRACK${album.tracks.length === 1 ? '' : 'S'} ↗</i>
+              </div>
+            </button>`).join('')}
+        </div>
+        <div class="vault-live">
+          <h3 class="panel-h">SINGLES IN THE LIVE CATALOGUE</h3>
+          <div id="vaultLive"><p class="modal-loading">ASKING ITUNES FOR EVERY SINGLE AND EP…</p></div>
+        </div>`
+    });
+    $$('[data-vault]').forEach(button => button.addEventListener('click', () => openAlbum(Number(button.dataset.vault))));
+
+    const releases = await Api.itunesReleases();
+    const host = $('#vaultLive');
+    if (!host || $('#modalHeading').textContent !== 'Singles & EPs') return;
+    host.innerHTML = releases?.length
+      ? `<ul class="vault-releases">${releases.map(row => `
+          <li><span>${esc(row.year)}</span><b>${esc(row.name)}</b><i>${esc(row.kind)}</i>
+          ${row.url ? `<a href="${esc(row.url)}" target="_blank" rel="noopener">OPEN ↗</a>` : ''}</li>`).join('')}</ul>`
+      : '<p class="lyrics-empty">КАТАЛОГ НЕДОСТУПЕН ОФЛАЙН. ПОДКЛЮЧИТЕСЬ, ЧТОБЫ УВИДЕТЬ ВСЕ СИНГЛЫ.</p>';
   }
 
   /* Resolve every release in the background: the grid then shows the real
@@ -346,7 +469,7 @@
         <span class="track-name">${esc(track.name)}${track.extra ? '<i class="tag">CATALOGUE</i>' : ''}</span>
         <span class="track-time">${esc(track.duration || '—')}</span>
         <span class="track-actions">
-          <i class="chip chip-words">WORDS</i>
+          ${heartMarkup(ALBUMS.indexOf(album), index, Fav.has(album, track))}
           <i class="chip chip-play${track.preview === null ? ' chip-off' : ''}" data-play-track="${index}">${track.preview === null ? 'NO PREVIEW' : '▶ 30 SEC'}</i>
         </span>
       </button>`).join('');
@@ -389,6 +512,7 @@
         closeModal();
         $('.player-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
       }));
+      wireHearts();
     };
 
     openModal({
@@ -400,6 +524,79 @@
     const live = await hydrate(album);
     if (backdrop().hidden || $('#modalHeading').textContent !== album.title) return;
     render(live);
+  }
+
+  /* ---- search + favourites view ------------------------------------------ */
+
+  const rowMarkup = (album, albumIndex, track, trackIndex) => `
+    <div class="find-row">
+      <button class="find-main" data-open="${albumIndex}:${trackIndex}">
+        <span class="find-name">${esc(track.name)}</span>
+        <span class="find-album">${esc(album.title)}</span>
+        <span class="find-year">${album.year}</span>
+      </button>
+      ${heartMarkup(albumIndex, trackIndex, Fav.has(album, track))}
+      <button class="chip chip-play" data-find-play="${albumIndex}:${trackIndex}">▶</button>
+    </div>`;
+
+  function wireRows(root = document) {
+    wireHearts(root);
+    $$('[data-open]', root).forEach(button => button.addEventListener('click', () => {
+      const [a, t] = button.dataset.open.split(':').map(Number);
+      openTrack(a, t);
+    }));
+    $$('[data-find-play]', root).forEach(button => button.addEventListener('click', event => {
+      event.stopPropagation();
+      const [a, t] = button.dataset.findPlay.split(':').map(Number);
+      playTrack(a, t, true);
+      if (!backdrop().hidden) closeModal();
+      $('.player-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
+  }
+
+  function searchTracks(query) {
+    const needle = Api.norm(query);
+    if (!needle) return [];
+    const hits = [];
+    ALBUMS.forEach((album, albumIndex) => {
+      album.tracks.forEach((track, trackIndex) => {
+        const name = Api.norm(track.name);
+        const inTitle = name.includes(needle);
+        const inAlbum = Api.norm(album.title).includes(needle);
+        if (!inTitle && !inAlbum) return;
+        hits.push({ album, albumIndex, track, trackIndex, rank: inTitle ? (name.startsWith(needle) ? 0 : 1) : 2 });
+      });
+    });
+    hits.sort((a, b) => a.rank - b.rank || a.track.name.localeCompare(b.track.name));
+    return hits.slice(0, 30);
+  }
+
+  function renderSearch(query) {
+    const host = $('#searchResults');
+    const clear = $('#searchClear');
+    if (!host) return;
+    clear.hidden = !query;
+    if (!query.trim()) { host.hidden = true; host.innerHTML = ''; return; }
+    const hits = searchTracks(query);
+    host.hidden = false;
+    host.innerHTML = hits.length
+      ? `<p class="find-count">${hits.length} ${hits.length === 1 ? 'ТРЕК' : 'ТРЕКОВ'} НАЙДЕНО</p>${hits.map(hit => rowMarkup(hit.album, hit.albumIndex, hit.track, hit.trackIndex)).join('')}`
+      : '<p class="find-count">НИЧЕГО НЕ НАЙДЕНО. ПОПРОБУЙТЕ ДРУГОЕ НАЗВАНИЕ.</p>';
+    wireRows(host);
+  }
+
+  function openFavourites() {
+    const rows = Fav.list().map(findFav).filter(Boolean);
+    openModal({
+      kicker: 'СОХРАНЕНО В ЭТОМ БРАУЗЕРЕ',
+      heading: 'Favourites',
+      variant: 'find',
+      body: rows.length
+        ? `<p class="vault-intro">${rows.length} ${rows.length === 1 ? 'трек' : 'треков'} в избранном. Список хранится локально и никуда не отправляется.</p>
+           <div class="find-list">${rows.map(row => rowMarkup(row.album, row.albumIndex, row.track, row.trackIndex)).join('')}</div>`
+        : '<p class="lyrics-empty">ПОКА ПУСТО. НАЖМИТЕ ♥ НА ЛЮБОМ ТРЕКЕ, ЧТОБЫ ДОБАВИТЬ ЕГО СЮДА.</p>'
+    });
+    wireRows($('#modalContent'));
   }
 
   /* ---- track ------------------------------------------------------------ */
@@ -443,7 +640,10 @@
               <div><dt>TRACK</dt><dd>${String(track.number || trackIndex + 1).padStart(2, '0')}</dd></div>
               <div><dt>LENGTH</dt><dd>${esc(track.duration || '—')}</dd></div>
             </dl>
-            <button class="modal-play" id="modalPlay">▶ PLAY 30 SEC</button>
+            <div class="track-cta">
+              <button class="modal-play" id="modalPlay">▶ PLAY 30 SEC</button>
+              ${heartMarkup(albumIndex, trackIndex, Fav.has(album, track))}
+            </div>
             <div class="platforms">
               ${track.storeUrl ? `<a href="${esc(track.storeUrl)}" target="_blank" rel="noopener">APPLE MUSIC ↗</a>` : ''}
               <a href="https://open.spotify.com/search/${encodeURIComponent(`${track.name} ${NBHD_CONFIG.artist}`)}" target="_blank" rel="noopener">SPOTIFY ↗</a>
@@ -458,6 +658,7 @@
     });
 
     $('#modalPlay').addEventListener('click', () => playTrack(albumIndex, trackIndex, true));
+    wireHearts($('#modalContent'));
 
     const lyrics = await Api.lyrics(track, album);
     const target = $('#modalLyrics');
@@ -493,14 +694,22 @@
         variant: 'member',
         body: `
           <div class="member-grid-modal">
-            <figure class="member-photo">${plate(member, 'member-shot')}<figcaption>${esc(member.years)}</figcaption></figure>
+            <div class="member-frames">
+              <figure class="member-photo">${plate(member, 'member-shot')}<figcaption>${esc(member.years)}</figcaption></figure>
+              ${member.alt ? `<figure class="member-photo alt"><img class="member-shot" src="${esc(member.alt)}" alt="${esc(member.name)}"><figcaption>ARCHIVE FRAME</figcaption></figure>` : ''}
+            </div>
             <div class="member-copy">
               <h3 class="member-role">${esc(member.role)}</h3>
               <blockquote>${esc(member.bio)}</blockquote>
               <p class="member-signature">${esc(member.signature)}</p>
               <dl class="member-facts">${(member.facts || []).map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
               <p class="member-lore">${esc(member.lore)}</p>
-              <div class="member-on">${(member.on || []).map(id => {
+              ${(member.listen || []).length ? `<div class="member-listen">
+                <h4>WHERE TO HEAR IT</h4>
+                <ul>${member.listen.map(([song, record, why]) => `
+                  <li><b>${esc(song)}</b><span>${esc(record)}</span><p>${esc(why)}</p></li>`).join('')}</ul>
+              </div>` : ''}
+              <div class="member-on"><h4>APPEARS ON</h4>${(member.on || []).map(id => {
                 const record = ALBUMS.find(album => album.id === id);
                 return record ? `<i>${esc(record.title)}</i>` : '';
               }).join('')}</div>
@@ -526,6 +735,14 @@
         <span class="lore-year">${esc(entry.year)}</span>
         <div><h4>${esc(entry.title)}</h4><p>${esc(entry.body)}</p></div>
       </li>`).join('');
+
+    const craft = $('#loreCraft');
+    if (craft) {
+      craft.innerHTML = LORE.craft.map((card, index) => `
+        <article class="craft-card${index === LORE.craft.length - 1 ? ' craft-note' : ''}">
+          <h4>${esc(card.head)}</h4><p>${esc(card.body)}</p>
+        </article>`).join('');
+    }
 
     const ERA_SHADES = [
       ['rgba(231,176,192,.30)', 'rgba(112,96,104,.42)'],
@@ -725,6 +942,20 @@
       else if (audio.src) { try { audio.currentTime = time; } catch (_) {} }
       paintPlayer();
     });
+    paintFavCount();
+    $('#favOpen').addEventListener('click', openFavourites);
+    let searchTimer = 0;
+    $('#trackSearch').addEventListener('input', event => {
+      clearTimeout(searchTimer);
+      const value = event.target.value;
+      searchTimer = setTimeout(() => renderSearch(value), 110);
+    });
+    $('#searchClear').addEventListener('click', () => {
+      $('#trackSearch').value = '';
+      renderSearch('');
+      $('#trackSearch').focus();
+    });
+
     $('#quizSubmit').addEventListener('click', () => {
       if (quizSubmitted) startQuiz(activeQuiz);
       else { quizSubmitted = true; renderQuiz(); }
@@ -740,16 +971,15 @@
     audio.addEventListener('ended', () => stepPlayer(1));
     audio.addEventListener('error', () => {
       /* a preview host that refuses CORS: keep the audio, drop the analyser */
-      if (!corsRetried && audio.crossOrigin && audio.currentSrc) {
+      if (!corsRetried && currentUrl && audio.crossOrigin) {
         corsRetried = true;
-        const url = audio.currentSrc;
         audio.crossOrigin = null;
-        audio.src = url;
+        audio.src = currentUrl;
         audio.load();
         audio.play().catch(startVirtual);
         return;
       }
-      if (audio.currentSrc) startVirtual();
+      if (currentUrl) startVirtual();
     });
 
     /* open on the song that started everything */

@@ -1,10 +1,15 @@
 /* ---------------------------------------------------------------------------
    VISUALIZER — the bar row under the player.
 
-   Primary path : a real Web Audio AnalyserNode reading the playing preview.
-   Fallback path: a tempo-driven synthesiser (kick / snare / hats) used when the
-                  stream is cross-origin-opaque, blocked, or missing entirely,
-                  so the bars still move in time with the track.
+   The row is a timeline, not a spectrum. As the clip plays, the bar under the
+   playhead samples the audio and is then left alone: everything behind the
+   head is a frozen recording of what was heard, the way a voice note looks
+   once it has been played. Bars ahead of the head idle low until reached.
+
+   Bar height comes from loudness (time-domain RMS) shaped by timbre (spectral
+   centroid), so a bright, loud passage draws tall and a dull, quiet one draws
+   short. When the stream is opaque to the analyser, a tempo-driven synth feeds
+   the same pipeline so the trail still tracks the song.
 --------------------------------------------------------------------------- */
 
 const Visualizer = (() => {
@@ -15,19 +20,28 @@ const Visualizer = (() => {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   let host = null;
+  let track = null;          /* the flex row of bars */
+  let veil = null;           /* the fade over already-played history */
   let bars = [];
-  let levels = [];
-  let drift = [];
+  let drawn = [];            /* last written scale, so frozen bars are not rewritten */
+  let captured = null;       /* Float32Array: the frozen amplitude per bar */
+  let hasCapture = null;     /* Uint8Array: whether that bar was ever reached */
+  let idle = [];
+
   let audio = null;
   let ctx = null;
   let analyser = null;
   let source = null;
   let gain = null;
-  let data = null;
+  let freqData = null;
+  let timeData = null;
+
   let raf = 0;
   let silentFrames = 0;
   let blind = false;
   let tempo = 104;
+  let peak = .35;
+  let head = -1;
   let lastPast = -1;
   let modeListeners = new Set();
   let mode = 'IDLE';
@@ -45,29 +59,48 @@ const Visualizer = (() => {
     const width = host.clientWidth || 600;
     const count = Math.max(24, Math.floor(width / (BAR_WIDTH + BAR_GAP)));
     if (count === bars.length) return;
-    host.innerHTML = Array.from({ length: count }, () => '<i></i>').join('');
-    bars = [...host.querySelectorAll('i')];
-    levels = new Array(count).fill(.08);
-    drift = new Array(count).fill(0).map((_, i) => Math.sin(i * .7) * .5 + .5);
+
+    if (!track) {
+      host.innerHTML = '<div class="wf-bars"></div><div class="wf-veil"></div>';
+      track = host.querySelector('.wf-bars');
+      veil = host.querySelector('.wf-veil');
+    }
+    track.innerHTML = Array.from({ length: count }, () => '<i></i>').join('');
+    bars = [...track.querySelectorAll('i')];
+    drawn = new Array(count).fill(-1);
+    captured = new Float32Array(count);
+    hasCapture = new Uint8Array(count);
+    idle = Array.from({ length: count }, (_, i) => Math.abs(Math.sin(i * .63)) * .5 + .5);
+    head = -1;
     lastPast = -1;
   }
 
-  function paint() {
-    for (let i = 0; i < bars.length; i += 1) {
-      bars[i].style.transform = `scaleY(${Math.max(.03, levels[i]).toFixed(3)})`;
-    }
+  function reset() {
+    if (!captured) return;
+    captured.fill(0);
+    hasCapture.fill(0);
+    drawn.fill(-1);
+    head = -1;
+    lastPast = -1;
+    peak = .35;
+    if (veil) veil.style.setProperty('--head', '0%');
   }
 
-  function progress(ratio) {
-    if (!bars.length) return;
-    const index = Math.round(Math.min(1, Math.max(0, ratio)) * bars.length);
+  const write = (index, value) => {
+    const scale = Math.max(.035, Math.min(1, value));
+    if (Math.abs(scale - drawn[index]) < .005) return;
+    drawn[index] = scale;
+    bars[index].style.transform = `scaleY(${scale.toFixed(3)})`;
+  };
+
+  function paintPlayed(index) {
     if (index === lastPast) return;
     const from = Math.min(index, lastPast < 0 ? 0 : lastPast);
     const to = Math.max(index, lastPast < 0 ? bars.length : lastPast);
-    for (let i = from; i < to && i < bars.length; i += 1) {
+    for (let i = from; i <= to && i < bars.length; i += 1) {
       bars[i].classList.toggle('past', i < index);
+      bars[i].classList.toggle('head', i === index);
     }
-    if (lastPast < 0) for (let i = 0; i < bars.length; i += 1) bars[i].classList.toggle('past', i < index);
     lastPast = index;
   }
 
@@ -80,15 +113,16 @@ const Visualizer = (() => {
     try {
       ctx = new Ctor();
       analyser = ctx.createAnalyser();
-      analyser.fftSize = 1024;
-      analyser.smoothingTimeConstant = .74;
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = .55;   /* looser, so transients survive */
       gain = ctx.createGain();
       gain.gain.value = Number(audio.dataset.gain || 1);
       source = ctx.createMediaElementSource(audio);
       source.connect(analyser);
       analyser.connect(gain);
       gain.connect(ctx.destination);
-      data = new Uint8Array(analyser.frequencyBinCount);
+      freqData = new Uint8Array(analyser.frequencyBinCount);
+      timeData = new Uint8Array(analyser.fftSize);
     } catch (_) {
       blind = true;
       ctx = null;
@@ -102,88 +136,111 @@ const Visualizer = (() => {
     if (audio) audio.dataset.gain = String(value);
   }
 
-  /* ---- readers --------------------------------------------------------- */
+  /* ---- level: how loud, and how bright ---------------------------------- */
 
-  function readAnalyser(out) {
-    analyser.getByteFrequencyData(data);
+  function readLevel() {
+    analyser.getByteTimeDomainData(timeData);
     let sum = 0;
-    const usable = Math.floor(data.length * .62);
-    for (let i = 0; i < bars.length; i += 1) {
-      const lo = Math.floor(Math.pow(i / bars.length, 1.85) * usable);
-      const hi = Math.max(lo + 1, Math.floor(Math.pow((i + 1) / bars.length, 1.85) * usable));
-      let peak = 0;
-      for (let b = lo; b < hi; b += 1) { if (data[b] > peak) peak = data[b]; sum += data[b]; }
-      /* lift the top end, which is always quieter than the bass */
-      const tilt = 1 + (i / bars.length) * 1.5;
-      out[i] = Math.min(1, (peak / 255) * tilt);
+    for (let i = 0; i < timeData.length; i += 2) {
+      const v = (timeData[i] - 128) / 128;
+      sum += v * v;
     }
-    return sum;
+    const rms = Math.sqrt(sum / (timeData.length / 2));
+
+    analyser.getByteFrequencyData(freqData);
+    let energy = 0;
+    let weighted = 0;
+    const top = Math.floor(freqData.length * .72);
+    for (let i = 1; i < top; i += 1) {
+      energy += freqData[i];
+      weighted += freqData[i] * i;
+    }
+    if (energy === 0) return { value: 0, silent: true };
+
+    /* centroid, 0 = all bass, 1 = all treble */
+    const brightness = Math.min(1, (weighted / energy) / (top * .42));
+
+    /* loudness dominates, timbre stretches it hard in both directions */
+    let value = Math.pow(rms * 3.1, .72) * (.42 + 1.15 * brightness);
+
+    peak = Math.max(value, peak * .9985);
+    value /= Math.max(.22, peak);
+    return { value: Math.min(1, value), silent: false };
   }
 
-  function readSynth(out, time, playing) {
+  function synthLevel(time, playing) {
+    if (!playing) return 0;
     const beat = time * (tempo / 60);
     const phase = beat - Math.floor(beat);
     const inBar = Math.floor(beat) % 4;
-    const eighth = (beat * 2) % 1;
-
-    const kick = Math.exp(-9 * phase) * (playing ? 1 : .18);
-    const snare = (inBar === 1 || inBar === 3) ? Math.exp(-13 * phase) * (playing ? .92 : .12) : 0;
-    const hat = Math.exp(-17 * eighth) * (playing ? .5 : .08);
-    const swell = (.5 + .5 * Math.sin(time * 1.15)) * (playing ? .42 : .16);
-
-    for (let i = 0; i < bars.length; i += 1) {
-      const p = i / bars.length;
-      drift[i] += (Math.random() - .5) * .22;
-      drift[i] = Math.max(0, Math.min(1, drift[i] * .88 + .06));
-
-      let value;
-      if (p < .2) value = kick * (1.05 - p) + swell * .5;
-      else if (p < .55) value = snare * .95 + swell * (1 - Math.abs(p - .36) * 1.4) + kick * .28;
-      else value = hat * (1.15 - (p - .55)) + swell * .34;
-
-      value += drift[i] * (playing ? .3 : .12);
-      /* a shallow standing wave so the row never looks flat */
-      value *= .72 + .28 * Math.sin(p * Math.PI * 3 + time * 2.1);
-      out[i] = Math.max(.04, Math.min(1, value));
-    }
+    const kick = Math.exp(-8 * phase);
+    const snare = (inBar === 1 || inBar === 3) ? Math.exp(-12 * phase) * .85 : 0;
+    const hat = Math.exp(-16 * ((beat * 2) % 1)) * .3;
+    const swell = .32 + .3 * Math.sin(time * 1.1) + .12 * Math.sin(time * 2.7);
+    return Math.min(1, Math.max(.08, kick * .8 + snare + hat + swell * .55 + Math.random() * .12));
   }
 
   /* ---- loop ------------------------------------------------------------ */
 
   let state = { playing: false, time: 0, duration: 30, virtual: true };
 
-  function frame() {
+  function frame(now) {
     raf = requestAnimationFrame(frame);
     if (!bars.length) return;
 
-    const target = new Array(bars.length).fill(0);
+    const time = now / 1000;
     const live = Boolean(ctx && analyser && !blind && !state.virtual);
+    let level = 0;
 
     if (live) {
-      const sum = readAnalyser(target);
+      const read = readLevel();
       if (state.playing) {
-        if (sum === 0) { silentFrames += 1; } else { silentFrames = 0; }
+        silentFrames = read.silent ? silentFrames + 1 : 0;
         if (silentFrames > 40) {
           blind = true;
           Api.setStatus('itunes', 'live', 'stream is opaque — bars run on tempo sync');
         }
       }
+      level = read.value;
       setMode(state.playing ? 'ANALYSER' : 'IDLE');
-    }
-
-    if (!live || blind) {
-      readSynth(target, state.time || performance.now() / 1000, state.playing);
+    } else {
+      level = synthLevel(state.time || time, state.playing);
       setMode(state.playing ? 'TEMPO SYNC' : 'IDLE');
     }
 
-    for (let i = 0; i < bars.length; i += 1) {
-      const next = target[i];
-      levels[i] = next > levels[i]
-        ? levels[i] + (next - levels[i]) * .58
-        : levels[i] + (next - levels[i]) * .14;
+    const ratio = state.duration ? Math.min(1, Math.max(0, state.time / state.duration)) : 0;
+    const index = Math.min(bars.length - 1, Math.floor(ratio * bars.length));
+
+    if (state.playing) {
+      /* fill anything the playhead skipped over, so the trail has no gaps */
+      if (head >= 0 && index > head + 1) {
+        for (let i = head + 1; i < index; i += 1) {
+          if (!hasCapture[i]) {
+            captured[i] = Math.max(.08, level * (.72 + Math.random() * .3));
+            hasCapture[i] = 1;
+          }
+        }
+      }
+      /* the live head settles into place, then is never touched again */
+      captured[index] = hasCapture[index]
+        ? captured[index] * .55 + level * .45
+        : level;
+      hasCapture[index] = 1;
+      head = index;
     }
-    paint();
-    progress(state.duration ? state.time / state.duration : 0);
+
+    for (let i = 0; i < bars.length; i += 1) {
+      if (hasCapture[i]) {
+        /* frozen: written once and skipped by `write` from then on */
+        write(i, captured[i]);
+      } else {
+        const breath = state.playing ? .055 : .045;
+        write(i, .05 + idle[i] * breath * (1 + .5 * Math.sin(time * 1.4 + i * .35)));
+      }
+    }
+
+    paintPlayed(index);
+    if (veil) veil.style.setProperty('--head', `${(ratio * 100).toFixed(2)}%`);
   }
 
   function start() {
@@ -203,23 +260,18 @@ const Visualizer = (() => {
     audio = audioElement;
     build();
     if (reduced.matches) {
-      levels = levels.map((_, i) => .12 + Math.abs(Math.sin(i * .55)) * .5);
-      paint();
+      bars.forEach((bar, i) => { bar.style.transform = `scaleY(${(.12 + Math.abs(Math.sin(i * .55)) * .5).toFixed(3)})`; });
       setMode('STATIC');
     } else {
       start();
     }
-    if ('ResizeObserver' in window) {
-      new ResizeObserver(() => { build(); if (reduced.matches) paint(); }).observe(host);
-    } else {
-      window.addEventListener('resize', build);
-    }
+    if ('ResizeObserver' in window) new ResizeObserver(() => build()).observe(host);
+    else window.addEventListener('resize', build);
   }
 
   const update = (next) => { Object.assign(state, next); };
   const setTempo = (value) => { tempo = Math.max(50, Math.min(200, Number(value) || 104)); };
   const onMode = (fn) => { modeListeners.add(fn); fn(mode); };
-  const isBlind = () => blind;
 
-  return { mount, update, setTempo, unlock, resume, setVolume, start, stop, onMode, isBlind, get mode() { return mode; } };
+  return { mount, update, reset, setTempo, unlock, resume, setVolume, start, stop, onMode, get mode() { return mode; } };
 })();

@@ -32,28 +32,37 @@ const Particles = (() => {
 
   function makeMote(kind) {
     const depth = rand(.25, 1);
+    const streak = kind === 'dust' && Math.random() < .09;
     return {
       kind,
+      streak,
       x: Math.random(),
       y: Math.random(),
       depth,
-      size: kind === 'star' ? rand(11, 34) * depth : kind === 'glow' ? rand(3, 9) : rand(.5, 1.7),
-      drift: rand(-.4, -.06) * depth,          /* slow rise */
-      sway: rand(.12, .5) * depth,
+      size: kind === 'star' ? rand(11, 34) * depth : kind === 'glow' ? rand(3, 9) : rand(.5, 1.9),
+      /* rise, with the occasional mote that actually travels */
+      drift: (streak ? rand(-3.4, -1.6) : rand(-1.15, -.22)) * depth,
+      side: rand(-.5, .5) * depth,
+      sway: rand(.35, 1.25) * depth,
+      swayReach: rand(18, 62) * depth,
       swayPhase: rand(0, Math.PI * 2),
-      spin: rand(-.08, .08),
+      /* a slow orbit on top of the sway, so paths never look like sine waves */
+      orbit: rand(.18, .62),
+      orbitR: rand(4, 19) * depth,
+      orbitPhase: rand(0, Math.PI * 2),
+      spin: rand(-.5, .5),
       angle: rand(0, Math.PI * 2),
-      twinkle: rand(.5, 1.7),
+      twinkle: rand(.9, 3.1),
       twinklePhase: rand(0, Math.PI * 2),
-      alpha: kind === 'star' ? rand(.20, .52) : kind === 'glow' ? rand(.05, .13) : rand(.18, .5)
+      alpha: kind === 'star' ? rand(.22, .58) : kind === 'glow' ? rand(.06, .16) : rand(.2, .58)
     };
   }
 
   function populate() {
     const area = width * height;
-    const dust = Math.round(Math.min(150, area / 12000));
-    const glow = Math.round(Math.min(26, area / 68000));
-    const stars = Math.round(Math.min(14, area / 130000));
+    const dust = Math.round(Math.min(210, area / 8600));
+    const glow = Math.round(Math.min(34, area / 52000));
+    const stars = Math.round(Math.min(20, area / 92000));
     motes = [
       ...Array.from({ length: dust }, () => makeMote('dust')),
       ...Array.from({ length: glow }, () => makeMote('glow')),
@@ -95,12 +104,15 @@ const Particles = (() => {
   }
 
   function paintMote(mote, time) {
-    const parallax = (scroll * .045 * mote.depth) % (height + 220);
-    const x = mote.x * width + Math.sin(time * mote.sway + mote.swayPhase) * 26 * mote.depth;
-    let y = mote.y * height - parallax;
+    const parallax = (scroll * .07 * mote.depth) % (height + 220);
+    const x = mote.x * width
+      + Math.sin(time * mote.sway + mote.swayPhase) * mote.swayReach
+      + Math.cos(time * mote.orbit + mote.orbitPhase) * mote.orbitR;
+    let y = mote.y * height - parallax
+      + Math.sin(time * mote.orbit * 1.3 + mote.orbitPhase) * mote.orbitR * .6;
     y = ((y % (height + 220)) + height + 220) % (height + 220) - 110;
 
-    const pulse = .62 + .38 * Math.sin(time * mote.twinkle + mote.twinklePhase);
+    const pulse = .5 + .5 * Math.sin(time * mote.twinkle + mote.twinklePhase);
     /* particles fade out across the tone change so the blend swap never pops */
     const contrast = Math.abs(tone - .5) * 2;
     const alpha = mote.alpha * pulse * (.3 + .7 * contrast);
@@ -112,7 +124,7 @@ const Particles = (() => {
     if (mote.kind === 'star' && spriteReady) {
       ctx.save();
       ctx.translate(x, y);
-      ctx.rotate(mote.angle + time * mote.spin);
+      ctx.rotate(mote.angle);
       const size = mote.size * (.94 + .12 * pulse);
       ctx.drawImage(sprite, -size / 2, -size / 2, size, size * (sprite.height / sprite.width));
       ctx.restore();
@@ -127,6 +139,21 @@ const Particles = (() => {
       ctx.beginPath();
       ctx.arc(x, y, mote.size * 3.4, 0, Math.PI * 2);
       ctx.fill();
+      return;
+    }
+
+    if (mote.streak) {
+      const tail = Math.min(34, Math.abs(mote.drift) * 13);
+      const trail = ctx.createLinearGradient(x, y, x, y + tail);
+      trail.addColorStop(0, `rgba(${shade},${shade},${shade},.85)`);
+      trail.addColorStop(1, `rgba(${shade},${shade},${shade},0)`);
+      ctx.strokeStyle = trail;
+      ctx.lineWidth = mote.size * 1.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x, y + tail);
+      ctx.stroke();
       return;
     }
 
@@ -151,8 +178,12 @@ const Particles = (() => {
 
     ctx.clearRect(0, 0, width, height);
     motes.forEach(mote => {
-      mote.y += mote.drift * step * .012;
-      if (mote.y < -.12) mote.y = 1.1;
+      mote.y += mote.drift * step * .055;
+      mote.x += mote.side * step * .012;
+      if (mote.y < -.14) { mote.y = 1.12; mote.x = Math.random(); }
+      if (mote.x < -.06) mote.x = 1.04;
+      else if (mote.x > 1.06) mote.x = -.04;
+      mote.angle += mote.spin * step;
       paintMote(mote, time);
     });
     ctx.globalAlpha = 1;

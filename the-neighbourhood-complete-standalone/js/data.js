@@ -147,7 +147,7 @@ const MEMBERS = [
   },
   {
     name: 'Jeremy Freedman', role: 'guitar', years: '2011 — present',
-    image: 'assets/member-freedman.webp', alt: 'assets/member-freedman-alt.webp', status: 'current', mark: 'JF',
+    image: 'assets/member-freedman.webp', status: 'current', mark: 'JF',
     listen: [
       ['Afraid', 'I Love You.', 'The second guitar holding the harmonic floor under the hook.'],
       ['The Beach', 'Wiped Out!', 'Texture doing the work of an arrangement.'],
@@ -188,7 +188,7 @@ const MEMBERS = [
   },
   {
     name: 'Bryan Sammis', role: 'drums / founding member', years: '2011 — 2014',
-    image: null, status: 'former', mark: 'BS',
+    image: 'assets/member-sammis.webp', status: 'former', mark: 'BS',
     listen: [
       ['Female Robbery', 'I Love You.', 'The looser, rawer feel of the pre-2014 band.'],
       ['How', 'I Love You.', 'The opening track of the record he played on.']

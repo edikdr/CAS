@@ -73,6 +73,38 @@ Density and behaviour are set per section from the markup:
 is the normalised ellipse in the middle of the section that stays clear so the text
 underneath keeps its contrast.
 
+## Performance
+
+The page stacks several full-viewport effects, so it is compositing-bound rather
+than script-bound. Measured over four alternating runs of a full-page scroll at
+1440x960, against the previous build:
+
+| | before | after |
+| --- | --- | --- |
+| median frame | 61.9ms | 51.1ms |
+| 95th percentile frame | 118.9ms | 102.1ms |
+| total blocking time | 279ms | 209ms |
+| load / first paint | 500ms / 508ms | 411ms / 416ms |
+
+Nothing about the design changed to get there. The wins were:
+
+- Every `<img>` carries its intrinsic `width` and `height`, so nothing reflows
+  as images arrive.
+- The debris float animation ran on the `<svg>` while the drop shadow sat on its
+  parent, which re-rendered 93 filtered elements every frame. Moving the filter
+  onto the animated element lets each one rasterise once and then only move.
+- 111 waveform bars carried `will-change: transform` and were each promoted to
+  their own compositor layer for no benefit.
+- The particle field built a radial gradient per glow mote per frame; the sprite
+  is now baked once and blitted, the canvas is capped at 1.5x, and under load the
+  field drops to every other frame — invisible on motes that drift this slowly.
+- The lore aurora ran a 14px blur over an animated element every frame, on
+  gradients already soft enough that the blur did no visible work.
+- Sections far from the viewport are skipped with `content-visibility: auto`,
+  with per-breakpoint `contain-intrinsic-size` so the scroll height stays honest.
+- The collage now builds each section's pieces as it approaches rather than all
+  93 up front, which was the single longest task on the page.
+
 ## Search and favourites
 
 The crate above the record grid searches every track in the catalogue by title or

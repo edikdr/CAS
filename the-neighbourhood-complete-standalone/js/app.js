@@ -391,9 +391,10 @@
         <div class="album-meta"><span>${esc(album.accent)}</span><h3>${esc(album.title)}</h3><b>${album.year}</b></div>
       </button>`).join('') + `
       <button class="album-card vault-card" id="vaultOpen" aria-label="Синглы, EP и прочие релизы">
-        <div class="album-image-wrap vault-wrap">
+        <div class="album-image-wrap">
+          <img src="assets/single-mark.webp" alt="" loading="lazy" width="820" height="1206">
+          <span class="album-kind">SINGLES / EP</span>
           <span class="vault-count">${vault.length}</span>
-          <ul class="vault-list">${vault.map(({ album }) => `<li><b>${esc(album.title)}</b><i>${esc(album.kind)}</i></li>`).join('')}</ul>
           <span class="album-open">OPEN ↗</span>
         </div>
         <div class="album-meta"><span>THE VAULT / SINGLES</span><h3>Singles &amp; EPs</h3><b>2012—2018</b></div>
@@ -873,7 +874,14 @@
       ticking = false;
       const limit = window.innerHeight * .94;
       pending.forEach(element => {
-        const box = element.getBoundingClientRect();
+        let box = element.getBoundingClientRect();
+        /* content-visibility skips layout for far-off sections, so an element
+           inside one measures as zero-height. Fall back to its section, which
+           is always laid out. */
+        if (!box.height) {
+          const host = element.closest('section');
+          if (host) box = host.getBoundingClientRect();
+        }
         if (box.bottom < -240) {
           /* already scrolled past — show it with no animation at all */
           element.style.setProperty('--reveal-delay', '0s');

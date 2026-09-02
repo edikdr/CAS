@@ -26,7 +26,7 @@ img { display: block; max-width: 100%; }
 /* one grain sheet over the whole archive, so every layer shares a surface */
 body::after {
   content: ""; position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: .06;
-  mix-blend-mode: overlay;
+  mix-blend-mode: overlay; will-change: transform; transform: translateZ(0);
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -40,12 +40,12 @@ body::after {
 .debris-piece {
   position: absolute;
   transform: translate(-50%, -50%) translateY(var(--shift, 0px)) rotate(var(--rot, 0deg));
-  transition: transform .28s linear;
 }
 .debris-piece svg {
   width: 100%; height: auto; overflow: visible;
   animation: nb-float var(--float, 9s) ease-in-out infinite alternate;
   animation-delay: var(--delay, 0s);
+  will-change: transform;
 }
 @keyframes nb-float {
   from { transform: translateY(-5px) rotate(-1.4deg) scale(.99); }
@@ -60,8 +60,9 @@ body::after {
   --pc-paper: #fbf9f4; --pc-dark: #141414; --pc-line: #1b1b1b; --pc-tape: #ddd0b6;
   --pc-mid: #9c988e; --pc-blush: var(--blush-deep); --pc-cut-light: #faf8f3; --pc-cut-dark: #101010;
 }
-[data-debris^="dark"] .debris-piece { filter: drop-shadow(0 7px 12px rgba(0, 0, 0, .55)); }
-[data-debris^="paper"] .debris-piece { mix-blend-mode: multiply; filter: drop-shadow(3px 5px 5px rgba(0, 0, 0, .18)); }
+[data-debris^="dark"] .debris-piece svg { filter: drop-shadow(0 7px 12px rgba(0, 0, 0, .55)); }
+[data-debris^="paper"] .debris-piece { mix-blend-mode: multiply; }
+[data-debris^="paper"] .debris-piece svg { filter: drop-shadow(3px 5px 5px rgba(0, 0, 0, .18)); }
 
 .ink-paper { fill: var(--pc-paper); }
 .ink-dark { fill: var(--pc-dark); }
@@ -83,6 +84,33 @@ body::after {
 .ink-hand { fill: #333; font-family: var(--font-type); }
 .ink-cut-light { fill: var(--pc-cut-light); font-family: var(--font-display); }
 .ink-cut-dark { fill: var(--pc-cut-dark); font-family: var(--font-display); }
+
+/* Sections far out of view cost nothing to render. The fallback sizes are the
+   measured heights per breakpoint, so the scroll height stays honest before a
+   section has ever been laid out; `auto` then remembers the real size. */
+.manifesto { content-visibility: auto; contain-intrinsic-size: auto 873px; }
+.archive { content-visibility: auto; contain-intrinsic-size: auto 1849px; }
+.lore { content-visibility: auto; contain-intrinsic-size: auto 4088px; }
+.people { content-visibility: auto; contain-intrinsic-size: auto 1627px; }
+.interlude { content-visibility: auto; contain-intrinsic-size: auto 630px; }
+.quiz { content-visibility: auto; contain-intrinsic-size: auto 3546px; }
+
+@media (max-width: 980px) {
+  .manifesto { contain-intrinsic-size: auto 720px; }
+  .archive { contain-intrinsic-size: auto 2829px; }
+  .lore { contain-intrinsic-size: auto 6194px; }
+  .people { contain-intrinsic-size: auto 1186px; }
+  .interlude { contain-intrinsic-size: auto 630px; }
+  .quiz { contain-intrinsic-size: auto 4595px; }
+}
+@media (max-width: 680px) {
+  .manifesto { contain-intrinsic-size: auto 750px; }
+  .archive { contain-intrinsic-size: auto 1791px; }
+  .lore { contain-intrinsic-size: auto 8896px; }
+  .people { contain-intrinsic-size: auto 2367px; }
+  .interlude { contain-intrinsic-size: auto 938px; }
+  .quiz { contain-intrinsic-size: auto 6212px; }
+}
 
 /* --------------------------------------------------------------------------
    TOPBAR + HERO
@@ -239,7 +267,6 @@ body::after {
   flex: 1 1 0; min-width: 2px; height: 100%; border-radius: 1px;
   transform: scaleY(.05); transform-origin: center;
   background: linear-gradient(180deg, #55534f, #2f2e2c 50%, #55534f);
-  will-change: transform;
   transition: background .25s linear;
 }
 /* frozen history: what has already been heard */
@@ -515,27 +542,69 @@ footer > div:last-child { display: grid; gap: 11px; justify-items: end; font-siz
 -------------------------------------------------------------------------- */
 
 .seam {
-  position: relative; z-index: 3; height: clamp(130px, 19vh, 280px); overflow: hidden;
+  position: relative; z-index: 3; height: clamp(150px, 21vh, 300px); overflow: hidden;
   background:
     linear-gradient(180deg,
-      rgb(var(--to-rgb) / 0) 0%,
-      rgb(var(--to-rgb) / .07) 18%,
-      rgb(var(--to-rgb) / .22) 36%,
-      rgb(var(--to-rgb) / .45) 54%,
-      rgb(var(--to-rgb) / .70) 72%,
-      rgb(var(--to-rgb) / .90) 87%,
-      rgb(var(--to-rgb)) 100%),
+      rgb(var(--to-rgb) / 0)    0%,
+      rgb(var(--to-rgb) / .006) 8%,
+      rgb(var(--to-rgb) / .026) 16%,
+      rgb(var(--to-rgb) / .06)  24%,
+      rgb(var(--to-rgb) / .108) 32%,
+      rgb(var(--to-rgb) / .17)  40%,
+      rgb(var(--to-rgb) / .244) 48%,
+      rgb(var(--to-rgb) / .33)  56%,
+      rgb(var(--to-rgb) / .425) 64%,
+      rgb(var(--to-rgb) / .525) 72%,
+      rgb(var(--to-rgb) / .63)  80%,
+      rgb(var(--to-rgb) / .73)  86%,
+      rgb(var(--to-rgb) / .83)  91%,
+      rgb(var(--to-rgb) / .915) 95%,
+      rgb(var(--to-rgb) / .97)  98%,
+      rgb(var(--to-rgb))        100%),
     rgb(var(--from-rgb));
 }
-.seam::after {
-  content: ""; position: absolute; inset: 0; opacity: .5; mix-blend-mode: overlay; pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+/* The diagonal texture of each neighbour is carried through the seam and
+   crossfaded, so nothing stops dead at the boundary. Without this the colour
+   ramp is smooth but the stripes still draw a hard line across it. */
+.seam::before, .seam::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
 }
-.seam-void-paper   { --from-rgb: 7 7 7;       --to-rgb: 238 234 226; }
-.seam-night-paper  { --from-rgb: 17 17 17;    --to-rgb: 229 226 219; }
-.seam-paper-soft   { --from-rgb: 238 234 226; --to-rgb: 200 197 189; height: clamp(44px, 6vh, 90px); }
-.seam-soft-void    { --from-rgb: 200 197 189; --to-rgb: 9 9 9; }
-.seam-paper-void   { --from-rgb: 229 226 219; --to-rgb: 11 11 11; }
+.seam::before {
+  background-image: var(--tex-from, none);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.55) 46%, transparent 88%);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.55) 46%, transparent 88%);
+}
+.seam::after {
+  background-image: var(--tex-to, none);
+  -webkit-mask-image: linear-gradient(180deg, transparent 12%, rgba(0,0,0,.55) 54%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 12%, rgba(0,0,0,.55) 54%, #000 100%);
+}
+
+.seam-void-paper {
+  --from-rgb: 7 7 7; --to-rgb: 238 234 226;
+  --tex-from: repeating-linear-gradient(-19deg, transparent 0 190px, rgba(228,219,199,.05) 190px 232px);
+  --tex-to: repeating-linear-gradient(90deg, transparent 0 28px, rgba(119,119,119,.14) 29px), repeating-linear-gradient(-14deg, transparent 0 150px, rgba(255,255,255,.42) 150px 176px);
+}
+.seam-night-paper {
+  --from-rgb: 17 17 17; --to-rgb: 229 226 219;
+  --tex-from: repeating-linear-gradient(21deg, transparent 0 260px, rgba(233,230,221,.028) 260px 300px);
+  --tex-to: repeating-linear-gradient(-24deg, transparent 0 190px, rgba(255,255,255,.4) 190px 218px);
+}
+.seam-paper-soft {
+  --from-rgb: 238 234 226; --to-rgb: 200 197 189; height: clamp(56px, 8vh, 110px);
+  --tex-from: repeating-linear-gradient(90deg, transparent 0 28px, rgba(119,119,119,.14) 29px), repeating-linear-gradient(-14deg, transparent 0 150px, rgba(255,255,255,.42) 150px 176px);
+  --tex-to: repeating-linear-gradient(-21deg, transparent 0 220px, rgba(255,255,255,.36) 220px 254px);
+}
+.seam-soft-void {
+  --from-rgb: 200 197 189; --to-rgb: 9 9 9;
+  --tex-from: repeating-linear-gradient(-21deg, transparent 0 220px, rgba(255,255,255,.36) 220px 254px);
+  --tex-to: repeating-linear-gradient(24deg, transparent 0 210px, rgba(233,230,221,.028) 210px 246px);
+}
+.seam-paper-void {
+  --from-rgb: 229 226 219; --to-rgb: 11 11 11;
+  --tex-from: repeating-linear-gradient(-24deg, transparent 0 190px, rgba(255,255,255,.4) 190px 218px);
+  --tex-to: repeating-linear-gradient(-18deg, transparent 0 250px, rgba(233,230,221,.03) 250px 288px);
+}
 
 /* the hero star, cut out of the overlay clip and screened back in */
 .hero-star {
@@ -563,7 +632,7 @@ footer > div:last-child { display: grid; gap: 11px; justify-items: end; font-siz
     radial-gradient(46% 38% at 76% 16%, rgba(231, 176, 192, .16), transparent 70%),
     radial-gradient(40% 32% at 14% 44%, rgba(163, 190, 225, .12), transparent 72%),
     radial-gradient(52% 40% at 58% 88%, rgba(240, 237, 228, .07), transparent 74%);
-  filter: blur(14px);
+  will-change: transform;
   animation: nb-aurora 22s ease-in-out infinite alternate;
 }
 @keyframes nb-aurora {
@@ -720,13 +789,13 @@ footer > div:last-child { display: grid; gap: 11px; justify-items: end; font-siz
    THE VAULT — singles, EPs and everything that is not a studio album
 -------------------------------------------------------------------------- */
 
-.vault-card .vault-wrap { display: grid; align-content: center; gap: 12px; padding: 22px 20px; background: linear-gradient(158deg, #17171a, #0b0b0d 60%, #131317); border: 1px solid #111; }
-.vault-count { position: absolute; right: 14px; top: 12px; font: 46px/1 var(--font-display); color: rgba(240,237,228,.24); }
-.vault-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
-.vault-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,.12); }
-.vault-list b { font: 15px/1.2 var(--font-sans); font-weight: 600; color: #efece4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vault-list i { font: 7px var(--font-sans); font-style: normal; letter-spacing: .18em; color: var(--blush); }
-.vault-card .album-open { background: var(--paper); color: #111; }
+.vault-card .album-image-wrap { background: #050505; }
+.vault-card img { filter: none; }
+.vault-count {
+  position: absolute; right: 12px; top: 12px; z-index: 2;
+  min-width: 34px; height: 34px; padding: 0 8px; display: grid; place-items: center;
+  border-radius: 18px; background: var(--paper); color: #111; font: 15px var(--font-display);
+}
 
 .vault-intro { margin: 0 0 26px; font: 14px/1.7 var(--font-type); color: #4d4941; }
 .vault-grid { display: grid; gap: 12px; }

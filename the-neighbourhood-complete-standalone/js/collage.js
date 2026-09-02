@@ -354,8 +354,12 @@ const Collage = (() => {
 
   function build() {
     document.body.insertAdjacentHTML('afterbegin', DEFS);
+    const hosts = [...document.querySelectorAll('[data-debris]')];
     const layers = [];
-    document.querySelectorAll('[data-debris]').forEach((host, index) => {
+
+    const fill = (host, index) => {
+      if (host.dataset.debrisBuilt) return;
+      host.dataset.debrisBuilt = '1';
       const [set, count] = host.dataset.debris.split(':');
       layers.push(place(host, {
         set,
@@ -365,7 +369,23 @@ const Collage = (() => {
         keepout: host.dataset.keepout ? host.dataset.keepout.split(',').map(Number) : undefined,
         spin: Number(host.dataset.spin) || 46
       }));
-    });
+    };
+
+    if (!('IntersectionObserver' in window)) {
+      hosts.forEach(fill);
+      parallax(layers);
+      return;
+    }
+
+    /* what is on screen now is built now; the rest arrives before it is seen */
+    const observer = new IntersectionObserver((entries, self) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        fill(entry.target, hosts.indexOf(entry.target));
+        self.unobserve(entry.target);
+      });
+    }, { rootMargin: '900px 0px' });
+    hosts.forEach(host => observer.observe(host));
     parallax(layers);
   }
 

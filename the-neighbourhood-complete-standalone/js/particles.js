@@ -20,6 +20,21 @@ const Particles = (() => {
   let motes = [];
   let sprite = null;
   let spriteReady = false;
+  let glowLight = null;   /* pre-rendered glow, white */
+  let glowDark = null;    /* pre-rendered glow, ink */
+
+  const GLOW_R = 48;
+  function bakeGlow(shade) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = GLOW_R * 2;
+    const g = canvas.getContext('2d');
+    const grad = g.createRadialGradient(GLOW_R, GLOW_R, 0, GLOW_R, GLOW_R, GLOW_R);
+    grad.addColorStop(0, `rgba(${shade},${shade},${shade},.9)`);
+    grad.addColorStop(1, `rgba(${shade},${shade},${shade},0)`);
+    g.fillStyle = grad;
+    g.fillRect(0, 0, GLOW_R * 2, GLOW_R * 2);
+    return canvas;
+  }
   let raf = 0;
   let last = 0;
   let scroll = 0;
@@ -71,7 +86,7 @@ const Particles = (() => {
   }
 
   function resize() {
-    dpr = Math.min(2, window.devicePixelRatio || 1);
+    dpr = Math.min(1.5, window.devicePixelRatio || 1);
     width = window.innerWidth;
     height = window.innerHeight;
     canvas.width = Math.round(width * dpr);
@@ -112,6 +127,8 @@ const Particles = (() => {
       + Math.sin(time * mote.orbit * 1.3 + mote.orbitPhase) * mote.orbitR * .6;
     y = ((y % (height + 220)) + height + 220) % (height + 220) - 110;
 
+    if (x < -60 || x > width + 60) return;
+
     const pulse = .5 + .5 * Math.sin(time * mote.twinkle + mote.twinklePhase);
     /* particles fade out across the tone change so the blend swap never pops */
     const contrast = Math.abs(tone - .5) * 2;
@@ -132,13 +149,10 @@ const Particles = (() => {
     }
 
     if (mote.kind === 'glow') {
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, mote.size * 3.4);
-      gradient.addColorStop(0, `rgba(${shade},${shade},${shade},.9)`);
-      gradient.addColorStop(1, `rgba(${shade},${shade},${shade},0)`);
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, mote.size * 3.4, 0, Math.PI * 2);
-      ctx.fill();
+      const glow = shade > 128 ? glowLight : glowDark;
+      if (!glow) return;
+      const r = mote.size * 3.4;
+      ctx.drawImage(glow, x - r, y - r, r * 2, r * 2);
       return;
     }
 
@@ -163,11 +177,28 @@ const Particles = (() => {
     ctx.fill();
   }
 
+  let skip = false;
+  let lastCost = 0;
+
   function frame(now) {
     raf = requestAnimationFrame(frame);
     const time = now / 1000;
     const step = Math.min(.05, (now - last) / 1000 || .016);
+    const delta = now - last;
     last = now;
+
+    /* Under load the field drops to every other frame. Motes drift slowly
+       enough that this is invisible, and it halves the fill cost exactly when
+       the page can least afford it. */
+    if (delta > 26 && !skip) { skip = true; return; }
+    skip = false;
+
+    /* nothing to draw behind an open modal */
+    if (document.body.classList.contains('modal-open')) {
+      if (!lastCost) { ctx.clearRect(0, 0, width, height); lastCost = 1; }
+      return;
+    }
+    lastCost = 0;
 
     tone += (toneTarget - tone) * Math.min(1, step * 3.2);
     const mode = tone < .5 ? 'screen' : 'multiply';
@@ -203,6 +234,8 @@ const Particles = (() => {
     canvas = document.getElementById('particleField');
     if (!canvas || !canvas.getContext) return;
     ctx = canvas.getContext('2d');
+    glowLight = bakeGlow(255);
+    glowDark = bakeGlow(18);
     resize();
     watchTone();
     scroll = window.scrollY;

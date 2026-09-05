@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arctic Monkeys — Receipt Archive</title>
 <meta name="description" content="An unofficial Arctic Monkeys fan archive: every album as a crumpled till receipt that unfolds, with track windows, credits, lore and previews.">
+<link rel="preload" href="assets/bg/stars.webp" as="image" fetchpriority="high">
 <link rel="preload" href="assets/fonts/archivo-black.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/courier-prime.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/style.css">
@@ -12,6 +13,7 @@
 </head>
 <body>
 
+<div class="backdrop" aria-hidden="true"></div>
 <canvas id="dust" aria-hidden="true"></canvas>
 
 <a class="skip" href="#discography">Skip to the receipts</a>
@@ -34,6 +36,9 @@
 
   <!-- ---------------------------------------------------- hero -->
   <section class="hero">
+    <div class="neon" aria-hidden="true">
+      <img src="assets/bg/neon-sign.webp" alt="" decoding="async" fetchpriority="low">
+    </div>
     <div class="hero-inner">
       <p class="kicker">High Green, Sheffield · since 2002 · unofficial fan archive</p>
       <h1 class="cut cut-xl" data-ransom="Arctic Monkeys"></h1>
@@ -149,6 +154,7 @@
 <script src="js/data.js"></script>
 <script src="js/am-api-data.js"></script>
 <script src="js/crumple-manifest.js"></script>
+<script src="js/genius.js"></script>
 <script src="js/collage.js"></script>
 <script src="js/receipt.js"></script>
 <script src="js/player.js"></script>

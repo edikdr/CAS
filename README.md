@@ -1,3 +1,17 @@
+# Fan sites
+
+Two unofficial, non-commercial fan sites in one repository.
+
+| Site | Where | What |
+|---|---|---|
+| **Arctic Monkeys — Receipt Archive** | [`arctic-monkeys/`](arctic-monkeys/README.md) | seven albums as crumpled till receipts that unfold, with Genius annotations and a waveform player |
+| **Cigarettes After Sex — Fan Sanctuary** | this directory | cut-paper collage, full discography, quizzes |
+
+They share the cut-paper alphabets in `assets/letters/`. Everything below
+describes the Cigarettes After Sex site.
+
+---
+
 # Cigarettes After Sex — Fan Sanctuary
 
 A fan-made, unofficial single-page site: cut-paper collage design, full discography,

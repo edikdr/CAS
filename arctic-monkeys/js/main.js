@@ -16,17 +16,22 @@ function esc(s) {
 function renderMembers() {
   const host = $('#memberGrid');
   if (!host) return;
-  host.innerHTML = MEMBERS.map((m, i) => `
+  host.innerHTML = MEMBERS.map((m, i) => {
+    const photo = Genius.photo(m.name);
+    return `
     <button class="member reveal" type="button" data-member="${i}"
             aria-label="${esc(m.name)} — open profile">
-      <span class="mono">${esc(m.initials)}</span>
+      ${photo
+        ? `<img class="mono m-photo" src="${esc(photo)}" alt="" loading="lazy" decoding="async">`
+        : `<span class="mono">${esc(m.initials)}</span>`}
       <span class="m-body">
         <span class="m-name">${esc(m.name)}</span>
         <span class="m-role">${esc(m.role)}</span>
         <span class="m-bio">${esc(m.bio)}</span>
         <span class="m-tag ${m.status}">${m.status === 'current' ? 'current line-up' : 'former member'}</span>
       </span>
-    </button>`).join('');
+    </button>`;
+  }).join('');
 
   $$('[data-member]', host).forEach(btn =>
     btn.addEventListener('click', () => MemberModal.open(+btn.dataset.member)));
@@ -85,7 +90,10 @@ const MemberModal = {
       <div class="tm mm" role="dialog" aria-modal="true" aria-labelledby="mmTitle">
         <button class="tm-close" type="button" aria-label="Close">×</button>
         <header class="mm-head">
-          <div class="mm-mono">${esc(m.initials)}</div>
+          ${Genius.photo(m.name)
+            ? `<img class="mm-mono mm-photo" src="${esc(Genius.photo(m.name))}"
+                    alt="" loading="lazy" decoding="async">`
+            : `<div class="mm-mono">${esc(m.initials)}</div>`}
           <div>
             <h3 id="mmTitle" class="tm-title">${esc(m.name)}</h3>
             <p class="tm-sub">${esc(m.role)}</p>
@@ -142,11 +150,17 @@ function renderAlbums(filter = '') {
     const card = buildAlbumCard(album);
     host.appendChild(card);
 
-    // note above the receipt
-    const note = document.createElement('p');
-    note.className = 'album-note';
-    note.innerHTML = `<strong>${esc(album.type)} · ${esc(album.released)}</strong> — ${album.note}`;
-    card.querySelector('.rc-stage').insertAdjacentElement('beforebegin', note);
+    // the sleeve and the note, above the receipt
+    const head = document.createElement('div');
+    head.className = 'album-head';
+    const cover = Genius.cover(album);
+    head.innerHTML = `
+      ${cover ? `<img class="album-cover" src="${esc(cover)}" alt="${esc(album.title)} sleeve"
+                      loading="lazy" decoding="async">` : ''}
+      <p class="album-note">
+        <strong>${esc(album.type)} · ${esc(album.released)}</strong> ${album.note}
+      </p>`;
+    card.querySelector('.rc-stage').insertAdjacentElement('beforebegin', head);
 
     // a player face per record, under the receipt
     const pf = document.createElement('div');

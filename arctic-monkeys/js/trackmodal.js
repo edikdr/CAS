@@ -78,7 +78,9 @@ const TrackModal = {
     const name = track.name;
     const credits = creditsFor(name, this.album);
     const words = lyricsFor(name);
-    const api = (typeof API_DATA !== 'undefined' && API_DATA.tracks && API_DATA.tracks[name]) || {};
+    const api = Genius.track(name) || {};
+    const album = this.album;
+    const art = api.art || Genius.cover(album);
 
     // Genius credits win when the fetcher has supplied them
     const writers = (api.writers && api.writers.length)
@@ -105,7 +107,9 @@ const TrackModal = {
         <button class="tm-close" type="button" aria-label="Close">×</button>
 
         <header class="tm-head">
-          <div class="tm-no">${String(this.idx + 1).padStart(2, '0')}</div>
+          ${art
+            ? `<img class="tm-art" src="${esc(art)}" alt="" loading="lazy" decoding="async">`
+            : `<div class="tm-no">${String(this.idx + 1).padStart(2, '0')}</div>`}
           <div>
             <h3 id="tmTitle" class="tm-title">${esc(name)}</h3>
             <p class="tm-sub">${esc(this.album.title)} · ${this.album.year} ·
@@ -119,6 +123,11 @@ const TrackModal = {
           <div class="tm-col">
             <h4 class="tm-h">The words</h4>
             ${lines}
+
+            <h4 class="tm-h">Annotations</h4>
+            <div class="tm-notes" data-tm="notes">
+              <p class="tm-hint">looking for annotations…</p>
+            </div>
           </div>
 
           <div class="tm-col">
@@ -176,6 +185,36 @@ const TrackModal = {
     });
 
     this.follow(words);
+    this.loadNotes(name, genius);
+  },
+
+  /**
+   * Genius annotations: a lyric fragment and what the community made of
+   * it. Clicking a fragment opens its note.
+   */
+  async loadNotes(name, geniusUrl) {
+    const host = this.overlay.querySelector('[data-tm="notes"]');
+    if (!host) return;
+    const notes = await Genius.notes(name);
+    // the window may have moved on while that was in flight
+    if (!host.isConnected || this.album.tracks[this.idx].name !== name) return;
+
+    if (!notes || !notes.length) {
+      host.innerHTML = `<p class="tm-empty">No annotations for this one yet.
+        Anyone can write one on
+        <a href="${geniusUrl}" target="_blank" rel="noopener">its Genius page</a>.</p>`;
+      return;
+    }
+
+    host.innerHTML = notes.map((n, i) => `
+      <details class="tm-note-item"${i === 0 ? ' open' : ''}>
+        <summary>${esc(n.fragment)}</summary>
+        <div class="tm-note-body">
+          <p>${esc(n.annotation).replace(/\n{2,}/g, '</p><p>')}</p>
+          ${n.url ? `<a href="${esc(n.url)}" target="_blank" rel="noopener">
+            Read it on Genius${n.votes ? ` · ${n.votes} votes` : ''}</a>` : ''}
+        </div>
+      </details>`).join('');
   },
 
   /** Walk the marker down the lines on the song's own timeline. */

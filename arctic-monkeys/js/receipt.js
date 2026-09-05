@@ -278,7 +278,9 @@ function buildAlbumCard(album) {
         <img class="rc-frame" data-pct="${pct}" alt="" aria-hidden="true"
              decoding="async"
              data-src="assets/crumple/${album.id}/${pct}.webp"
-             ${pct === 100 ? `src="assets/crumple/${album.id}/${pct}.webp"` : ''}>`).join('')
+             ${pct === 100
+               ? `src="assets/crumple/${album.id}/${pct}.webp" loading="lazy"`
+               : ''}>`).join('')
     : '';
 
   card.innerHTML = `

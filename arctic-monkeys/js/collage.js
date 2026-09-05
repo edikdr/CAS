@@ -233,8 +233,8 @@ const DECOR = [
   // hero — the record, the moon it gets played under
   ['.hero', 'vinyl',      'vl',  18, 46, 168,  -7, 0.50, 34],
   ['.hero', 'cig',        'vl',  34, 76, 118,   9, 0.30, 30],
-  ['.hero', 'moon',       'ir',  10, 10, 140,   4, 0.44, 40],
-  ['.hero', 'star',       'ir',  96, 60,  62, -12, 0.34, 26],
+  ['.hero', 'moon',       'vr',  22,  6, 116,   4, 0.40, 40],
+  ['.hero', 'star',       'vr',  40, 72,  58, -12, 0.32, 26],
   ['.hero', 'triangle',   'vr',  26, 30,  58,   6, 0.28, 28],
 
   // lore — the formats the demos travelled on
@@ -325,7 +325,7 @@ function mountDecor() {
    ------------------------------------------------------------ */
 const SCRAP_PLAN = [
   // hero: the lines everybody knows
-  ['.hero', 'R U MINE?', 'vl', 20, 20], ['.hero', '505', 'vr', 30, 8],
+  ['.hero', 'R U MINE?', 'vl', 20, 20], ['.hero', '505', 'vl', 34, 60],
   ['.hero', 'I WANNA BE YOURS', 'vr', 18, 88],
   ['.hero', 'she’s blowing a kiss at me', 'vl', 26, 92],
 
@@ -435,12 +435,22 @@ function startDust() {
     }
   }
 
-  const motes = Array.from({ length: 90 }, () => new Mote());
-  (function loop() {
+  // fewer motes on a phone, and none at all while the tab is hidden
+  const count = innerWidth < 700 ? 38 : 90;
+  const motes = Array.from({ length: count }, () => new Mote());
+
+  let raf = null;
+  function loop() {
     ctx.clearRect(0, 0, w, h);
     motes.forEach(m => { m.step(); m.draw(); });
-    requestAnimationFrame(loop);
-  })();
+    raf = requestAnimationFrame(loop);
+  }
+  function start() { if (!raf) raf = requestAnimationFrame(loop); }
+  function stop() { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+
+  document.addEventListener('visibilitychange', () =>
+    document.hidden ? stop() : start());
+  start();
 }
 
 /* ------------------------------------------------------------

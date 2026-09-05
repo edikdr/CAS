@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arctic Monkeys — Receipt Archive</title>
+<meta name="description" content="An unofficial Arctic Monkeys fan archive: every album as a crumpled till receipt that unfolds, with track windows, credits, lore and previews.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Courier+Prime:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23111'/><path d='M2 16h2l1-5 2 10 2-14 2 18 2-20 2 22 2-18 2 12 2-8 2 5 2-3 2 1' fill='none' stroke='%23fff' stroke-width='1.2'/></svg>">
+</head>
+<body>
+
+<canvas id="dust" aria-hidden="true"></canvas>
+
+<a class="skip" href="#discography">Skip to the receipts</a>
+
+<header class="topbar">
+  <a class="brand" href="#top">
+    <span class="brand-am">AM</span>
+    <span class="brand-sub">receipt archive</span>
+  </a>
+  <nav class="nav-links" aria-label="Sections">
+    <a href="#lore">Lore</a>
+    <a href="#members">Band</a>
+    <a href="#discography">Records</a>
+    <a href="#singles">Singles</a>
+    <a href="#colophon">About</a>
+  </nav>
+</header>
+
+<main id="top">
+
+  <!-- ---------------------------------------------------- hero -->
+  <section class="hero">
+    <div class="hero-inner">
+      <p class="kicker">High Green, Sheffield · since 2002 · unofficial fan archive</p>
+      <h1 class="cut cut-xl" data-ransom="Arctic Monkeys"></h1>
+      <svg class="hero-wave" viewBox="0 0 600 90" aria-hidden="true" focusable="false">
+        <polyline id="heroWave" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      </svg>
+      <p class="hero-lede">
+        Seven albums, printed as till receipts. Each one arrives screwed up into a ball —
+        press <strong>PLAY</strong> underneath and it unfolds, stage by stage, into a
+        tracklist you can open, read and hear.
+      </p>
+      <div class="hero-cta">
+        <a class="btn" href="#discography">Open the receipts</a>
+        <a class="btn ghost" href="#lore">Read the lore</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------- lore -->
+  <section id="lore" class="section">
+    <h2 class="cut" data-ransom="The Lore"></h2>
+    <p class="section-lede">
+      Two guitars given at Christmas, a warehouse in Neepsend, a stack of burned CDs that
+      escaped onto the internet before the band had anything to sell — and then twenty years
+      of refusing to make the same record twice.
+    </p>
+    <div id="timeline" class="timeline"></div>
+  </section>
+
+  <!-- ---------------------------------------------------- members -->
+  <section id="members" class="section">
+    <h2 class="cut" data-ransom="The Band"></h2>
+    <p class="section-lede">
+      The same four people on stage since 2006, and the bassist who played on the record
+      that started it. Open any card for the full profile.
+    </p>
+    <div id="memberGrid" class="member-grid"></div>
+  </section>
+
+  <!-- ---------------------------------------------------- discography -->
+  <section id="discography" class="section">
+    <h2 class="cut" data-ransom="The Receipts"></h2>
+    <p class="section-lede">
+      Every record is printed from its own data — no images, just paper. Press
+      <strong>PLAY</strong> to uncrumple one; press any line to open the track.
+    </p>
+
+    <div class="searchbar">
+      <label class="sr-only" for="searchInput">Search tracks, albums, years and producers</label>
+      <input id="searchInput" type="search" autocomplete="off" spellcheck="false"
+             placeholder="Search a track, a year, a producer…  (press /)">
+      <button id="unfoldAll" class="btn small" type="button">UNFOLD EVERY RECEIPT</button>
+    </div>
+    <p id="searchMeta" class="search-meta"></p>
+
+    <div id="albumList" class="album-list"></div>
+  </section>
+
+  <!-- ---------------------------------------------------- singles -->
+  <section id="singles" class="section">
+    <h2 class="cut" data-ransom="Singles"></h2>
+    <p class="section-lede">The ones that arrived on their own.</p>
+    <div id="singleGrid" class="single-grid"></div>
+  </section>
+
+  <!-- ---------------------------------------------------- colophon -->
+  <section id="colophon" class="section">
+    <h2 class="cut" data-ransom="About"></h2>
+    <div class="colophon">
+      <p>
+        An unofficial, non-commercial fan archive. Not affiliated with Arctic Monkeys,
+        Domino Recording Company, or anyone who works with them.
+      </p>
+      <p>
+        <strong>Where the information comes from.</strong>
+        Track listings, durations and credits are the released studio versions.
+        Songwriter and producer credits, and the complete words to every song, live on
+        <a href="https://genius.com/artists/Arctic-monkeys" target="_blank" rel="noopener">Genius</a>
+        — every track window links straight to its page there, and the site can pull
+        credits from the Genius API directly. Preview audio and artwork come from the
+        <strong>iTunes Search API</strong>, with <strong>Deezer</strong> as a second source;
+        release data is cross-checked against <strong>MusicBrainz</strong>. All four are
+        free and used within their public terms.
+      </p>
+      <p>
+        <strong>On the words.</strong> The lines in each track window are short signature
+        excerpts with approximate fan timings, for identification and study. Full lyrics
+        are not reproduced here — they are Genius's to show, and every window says so
+        and links there.
+      </p>
+      <p>
+        <strong>How it is built.</strong> Vanilla HTML, CSS and JavaScript. No framework,
+        no build step, no tracking. The receipts, the barcodes, the waveform and every
+        cut-out in the background are drawn in the browser rather than shipped as images —
+        the whole page is a few hundred kilobytes. The only pictures are 52 scans of
+        cut magazine letters, shared with the sister site in this repository.
+      </p>
+      <p class="cred">
+        Made by a fan. <span class="ransomish">R U MINE?</span>
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>Unofficial fan archive · not affiliated with the band or Domino ·
+     lyrics &amp; credits via Genius · previews via iTunes</p>
+</footer>
+
+<div id="trackModal" class="overlay" hidden></div>
+<div id="memberModal" class="overlay" hidden></div>
+
+<script src="js/data.js"></script>
+<script src="js/am-api-data.js"></script>
+<script src="js/collage.js"></script>
+<script src="js/receipt.js"></script>
+<script src="js/player.js"></script>
+<script src="js/trackmodal.js"></script>
+<script src="js/main.js"></script>
+<script>
+/* the hero waveform, drawn to fit whatever width it gets */
+(function () {
+  const el = document.getElementById('heroWave');
+  if (!el) return;
+  const pts = [];
+  for (let i = 0; i <= 600; i++) {
+    const x = i / 600, d = (x - 0.5) * 2;
+    const env = Math.exp(-(d * d) * 2.6);
+    pts.push(`${i},${(45 - Math.sin(x * Math.PI * 60) * env * 40).toFixed(1)}`);
+  }
+  el.setAttribute('points', pts.join(' '));
+})();
+</script>
+</body>
+</html>

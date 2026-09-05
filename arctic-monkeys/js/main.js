@@ -256,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
   Player.init();
   MemberModal.init();
   TrackModal.init();
+  Quiz.init();
 
   // cut-paper headings
   $$('[data-ransom]').forEach(el => ransom(el, el.dataset.ransom));

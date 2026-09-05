@@ -142,6 +142,28 @@ page, and it stops the moment playback stops.
 
 ---
 
+## Quizzes
+
+Four decks, fifty-two questions: **Lore & Basics**, **Albums & Tracks**,
+**The Words**, **Deep Fan**.
+
+An answer locks once chosen and the correct one is always revealed, so a wrong
+guess still tells you something. You can step back through what you answered,
+and the result card lists every question with its answer. Best scores are kept
+per deck in `localStorage` — which throws in a private window or with site data
+blocked, so every touch of it is guarded and the quiz works the same without it.
+
+Answer with the mouse or press **1–4**; arrows move between questions.
+
+Every answer is a matter of public record. Where something is genuinely
+contested — what "505" refers to, for instance — it is not asked as though it
+had one.
+
+The window is backed by the 505 heart, cut off its black field by luminance and
+given the same glow and 1.5s stutter as the neon sign in the hero.
+
+---
+
 ## Design
 
 - **Headings are real cut paper.** Five magazine alphabets, 130 individually
@@ -193,10 +215,12 @@ js/player.js              preview engine + the waveform transport
 js/genius.js              baked Genius data, and the optional live proxy
 js/trackmodal.js          the track window: words, annotations, credits, links
 js/main.js                rendering, search, member window
+js/quizzes.js             the four decks
+js/quiz.js                quiz engine and window
 js/crumple-manifest.js    generated — frame geometry
 js/am-api-data.js         generated — previews, credits, artwork, annotations
 assets/crumple/           generated — 70 rendered frames
-assets/bg/                backdrop, modal collage, neon sign
+assets/bg/                backdrop, modal collage, neon sign, 505 heart
 assets/fonts/             four bundled faces
 ../assets/letters/        five cut alphabets, shared with the sister site
 ```

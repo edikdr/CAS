@@ -1,0 +1,166 @@
+/* ============================================================
+   Four question decks.
+
+   Every answer is a matter of public record — chart positions, credits,
+   release dates, things the band have said in print. Where something is
+   contested (what "505" refers to, say) it is not asked as though it had
+   an answer.
+
+   `a` is the index of the correct option.
+   ============================================================ */
+
+const QUIZZES = [
+  {
+    id: 'lore',
+    title: 'Lore & Basics',
+    blurb: 'Sheffield, Domino, and the year everything happened at once.',
+    questions: [
+      { q: 'Where did the band form?',
+        o: ['High Green, Sheffield', 'Salford, Manchester', 'Hackney, London', 'Leeds'], a: 0 },
+      { q: 'What year did they form?',
+        o: ['1999', '2002', '2005', '2006'], a: 1 },
+      { q: 'Which independent label signed them?',
+        o: ['Rough Trade', 'Heavenly', 'Domino', 'Fiction'], a: 2 },
+      { q: 'How did Alex Turner and Jamie Cook get their first guitars?',
+        o: ['Bought with paper-round money', 'Christmas presents',
+            'Borrowed from school', 'Won in a competition'], a: 1 },
+      { q: 'What record did the debut album set in 2006?',
+        o: ['Fastest-selling debut album in British chart history',
+            'Longest run at number one',
+            'Most downloaded album of the decade',
+            'Youngest band to top the chart'], a: 0 },
+      { q: 'Which prize did that debut win?',
+        o: ['Ivor Novello', 'Brit Award for Album of the Year',
+            'Mercury Prize', 'Q Award for Best Album'], a: 2 },
+      { q: 'What did Turner’s shirt say at the 2006 Brit Awards?',
+        o: ['“Who the fuck are Arctic Monkeys?”', '“Sheffield forever”',
+            '“Not for sale”', '“Beneath the Boardwalk”'], a: 0 },
+      { q: 'The self-distributed demos that made their name are known as…',
+        o: ['The Sheffield Tapes', 'Beneath the Boardwalk',
+            'Neepsend Sessions', 'Riot Van EP'], a: 1 },
+      { q: 'Which bassist left in 2006, midway through an American tour?',
+        o: ['Nick O’Malley', 'Andy Nicholson', 'Matt Helders', 'Jamie Cook'], a: 1 },
+      { q: 'Who replaced him — and stayed?',
+        o: ['Nick O’Malley', 'Miles Kane', 'Josh Homme', 'Tom Rowley'], a: 0 },
+      { q: 'Matt Helders took up the drums…',
+        o: ['At music school', 'Because the band needed a drummer',
+            'After playing in a brass band', 'Following his father'], a: 1 },
+      { q: 'Which ceremony did they play in 2012?',
+        o: ['The Brit Awards', 'Glastonbury’s Pyramid closing set',
+            'The London Olympics opening ceremony', 'The Mercury Prize show'], a: 2 },
+      { q: 'Who produced most of Humbug with James Ford?',
+        o: ['Josh Homme', 'Nigel Godrich', 'Danger Mouse', 'Jim Abbiss'], a: 0 }
+    ]
+  },
+
+  {
+    id: 'records',
+    title: 'Albums & Tracks',
+    blurb: 'Seven records, eighty tracks, and who was at the desk.',
+    questions: [
+      { q: 'Which album ends with “505”?',
+        o: ['Whatever People Say I Am…', 'Favourite Worst Nightmare', 'Humbug', 'AM'], a: 1 },
+      { q: 'How many tracks are on AM?',
+        o: ['10', '11', '12', '13'], a: 2 },
+      { q: 'Which album was recorded largely at Rancho De La Luna, Joshua Tree?',
+        o: ['Suck It and See', 'Humbug', 'The Car', 'Favourite Worst Nightmare'], a: 1 },
+      { q: 'Which record is set in a hotel on the Moon?',
+        o: ['AM', 'The Car', 'Tranquility Base Hotel & Casino', 'Humbug'], a: 2 },
+      { q: 'What year did The Car arrive?',
+        o: ['2018', '2020', '2022', '2023'], a: 2 },
+      { q: 'Which album opens with “Brianstorm”?',
+        o: ['Favourite Worst Nightmare', 'Humbug', 'AM', 'Suck It and See'], a: 0 },
+      { q: 'Which sleeve is plain white with nothing but the title?',
+        o: ['Humbug', 'Suck It and See', 'The Car', 'AM'], a: 1 },
+      { q: 'Who produced AM alongside James Ford?',
+        o: ['Mike Crossey', 'Ross Orton', 'Alan Smyth', 'Josh Homme'], a: 1 },
+      { q: 'Which track closes AM?',
+        o: ['Knee Socks', 'Snap Out of It', 'I Wanna Be Yours', 'Fireside'], a: 2 },
+      { q: 'Tranquility Base Hotel & Casino was written mostly on…',
+        o: ['A twelve-string guitar', 'A Steinway Vertegrand piano',
+            'A drum machine', 'A Wurlitzer'], a: 1 },
+      { q: 'Which album contains “Cornerstone”?',
+        o: ['Humbug', 'Suck It and See', 'Favourite Worst Nightmare', 'AM'], a: 0 },
+      { q: 'Which album opens with “There’d Better Be a Mirrorball”?',
+        o: ['Tranquility Base Hotel & Casino', 'The Car', 'AM', 'Humbug'], a: 1 },
+      { q: 'How many studio albums are there to date?',
+        o: ['Five', 'Six', 'Seven', 'Eight'], a: 2 },
+      { q: 'Which album was produced by Jim Abbiss?',
+        o: ['The debut', 'Favourite Worst Nightmare', 'Humbug', 'The Car'], a: 0 }
+    ]
+  },
+
+  {
+    id: 'words',
+    title: 'The Words',
+    blurb: 'Lines, meanings and the people who wrote them.',
+    questions: [
+      { q: 'Whose 1982 poem became “I Wanna Be Yours”?',
+        o: ['Simon Armitage', 'John Cooper Clarke', 'Roger McGough', 'Linton Kwesi Johnson'], a: 1 },
+      { q: 'In Yorkshire, “mardy” means…',
+        o: ['Sulky', 'Generous', 'Late', 'Muddy'], a: 0 },
+      { q: 'Which song reels off Reebok classics and Adidas?',
+        o: ['Riot Van', 'A Certain Romance', 'Dancing Shoes', 'Still Take You Home'], a: 1 },
+      { q: '“More like black treacle than tar” describes…',
+        o: ['The road home', 'The sky getting dark', 'A pint', 'Her hair'], a: 1 },
+      { q: 'Who co-wrote “Fluorescent Adolescent” with Turner?',
+        o: ['Miles Kane', 'Johanna Bennett', 'Katie Downes', 'Alexa Chung'], a: 1 },
+      { q: '“I just wanted to be one of The Strokes” opens which song?',
+        o: ['Four Out of Five', 'Star Treatment', 'One Point Perspective', 'Batphone'], a: 1 },
+      { q: 'Which song has a man asking “Can I call you her name?”',
+        o: ['Cornerstone', 'Do Me a Favour', 'Only Ones Who Know', 'Secret Door'], a: 0 },
+      { q: 'A “teddy picker” is…',
+        o: ['A pickpocket', 'An arcade claw machine', 'A record plugger', 'A bouncer'], a: 1 },
+      { q: 'Which song’s outro leans on Black Sabbath’s “War Pigs”?',
+        o: ['Arabella', 'R U Mine?', 'Knee Socks', 'One for the Road'], a: 0 },
+      { q: '“Crawling back to you” belongs to…',
+        o: ['Snap Out of It', 'Do I Wanna Know?', 'Why’d You Only Call Me When You’re High?', 'Fireside'], a: 1 },
+      { q: 'Which single was originally titled “Scummy”?',
+        o: ['I Bet You Look Good on the Dancefloor', 'When the Sun Goes Down',
+            'Fake Tales of San Francisco', 'Still Take You Home'], a: 1 },
+      { q: '“Fake Tales of San Francisco” is aimed at…',
+        o: ['Music journalists', 'Local bands pretending to be American',
+            'Record labels', 'Tourists'], a: 1 }
+    ]
+  },
+
+  {
+    id: 'deep',
+    title: 'Deep Fan',
+    blurb: 'For people who have read the sleeve notes twice.',
+    questions: [
+      { q: 'Which was the first single released on Domino?',
+        o: ['When the Sun Goes Down', 'I Bet You Look Good on the Dancefloor',
+            'Fake Tales of San Francisco', 'Mardy Bum'], a: 1 },
+      { q: 'Roughly how many copies did the debut sell in its first week?',
+        o: ['about 120,000', 'about 250,000', 'about 364,000', 'about 500,000'], a: 2 },
+      { q: 'Which single arrived with no warning in February 2012?',
+        o: ['R U Mine?', 'Do I Wanna Know?', 'Snap Out of It', 'Suck It and See'], a: 0 },
+      { q: 'Part of The Car was recorded at…',
+        o: ['Abbey Road', 'Butley Priory, Suffolk', 'Rockfield', 'Electric Lady'], a: 1 },
+      { q: 'Matt Helders has also drummed for…',
+        o: ['Iggy Pop', 'Nick Cave', 'Jarvis Cocker', 'Damon Albarn'], a: 0 },
+      { q: 'Turner’s other band with Miles Kane is…',
+        o: ['The Death Ramps', 'The Last Shadow Puppets',
+            'The Age of the Understatement', 'Mini Mansions'], a: 1 },
+      { q: 'What did they cover at the Olympics opening ceremony?',
+        o: ['“Come Together”', '“Whole Lotta Love”', '“Take Me Out”', '“London Calling”'], a: 0 },
+      { q: 'The only single lifted from Tranquility Base was…',
+        o: ['Star Treatment', 'Four Out of Five', 'Batphone', 'American Sports'], a: 1 },
+      { q: 'Tranquility Base is named after…',
+        o: ['A Las Vegas casino', 'The Apollo 11 landing site',
+            'A Sheffield pub', 'A Nevada motel'], a: 1 },
+      { q: '“Piledriver Waltz” first appeared on…',
+        o: ['Suck It and See', 'Turner’s Submarine soundtrack',
+            'Humbug', 'A B-side'], a: 1 },
+      { q: 'Which member sings most of the high harmonies?',
+        o: ['Jamie Cook', 'Nick O’Malley', 'Matt Helders', 'Andy Nicholson'], a: 1 },
+      { q: 'Who sings the harmony on the outro of “Knee Socks”?',
+        o: ['Miles Kane', 'Josh Homme', 'Alison Mosshart', 'James Ford'], a: 1 },
+      { q: 'The debut album’s title comes from…',
+        o: ['A line in a Saturday Night and Sunday Morning novel',
+            'A Sheffield graffito', 'A John Cooper Clarke poem',
+            'A tabloid headline'], a: 0 }
+    ]
+  }
+];

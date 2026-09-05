@@ -264,6 +264,10 @@ const DECOR = [
   ['#singles', 'cassette', 'vr', 20, 66, 100,  -8, 0.28, 29],
 
   // colophon
+  // quizzes
+  ['#quiz', 'eye',        'vl', 30, 20,  84,  -6, 0.28, 27],
+  ['#quiz', 'dice',       'vr', 24, 62,  98,   7, 0.30, 26],
+
   ['#colophon', 'triangle', 'vl', 30, 30, 56,  -6, 0.26, 28],
   ['#colophon', 'spiral',   'vr', 28, 55, 68,   8, 0.24, 31]
 ];
@@ -352,6 +356,8 @@ const SCRAP_PLAN = [
   // singles + colophon
   ['#singles', 'TEDDY PICKER', 'vl', 18, 24],
   ['#singles', 'on a RAINY day', 'vr', 26, 78],
+  ['#quiz', 'Make a wish, concentrate?', 'vl', 22, 40],
+  ['#quiz', 'PERHAPS VAMPIRES IS A BIT STRONG BUT…', 'vr', 26, 12],
   ['#colophon', 'XOXO', 'vl', 24, 60],
   ['#colophon', 'MORE LIKE BLACK TREACLE THAN TAR', 'vr', 20, 20]
 ];

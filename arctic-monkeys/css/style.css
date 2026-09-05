@@ -1,3 +1,20 @@
+@font-face {
+  font-family: 'Archivo Black'; font-style: normal; font-weight: 400; font-display: block;
+  src: url('../assets/fonts/archivo-black.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Courier Prime'; font-style: normal; font-weight: 400; font-display: block;
+  src: url('../assets/fonts/courier-prime.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Courier Prime'; font-style: normal; font-weight: 700; font-display: block;
+  src: url('../assets/fonts/courier-prime-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Caveat'; font-style: normal; font-weight: 600; font-display: block;
+  src: url('../assets/fonts/caveat.woff2') format('woff2');
+}
+
 /* ============================================================
    Arctic Monkeys — Receipt Archive
    Black page, white paper, cut letters. No images except the
@@ -88,26 +105,66 @@ body.locked { overflow: hidden; }
 /* ------------------------------------------------------------ cut letters */
 .cut {
   margin: 0 0 18px;
-  display: flex; flex-wrap: wrap; gap: 0 .5em;
+  display: flex; flex-wrap: wrap; align-items: flex-end;
+  gap: .12em .46em;
   line-height: 1;
 }
 .cut .word { display: inline-flex; align-items: flex-end; }
-.cut img {
-  height: 1em; width: auto; display: block;
-  transform: rotate(var(--r, 0deg)) translateY(var(--dy, 0));
-  filter: grayscale(1) contrast(1.25) brightness(1.06)
-          drop-shadow(0 2px 3px rgba(0, 0, 0, .55));
-  transition: transform .25s ease;
+
+/* Each letter is a scrap of paper: it sits at its own angle and height,
+   throws a real shadow, and a few of them are taped or torn. */
+.cut .glyph {
+  position: relative;
+  display: inline-block;
+  z-index: var(--z, 0);
+  transform: rotate(var(--r, 0deg)) translateY(var(--dy, 0)) scale(var(--s, 1));
+  transition: transform .28s cubic-bezier(.2, .8, .3, 1);
+  /* two shadows: a tight contact one and a soft cast one, which is what
+     separates a taped-down scrap from a flat sticker */
+  filter:
+    drop-shadow(0 1px 0 rgba(0, 0, 0, .55))
+    drop-shadow(0 5px 9px rgba(0, 0, 0, .55));
 }
+.cut .glyph img {
+  height: 1em; width: auto; display: block;
+  filter: grayscale(1) contrast(1.22) brightness(1.04);
+}
+
+/* a strip of tape across one corner */
+.cut .glyph.taped::after {
+  content: '';
+  position: absolute;
+  left: -14%; right: -14%; top: -9%; height: 30%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, .30),
+    rgba(255, 255, 255, .16) 55%,
+    rgba(255, 255, 255, .26));
+  border-top: 1px solid rgba(255, 255, 255, .28);
+  border-bottom: 1px solid rgba(255, 255, 255, .18);
+  transform: rotate(-6deg);
+  pointer-events: none;
+}
+
+.cut .glyph.torn { filter: drop-shadow(0 3px 7px rgba(0, 0, 0, .6)); }
+
+/* digits and punctuation get their own paper chip */
 .cut .chip {
   display: inline-block;
   background: var(--paper); color: var(--ink);
-  font-family: var(--fat); font-size: .74em; line-height: 1;
-  padding: .13em .16em; margin: 0 .04em;
+  font-family: var(--fat); font-size: .78em; line-height: 1;
+  padding: .16em .2em; margin: 0 .04em;
   transform: rotate(var(--r, 0deg));
+  filter: drop-shadow(0 4px 7px rgba(0, 0, 0, .55));
 }
-.cut:hover img:nth-child(odd) { transform: rotate(calc(var(--r) + 3deg)) translateY(-2px); }
-.cut:hover img:nth-child(even) { transform: rotate(calc(var(--r) - 3deg)) translateY(2px); }
+
+/* the letters shuffle against each other on hover, like loose scraps */
+.cut:hover .glyph:nth-child(odd) {
+  transform: rotate(calc(var(--r) + 4deg)) translateY(calc(var(--dy) - 3px)) scale(var(--s));
+}
+.cut:hover .glyph:nth-child(even) {
+  transform: rotate(calc(var(--r) - 4deg)) translateY(calc(var(--dy) + 3px)) scale(var(--s));
+}
 
 .cut { font-size: clamp(30px, 5.6vw, 58px); }
 .cut-xl { font-size: clamp(42px, 10vw, 118px); }
@@ -252,45 +309,44 @@ body.locked { overflow: hidden; }
   letter-spacing: .16em; text-transform: uppercase; margin-bottom: 6px;
 }
 
-/* the box the paper lives in — its height follows the crumple */
+/* The column the paper lives in. Its height is set per stage in JS so a
+   balled-up receipt does not leave a hole in the grid. */
 .rc-stage {
   position: relative;
-  display: grid; place-items: center;
-  perspective: 900px;
+  transition: height .22s ease;
 }
 
-.rc-filter { position: absolute; width: 0; height: 0; }
-
-.rc-ball {
-  position: relative;
-  width: min(340px, 92%);
-  overflow: hidden;
-  display: grid; place-items: center;
-  transform-origin: center center;
-  filter: drop-shadow(0 calc(14px + var(--c) * 18px) calc(20px + var(--c) * 26px) rgba(0, 0, 0, .7));
-  will-change: transform, clip-path;
-}
-
+/* the live receipt — the only state whose rows can be clicked */
 .rc-paper {
-  grid-area: 1 / 1;
-  width: 100%;
-  align-self: center;
+  position: relative;
+  z-index: 2;
+  width: min(340px, 92%);
+  margin: 0 auto;
   background: var(--paper);
   color: #141412;
   padding: 20px 18px 16px;
-  transform-origin: center center;
-  /* the folds catch light even before the crease layer goes on */
-  background-image:
-    linear-gradient(112deg, rgba(0,0,0,calc(var(--c) * .16)) 0%, transparent 24%,
-      rgba(255,255,255,calc(var(--c) * .5)) 42%, transparent 62%,
-      rgba(0,0,0,calc(var(--c) * .2)) 88%),
-    linear-gradient(18deg, transparent 30%, rgba(0,0,0,calc(var(--c) * .12)) 70%);
-  will-change: transform, filter;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, .55);
+}
+.album.flat .rc-paper, .album.no-frames .rc-paper {
+  opacity: 1;
+  pointer-events: auto;
 }
 
-.rc-creases {
-  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2;
-  pointer-events: none; mix-blend-mode: multiply;
+/* the rendered crumple frames, laid exactly over the live receipt */
+.rc-frames {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+}
+.rc-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  transition: opacity .15s linear;
 }
 
 /* --- receipt typography --- */
@@ -521,9 +577,17 @@ body.locked { overflow: hidden; }
 .mm-dl { margin-top: 20px; }
 
 /* ------------------------------------------------------------ collage */
+/* Cut-outs live in the margins outside the content column. Anchoring to
+   the viewport edge (not the section) is what guarantees they can never
+   reach a heading, a button or a receipt, at any width. */
 .deco, .scrap {
-  position: absolute; z-index: 1; pointer-events: none; user-select: none;
+  position: absolute; z-index: 1;
+  pointer-events: none; user-select: none;
 }
+.deco[data-anchor="vl"], .scrap[data-anchor="vl"] { left: calc(50% - 50vw + var(--inset, 20px)); }
+.deco[data-anchor="vr"], .scrap[data-anchor="vr"] { right: calc(50% - 50vw + var(--inset, 20px)); }
+.deco[data-anchor="ir"], .scrap[data-anchor="ir"] { right: var(--inset, 20px); }
+
 .deco svg { display: block; width: 100%; height: auto; }
 
 .float { animation: drift var(--dur, 24s) ease-in-out infinite alternate; }
@@ -533,23 +597,34 @@ body.locked { overflow: hidden; }
 }
 
 .scrap {
-  color: var(--chalk); white-space: nowrap; max-width: 22vw;
-  text-overflow: ellipsis; overflow: hidden;
+  color: var(--chalk); white-space: nowrap;
 }
-.scrap-plain { font-family: var(--fat); font-size: clamp(11px, 1.5vw, 19px); letter-spacing: .04em; }
-.scrap-hand { font-family: var(--hand); font-size: clamp(15px, 2.2vw, 28px); }
+/* A gutter is tall and narrow, so anything long is set down it rather
+   than truncated. */
+.scrap.vert {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+.scrap.vert.scrap-box { padding: 8px 3px; }
+.scrap-plain { font-family: var(--fat); font-size: clamp(10px, 1.1vw, 15px); letter-spacing: .04em; }
+.scrap-hand { font-family: var(--hand); font-size: clamp(13px, 1.7vw, 23px); }
 .scrap-box {
-  font-family: var(--fat); font-size: clamp(10px, 1.3vw, 16px);
+  font-family: var(--fat); font-size: clamp(9px, 1vw, 13px);
   background: var(--chalk); color: var(--ink); padding: 3px 8px;
 }
 .scrap-huge {
-  font-family: var(--fat); font-size: clamp(40px, 7vw, 96px);
-  color: transparent; -webkit-text-stroke: 1.5px rgba(232, 229, 222, .5);
+  font-family: var(--fat); font-size: clamp(34px, 5vw, 74px);
+  color: transparent; -webkit-text-stroke: 1.5px rgba(232, 229, 222, .45);
 }
-.scrap-ransomish {
-  font-family: var(--fat); font-size: clamp(12px, 1.6vw, 20px);
-  background: var(--paper); color: var(--ink); padding: 2px 7px;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, .5);
+
+/* Below this width the margins are gone, so there is nowhere safe to put
+   them and they are simply not drawn. */
+@media (max-width: 1240px) {
+  .deco[data-anchor="vl"], .deco[data-anchor="vr"],
+  .scrap[data-anchor="vl"], .scrap[data-anchor="vr"] { display: none; }
+}
+@media (max-width: 900px) {
+  .deco, .scrap { display: none; }
 }
 
 /* ------------------------------------------------------------ colophon */
@@ -575,8 +650,6 @@ body.locked { overflow: hidden; }
 }
 
 @media (max-width: 620px) {
-  .scrap-huge { display: none; }
-  .deco { opacity: .18 !important; }
   .album-list { grid-template-columns: 1fr; }
 }
 

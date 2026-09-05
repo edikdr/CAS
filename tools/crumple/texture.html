@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Receipt texture (build tool)</title>
+<link rel="stylesheet" href="../../arctic-monkeys/css/style.css">
+<style>
+  /* A bare white page holding one flat receipt and nothing else, so the
+     screenshot that becomes the 3D texture has no crumple, no clip-path
+     and no transform on it. */
+  html, body { margin: 0; background: #fff; }
+  #tex { width: 340px; }
+  #tex .rc-paper {
+    transform: none !important;
+    filter: none !important;
+    background-image: none !important;
+    grid-area: auto;
+  }
+  #tex .rc-creases, #tex .rc-cue { display: none !important; }
+  #tex .rc-row { pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="tex"><div class="rc-paper" id="paper"></div></div>
+
+<script src="../../arctic-monkeys/js/data.js"></script>
+<script>
+  /* receipt.js expects esc() from main.js; pulling all of main.js in here
+     would boot the player and the modals for nothing. */
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+</script>
+<script src="../../arctic-monkeys/js/receipt.js"></script>
+<script>
+(async function () {
+  const id = new URLSearchParams(location.search).get('album');
+  const album = ALBUMS.find(a => a.id === id);
+  if (!album) { document.title = 'no such album'; return; }
+  document.getElementById('paper').innerHTML = receiptMarkup(album);
+  // hold the capture until the bundled faces are actually rasterised
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  window.__texReady = true;
+})();
+</script>
+</body>
+</html>

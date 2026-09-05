@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crumple renderer (build tool)</title>
+<style>
+  html, body { margin: 0; background: transparent; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<script type="module">
+/* ============================================================
+   Build-time crumple renderer.
+
+   Takes a flat receipt screenshot, maps it onto a paper mesh and
+   deforms that mesh from a flat sheet into a crumpled ball. Lit and
+   shadowed for real, then captured a frame at a time by render.mjs.
+
+   Nothing here ships to the site — the site only gets the frames.
+   ============================================================ */
+import * as THREE from './vendor/three.module.js';
+
+const q = new URLSearchParams(location.search);
+const TEX = q.get('tex');
+const W = +(q.get('w') || 700);
+const H = +(q.get('h') || 1180);
+const SEED = +(q.get('seed') || 1);
+
+/* ---------- deterministic value noise ---------- */
+function mkNoise(seed) {
+  const P = new Uint8Array(512);
+  let s = seed * 9301 + 49297;
+  const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  const perm = Array.from({ length: 256 }, (_, i) => i);
+  for (let i = 255; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [perm[i], perm[j]] = [perm[j], perm[i]];
+  }
+  for (let i = 0; i < 512; i++) P[i] = perm[i & 255];
+
+  const fade = t => t * t * t * (t * (t * 6 - 15) + 10);
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const grad = (h, x, y, z) => {
+    const u = h < 8 ? x : y, v = h < 4 ? y : (h === 12 || h === 14 ? x : z);
+    return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+  };
+  function noise(x, y, z) {
+    const X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
+    x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+    const u = fade(x), v = fade(y), w = fade(z);
+    const A = P[X] + Y, AA = P[A] + Z, AB = P[A + 1] + Z;
+    const B = P[X + 1] + Y, BA = P[B] + Z, BB = P[B + 1] + Z;
+    return lerp(
+      lerp(lerp(grad(P[AA] & 15, x, y, z), grad(P[BA] & 15, x - 1, y, z), u),
+           lerp(grad(P[AB] & 15, x, y - 1, z), grad(P[BB] & 15, x - 1, y - 1, z), u), v),
+      lerp(lerp(grad(P[AA + 1] & 15, x, y, z - 1), grad(P[BA + 1] & 15, x - 1, y, z - 1), u),
+           lerp(grad(P[AB + 1] & 15, x, y - 1, z - 1), grad(P[BB + 1] & 15, x - 1, y - 1, z - 1), u), v), w);
+  }
+  return (x, y, z, oct = 4) => {
+    let sum = 0, amp = 1, f = 1, norm = 0;
+    for (let i = 0; i < oct; i++) {
+      sum += noise(x * f, y * f, z * f) * amp;
+      norm += amp; amp *= 0.5; f *= 2.05;
+    }
+    return sum / norm;
+  };
+}
+const fbm = mkNoise(SEED);
+
+/* ---------- scene ---------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+
+// The sheet in world units. PH is filled in from the texture once it
+// loads, so a 13-track receipt is taller than a 10-track one and the
+// print never gets stretched.
+const PW = 3.4;
+let PH = 7.4;
+const SEG = 150;
+
+const camera = new THREE.PerspectiveCamera(30, W / H, 0.1, 100);
+camera.position.set(0, 0, 14.6);
+camera.lookAt(0, 0, 0);
+
+// a studio key light from the upper left, plus fill — this is what
+// gives the folds their volume
+const key = new THREE.DirectionalLight(0xffffff, 2.15);
+key.position.set(-3.4, 5.2, 9.5);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -6; key.shadow.camera.right = 6;
+key.shadow.camera.top = 6; key.shadow.camera.bottom = -6;
+key.shadow.camera.near = 1; key.shadow.camera.far = 30;
+key.shadow.radius = 9;
+key.shadow.bias = -0.0012;
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0xffffff, 0.55);
+fill.position.set(6, -2, 5);
+scene.add(fill);
+scene.add(new THREE.AmbientLight(0xffffff, 0.72));
+
+// backdrop that catches the shadow but stays transparent itself
+const backdrop = new THREE.Mesh(
+  new THREE.PlaneGeometry(40, 40),
+  new THREE.ShadowMaterial({ opacity: 0.34 })
+);
+backdrop.position.z = -1.35;
+backdrop.receiveShadow = true;
+scene.add(backdrop);
+
+/* ---------- the paper ---------- */
+const loader = new THREE.TextureLoader();
+const texture = await new Promise((res, rej) =>
+  loader.load(TEX, res, undefined, rej));
+texture.colorSpace = THREE.SRGBColorSpace;
+texture.anisotropy = 8;
+
+PH = PW * (texture.image.height / texture.image.width);
+
+const geo = new THREE.PlaneGeometry(PW, PH, SEG, Math.round(SEG * PH / PW));
+const base = Float32Array.from(geo.attributes.position.array);
+
+const material = new THREE.MeshStandardMaterial({
+  map: texture,
+  side: THREE.DoubleSide,
+  roughness: 0.94,
+  metalness: 0.0,
+  flatShading: true          // sharp facets — the crumple reads as folds
+});
+
+const paper = new THREE.Mesh(geo, material);
+paper.castShadow = true;
+paper.receiveShadow = true;
+scene.add(paper);
+
+/* ---------- deformation ---------- */
+const smooth = (a, b, x) => {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+const mix = (a, b, t) => a + (b - a) * t;
+
+const BALL_R = 1.78;
+
+function deform(t) {
+  const pos = geo.attributes.position.array;
+
+  /* Three phases, because interpolating a flat plane straight into a
+     sphere passes through a flat disc — the paper would visibly pancake
+     half way. Real paper rolls before it balls, so:
+
+       t 0.00–0.24   flat, creases pressing in
+       t 0.24–0.66   rolling up into a tube
+       t 0.60–1.00   the tube crushed into a wad             */
+  const kRoll = smooth(0.24, 0.66, t);
+  const kBall = smooth(0.60, 1.02, t);
+  const creaseAmp = 0.40 * Math.pow(t, 0.9);
+
+  const ridge = (x, y, z, o) => 1 - 2 * Math.abs(fbm(x, y, z, o));
+  /* Drive the roll by how far the paper has wrapped, not by radius.
+     Radius falls off as 1/angle, so interpolating it directly leaves the
+     sheet looking flat for most of the phase and then snapping shut. */
+  const wrap = 0.0005 + kRoll * 7.2;      // radians of total wrap
+  const rollR = PH / wrap;
+
+  for (let i = 0; i < pos.length; i += 3) {
+    const x = base[i], y = base[i + 1];
+    const u = x / PW, v = y / PH;              // -0.5 … 0.5
+
+    // --- creases pressed into the sheet ---
+    const c1 = ridge(u * 2.0 + 11.2, v * 2.0 - 4.1, 2.3, 2);
+    const c2 = ridge(u * 5.4 - 3.7, v * 5.4 + 8.4, 5.9, 2);
+    const zc = (c1 * 0.95 + c2 * 0.34) * creaseAmp * PW;
+
+    // --- rolled up along its length ---
+    const ang = y / rollR;
+    const xRoll = x * (1 - 0.17 * kRoll);
+    const yRoll = rollR * Math.sin(ang);
+    const zRoll = rollR * (Math.cos(ang) - 1) + zc;
+
+    // --- the wad ---
+    // Just over one full turn, so the ball closes on itself while the
+    // outward-facing panels stay big enough to read the masthead on.
+    const a = u * Math.PI * 2.15;
+    const b = (v + 0.5) * Math.PI;
+    // Ridged noise leaves sharp creases where it crosses zero — flat
+    // panels meeting at hard ridges, which is what a screwed-up sheet is.
+    const lump = 0.66
+      + 0.30 * ridge(u * 2.1 + 2.2, v * 2.1 - 6.6, 1.1, 2)
+      + 0.13 * ridge(u * 5.3 - 1.4, v * 5.3 + 3.8, 7.4, 2);
+    const R = BALL_R * lump;
+    const bx = R * Math.sin(b) * Math.cos(a);
+    const by = R * Math.cos(b);
+    const bz = R * Math.sin(b) * Math.sin(a);
+
+    pos[i] = mix(xRoll, bx, kBall);
+    pos[i + 1] = mix(yRoll, by, kBall);
+    pos[i + 2] = mix(zRoll, bz, kBall);
+  }
+
+  // recentre on the deformed bounding box — otherwise the wad drifts off
+  // to one side as it forms and the frames no longer align
+  geo.attributes.position.needsUpdate = true;
+  geo.computeBoundingBox();
+  const bb = geo.boundingBox;
+  const cx = (bb.min.x + bb.max.x) / 2;
+  const cy = (bb.min.y + bb.max.y) / 2;
+  const cz = (bb.min.z + bb.max.z) / 2;
+  for (let i = 0; i < pos.length; i += 3) {
+    pos[i] -= cx; pos[i + 1] -= cy; pos[i + 2] -= cz;
+  }
+  geo.computeVertexNormals();
+
+  // a slight tilt as it balls up, so it does not read as a flat cut-out
+  paper.rotation.set(kBall * -0.14, kBall * 0.30 + kRoll * 0.10, mix(0, -0.13, kBall));
+  paper.position.set(0, 0, 0);
+}
+
+/* ---------- driven by render.mjs ---------- */
+window.setStage = (t) => {
+  deform(t);
+  renderer.render(scene, camera);
+  return new Promise(r => requestAnimationFrame(() => r(true)));
+};
+
+/* Where an undeformed sheet projects to, in canvas pixels. render.mjs
+   saves this so the site can size and offset the frames to sit exactly
+   on top of the live receipt. */
+function projectFlat() {
+  const toPx = (vx, vy) => {
+    const v = new THREE.Vector3(vx, vy, 0).project(camera);
+    return [(v.x * 0.5 + 0.5) * W, (-v.y * 0.5 + 0.5) * H];
+  };
+  const [x0, y0] = toPx(-PW / 2, PH / 2);
+  const [x1, y1] = toPx(PW / 2, -PH / 2);
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+deform(0);
+renderer.render(scene, camera);
+window.__meta = { frameW: W, frameH: H, flat: projectFlat() };
+window.__ready = true;
+</script>
+</body>
+</html>

@@ -609,46 +609,6 @@ const TIMELINE = [
 ];
 
 /* ------------------------------------------------------------
-   Text scraps scattered through the collage.
-   Song titles, lyric fragments and band history — the same
-   material the fan-art wallpapers are built from.
-   ------------------------------------------------------------ */
-const SCRAPS = [
-  { text: '505', style: 'huge' },
-  { text: 'R U MINE?', style: 'ransomish' },
-  { text: 'Can I call you her name?', style: 'hand' },
-  { text: 'I WANNA BE YOURS', style: 'box' },
-  { text: 'CRAWLING BACK TO YOU', style: 'plain' },
-  { text: 'YOU CALL THE SHOTS BABE', style: 'box' },
-  { text: 'FLUORESCENT ADOLESCENT', style: 'box' },
-  { text: 'TEDDY PICKER', style: 'box' },
-  { text: 'SUCK IT AND SEE', style: 'plain' },
-  { text: 'Who the fuck are Arctic Monkeys?', style: 'hand' },
-  { text: 'she’s blowing a kiss at me', style: 'hand' },
-  { text: 'DON’T SIT DOWN', style: 'box' },
-  { text: 'send a letter to me baby', style: 'hand' },
-  { text: 'on a RAINY day', style: 'hand' },
-  { text: 'SHALALA SHALALA', style: 'plain' },
-  { text: 'Make a wish, concentrate?', style: 'hand' },
-  { text: 'MORE LIKE BLACK TREACLE THAN TAR', style: 'box' },
-  { text: 'I’M IN A VEST', style: 'plain' },
-  { text: 'LASERQUEST', style: 'box' },
-  { text: 'She’s Thunderstorms', style: 'hand' },
-  { text: 'BRICK BY BRICK', style: 'plain' },
-  { text: 'MARDY BUM', style: 'ransomish' },
-  { text: 'CALL OFF THE SEARCH', style: 'plain' },
-  { text: 'Maybe I’m too busy being yours', style: 'hand' },
-  { text: 'TRANQUILITY BASE · HOTEL · CASINO', style: 'plain' },
-  { text: 'FRI 14th APRIL', style: 'box' },
-  { text: 'METEORS', style: 'plain' },
-  { text: 'XOXO', style: 'huge' },
-  { text: 'AM', style: 'huge' },
-  { text: 'MUSIC', style: 'ransomish' },
-  { text: 'PERHAPS VAMPIRES IS A BIT STRONG BUT…', style: 'plain' },
-  { text: 'A CERTAIN ROMANCE', style: 'box' }
-];
-
-/* ------------------------------------------------------------
    Where to hear each track. Search links rather than hard-coded
    ids: they resolve for every release without going stale.
    ------------------------------------------------------------ */
@@ -718,6 +678,6 @@ function albumRuntime(album) {
 
 function fmtLrc(sec) {
   const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${String(m).padStart(2, '0')}:${s.toFixed(2).padStart(5, '0')}`;
+  const s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
 }

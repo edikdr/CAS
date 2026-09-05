@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# build-time only: fetched with npm, not part of the site
+node_modules/
+tools/crumple/vendor/

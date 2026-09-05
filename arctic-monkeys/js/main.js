@@ -154,12 +154,16 @@ function renderAlbums(filter = '') {
     card.appendChild(pf);
     const face = new PlayerFace(pf, album);
 
-    // rows: click opens the window, ⏵ cues the preview
+    // Choosing a track screws the receipt back up and opens the window —
+    // the paper goes away, the song takes over.
     $$('.rc-row', card).forEach(row => {
-      const open = () => TrackModal.open(row.dataset.track, album.id);
-      row.addEventListener('click', open);
+      const choose = () => {
+        setOpen(card, false);
+        TrackModal.open(row.dataset.track, album.id);
+      };
+      row.addEventListener('click', choose);
       row.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(); }
       });
 
       const cue = document.createElement('button');
@@ -181,14 +185,8 @@ function renderAlbums(filter = '') {
 
     measureReceipt(card);
 
-    // a search that matches tracks opens the receipt on those tracks
-    if (q && card.querySelector('.rc-row.hit')) {
-      card.classList.add('open');
-      const btn = card.querySelector('.unfold');
-      btn.setAttribute('aria-expanded', 'true');
-      btn.querySelector('.unfold-txt').textContent = 'FOLD BACK';
-      setCrumple(card, 0);
-    }
+    // a search that matches tracks unfolds that receipt on those tracks
+    if (q && card.querySelector('.rc-row.hit')) setOpen(card, true);
   });
 
   updateSearchMeta(q, shown.length, hits);
@@ -283,11 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
       all.classList.toggle('on', opening);
       all.textContent = opening ? 'FOLD THEM ALL BACK' : 'UNFOLD EVERY RECEIPT';
       $$('.album').forEach((card, i) => {
-        card.classList.toggle('open', opening);
-        const btn = card.querySelector('.unfold');
-        btn.setAttribute('aria-expanded', String(opening));
-        btn.querySelector('.unfold-txt').textContent = opening ? 'FOLD BACK' : 'PLAY';
-        setTimeout(() => animateCrumple(card, opening ? 0 : 1), i * 110);
+        setTimeout(() => setOpen(card, opening), i * 130);
       });
     });
   }

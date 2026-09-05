@@ -9,8 +9,19 @@
    ============================================================ */
 
 const LETTERS = '../assets/letters';
-const LETTER_SETS = ['mono', 'warm'];
+/* Five alphabets, cut from different magazines. ransom() walks them so
+   two neighbouring letters never come from the same sheet. */
+const LETTER_SETS = ['mono', 'news', 'warm', 'cut', 'press'];
 const IS_LETTER = /^[a-z]$/;
+
+/* A handful of torn-edge shapes, picked per letter. Real cut-out letters
+   are never trimmed square. */
+const TORN = [
+  'polygon(2% 0%, 98% 3%, 100% 96%, 4% 100%, 0% 52%)',
+  'polygon(0% 4%, 96% 0%, 100% 94%, 6% 99%, 1% 48%)',
+  'polygon(3% 2%, 100% 0%, 97% 98%, 0% 100%, 2% 50%)',
+  'polygon(0% 0%, 99% 5%, 96% 100%, 2% 96%, 3% 47%)'
+];
 
 function seeded(str) {
   let h = 2166136261;
@@ -36,28 +47,45 @@ function ransom(el, text, opts = {}) {
 
     [...chunk].forEach(ch => {
       const low = ch.toLowerCase();
-      const rot = (rnd() * 6 - 3).toFixed(2);
 
-      if (IS_LETTER.test(low)) {
-        const set = LETTER_SETS[i % LETTER_SETS.length];
-        i++;
-        const img = document.createElement('img');
-        img.src = `${LETTERS}/${set}/${low}.webp`;
-        img.alt = '';
-        img.setAttribute('aria-hidden', 'true');
-        img.draggable = false;
-        img.loading = 'lazy';
-        img.style.setProperty('--r', `${rot}deg`);
-        img.style.setProperty('--dy', `${(rnd() * 5 - 2.5).toFixed(1)}px`);
-        word.appendChild(img);
-      } else {
+      if (!IS_LETTER.test(low)) {
+        // digits and punctuation ride on a torn paper chip
         const chip = document.createElement('span');
         chip.className = 'chip';
         chip.setAttribute('aria-hidden', 'true');
         chip.textContent = ch;
-        chip.style.setProperty('--r', `${rot}deg`);
+        chip.style.setProperty('--r', `${(rnd() * 6 - 3).toFixed(2)}deg`);
+        chip.style.clipPath = TORN[Math.floor(rnd() * TORN.length)];
         word.appendChild(chip);
+        return;
       }
+
+      const set = LETTER_SETS[i % LETTER_SETS.length];
+      i++;
+
+      const glyph = document.createElement('span');
+      glyph.className = 'glyph';
+      glyph.setAttribute('aria-hidden', 'true');
+      glyph.style.setProperty('--r', `${(rnd() * 7 - 3.5).toFixed(2)}deg`);
+      glyph.style.setProperty('--dy', `${(rnd() * 6 - 3).toFixed(1)}px`);
+      glyph.style.setProperty('--s', (0.9 + rnd() * 0.2).toFixed(3));
+      glyph.style.setProperty('--z', String(Math.floor(rnd() * 5)));
+
+      const r = rnd();
+      if (r > 0.82) glyph.classList.add('taped');
+      else if (r > 0.5) glyph.classList.add('torn');
+
+      const img = document.createElement('img');
+      img.src = `${LETTERS}/${set}/${low}.webp`;
+      img.alt = '';
+      img.draggable = false;
+      img.loading = 'lazy';
+      if (glyph.classList.contains('torn')) {
+        img.style.clipPath = TORN[Math.floor(rnd() * TORN.length)];
+      }
+
+      glyph.appendChild(img);
+      word.appendChild(glyph);
     });
     el.appendChild(word);
   });
@@ -185,49 +213,85 @@ const SHAPES = {
     <circle cx="45" cy="50" r="3" fill="#111"/></svg>`
 };
 
-/* host, shape, position (%), width (px), rotation, opacity, drift seconds */
+/* ------------------------------------------------------------
+   Where the cut-outs go.
+
+   Anchoring is to the *viewport* gutters, not to the content column, so
+   a cut-out physically cannot land on a heading, a button or a receipt:
+     vl / vr   the empty margin outside the 1180px column
+     ir        inside the column on the right, only where the text is
+               narrow enough to leave room (the hero)
+   Everything is hidden below 1240px, where those margins run out.
+
+   The objects are chosen per section rather than scattered: tape and
+   film for the history, instruments for the band, records and sleeves
+   for the discography.
+
+   [host, shape, anchor, inset px, y %, width px, rotation, opacity, drift s]
+   ------------------------------------------------------------ */
 const DECOR = [
-  ['.hero', 'vinyl', 4, 62, 190, -6, 0.5, 34],
-  ['.hero', 'moon', 84, 12, 150, 4, 0.42, 40],
-  ['.hero', 'star', 70, 70, 74, -12, 0.3, 26],
-  ['.hero', 'cig', 20, 88, 130, 8, 0.28, 30],
-  ['.hero', 'triangle', 92, 46, 62, 6, 0.26, 28],
+  // hero — the record, the moon it gets played under
+  ['.hero', 'vinyl',      'vl',  18, 46, 168,  -7, 0.50, 34],
+  ['.hero', 'cig',        'vl',  34, 76, 118,   9, 0.30, 30],
+  ['.hero', 'moon',       'ir',  10, 10, 140,   4, 0.44, 40],
+  ['.hero', 'star',       'ir',  96, 60,  62, -12, 0.34, 26],
+  ['.hero', 'triangle',   'vr',  26, 30,  58,   6, 0.28, 28],
 
-  ['#lore', 'cassette', 88, 8, 128, 7, 0.3, 32],
-  ['#lore', 'filmstrip', 2, 30, 170, -4, 0.24, 36],
-  ['#lore', 'ticket', 86, 62, 140, 5, 0.3, 27],
-  ['#lore', 'spiral', 6, 78, 82, -9, 0.26, 31],
+  // lore — the formats the demos travelled on
+  ['#lore', 'vhs',        'vl',  14,  8, 134,  -6, 0.32, 35],
+  ['#lore', 'filmstrip',  'vl',  22, 44, 158,  -4, 0.26, 36],
+  ['#lore', 'spiral',     'vl',  40, 80,  74,  -9, 0.28, 31],
+  ['#lore', 'cassette',   'vr',  16, 18, 130,   7, 0.32, 32],
+  ['#lore', 'ticket',     'vr',  20, 62, 142,   5, 0.32, 27],
 
-  ['#members', 'guitar', 92, 10, 62, 9, 0.3, 33],
-  ['#members', 'knight', 3, 42, 66, -7, 0.28, 29],
-  ['#members', 'heart', 88, 74, 76, 11, 0.26, 25],
-  ['#members', 'dice', 6, 84, 104, -5, 0.28, 30],
+  // members — what they actually play
+  ['#members', 'knight',  'vl',  40, 30,  62,  -7, 0.30, 29],
+  ['#members', 'dice',    'vl',  24, 74, 104,  -5, 0.30, 30],
+  ['#members', 'guitar',  'vr',  40, 12,  58,   9, 0.32, 33],
+  ['#members', 'heart',   'vr',  30, 68,  72,  11, 0.28, 25],
 
-  ['#discography', 'vhs', 90, 4, 138, -6, 0.24, 35],
-  ['#discography', 'headphones', 3, 24, 96, 8, 0.24, 28],
-  ['#discography', 'advisory', 91, 40, 132, 4, 0.22, 32],
-  ['#discography', 'bars', 2, 62, 150, -4, 0.22, 30],
-  ['#discography', 'eye', 93, 78, 92, 7, 0.24, 26],
-  ['#discography', 'vinyl', 4, 88, 128, 5, 0.2, 38],
+  // discography — sleeves, players, stickers
+  ['#discography', 'headphones', 'vl', 26, 10,  92,   8, 0.28, 28],
+  ['#discography', 'bars',       'vl', 14, 40, 148,  -4, 0.26, 30],
+  ['#discography', 'vinyl',      'vl', 20, 74, 132,   5, 0.24, 38],
+  ['#discography', 'advisory',   'vr', 16, 16, 130,   4, 0.26, 32],
+  ['#discography', 'eye',        'vr', 34, 48,  86,   7, 0.28, 26],
+  ['#discography', 'vhs',        'vr', 18, 80, 126,  -6, 0.24, 35],
 
-  ['#singles', 'star', 90, 12, 66, -10, 0.3, 24],
-  ['#singles', 'moon', 4, 52, 104, 6, 0.28, 37],
-  ['#singles', 'cassette', 86, 70, 104, -8, 0.26, 29]
+  // singles
+  ['#singles', 'moon',     'vl', 26, 40,  98,   6, 0.30, 37],
+  ['#singles', 'star',     'vr', 32, 14,  62, -10, 0.32, 24],
+  ['#singles', 'cassette', 'vr', 20, 66, 100,  -8, 0.28, 29],
+
+  // colophon
+  ['#colophon', 'triangle', 'vl', 30, 30, 56,  -6, 0.26, 28],
+  ['#colophon', 'spiral',   'vr', 28, 55, 68,   8, 0.24, 31]
 ];
+
+function place(el, anchor, inset, y) {
+  el.dataset.anchor = anchor;
+  el.style.setProperty('--inset', inset + 'px');
+  el.style.top = y + '%';
+}
 
 function mountDecor() {
   const parallax = [];
 
-  DECOR.forEach(([host, shape, x, y, w, rot, op, dur], idx) => {
+  DECOR.forEach(([host, shape, anchor, inset, y, w, rot, op, dur], idx) => {
     const target = document.querySelector(host);
     if (!target || !SHAPES[shape]) return;
 
     const box = document.createElement('div');
     box.className = 'deco float';
     box.setAttribute('aria-hidden', 'true');
-    box.style.cssText =
-      `left:${x}%;top:${y}%;width:${w}px;opacity:${op};` +
-      `--rot:${rot}deg;--dur:${dur}s;--dx:${idx % 2 ? 10 : -10}px;--dy2:${idx % 3 ? -16 : -9}px`;
+    place(box, anchor, inset, y);
+    box.style.width = w + 'px';
+    box.style.opacity = op;
+    box.style.setProperty('--rot', rot + 'deg');
+    box.style.setProperty('--dur', dur + 's');
+    box.style.setProperty('--dx', (idx % 2 ? 8 : -8) + 'px');
+    box.style.setProperty('--dy2', (idx % 3 ? -13 : -7) + 'px');
+
     // shapes can carry gradient ids; keep them unique per instance
     box.innerHTML = SHAPES[shape]
       .replace(/id="([\w-]+)"/g, `id="$1-${idx}"`)
@@ -235,7 +299,7 @@ function mountDecor() {
 
     if (getComputedStyle(target).position === 'static') target.style.position = 'relative';
     target.appendChild(box);
-    parallax.push({ box, speed: 0.014 + (idx % 5) * 0.007 });
+    parallax.push({ box, speed: 0.012 + (idx % 5) * 0.006 });
   });
 
   mountScraps();
@@ -247,7 +311,7 @@ function mountDecor() {
     raf = requestAnimationFrame(() => {
       const y = window.scrollY;
       parallax.forEach(p => {
-        const shift = Math.max(-70, Math.min(70, -y * p.speed + 30));
+        const shift = Math.max(-60, Math.min(60, -y * p.speed + 26));
         p.box.style.marginTop = shift.toFixed(1) + 'px';
       });
       raf = null;
@@ -256,33 +320,73 @@ function mountDecor() {
 }
 
 /* ------------------------------------------------------------
-   Text scraps — lyric fragments taped across the background.
-   Scattered deterministically so the layout never jumps.
+   Text scraps — lyric fragments and titles taped up in the same
+   gutters, each sent to the section it belongs to.
    ------------------------------------------------------------ */
-const SCRAP_HOSTS = ['.hero', '#lore', '#members', '#discography', '#singles', '#colophon'];
+const SCRAP_PLAN = [
+  // hero: the lines everybody knows
+  ['.hero', 'R U MINE?', 'vl', 20, 20], ['.hero', '505', 'vr', 30, 8],
+  ['.hero', 'I WANNA BE YOURS', 'vr', 18, 88],
+  ['.hero', 'she’s blowing a kiss at me', 'vl', 26, 92],
+
+  // lore: the band's own history in its own words
+  ['#lore', 'Who the fuck are Arctic Monkeys?', 'vl', 16, 24],
+  ['#lore', 'BENEATH THE BOARDWALK', 'vr', 22, 40],
+  ['#lore', 'HIGH GREEN, SHEFFIELD', 'vl', 30, 62],
+  ['#lore', 'FRI 14th APRIL', 'vr', 26, 84],
+
+  // members
+  ['#members', 'MARDY BUM', 'vl', 22, 12],
+  ['#members', 'send a letter to me baby', 'vr', 18, 44],
+  ['#members', 'I’M IN A VEST', 'vl', 34, 88],
+
+  // discography: one line per record, in order
+  ['#discography', 'A CERTAIN ROMANCE', 'vl', 30, 6],
+  ['#discography', 'FLUORESCENT ADOLESCENT', 'vr', 24, 24],
+  ['#discography', 'Can I call you her name?', 'vl', 22, 36],
+  ['#discography', 'SHALALA SHALALA', 'vr', 30, 52],
+  ['#discography', 'CRAWLING BACK TO YOU', 'vl', 26, 62],
+  ['#discography', 'TRANQUILITY BASE', 'vr', 20, 72],
+  ['#discography', 'MIRRORBALL', 'vl', 32, 88],
+
+  // singles + colophon
+  ['#singles', 'TEDDY PICKER', 'vl', 18, 24],
+  ['#singles', 'on a RAINY day', 'vr', 26, 78],
+  ['#colophon', 'XOXO', 'vl', 24, 60],
+  ['#colophon', 'MORE LIKE BLACK TREACLE THAN TAR', 'vr', 20, 20]
+];
+
+/* how each scrap is set — picked by its own text, so it never changes */
+function scrapStyle(text) {
+  if (/^[0-9]+$|^XOXO$|^AM$/.test(text)) return 'huge';
+  if (/[a-z]/.test(text) && /[’']/.test(text)) return 'hand';
+  if (text === text.toUpperCase() && text.length < 18) return 'box';
+  if (/[a-z]/.test(text)) return 'hand';
+  return 'plain';
+}
 
 function mountScraps() {
   const rnd = seeded('scraps-arctic-monkeys');
-  const hosts = SCRAP_HOSTS.map(s => document.querySelector(s)).filter(Boolean);
-  if (!hosts.length) return;
 
-  SCRAPS.forEach((scrap, i) => {
-    const host = hosts[i % hosts.length];
+  SCRAP_PLAN.forEach(([host, text, anchor, inset, y]) => {
+    const target = document.querySelector(host);
+    if (!target) return;
+
     const el = document.createElement('span');
-    el.className = `scrap scrap-${scrap.style} float`;
+    // long lines run down the gutter instead of being cut off by it
+    const vertical = text.length > 15 ? ' vert' : '';
+    el.className = `scrap scrap-${scrapStyle(text)}${vertical} float`;
     el.setAttribute('aria-hidden', 'true');
-    el.textContent = scrap.text;
+    el.textContent = text;
+    place(el, anchor, inset, y);
+    el.style.setProperty('--rot', `${(rnd() * 20 - 10).toFixed(1)}deg`);
+    el.style.setProperty('--dur', `${(24 + rnd() * 16).toFixed(0)}s`);
+    el.style.setProperty('--dx', `${(rnd() * 10 - 5).toFixed(0)}px`);
+    el.style.setProperty('--dy2', `${(-5 - rnd() * 9).toFixed(0)}px`);
+    el.style.opacity = (0.2 + rnd() * 0.22).toFixed(2);
 
-    // hard left/right gutters — the reading column stays clear
-    const left = rnd() > 0.5 ? -1 + rnd() * 8 : 87 + rnd() * 12;
-    el.style.cssText =
-      `left:${left.toFixed(1)}%;top:${(3 + rnd() * 92).toFixed(1)}%;` +
-      `--rot:${(rnd() * 26 - 13).toFixed(1)}deg;--dur:${(22 + rnd() * 18).toFixed(0)}s;` +
-      `--dx:${(rnd() * 14 - 7).toFixed(0)}px;--dy2:${(-6 - rnd() * 12).toFixed(0)}px;` +
-      `opacity:${(0.16 + rnd() * 0.24).toFixed(2)}`;
-
-    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
-    host.appendChild(el);
+    if (getComputedStyle(target).position === 'static') target.style.position = 'relative';
+    target.appendChild(el);
   });
 }
 

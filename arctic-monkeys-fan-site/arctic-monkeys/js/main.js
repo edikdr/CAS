@@ -37,25 +37,36 @@ function renderMembers() {
     btn.addEventListener('click', () => MemberModal.open(+btn.dataset.member)));
   observeReveals(host);
 
-  // photographs, if Genius is reachable and none were baked in
+  /* Photographs, if any source has one. Wikipedia answers without a key,
+     so these arrive on a site with no Genius token as well — which is the
+     state most deploys are in on their first afternoon. */
   MEMBERS.forEach(async (m, i) => {
     if (Genius.photo(m.name)) return;
-    const live = await Genius.artistLive(m.name);
-    if (!live || !live.photo) return;   // Genius.photo() can see it from here on
+    const photo = await Media.portrait(m.name);
+    if (!photo) return;
     const card = host.querySelector(`[data-member="${i}"] .mono`);
     if (!card || card.tagName === 'IMG') return;
     const img = document.createElement('img');
     img.className = 'mono m-photo';
-    img.src = live.photo;
-    img.alt = '';
+    img.src = photo;
+    img.alt = `${m.name}`;
     img.loading = 'lazy';
     img.decoding = 'async';
+    /* A photograph that 404s leaves an empty frame where a monogram would
+       have been fine, so put the monogram back if it does. */
+    img.addEventListener('error', () => img.replaceWith(card), { once: true });
     card.replaceWith(img);
   });
 }
 
 const MemberModal = {
   overlay: null, idx: 0, lastFocus: null,
+
+  /* Whatever the card already found. The cards resolve their photographs
+     on load, so by the time a window is opened the answer is usually
+     sitting here; if it is not, render() asks and fills it in. */
+  photos: {},
+  photoOf(m) { return Genius.photo(m.name) || this.photos[m.name] || null; },
 
   init() {
     this.overlay = $('#memberModal');
@@ -109,10 +120,10 @@ const MemberModal = {
       <div class="tm mm" role="dialog" aria-modal="true" aria-labelledby="mmTitle">
         <button class="tm-close" type="button" aria-label="Close">×</button>
         <header class="mm-head">
-          ${Genius.photo(m.name)
-            ? `<img class="mm-mono mm-photo" src="${esc(Genius.photo(m.name))}"
-                    alt="" loading="lazy" decoding="async">`
-            : `<div class="mm-mono">${esc(m.initials)}</div>`}
+          ${MemberModal.photoOf(m)
+            ? `<img class="mm-mono mm-photo" src="${esc(MemberModal.photoOf(m))}"
+                    alt="${esc(m.name)}" loading="lazy" decoding="async">`
+            : `<div class="mm-mono" data-mm="mono">${esc(m.initials)}</div>`}
           <div>
             <h3 id="mmTitle" class="tm-title">${esc(m.name)}</h3>
             <p class="tm-sub">${esc(m.role)}</p>
@@ -141,6 +152,26 @@ const MemberModal = {
     mountModalDecor(this.overlay, 'member');
     if (this.dust) this.dust.destroy();
     this.dust = startModalParticles(this.overlay);
+
+    if (!this.photoOf(m)) this.fillPhoto(m);
+  },
+
+  /** A portrait that had not resolved when the window opened. */
+  async fillPhoto(m) {
+    const photo = await Media.portrait(m.name);
+    if (!photo) return;
+    this.photos[m.name] = photo;
+    if (this.overlay.hidden || MEMBERS[this.idx] !== m) return;
+    const mono = this.overlay.querySelector('[data-mm="mono"]');
+    if (!mono) return;
+    const img = document.createElement('img');
+    img.className = 'mm-mono mm-photo';
+    img.src = photo;
+    img.alt = m.name;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.addEventListener('error', () => img.replaceWith(mono), { once: true });
+    mono.replaceWith(img);
   }
 };
 
@@ -215,15 +246,17 @@ function renderAlbums(filter = '') {
 }
 
 /**
- * Hang a sleeve on each record once Genius can supply one.
+ * Hang a sleeve on each record once a source can supply one.
  *
- * Nothing waits on this: the cards are already complete without it, and
- * an album that has a cover baked in never asks.
+ * Genius first for the record's own artwork, then the iTunes store crop,
+ * which needs no key — so the sleeves appear on a deploy with no token as
+ * well. Nothing waits on this: the cards are already complete without it,
+ * and an album that has a cover baked in never asks.
  */
 async function hydrateCovers(albums) {
   for (const album of albums) {
     if (Genius.cover(album)) continue;
-    const url = await Genius.coverLive(album);
+    const url = await Media.cover(album);
     if (!url) continue;
     const head = document.querySelector(`#album-${album.id} .album-head`);
     if (!head || head.querySelector('.album-cover')) continue;
@@ -350,6 +383,26 @@ const SingleModal = {
     mountModalDecor(this.overlay, 'member');
     if (this.dust) this.dust.destroy();
     this.dust = startModalParticles(this.overlay);
+
+    if (!this.photoOf(m)) this.fillPhoto(m);
+  },
+
+  /** A portrait that had not resolved when the window opened. */
+  async fillPhoto(m) {
+    const photo = await Media.portrait(m.name);
+    if (!photo) return;
+    this.photos[m.name] = photo;
+    if (this.overlay.hidden || MEMBERS[this.idx] !== m) return;
+    const mono = this.overlay.querySelector('[data-mm="mono"]');
+    if (!mono) return;
+    const img = document.createElement('img');
+    img.className = 'mm-mono mm-photo';
+    img.src = photo;
+    img.alt = m.name;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.addEventListener('error', () => img.replaceWith(mono), { once: true });
+    mono.replaceWith(img);
   }
 };
 
@@ -389,13 +442,20 @@ function footStatus() {
   line.textContent = `build ${Diag.build} · genius: checking…`;
   foot.appendChild(line);
 
-  Genius.hasProxy().then(ok => {
-    line.textContent = `build ${Diag.build} · genius: ` +
-      (ok ? 'connected' : 'offline — set GENIUS_ACCESS_TOKEN and redeploy');
-    Diag.set('genius', ok ? 'connected' : 'offline');
+  /* Three states, because the two ways a deploy goes wrong want different
+     things done about them and used to read as the same word. */
+  const SAYS = {
+    connected: 'connected',
+    'no-token': 'no token — add GENIUS_ACCESS_TOKEN to the site environment, then redeploy',
+    absent: 'no /api/genius — deploy the whole folder, not just arctic-monkeys/'
+  };
+  Genius.probeProxy().then(state => {
+    line.textContent = `build ${Diag.build} · genius: ${SAYS[state] || state}` +
+      ' · sleeves and portraits work either way';
+    Diag.set('genius', state);
   }).catch(e => {
     line.textContent = `build ${Diag.build} · genius: unreachable`;
-    Diag.note('genius.hasProxy', e);
+    Diag.note('genius.probeProxy', e);
   });
   return line;
 }

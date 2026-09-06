@@ -1,13 +1,16 @@
 /* ============================================================
    Track window
-   Opens on any receipt row: the words (short excerpts with a
-   follow-along marker), credits, its own preview player, and
-   where to hear the whole thing.
+   Opens on any receipt row: the words with a follow-along
+   marker, the annotations, credits, its own preview player,
+   and where to hear the whole thing.
 
-   Full lyrics are not reproduced. Every track links out to
-   Genius, which is where the complete words and the community
-   annotations live — and where the credits below come from
-   when tools/fetch_am_data.py has been run with a token.
+   The window opens on the cue points baked into js/data.js so
+   there is something readable on the frame it appears, and the
+   whole song replaces them a moment later — see js/lyrics.js
+   for where those come from and in what order.
+
+   Every line answers a click: the Genius annotation for it if
+   there is one, and if there is not, why not and where to look.
    ============================================================ */
 
 const TrackModal = {
@@ -83,6 +86,8 @@ const TrackModal = {
     const api = Genius.track(name) || {};
     const album = this.album;
     const art = api.art || Genius.cover(album);
+    // and if neither had one, hydrate() and this fill it in behind us
+    if (!art) this.fillArt(album, name);
 
     // Genius credits win when the fetcher has supplied them
     const writers = (api.writers && api.writers.length)
@@ -182,6 +187,23 @@ const TrackModal = {
     this.loadWords(name, genius);
   },
 
+  /** A sleeve from whichever source has one, once one answers. */
+  async fillArt(album, name) {
+    const url = await Media.cover(album);
+    if (!url || !this.overlay || this.overlay.hidden) return;
+    if (this.album !== album || this.album.tracks[this.idx].name !== name) return;
+    const head = this.overlay.querySelector('.tm-head');
+    if (!head || head.querySelector('.tm-art')) return;
+    const img = document.createElement('img');
+    img.className = 'tm-art';
+    img.src = url;
+    img.alt = `${album.title} sleeve`;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    const no = head.querySelector('.tm-no');
+    if (no) no.replaceWith(img); else head.prepend(img);
+  },
+
   /**
    * The line list, as markup.
    *
@@ -214,12 +236,14 @@ const TrackModal = {
       ? `<p class="tm-hint">${timed
             ? 'The complete words, on the song\u2019s own timing \u2014 press play and the marker follows.'
             : 'The complete words. This one has no timed transcription, so the marker sits still.'}
-            A line marked <span class="tm-note-flag inline">?</span> has been
-            annotated on Genius \u2014 click it to read what it is about.
+            Click any line to open it; one marked
+            <span class="tm-note-flag inline">?</span> has been annotated on
+            Genius, and that is what you get.
             Words via <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>,
             annotations via <a href="${genius}" target="_blank" rel="noopener">Genius</a>.</p>`
-      : `<p class="tm-hint">Cue points only \u2014 the full words could not be
-            reached. Press play and the marker follows. A line marked
+      : `<p class="tm-hint">Cue points only \u2014 the full words have not landed
+            yet, or could not be reached at all. Press play and the marker
+            follows. Click any line to open it; one marked
             <span class="tm-note-flag inline">?</span> has been annotated on
             <a href="${genius}" target="_blank" rel="noopener">Genius</a>.</p>`;
 
@@ -242,6 +266,29 @@ const TrackModal = {
         this.toggleLineNote(i);
       });
     });
+  },
+
+  /**
+   * What to say under a line nobody has annotated.
+   *
+   * Clicking a line used to do nothing at all unless Genius happened to
+   * have a note matching it, which is most lines on most songs — the
+   * click registered, the marker moved, and the page appeared to have
+   * ignored you. Every line answers now, and the answer says which of the
+   * three reasons applies rather than implying the line is uninteresting.
+   */
+  noNoteMarkup(line) {
+    const search = `https://genius.com/search?q=${encodeURIComponent(line.text)}`;
+    const why = Genius.state === 'connected'
+      ? 'Genius has no annotation on this line.'
+      : Genius.state === 'no-token'
+        ? 'Annotations need a Genius token: set GENIUS_ACCESS_TOKEN in the site’s environment and redeploy.'
+        : Genius.state === 'absent'
+          ? 'Annotations need the site’s own /api/genius route, which this deploy has not got.'
+          : 'Still asking Genius…';
+    // no need to repeat the line: it is directly above this panel
+    return `<p class="tm-line-why">${why}</p>
+      <a href="${search}" target="_blank" rel="noopener">Look this line up on Genius</a>`;
   },
 
   /**
@@ -288,7 +335,7 @@ const TrackModal = {
     anchor.replaceWith(...wrap.childNodes);
 
     this.bindLines(name);
-    if (this.rawNotes) this.attachNotes(this.rawNotes);
+    if (this.rawNotes) this.renderLeftoverNotes(this.attachNotes(this.rawNotes));
     this.follow();
     if (window.Diag) Diag.set('lyrics', live.synced ? 'lrclib · timed' : 'lrclib · plain');
   },
@@ -346,7 +393,7 @@ const TrackModal = {
     if (live.annotations) rows.push(['Annotations', num(live.annotations)]);
     if (live.contributors) rows.push(['Contributors', num(live.contributors)]);
     if (live.releaseDate) rows.push(['Released', esc(live.releaseDate)]);
-    if (live.recordedAt) rows.push(['Recorded at', esc(live.recordedAt)]);
+    if (live.recordedAt) rows.push(['Recording location', esc(live.recordedAt)]);
     if (live.featured && live.featured.length)
       rows.push(['Featuring', esc(live.featured.join(', '))]);
 
@@ -388,6 +435,35 @@ const TrackModal = {
     const norm = t => String(t).toLowerCase()
       .replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 
+    /* "crawling" and "crawlin" are the same word, and which one a
+       transcription writes down is a coin toss on a band who drop the g
+       on most of them. Folding the ending is worth more here than any
+       amount of tuning the threshold below. */
+    const terms = t => norm(t).split(' ')
+      .filter(w => w.length > 2)
+      .map(w => w.replace(/ing$/, 'in'));
+
+    /* How much of a line is in a fragment.
+
+       Containment on its own missed most of what it should have caught:
+       our lines and Genius' fragments are separate transcriptions of the
+       same words, and one "cause" for "'cause", one comma inside a word,
+       or a fragment that begins mid-line was enough. The share of a
+       line's words that appear in the fragment survives all three, and
+       the reverse share — with an allowance, because a fragment is often
+       several lines long and only one of them is this one — keeps a
+       four-word line from matching a paragraph it merely appears in. */
+    const share = (a, b) => {
+      if (!a.length) return 0;
+      const set = new Set(b);
+      let n = 0;
+      for (const w of a) if (set.has(w)) n++;
+      return n / a.length;
+    };
+
+    const pool = notes.map((n, j) => ({
+      n, j, norm: norm(n.fragment), terms: terms(n.fragment)
+    }));
     const used = new Set();
     this.lineNotes = {};
 
@@ -395,14 +471,20 @@ const TrackModal = {
       const a = norm(line.text);
       // bracketed stage directions are ours, not the song's
       if (!a || a.length < 8 || /^\[/.test(line.text)) return;
-      const hit = notes.find((n, j) => {
-        if (used.has(j)) return false;
-        const b = norm(n.fragment);
-        return b.length > 6 && (b.includes(a) || a.includes(b));
-      });
-      if (!hit) return;
-      used.add(notes.indexOf(hit));
-      this.lineNotes[i] = hit;
+      const at = terms(line.text);
+
+      let best = null, bestScore = 0;
+      for (const cand of pool) {
+        if (used.has(cand.j) || cand.norm.length < 7) continue;
+        const score = (cand.norm.includes(a) || a.includes(cand.norm))
+          ? 1
+          : Math.min(share(at, cand.terms), share(cand.terms, at) + 0.34);
+        if (score > bestScore) { bestScore = score; best = cand; }
+      }
+      if (!best || bestScore < 0.7) return;
+
+      used.add(best.j);
+      this.lineNotes[i] = best.n;
 
       const row = this.overlay.querySelector(`.tm-line-row[data-line="${i}"]`);
       if (!row) return;
@@ -411,27 +493,44 @@ const TrackModal = {
       if (flag) flag.hidden = false;
       row.querySelector('.tm-line').setAttribute(
         'aria-label', `${line.text} — read the annotation`);
+
+      /* A line opened before its annotation landed is showing the panel
+         that says there is not one. Swap it for the annotation. */
+      const body = row.querySelector('.tm-line-note');
+      if (body && !body.hidden && body.dataset.filled === 'none') {
+        body.hidden = true;
+        body.dataset.filled = '';
+        this.toggleLineNote(i);
+      }
     });
 
     return notes.filter((_, j) => !used.has(j));
   },
 
-  /** Open or close the annotation sitting under one line. */
+  /** Open or close what sits under one line. */
   toggleLineNote(i) {
     const row = this.overlay.querySelector(`.tm-line-row[data-line="${i}"]`);
-    const note = this.lineNotes && this.lineNotes[i];
-    if (!row || !note) return;
+    if (!row) return;
+    const line = this.words && this.words.lines[i];
+    if (!line || !line.text || line.text === '♪') return;
 
+    const note = this.lineNotes && this.lineNotes[i];
     const body = row.querySelector('.tm-line-note');
     const btn = row.querySelector('.tm-line');
     const open = body.hidden;
 
-    if (open && !body.dataset.filled) {
-      body.innerHTML = `
-        <p>${esc(note.annotation).replace(/\n{2,}/g, '</p><p>')}</p>
-        ${note.url ? `<a href="${esc(note.url)}" target="_blank" rel="noopener">
-          On Genius${note.votes ? ` · ${note.votes} votes` : ''}</a>` : ''}`;
-      body.dataset.filled = '1';
+    /* Re-filled rather than filled once: an annotation can arrive after a
+       line was already opened without one, and the panel should then be
+       the annotation rather than the note saying there is not one. */
+    const filled = note ? 'note' : 'none';
+    if (open && body.dataset.filled !== filled) {
+      body.innerHTML = note
+        ? `<p>${esc(note.annotation).replace(/\n{2,}/g, '</p><p>')}</p>
+           ${note.url ? `<a href="${esc(note.url)}" target="_blank" rel="noopener">
+             On Genius${note.votes ? ` · ${note.votes} votes` : ''}</a>` : ''}`
+        : this.noNoteMarkup(line);
+      body.dataset.filled = filled;
+      body.classList.toggle('is-bare', !note);
     }
     body.hidden = !open;
     btn.setAttribute('aria-expanded', String(open));
@@ -451,15 +550,41 @@ const TrackModal = {
     this.rawNotes = notes;
 
     if (!notes || !notes.length) {
-      host.innerHTML = `<p class="tm-empty">No annotations for this one yet.
-        Anyone can write one on
-        <a href="${geniusUrl}" target="_blank" rel="noopener">its Genius page</a>.</p>`;
+      /* "None yet" is only true when Genius was actually asked. Said on a
+         deploy with no token it reads as a fact about the song rather
+         than about the deploy, which is how this went unnoticed. */
+      const page = `<a href="${geniusUrl}" target="_blank" rel="noopener">the song\u2019s Genius page</a>`;
+      const why = Genius.state === 'connected'
+        ? `No annotations for this one yet. Anyone can write one on ${page}.`
+        : Genius.state === 'no-token'
+          ? `Annotations need a Genius token. Add <code>GENIUS_ACCESS_TOKEN</code> to the
+             site\u2019s environment variables and redeploy, and they appear here.
+             Until then they are on ${page}.`
+          : `Annotations come through this site\u2019s own <code>/api/genius</code> route,
+             which this deploy has not got \u2014 deploy the whole folder rather than
+             the site directory on its own. They are on ${page}.`;
+      host.innerHTML = `<p class="tm-empty">${why}</p>`;
       return;
     }
 
     // anything that matched a line now lives on that line
-    const rest = this.attachNotes(notes);
-    if (!rest.length) {
+    this.renderLeftoverNotes(this.attachNotes(notes));
+  },
+
+  /**
+   * The annotations that matched no line, listed under the words.
+   *
+   * Drawn again whenever the matching is redone. It is redone once per
+   * window: the notes arrive while the cue points are still on screen and
+   * are matched against those, and then the whole song replaces them and
+   * matches far more. Without this the list underneath stayed the one
+   * computed against six cue points, so annotations appeared twice —
+   * once on their line, once again as left over.
+   */
+  renderLeftoverNotes(rest) {
+    const host = this.overlay.querySelector('[data-tm="notes"]');
+    if (!host) return;
+    if (!rest || !rest.length) {
       host.innerHTML = `<p class="tm-hint">Every annotation Genius has for this
         one is attached to its line above.</p>`;
       return;

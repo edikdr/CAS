@@ -111,7 +111,18 @@ async function lyrics(url, json) {
       const alt = new URLSearchParams({ track_name: track, artist_name: artist });
       hit = await pick(`https://lrclib.net/api/search?${alt}`);
     }
-    if (!hit) return json(404, { error: 'not found', track }, 'public, max-age=3600');
+    if (!hit) {
+      /* LRCLIB is missing a handful of the B-sides and the live cuts.
+         lyrics.ovh has no timings and no key either, but plain words for
+         a song beat no words for it. */
+      const plain = await ovh(artist, track);
+      if (plain) {
+        return json(200, {
+          track, artist, duration: 0, synced: null, plain, source: 'lyrics.ovh'
+        }, 'public, max-age=86400');
+      }
+      return json(404, { error: 'not found', track }, 'public, max-age=3600');
+    }
 
     return json(200, {
       id: hit.id,
@@ -125,6 +136,18 @@ async function lyrics(url, json) {
   } catch (e) {
     return json(502, { error: String(e && e.message) });
   }
+}
+
+/** Plain words from lyrics.ovh, for what LRCLIB has not got. */
+async function ovh(artist, track) {
+  try {
+    const r = await fetch('https://api.lyrics.ovh/v1/'
+      + encodeURIComponent(artist) + '/' + encodeURIComponent(track));
+    if (!r.ok) return null;
+    const b = await r.json();
+    const words = String((b && b.lyrics) || '').trim();
+    return words.length > 40 ? words : null;
+  } catch { return null; }
 }
 
 async function pick(endpoint) {

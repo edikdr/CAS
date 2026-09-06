@@ -739,6 +739,18 @@ body.locked { overflow: hidden; }
 }
 .tm-line-note a:hover { color: var(--chalk); }
 
+/* A line nobody has annotated still answers when you press it. It is not
+   an annotation, so it does not get an annotation's weight: the quoted
+   line, one sentence saying why there is nothing under it, and somewhere
+   to go and look. */
+.tm-line-note.is-bare { border-left-color: var(--line); padding-bottom: 10px; }
+.tm-line-why {
+  margin: 0 0 6px; font-size: 11.5px; line-height: 1.6; color: #7c7972;
+}
+.tm-line-why code {
+  font-family: var(--mono); font-size: 11px; color: var(--chalk-dim);
+}
+
 /* --- what Genius knows about the song --- */
 .tm-hot {
   font-size: 8.5px; letter-spacing: .18em;

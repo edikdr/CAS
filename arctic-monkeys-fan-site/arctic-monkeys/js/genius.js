@@ -16,6 +16,7 @@
 
 const Genius = {
   proxy: undefined,        // undefined = not probed yet, then true/false
+  state: 'unknown',        // 'connected' | 'no-token' | 'absent'
   probe: null,             // the single in-flight probe
   live: new Map(),
 
@@ -77,11 +78,21 @@ const Genius = {
     catch { /* private window, or storage refused — just don't cache */ }
   },
 
+  /* Two path shapes, because a deploy can honour one and not the other.
+     Netlify Functions v2 declares its own route (/api/genius/*) and
+     netlify.toml repeats it as a redirect — but an older build image, or
+     a UI setting pinning the classic mapping, serves only
+     /.netlify/functions/genius/*. The function answers to both; the probe
+     below finds out which one this host is actually routing and every
+     call after it goes there. */
+  bases: ['/api/genius', '/.netlify/functions/genius'],
+  base: '/api/genius',
+
   async api(path) {
     if (!(await this.hasProxy())) return null;
     try {
-      const res = await fetch(`/api/genius/${path}`);
-      if (!res.ok) return null;
+      const res = await fetch(`${this.base}/${path}`);
+      if (!res.ok || !/json/.test(res.headers.get('content-type') || '')) return null;
       return await res.json();
     } catch { return null; }
   },
@@ -92,13 +103,26 @@ const Genius = {
     const cached = this.session(key);
     if (cached !== null) return cached;
 
-    const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const search = await this.api(`search?q=${encodeURIComponent(ARTIST + ' ' + name)}`);
     const hits = (search && search.response && search.response.hits) || [];
+
+    /* `includes` rather than an equality test: Genius files some of these
+       under "Arctic Monkeys" and some under a longer credit, and an exact
+       match dropped every one of the latter on the floor. */
     const mine = hits.map(h => h.result)
-      .filter(r => r && norm(r.primary_artist && r.primary_artist.name) === norm(ARTIST));
-    const hit = mine.find(r => norm(r.title) === norm(name)) || mine[0];
-    if (!hit) { this.remember(key, false); return null; }
+      .filter(r => r && norm(r.primary_artist && r.primary_artist.name).includes('arcticmonkeys'));
+
+    /* Titles do not line up either: Genius carries remaster suffixes,
+       feature credits and bracketed live tags that a tracklist does not.
+       Exact first, then either one being a prefix of the other. */
+    const want = norm(name);
+    const hit = mine.find(r => norm(r.title) === want)
+      || mine.find(r => norm(r.title_with_featured) === want)
+      || mine.find(r => norm(r.title).startsWith(want) && want.length > 5)
+      || mine.find(r => want.startsWith(norm(r.title)) && norm(r.title).length > 5)
+      || mine[0];
+    if (!hit) { this.rememberMiss(key); return null; }
 
     const full = await this.api(`songs/${hit.id}?text_format=plain`);
     const song = (full && full.response && full.response.song) || hit;
@@ -152,12 +176,29 @@ const Genius = {
     const cached = this.session(key);
     if (cached !== null) return cached;
 
-    const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
-    const search = await this.api(`search?q=${encodeURIComponent(name)}`);
-    const hits = (search && search.response && search.response.hits) || [];
-    const pa = hits.map(h => h.result && h.result.primary_artist)
-      .find(a => a && norm(a.name) === norm(name));
-    if (!pa) { this.remember(key, false); return null; }
+    const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const want = norm(name);
+
+    /* Genius has no artist search — only a song search — so a person is
+       found through the songs they are attached to. Looking only at
+       `primary_artist` found Alex Turner, who has releases of his own, and
+       nobody else in the band: the other four appear as featured credits
+       or not at all. Both lists are searched now, and the name is tried
+       both alone and against the band, because "Jamie Cook" on its own
+       returns a different Jamie Cook. */
+    const seen = [];
+    for (const q of [name, `${name} ${ARTIST}`]) {
+      const search = await this.api(`search?q=${encodeURIComponent(q)}`);
+      const hits = (search && search.response && search.response.hits) || [];
+      for (const h of hits) {
+        const r = h.result || {};
+        seen.push(r.primary_artist, ...(r.featured_artists || []));
+      }
+      if (seen.some(a => a && norm(a.name) === want)) break;
+    }
+
+    const pa = seen.find(a => a && norm(a.name) === want);
+    if (!pa) { this.rememberMiss(key); return null; }
 
     const full = await this.api(`artists/${pa.id}?text_format=plain`);
     const artist = (full && full.response && full.response.artist) || pa;
@@ -184,22 +225,74 @@ const Genius = {
       const url = song && (song.albumCover || song.art);
       if (url) { this.remember(key, url); return url; }
     }
-    this.remember(key, false);
+    this.rememberMiss(key);
     return null;
   },
 
-  /** Is a Genius proxy answering? Probed once, ever — callers share it. */
-  hasProxy() {
-    // one promise, not one per caller: several lookups start at once and
-    // would otherwise each fire their own probe
-    if (!this.probe) {
-      this.probe = fetch('/api/genius/health', { cache: 'no-store' })
-        .then(r => r.json())
-        .then(b => Boolean(b && b.ok && b.token))
-        .catch(() => false)
-        .then(ok => { this.proxy = ok; return ok; });
-    }
+  /**
+   * Is a Genius proxy answering, and does it hold a token?
+   *
+   * Three answers, not two, because the two ways this goes wrong after a
+   * deploy need different things done about them:
+   *
+   *   connected  the route is there and the token is set
+   *   no-token   the route is there, GENIUS_ACCESS_TOKEN is not — set it
+   *              in the platform's environment and redeploy
+   *   absent     nothing is serving /api/genius at all, so the whole
+   *              folder is deployed rather than just the site directory
+   *
+   * The footer says which, so a deploy that is missing one of the two can
+   * be told from a deploy that is missing the other without opening a
+   * console.
+   *
+   * One promise, not one per caller: several lookups start at once and
+   * would otherwise each fire their own probe.
+   */
+  tries: 0,
+
+  probeProxy() {
+    if (this.probe) return this.probe;
+    this.probe = (async () => {
+      for (const base of this.bases) {
+        try {
+          const r = await fetch(`${base}/health`, { cache: 'no-store' });
+          /* A static host with no function behind the route answers with
+             the site's own HTML and a 200. Reading that as JSON throws,
+             which looked the same as the network being down. */
+          if (!/json/.test(r.headers.get('content-type') || '')) continue;
+          const b = await r.json();
+          if (!b || !b.ok) continue;
+          this.base = base;
+          return b.token ? 'connected' : 'no-token';
+        } catch { /* try the other path shape */ }
+      }
+      return 'absent';
+    })()
+      .then(state => {
+        this.state = state;
+        this.proxy = state === 'connected';
+        /* A serverless function that is cold starting can miss the first
+           request. Nothing else ever re-probed, so one unlucky call at
+           load switched every live lookup off for the rest of the session
+           — including on a site that was configured perfectly. Give it two
+           more chances, spaced out, and only for the failure that a cold
+           start actually looks like. */
+        if (state === 'absent' && this.tries < 2) {
+          this.tries++;
+          setTimeout(() => { this.probe = null; }, 2500 * this.tries);
+        }
+        return state;
+      });
     return this.probe;
+  },
+
+  hasProxy() { return this.probeProxy().then(s => s === 'connected'); },
+
+  /* Only remember that Genius has nothing for something when Genius was
+     actually asked. Remembering a miss that was really "the proxy was not
+     up yet" is how a cold start used to poison a whole session. */
+  rememberMiss(key) {
+    if (this.state === 'connected') this.remember(key, false);
   },
 
   /**
@@ -220,9 +313,13 @@ const Genius = {
       }
       if (!id) { this.live.set(name, null); return null; }
 
-      const res = await fetch(
-        `/api/genius/referents?song_id=${id}&text_format=plain&per_page=50`);
-      const refs = (await res.json()).response?.referents || [];
+      /* Through api(), which checks the status and the content type. This
+         call went to fetch() directly and read whatever came back as JSON,
+         so a route answering with the site's HTML threw here rather than
+         being recognised for what it was. */
+      const body = await this.api(
+        `referents?song_id=${id}&text_format=plain&per_page=50`);
+      const refs = (body && body.response && body.response.referents) || [];
 
       const out = [];
       for (const ref of refs) {

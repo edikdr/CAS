@@ -187,6 +187,14 @@ function bestOf(body) {
   return list.find(x => x && x.syncedLyrics) || list.find(x => x && x.plainLyrics) || null;
 }
 
+/** Plain words from lyrics.ovh, for what LRCLIB has not got. */
+async function ovhLyrics(artist, track) {
+  const body = await getJSON('https://api.lyrics.ovh/v1/'
+    + encodeURIComponent(artist) + '/' + encodeURIComponent(track)).catch(() => null);
+  const words = String((body && body.lyrics) || '').trim();
+  return words.length > 40 ? words : null;
+}
+
 async function lyricsProxy(req, res, url) {
   const track = (url.searchParams.get('track') || '').trim();
   const artist = (url.searchParams.get('artist') || 'Arctic Monkeys').trim();
@@ -209,7 +217,19 @@ async function lyricsProxy(req, res, url) {
       const alt = new URLSearchParams({ track_name: track, artist_name: artist });
       found = bestOf(await getJSON(`https://lrclib.net/api/search?${alt}`));
     }
-    if (!found) return json(res, 404, { error: 'not found', track });
+    if (!found) {
+      /* LRCLIB is missing a handful of the B-sides and the live cuts.
+         lyrics.ovh has no timings and no key either, but plain words for
+         a song beat no words for it. */
+      const words = await ovhLyrics(artist, track);
+      if (words) {
+        const body = { track, artist, duration: 0, synced: null, plain: words,
+                       source: 'lyrics.ovh' };
+        cache.set(key, { at: Date.now(), body });
+        return json(res, 200, body);
+      }
+      return json(res, 404, { error: 'not found', track });
+    }
 
     const body = {
       id: found.id,

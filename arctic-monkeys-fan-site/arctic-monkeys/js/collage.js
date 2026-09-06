@@ -17,7 +17,7 @@
    collected here instead, and `?debug` prints them (see main.js).
    ------------------------------------------------------------ */
 const Diag = {
-  build: 'am-8',
+  build: 'am-9',
   errors: [],
   counts: {},
   note(where, err) {

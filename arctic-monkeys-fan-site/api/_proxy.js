@@ -62,9 +62,10 @@ async function genius(req, res, endpoint, search) {
  *
  * Genius has no lyrics endpoint at all: credits, statistics and community
  * annotations, and nothing else. LRCLIB is open, keyless, and usually
- * answers with a time-stamped LRC, which is what lets the follow-along
- * marker run the whole song rather than the thirty seconds a preview
- * covers. lyrics.ovh picks up the handful LRCLIB has not got.
+ * answers with a time-stamped LRC, which is what gives every line its
+ * real position in the song rather than the handful of cue points written
+ * against a thirty-second preview. lyrics.ovh picks up what LRCLIB has
+ * not got.
  *
  * Nothing is written to disk. The words belong to their publishers and
  * are passed through on request.

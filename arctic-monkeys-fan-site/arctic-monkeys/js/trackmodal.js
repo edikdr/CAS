@@ -1,8 +1,12 @@
 /* ============================================================
    Track window
-   Opens on any receipt row: the words with a follow-along
-   marker, the annotations, credits, its own preview player,
-   and where to hear the whole thing.
+   Opens on any receipt row: the words, the annotations,
+   credits, its own preview player, and where to hear the
+   whole thing.
+
+   The words do not scroll themselves. Pressing a line marks
+   it and seeks the preview to its timecode; nothing moves
+   that mark afterwards.
 
    The window opens on the cue points baked into js/data.js so
    there is something readable on the frame it appears, and the
@@ -19,7 +23,6 @@ const TrackModal = {
   album: null,
   idx: 0,
   lastFocus: null,
-  timer: null,
 
   init() {
     this.overlay = document.getElementById('trackModal');
@@ -57,7 +60,6 @@ const TrackModal = {
     document.body.classList.remove('locked');
     if (this.dust) { this.dust.destroy(); this.dust = null; }
     if (this.face) { Player.unregister(this.face); this.face = null; }
-    if (this.timer) { clearInterval(this.timer); this.timer = null; }
     if (this.lastFocus && this.lastFocus.focus) this.lastFocus.focus();
   },
 
@@ -181,7 +183,6 @@ const TrackModal = {
     if (this.dust) this.dust.destroy();
     this.dust = startModalParticles(this.overlay);
 
-    this.follow();
     this.loadNotes(name, genius);
     this.hydrate(name);
     this.loadWords(name, genius);
@@ -234,16 +235,16 @@ const TrackModal = {
 
     const hint = full
       ? `<p class="tm-hint">${timed
-            ? 'The complete words, on the song\u2019s own timing \u2014 press play and the marker follows.'
-            : 'The complete words. This one has no timed transcription, so the marker sits still.'}
+            ? 'The complete words, with the song\u2019s own timings \u2014 press a timecode to jump the preview there.'
+            : 'The complete words. This one has no timed transcription, so there are no timecodes to press.'}
             Click any line to open it; one marked
             <span class="tm-note-flag inline">?</span> has been annotated on
             Genius, and that is what you get.
             Words via <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>,
             annotations via <a href="${genius}" target="_blank" rel="noopener">Genius</a>.</p>`
       : `<p class="tm-hint">Cue points only \u2014 the full words have not landed
-            yet, or could not be reached at all. Press play and the marker
-            follows. Click any line to open it; one marked
+            yet, or could not be reached at all. Click any line to open it,
+            or its timecode to jump the preview there; one marked
             <span class="tm-note-flag inline">?</span> has been annotated on
             <a href="${genius}" target="_blank" rel="noopener">Genius</a>.</p>`;
 
@@ -336,7 +337,6 @@ const TrackModal = {
 
     this.bindLines(name);
     if (this.rawNotes) this.renderLeftoverNotes(this.attachNotes(this.rawNotes));
-    this.follow();
     if (window.Diag) Diag.set('lyrics', live.synced ? 'lrclib · timed' : 'lrclib · plain');
   },
 
@@ -601,40 +601,19 @@ const TrackModal = {
       </details>`).join('');
   },
 
-  /** Walk the marker down the lines on the song's own timeline. */
-  follow() {
-    if (this.timer) clearInterval(this.timer);
-    const name = this.album.tracks[this.idx].name;
-
-    this.timer = setInterval(() => {
-      const words = this.words;
-      if (!words || !words.lines.length) return;
-      if (this.overlay.hidden) return;
-      if (!Player.isCued(name) || !Player.playing()) return;
-      // the preview is 30s of a whole song — map it onto the full timeline
-      const songTime = (Player.time() / Player.duration()) * (words.duration || 200);
-      let at = -1;
-      words.lines.forEach((l, i) => {
-        if (l.t !== null && l.t !== undefined && songTime >= l.t) at = i;
-      });
-      this.mark(at);
-    }, 250);
-  },
-
+  /**
+   * Mark the line that was pressed.
+   *
+   * Nothing else moves it. A timer used to walk it down the song in step
+   * with playback, scrolling the list to keep it in view — which meant
+   * the text you were reading slid out from under you every few seconds,
+   * and a line you had opened scrolled away while you read it. The
+   * timecodes are still there and still seek when you press one; the
+   * reading order is now yours.
+   */
   mark(i) {
-    let now = null;
     this.overlay.querySelectorAll('.tm-line').forEach((b, j) => {
       b.classList.toggle('now', j === i);
-      if (j === i) now = b;
     });
-    /* The full text scrolls in its own box, so the line being sung has to
-       be brought back into view or the marker walks off the bottom. */
-    const box = this.overlay.querySelector('.tm-lines-full');
-    if (now && box && box.contains(now)) {
-      const r = now.getBoundingClientRect(), b = box.getBoundingClientRect();
-      if (r.top < b.top + 8 || r.bottom > b.bottom - 8) {
-        box.scrollTop += (r.top - b.top) - box.clientHeight / 2 + r.height / 2;
-      }
-    }
   }
 };

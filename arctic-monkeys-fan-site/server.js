@@ -157,10 +157,10 @@ function geniusProxy(req, res, url) {
 
    Genius has no lyrics endpoint — credits, stats and annotations, and
    nothing else. LRCLIB is open, needs no key, and answers with a
-   time-stamped LRC when it has one, which is what lets the follow-along
-   marker run the whole song rather than the thirty seconds the preview
-   covers. Same route the Netlify function serves, so the page cannot
-   tell which one answered.
+   time-stamped LRC when it has one, which is what gives every line its
+   real position in the song rather than the handful of cue points written
+   against a thirty-second preview. Same route the Netlify function
+   serves, so the page cannot tell which one answered.
 
    Nothing is written to disk: the words belong to their publishers and
    are passed through on request. */

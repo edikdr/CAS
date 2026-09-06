@@ -493,7 +493,7 @@ function creditsFor(trackName, album) {
    Timecoded lyric EXCERPTS.
    Short signature lines only, for identification and study —
    full lyrics are not reproduced here. Timings are approximate
-   fan transcriptions, used by the follow-along marker in the
+   fan transcriptions, used by the timecodes that seek in the
    track window. Full words: Genius, linked from every track.
    ------------------------------------------------------------ */
 const LYRICS = [

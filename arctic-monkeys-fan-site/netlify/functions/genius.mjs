@@ -86,8 +86,8 @@ export default async (request, context) => {
  *
  * Open, keyless, and used by a number of open-source players. It answers
  * with both a plain text and a time-stamped LRC when it has one, which is
- * what lets the follow-along marker run the whole song instead of the
- * thirty seconds the preview covers.
+ * what gives every line its real position in the song instead of the
+ * handful of cue points written against a thirty-second preview.
  *
  * Nothing is written to disk and nothing is cached beyond the CDN edge —
  * the words belong to their publishers, and the site only passes them

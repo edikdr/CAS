@@ -9,9 +9,9 @@
    LRCLIB (lrclib.net) is open, needs no key, and is what a number of
    open-source players use. It answers with the plain text and, more
    often than not, a time-stamped LRC. The LRC is the better answer by
-   some distance: the follow-along marker gets the song's real timing for
-   its whole length instead of the handful of cue points written by hand
-   against a thirty-second preview.
+   some distance: every line carries its real position in the song, so
+   pressing one seeks the preview there, instead of the handful of cue
+   points written by hand against a thirty-second preview.
 
    Four places are asked, in the order that gets words on screen soonest:
    whatever tools/fetch_lyrics.py baked in, the site's own /api/lyrics,

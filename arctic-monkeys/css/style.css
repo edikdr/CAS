@@ -700,6 +700,60 @@ body.locked { overflow: hidden; }
   border: 1px solid var(--line); filter: grayscale(1) contrast(1.1);
 }
 
+/* --- a line, and what Genius says it means --- */
+.tm-line-row { list-style: none; }
+.tm-line { position: relative; }
+.tm-line-row.has-note .tm-line { border-left-color: rgba(232, 229, 222, .35); }
+
+.tm-note-flag {
+  flex: 0 0 auto;
+  width: 15px; height: 15px; margin-left: auto;
+  display: grid; place-items: center;
+  font-size: 9px; line-height: 1;
+  color: var(--ink); background: var(--chalk-dim);
+  border-radius: 50%;
+}
+.tm-line-row.has-note:hover .tm-note-flag,
+.tm-line-row .tm-line[aria-expanded="true"] .tm-note-flag { background: var(--paper); }
+.tm-note-flag.inline {
+  display: inline-grid; vertical-align: middle;
+  width: 13px; height: 13px; margin: 0 2px;
+}
+
+.tm-line-note {
+  padding: 4px 10px 12px 62px;
+  border-left: 2px solid var(--paper);
+  background: rgba(232, 229, 222, .06);
+  animation: title-in .26s ease both;
+}
+.tm-line-note p {
+  margin: 0 0 8px; font-size: 12.5px; line-height: 1.65; color: #a8a49b;
+}
+.tm-line-note a {
+  font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--chalk-dim);
+}
+.tm-line-note a:hover { color: var(--chalk); }
+
+/* --- what Genius knows about the song --- */
+.tm-hot {
+  font-size: 8.5px; letter-spacing: .18em;
+  background: var(--paper); color: var(--ink);
+  padding: 2px 6px; margin-left: 6px; border-radius: 2px;
+}
+.tm-rels { display: grid; gap: 8px; margin-top: 14px; }
+.tm-rel { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.tm-rel-kind {
+  flex: 0 0 auto; font-size: 9px; letter-spacing: .14em;
+  text-transform: uppercase; color: #6f6b64;
+}
+.tm-rel a {
+  font-size: 11.5px; color: #c3bfb6; text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+.tm-rel a:hover { color: var(--chalk); border-bottom-color: var(--chalk); }
+.tm-media { margin-top: 14px; }
+
 /* --- Genius annotations --- */
 .tm-notes { display: grid; gap: 2px; }
 .tm-note-item {

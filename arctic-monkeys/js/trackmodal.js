@@ -93,13 +93,20 @@ const TrackModal = {
 
     const lines = words && words.lines.length
       ? `<ol class="tm-lines">${words.lines.map((l, i) => `
-          <li><button type="button" class="tm-line" data-t="${l.t}" data-i="${i}">
-            <span class="tm-tc">${fmtLrc(l.t)}</span>
-            <span class="tm-tx">${esc(l.text)}</span>
-          </button></li>`).join('')}</ol>
-         <p class="tm-hint">Short signature lines with approximate fan timings —
-            press play and the marker follows. The complete words are on
-            <a href="${genius}" target="_blank" rel="noopener">Genius</a>.</p>`
+          <li class="tm-line-row" data-line="${i}">
+            <button type="button" class="tm-line" data-t="${l.t}" data-i="${i}"
+                    aria-expanded="false">
+              <span class="tm-tc">${fmtLrc(l.t)}</span>
+              <span class="tm-tx">${esc(l.text)}</span>
+              <span class="tm-note-flag" hidden aria-hidden="true">?</span>
+            </button>
+            <div class="tm-line-note" hidden></div>
+          </li>`).join('')}</ol>
+         <p class="tm-hint">Press play and the marker follows. A line marked
+            <span class="tm-note-flag inline">?</span> has been annotated on
+            Genius — click it to read what it is about. The complete words are
+            <a href="${genius}" target="_blank" rel="noopener">on Genius</a>,
+            which is the only place they can be.</p>`
       : `<p class="tm-empty">No transcribed excerpt for this one yet.
             The full words and the annotations are on
             <a href="${genius}" target="_blank" rel="noopener">Genius</a>.</p>`;
@@ -134,14 +141,15 @@ const TrackModal = {
 
           <div class="tm-col">
             <h4 class="tm-h">Credits</h4>
-            <dl class="tm-dl">
+            <dl class="tm-dl" data-tm="credits">
               <dt>Written by</dt><dd>${esc(writers)}</dd>
               <dt>Produced by</dt><dd>${esc(producers)}</dd>
               <dt>Album</dt><dd>${esc(this.album.title)}</dd>
               <dt>Label</dt><dd>${esc(this.album.label)}</dd>
               <dt>Recorded at</dt><dd>${esc(this.album.studio)}</dd>
-              ${api.pageviews ? `<dt>Genius views</dt><dd>${Number(api.pageviews).toLocaleString('en-GB')}</dd>` : ''}
             </dl>
+
+            <div data-tm="stats"></div>
 
             ${credits.note ? `<h4 class="tm-h">Lore</h4><p class="tm-note">${credits.note}</p>` : ''}
 
@@ -180,9 +188,11 @@ const TrackModal = {
 
     this.overlay.querySelectorAll('.tm-line').forEach(btn => {
       btn.addEventListener('click', () => {
+        const i = parseInt(btn.dataset.i, 10);
         const t = parseFloat(btn.dataset.t);
         if (Player.isCued(name)) Player.seek(t / (words.duration || 200));
-        this.mark(parseInt(btn.dataset.i, 10));
+        this.mark(i);
+        this.toggleLineNote(i);
       });
     });
 
@@ -216,6 +226,8 @@ const TrackModal = {
     if (live.writers && live.writers.length) set('Written by', live.writers.join(', '));
     if (live.producers && live.producers.length) set('Produced by', live.producers.join(', '));
 
+    this.renderStats(live);
+
     const art = live.art || live.albumCover;
     const head = this.overlay.querySelector('.tm-head');
     if (art && head && !head.querySelector('.tm-art')) {
@@ -228,6 +240,114 @@ const TrackModal = {
       const no = head.querySelector('.tm-no');
       if (no) no.replaceWith(img); else head.prepend(img);
     }
+  },
+
+  /**
+   * The numbers and relationships Genius keeps on a song.
+   *
+   * Every field is optional — the API fills in what it has for a given
+   * song and omits the rest — so each row is only drawn when it exists.
+   */
+  renderStats(live) {
+    const host = this.overlay.querySelector('[data-tm="stats"]');
+    if (!host || !live) return;
+
+    const num = n => Number(n).toLocaleString('en-GB');
+    const rows = [];
+    if (live.pageviews) rows.push(['Views', num(live.pageviews)]);
+    if (live.shares) rows.push(['Shares', num(live.shares)]);
+    if (live.annotations) rows.push(['Annotations', num(live.annotations)]);
+    if (live.contributors) rows.push(['Contributors', num(live.contributors)]);
+    if (live.releaseDate) rows.push(['Released', esc(live.releaseDate)]);
+    if (live.recordedAt) rows.push(['Recorded at', esc(live.recordedAt)]);
+    if (live.featured && live.featured.length)
+      rows.push(['Featuring', esc(live.featured.join(', '))]);
+
+    const rel = (live.relationships || []).map(r => `
+      <div class="tm-rel">
+        <span class="tm-rel-kind">${esc(r.kind)}</span>
+        ${r.songs.map(sg =>
+          `<a href="${esc(sg.url)}" target="_blank" rel="noopener">${esc(sg.title)}</a>`
+        ).join('')}
+      </div>`).join('');
+
+    const media = (live.media || []).map(m =>
+      `<a href="${esc(m.url)}" target="_blank" rel="noopener">${esc(m.provider)}</a>`
+    ).join('');
+
+    if (!rows.length && !rel && !media) return;
+
+    host.innerHTML = `
+      <h4 class="tm-h">On Genius${live.hot ? ' <span class="tm-hot">hot</span>' : ''}</h4>
+      ${rows.length ? `<dl class="tm-dl">${rows.map(([k, v]) =>
+        `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>` : ''}
+      ${rel ? `<div class="tm-rels">${rel}</div>` : ''}
+      ${media ? `<div class="tm-links tm-media">${media}</div>` : ''}`;
+  },
+
+  /**
+   * Attach annotations to the lines they belong to.
+   *
+   * Genius returns referents — a fragment of the song, and what the
+   * community wrote about it. Our lines and their fragments are separate
+   * transcriptions of the same words, so they are matched loosely:
+   * normalise both, then look for one containing the other. What matches
+   * is folded into the line; the rest stays in its own list below.
+   */
+  attachNotes(notes) {
+    const words = lyricsFor(this.album.tracks[this.idx].name);
+    if (!words || !notes) return notes || [];
+
+    const norm = t => String(t).toLowerCase()
+      .replace(/[’']/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+
+    const used = new Set();
+    this.lineNotes = {};
+
+    words.lines.forEach((line, i) => {
+      const a = norm(line.text);
+      // bracketed stage directions are ours, not the song's
+      if (!a || a.length < 8 || /^\[/.test(line.text)) return;
+      const hit = notes.find((n, j) => {
+        if (used.has(j)) return false;
+        const b = norm(n.fragment);
+        return b.length > 6 && (b.includes(a) || a.includes(b));
+      });
+      if (!hit) return;
+      used.add(notes.indexOf(hit));
+      this.lineNotes[i] = hit;
+
+      const row = this.overlay.querySelector(`.tm-line-row[data-line="${i}"]`);
+      if (!row) return;
+      row.classList.add('has-note');
+      const flag = row.querySelector('.tm-note-flag');
+      if (flag) flag.hidden = false;
+      row.querySelector('.tm-line').setAttribute(
+        'aria-label', `${line.text} — read the annotation`);
+    });
+
+    return notes.filter((_, j) => !used.has(j));
+  },
+
+  /** Open or close the annotation sitting under one line. */
+  toggleLineNote(i) {
+    const row = this.overlay.querySelector(`.tm-line-row[data-line="${i}"]`);
+    const note = this.lineNotes && this.lineNotes[i];
+    if (!row || !note) return;
+
+    const body = row.querySelector('.tm-line-note');
+    const btn = row.querySelector('.tm-line');
+    const open = body.hidden;
+
+    if (open && !body.dataset.filled) {
+      body.innerHTML = `
+        <p>${esc(note.annotation).replace(/\n{2,}/g, '</p><p>')}</p>
+        ${note.url ? `<a href="${esc(note.url)}" target="_blank" rel="noopener">
+          On Genius${note.votes ? ` · ${note.votes} votes` : ''}</a>` : ''}`;
+      body.dataset.filled = '1';
+    }
+    body.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
   },
 
   /**
@@ -248,7 +368,15 @@ const TrackModal = {
       return;
     }
 
-    host.innerHTML = notes.map((n, i) => `
+    // anything that matched a line now lives on that line
+    const rest = this.attachNotes(notes);
+    if (!rest.length) {
+      host.innerHTML = `<p class="tm-hint">Every annotation Genius has for this
+        one is attached to its line above.</p>`;
+      return;
+    }
+
+    host.innerHTML = rest.map((n, i) => `
       <details class="tm-note-item"${i === 0 ? ' open' : ''}>
         <summary>${esc(n.fragment)}</summary>
         <div class="tm-note-body">

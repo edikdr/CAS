@@ -127,11 +127,20 @@ in `data.js`. Nothing waits on the network — a window opens usable and fills i
 Genius does not serve lyrics through its API, and it refuses cross-origin
 requests from a browser. Both facts shape the design:
 
-- **Full lyrics are never reproduced here.** Every track window links to its
-  Genius page, which is where the words belong.
+- **Full lyrics are never reproduced here, and cannot be.** Genius licenses
+  lyrics from publishers and does not serve them through its API at all — the
+  song endpoint returns credits, statistics and description, and no words. The
+  only way to get them out of Genius is to scrape the page, which breaks their
+  terms and redistributes someone else's copyrighted text. If you want a full
+  lyric feed it needs a licensed provider (Musixmatch, LyricFind); the free
+  Musixmatch tier returns a partial lyric only.
 - **What the API does give is annotations** — the fragments the community has
-  written notes on. Those appear under *Annotations* in each track window:
-  click a fragment, read what it is about, follow through to the source.
+  written notes on, and what they wrote. Those are matched against the lines in
+  the track window, so clicking a line marked with a **?** opens the annotation
+  for it; anything that matched no line is listed underneath.
+- **And the numbers**: views, shares, contributors, annotation count, whether
+  Genius has the song flagged hot, its recording location, and what it samples,
+  interpolates or is covered by.
 - **The token never reaches the browser.** It is read from `.env` at build
   time by the fetcher, or held by `server.js` if you run the live proxy.
 

@@ -102,13 +102,42 @@ const Genius = {
 
     const full = await this.api(`songs/${hit.id}?text_format=plain`);
     const song = (full && full.response && full.response.song) || hit;
+    const stats = song.stats || {};
+
+    /* Everything the API is willing to say about a song. Note what is
+       missing: the words themselves. Genius licenses lyrics from
+       publishers and cannot serve them here — the annotations below are
+       what it does offer, and they are the interesting half. */
     const rec = {
       geniusId: hit.id,
       geniusUrl: song.url,
       writers: (song.writer_artists || []).map(a => a.name),
       producers: (song.producer_artists || []).map(a => a.name),
-      releaseDate: song.release_date,
-      pageviews: song.stats && song.stats.pageviews,
+      featured: (song.featured_artists || []).map(a => a.name),
+      releaseDate: song.release_date_for_display || song.release_date,
+      recordedAt: song.recording_location || null,
+      about: ((song.description || {}).plain || '').trim() || null,
+
+      // the numbers people actually look at
+      pageviews: stats.pageviews,
+      shares: song.pyongs_count,
+      contributors: stats.contributors,
+      annotations: song.annotation_count || stats.accepted_annotations,
+      hot: Boolean(stats.hot),
+
+      // what it borrows from and what borrows from it
+      relationships: (song.song_relationships || [])
+        .filter(r => (r.songs || []).length)
+        .map(r => ({
+          kind: String(r.relationship_type || '').replace(/_/g, ' '),
+          songs: r.songs.slice(0, 4).map(x => ({ title: x.title, url: x.url }))
+        })),
+
+      // players and videos Genius knows about
+      media: (song.media || [])
+        .filter(m => m.url)
+        .map(m => ({ provider: m.provider, url: m.url, type: m.type })),
+
       art: song.song_art_image_url || hit.song_art_image_url || null,
       albumCover: (song.album && song.album.cover_art_url) || null,
       albumName: (song.album && song.album.name) || null

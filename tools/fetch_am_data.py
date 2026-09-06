@@ -304,14 +304,33 @@ def genius_song(track, token, want_art=False, want_notes=False):
     full = get(f'{GENIUS}/songs/{sid}?text_format=plain', headers=gh(token))
     song = (full or {}).get('response', {}).get('song', {})
 
+    stats = song.get('stats') or {}
+    # Everything the API is willing to say — note what is absent: the words
+    # themselves. Genius licenses lyrics and cannot serve them here.
     rec = {
         'geniusId': sid,
         'geniusUrl': song.get('url') or hit.get('url'),
         'writers': [a['name'] for a in song.get('writer_artists', [])],
         'producers': [a['name'] for a in song.get('producer_artists', [])],
-        'releaseDate': song.get('release_date'),
-        'pageviews': (song.get('stats') or {}).get('pageviews'),
+        'featured': [a['name'] for a in song.get('featured_artists', [])],
+        'releaseDate': song.get('release_date_for_display') or song.get('release_date'),
+        'recordedAt': song.get('recording_location'),
+        'pageviews': stats.get('pageviews'),
+        'shares': song.get('pyongs_count'),
+        'contributors': stats.get('contributors'),
+        'annotations': song.get('annotation_count') or stats.get('accepted_annotations'),
+        'hot': bool(stats.get('hot')),
+        'relationships': [
+            {'kind': str(r.get('relationship_type', '')).replace('_', ' '),
+             'songs': [{'title': x.get('title'), 'url': x.get('url')}
+                       for x in r.get('songs', [])[:4]]}
+            for r in song.get('song_relationships', []) if r.get('songs')
+        ],
+        'media': [{'provider': m.get('provider'), 'url': m.get('url'),
+                   'type': m.get('type')}
+                  for m in song.get('media', []) if m.get('url')],
     }
+    rec = {k: v for k, v in rec.items() if v not in (None, [], '')}
 
     desc = ((song.get('description') or {}).get('plain') or '').strip()
     if desc and desc.lower() not in ('?', 'null'):

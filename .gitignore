@@ -1,3 +1,11 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# build-time only: fetched with npm, not part of the site
+node_modules/
+arctic-monkeys-fan-site/tools/crumple/vendor/
+
+# secrets — never commit
+.env
+.env.local

@@ -1,0 +1,1314 @@
+@font-face {
+  font-family: 'Archivo Black'; font-style: normal; font-weight: 400; font-display: block;
+  src: url('../assets/fonts/archivo-black.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Courier Prime'; font-style: normal; font-weight: 400; font-display: block;
+  src: url('../assets/fonts/courier-prime.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Courier Prime'; font-style: normal; font-weight: 700; font-display: block;
+  src: url('../assets/fonts/courier-prime-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Caveat'; font-style: normal; font-weight: 600; font-display: block;
+  src: url('../assets/fonts/caveat.woff2') format('woff2');
+}
+
+/* ============================================================
+   Arctic Monkeys — Receipt Archive
+   Black page, white paper, cut letters. No images except the
+   52 magazine letter scans; everything else is drawn.
+   ============================================================ */
+
+:root {
+  --ink: #0b0b0a;              /* the page */
+  --ink-2: #141413;
+  --paper: #f4f2ec;            /* receipt stock */
+  --paper-2: #e6e3da;
+  --chalk: #e8e5de;            /* type on black */
+  --chalk-dim: #9c988e;
+  --line: rgba(232, 229, 222, 0.16);
+  --hot: #d8d4cc;
+
+  --mono: 'Courier Prime', 'Courier New', monospace;
+  --fat: 'Archivo Black', 'Arial Black', Impact, sans-serif;
+  --hand: 'Caveat', 'Segoe Script', cursive;
+
+  --wrap: 1180px;
+  --r: 2px;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--chalk);
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ------------------------------------------------------------ backdrop
+   The halftone stars, as a fixed layer rather than
+   `background-attachment: fixed` — that property re-rasterises the image
+   on every scroll frame and is where the shimmer on phones comes from.
+   A plain fixed element is composited once and never moves again. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: var(--ink) url('../assets/bg/stars.webp') center top / cover no-repeat;
+  pointer-events: none;
+}
+@media (max-width: 800px) {
+  .backdrop { background-image: url('../assets/bg/stars-sm.webp'); }
+}
+
+/* One glow per star in the backdrop, positioned by mountStars(). They
+   come up in turn rather than together — the delays are spread across
+   the cycle — so the sky reads as flickering, not breathing. */
+.star-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+
+.star {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  opacity: 0;
+  background:
+    radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(226,238,255,.5) 22%,
+      rgba(180,206,255,.18) 45%, transparent 70%);
+  animation: star-blink var(--dur, 6s) var(--delay, 0s) ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes star-blink {
+  0%, 62%   { opacity: 0; }
+  70%       { opacity: var(--peak, .6); }
+  74%       { opacity: calc(var(--peak, .6) * .35); }
+  78%       { opacity: var(--peak, .6); }
+  100%      { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star { animation: none; opacity: calc(var(--peak, .6) * .45); }
+}
+
+/* keeps the type off the brightest stars without dulling them */
+.backdrop::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 2;
+  background:
+    radial-gradient(ellipse at 50% 10%, rgba(11, 11, 10, .18), rgba(11, 11, 10, .74) 64%),
+    linear-gradient(180deg, rgba(11, 11, 10, .42), rgba(11, 11, 10, .66));
+}
+
+img { max-width: 100%; }
+a { color: var(--chalk); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.skip {
+  position: absolute; left: -9999px; top: 0; z-index: 100;
+  background: var(--paper); color: var(--ink); padding: 10px 16px;
+}
+.skip:focus { left: 8px; top: 8px; }
+
+body.locked { overflow: hidden; }
+
+:focus-visible { outline: 2px solid var(--hot); outline-offset: 3px; }
+
+/* ------------------------------------------------------------ dust */
+#dust {
+  position: fixed; inset: 0; z-index: 1;
+  pointer-events: none; mix-blend-mode: screen;
+}
+
+/* ------------------------------------------------------------ top bar */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; padding: 12px clamp(14px, 4vw, 40px);
+  background: rgba(11, 11, 10, .88);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand { display: flex; align-items: baseline; gap: 10px; text-decoration: none; }
+.brand-am { font-family: var(--fat); font-size: 22px; letter-spacing: -.5px; }
+.brand-sub { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--chalk-dim); }
+
+.nav-links { display: flex; gap: clamp(10px, 2.2vw, 26px); flex-wrap: wrap; }
+.nav-links a {
+  font-size: 11.5px; letter-spacing: .18em; text-transform: uppercase;
+  text-decoration: none; color: var(--chalk-dim); padding: 4px 0;
+  border-bottom: 1px solid transparent;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--chalk); border-bottom-color: var(--chalk); }
+
+/* ------------------------------------------------------------ cut letters */
+.cut {
+  margin: 0 0 18px;
+  display: flex; flex-wrap: wrap; align-items: flex-end;
+  gap: .12em .46em;
+  line-height: 1;
+}
+.cut .word { display: inline-flex; align-items: flex-end; }
+
+/* Each letter is a scrap of paper: it sits at its own angle and height,
+   throws a real shadow, and a few of them are taped or torn. */
+.cut .glyph {
+  position: relative;
+  display: inline-block;
+  z-index: var(--z, 0);
+  transform: rotate(var(--r, 0deg)) translateY(var(--dy, 0)) scale(var(--s, 1));
+  transition: transform .28s cubic-bezier(.2, .8, .3, 1);
+  /* two shadows: a tight contact one and a soft cast one, which is what
+     separates a taped-down scrap from a flat sticker */
+  filter:
+    drop-shadow(0 1px 0 rgba(0, 0, 0, .45))
+    drop-shadow(0 4px 10px rgba(0, 0, 0, .6));
+}
+/* Knocked well down so the paper reads as grey newsprint on a black page
+   instead of a bright white slab; the printed letterforms stay solid
+   because the contrast is pushed at the same time. */
+.cut .glyph img {
+  height: 1em; width: auto; display: block;
+  filter: grayscale(1) contrast(1.5) brightness(.5) sepia(.12);
+}
+/* the masthead keeps a little more life than the section headings */
+.cut-xl .glyph img { filter: grayscale(1) contrast(1.45) brightness(.62) sepia(.1); }
+
+/* a strip of tape across one corner */
+.cut .glyph.taped::after {
+  content: '';
+  position: absolute;
+  left: -14%; right: -14%; top: -9%; height: 30%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, .14),
+    rgba(255, 255, 255, .06) 55%,
+    rgba(255, 255, 255, .11));
+  border-top: 1px solid rgba(255, 255, 255, .14);
+  border-bottom: 1px solid rgba(255, 255, 255, .09);
+  transform: rotate(-6deg);
+  pointer-events: none;
+}
+
+.cut .glyph.torn { filter: drop-shadow(0 3px 8px rgba(0, 0, 0, .65)); }
+
+/* digits and punctuation get their own paper chip */
+.cut .chip {
+  display: inline-block;
+  background: #8f8b83; color: #0c0c0b;
+  font-family: var(--fat); font-size: .78em; line-height: 1;
+  padding: .16em .2em; margin: 0 .04em;
+  transform: rotate(var(--r, 0deg));
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .6));
+}
+
+/* the letters shuffle against each other on hover, like loose scraps */
+.cut:hover .glyph:nth-child(odd) {
+  transform: rotate(calc(var(--r) + 4deg)) translateY(calc(var(--dy) - 3px)) scale(var(--s));
+}
+.cut:hover .glyph:nth-child(even) {
+  transform: rotate(calc(var(--r) - 4deg)) translateY(calc(var(--dy) + 3px)) scale(var(--s));
+}
+
+.cut { font-size: clamp(24px, 4.2vw, 44px); }
+.cut-xl { font-size: clamp(36px, 7.6vw, 92px); }
+
+/* the inline "ransom" run in body copy */
+.ransomish {
+  font-family: var(--fat); background: var(--paper); color: var(--ink);
+  padding: 1px 6px; display: inline-block; transform: rotate(-1.5deg);
+}
+
+/* ------------------------------------------------------------ layout */
+.hero, .section {
+  position: relative;
+  z-index: 2;
+  /* the bar is sticky, so an anchor has to stop short of it or the
+     heading lands underneath — and it wraps to two rows on a phone */
+  scroll-margin-top: 76px;
+}
+@media (max-width: 760px) {
+  .hero, .section { scroll-margin-top: 124px; }
+}
+
+/* Everything the reader actually reads sits above the collage.
+   The decor is excluded by name: it is also a direct child div, and a
+   blanket `.section > div` outranks `.deco`'s own rule, which quietly
+   turned every cut-out back into a flow element stacked at the bottom. */
+.hero-inner,
+.section > h2,
+.section > p,
+.section > div:not(.deco) { position: relative; z-index: 3; }
+
+.hero {
+  max-width: var(--wrap); margin: 0 auto;
+  padding: clamp(48px, 9vw, 104px) clamp(16px, 4vw, 40px) clamp(30px, 6vw, 60px);
+  min-height: 74vh; display: flex; align-items: center;
+}
+.hero-inner { position: relative; z-index: 3; max-width: 720px; }
+
+/* the sign sits in the hero's empty right-hand third, below the headline
+   so the cut-paper title still leads */
+.hero .neon { right: 1%; top: 48%; width: min(400px, 32vw); }
+@media (max-width: 1100px) {
+  .hero .neon { right: 2%; top: 62%; width: 46vw; opacity: .7; }
+}
+/* Below this the hero is one narrow column and the sign has nowhere to go
+   without landing on the headline — which already says the same words in
+   cut paper, so it simply steps aside. */
+@media (max-width: 860px) {
+  .neon { display: none; }
+}
+
+.kicker {
+  font-size: 11px; letter-spacing: .26em; text-transform: uppercase;
+  color: var(--chalk-dim); margin: 0 0 20px;
+}
+
+.hero-wave { display: block; width: min(560px, 100%); height: 68px; color: var(--chalk); margin: 4px 0 22px; }
+
+.hero-lede { font-size: clamp(15px, 1.9vw, 18px); max-width: 60ch; color: #cfccc4; }
+.hero-lede strong { color: var(--chalk); }
+
+.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; }
+
+.btn {
+  display: inline-block; font-family: var(--fat); font-size: 12px;
+  letter-spacing: .16em; text-transform: uppercase; text-decoration: none;
+  background: var(--paper); color: var(--ink);
+  padding: 12px 20px; border: 0; cursor: pointer;
+  transform: rotate(-.6deg); transition: transform .18s ease, background .18s ease;
+}
+.btn:hover { transform: rotate(.6deg) translateY(-2px); background: #fff; }
+.btn.ghost { background: transparent; color: var(--chalk); box-shadow: inset 0 0 0 1.5px var(--chalk); }
+.btn.ghost:hover { background: var(--chalk); color: var(--ink); }
+.btn.small { padding: 9px 14px; font-size: 10.5px; }
+
+.section {
+  max-width: var(--wrap); margin: 0 auto;
+  padding: clamp(46px, 8vw, 96px) clamp(16px, 4vw, 40px);
+  border-top: 1px solid var(--line);
+}
+
+/* `content-visibility: auto` was here, and it broke every anchor: the
+   browser scrolls using the estimated height, the real content then
+   renders at a different height, and the heading ends up above the
+   viewport. Correctness beats the paint it saved — the lazy frames and
+   the paused canvas are where the real cost was anyway. */
+.section-lede { max-width: 62ch; color: #b9b5ac; margin: 0 0 34px; }
+
+/* ------------------------------------------------------------ reveal */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.in { opacity: 1; transform: none; }
+
+/* ------------------------------------------------------------ timeline */
+.timeline { display: grid; gap: 2px; position: relative; z-index: 3; }
+.tl {
+  display: grid; grid-template-columns: 120px 1fr; gap: 22px;
+  padding: 26px 20px; background: rgba(232, 229, 222, .035);
+  border-left: 2px solid transparent; transition: border-color .2s, background .2s;
+}
+.tl:hover { background: rgba(232, 229, 222, .07); border-left-color: var(--chalk); }
+.tl-year { font-family: var(--fat); font-size: 17px; letter-spacing: -.02em; color: var(--chalk); }
+.tl-title { margin: 0 0 6px; font-family: var(--fat); font-size: 14px; letter-spacing: .04em; text-transform: uppercase; }
+.tl-body p { margin: 0; color: #b3afa6; font-size: 14px; }
+
+/* remarks, set as what they are: reported speech, with a name on it */
+.tl-quote {
+  margin: 14px 0 0; padding: 12px 16px;
+  border-left: 2px solid rgba(232, 229, 222, .3);
+  background: rgba(232, 229, 222, .035);
+}
+.tl-quote p {
+  font-family: var(--hand);
+  font-size: 18px; line-height: 1.4; color: #d3cfc6; margin: 0;
+}
+.tl-quote p::before { content: '“'; }
+.tl-quote p::after { content: '”'; }
+.tl-quote cite {
+  display: block; margin-top: 7px; font-style: normal;
+  font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--chalk-dim);
+}
+.tl-detail {
+  margin-top: 14px !important; padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13px !important; color: #918d85 !important;
+}
+
+/* ------------------------------------------------------------ members */
+.member-grid {
+  display: grid; gap: 14px; position: relative; z-index: 3;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+.member {
+  display: flex; gap: 14px; align-items: flex-start; text-align: left;
+  padding: 18px; cursor: pointer; color: inherit; font: inherit;
+  background: rgba(232, 229, 222, .04);
+  border: 1px solid var(--line); border-radius: var(--r);
+  transform: rotate(-.4deg); transition: transform .2s ease, background .2s ease;
+}
+.member:nth-child(even) { transform: rotate(.5deg); }
+.member:hover { transform: rotate(0) translateY(-3px); background: rgba(232, 229, 222, .09); }
+
+.mono {
+  flex: 0 0 46px; height: 46px; display: grid; place-items: center;
+  background: var(--paper); color: var(--ink);
+  font-family: var(--fat); font-size: 15px;
+}
+.m-body { display: block; }
+.m-name { display: block; font-family: var(--fat); font-size: 15px; }
+.m-role { display: block; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--chalk-dim); margin: 3px 0 8px; }
+.m-bio { display: block; font-size: 13px; color: #b3afa6; }
+.m-tag {
+  display: inline-block; margin-top: 10px; font-size: 9.5px;
+  letter-spacing: .18em; text-transform: uppercase;
+  padding: 3px 7px; border: 1px solid var(--line); color: var(--chalk-dim);
+}
+.m-tag.current { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+
+/* ------------------------------------------------------------ search */
+.searchbar {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  position: relative; z-index: 3; margin-bottom: 10px;
+}
+#searchInput {
+  flex: 1 1 280px; font-family: var(--mono); font-size: 14px;
+  padding: 13px 16px; color: var(--chalk);
+  background: rgba(232, 229, 222, .05);
+  border: 1px solid var(--line); border-radius: var(--r);
+}
+#searchInput::placeholder { color: #6f6b64; }
+#searchInput:focus { background: rgba(232, 229, 222, .09); border-color: var(--chalk); outline: none; }
+
+.search-meta {
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--chalk-dim); margin: 0 0 34px; position: relative; z-index: 3;
+}
+.no-results { color: var(--chalk-dim); padding: 30px 0; }
+.no-results em { color: var(--chalk); font-style: normal; }
+
+/* ============================================================
+   THE RECEIPT
+   ============================================================ */
+.album-list {
+  display: grid; gap: clamp(34px, 5vw, 62px);
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  position: relative; z-index: 3;
+}
+
+.album { position: relative; }
+
+.album-note {
+  font-size: 13px; color: #a9a59c; margin: 0; max-width: 46ch;
+}
+.album-note strong {
+  display: block; color: var(--chalk); font-size: 10.5px;
+  letter-spacing: .16em; text-transform: uppercase; margin-bottom: 6px;
+}
+
+/* The column the paper lives in. Its height is set per stage in JS so a
+   balled-up receipt does not leave a hole in the grid. */
+.rc-stage {
+  position: relative;
+  transition: height .22s ease;
+}
+
+/* the live receipt — the only state whose rows can be clicked */
+.rc-paper {
+  position: relative;
+  z-index: 2;
+  /* A rendered frame is about 1.26x the width of the sheet printed on it —
+     the wad swings wider than the flat receipt and the shadow needs room.
+     Holding the receipt to 78% of its column keeps the frame stack inside
+     it at every width, so the page never scrolls sideways. */
+  width: min(340px, 78%);
+  margin: 0 auto;
+  background: var(--paper);
+  color: #141412;
+  padding: 20px 18px 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, .55);
+  isolation: isolate;
+}
+
+/* Paper that has been screwed up and opened out again does not go flat.
+   Soft creases are laid over the live receipt in the same places the last
+   rendered frame has them, so the hand-off from image to DOM does not
+   show — light on one side of each fold, shadow on the other. Multiply
+   keeps the print underneath crisp; nothing here blurs the text. */
+.rc-paper::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 3;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: .5;
+  background:
+    linear-gradient(101deg, transparent 18%, rgba(0,0,0,.07) 21%,
+      rgba(255,255,255,.5) 23%, transparent 27%),
+    linear-gradient(-97deg, transparent 44%, rgba(0,0,0,.055) 47%,
+      rgba(255,255,255,.42) 49%, transparent 53%),
+    linear-gradient(88deg, transparent 66%, rgba(0,0,0,.05) 69%,
+      rgba(255,255,255,.38) 71%, transparent 74%),
+    linear-gradient(180deg, rgba(0,0,0,.05), transparent 12%,
+      transparent 88%, rgba(0,0,0,.06)),
+    radial-gradient(120% 60% at 30% 8%, rgba(255,255,255,.32), transparent 60%),
+    radial-gradient(100% 55% at 78% 92%, rgba(0,0,0,.05), transparent 62%);
+}
+.album.flat .rc-paper, .album.no-frames .rc-paper {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* the rendered crumple frames, laid exactly over the live receipt */
+.rc-frames {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+}
+.rc-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  transition: opacity .15s linear;
+}
+
+/* --- receipt typography --- */
+.rc-head { text-align: center; margin-bottom: 10px; }
+.rc-logo {
+  font-family: var(--fat); font-size: clamp(26px, 7vw, 34px);
+  line-height: .92; letter-spacing: -.02em; color: #101010;
+  transform: rotate(-1.2deg);
+}
+.rc-wave { display: block; width: 100%; height: 40px; color: #101010; margin: 8px 0 2px; }
+
+.rc-rule { border-top: 1px solid #1a1a1a; margin: 9px 0; }
+.rc-rule.dashed { border-top: 1px dashed #4a4a4a; }
+
+.rc-cols, .rc-row {
+  display: grid; grid-template-columns: 26px 1fr 46px;
+  gap: 8px; align-items: baseline;
+}
+.rc-cols {
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: #3a3a3a;
+}
+.rc-cols span:last-child { text-align: right; }
+
+.rc-tracks { list-style: none; margin: 0; padding: 0; }
+
+.rc-row {
+  position: relative;
+  font-size: 11.5px; line-height: 1.42; padding: 3px 0;
+  cursor: pointer; color: #16160f;
+  border-bottom: 1px solid transparent;
+}
+.rc-row:hover, .rc-row:focus-visible {
+  background: #16160f; color: var(--paper); outline: none;
+}
+.rc-row.hit { box-shadow: inset 3px 0 0 #16160f; padding-left: 5px; }
+.rc-qty { font-variant-numeric: tabular-nums; }
+.rc-item { word-break: break-word; }
+.rc-amt { text-align: right; font-variant-numeric: tabular-nums; }
+
+
+.rc-totals { font-size: 11px; }
+.rc-totals div { display: flex; justify-content: space-between; letter-spacing: .08em; }
+
+.rc-meta {
+  font-size: 8.5px; line-height: 1.75; color: #3d3d3a;
+  letter-spacing: .04em; word-break: break-all; margin: 8px 0 12px;
+}
+
+.rc-barcode { display: block; width: 100%; height: 42px; fill: #101010; }
+.rc-foot {
+  text-align: center; font-size: 8px; letter-spacing: .1em;
+  color: #55534e; margin-top: 6px;
+}
+
+/* while balled up, the paper should not invite clicks */
+.album:not(.open) .rc-row { cursor: default; pointer-events: none; }
+.album:not(.open) .rc-paper { user-select: none; }
+
+/* --- the button under the receipt ---
+   Woven cloth rather than flat ink: two crossed repeating-gradients make
+   the warp and weft, a third lays a slub across it, and the whole thing
+   sits on a soft inner shadow so it reads as fabric stretched over a pad.
+   Pressing it sinks the face into that shadow. */
+.rc-controls {
+  display: flex; align-items: center; gap: 16px;
+  margin-top: 22px; flex-wrap: wrap;
+}
+
+.unfold {
+  --cloth: #ddd8cd;
+  position: relative;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  border-radius: 3px;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .6));
+  transition: filter .18s ease, transform .18s ease;
+}
+.unfold:hover { transform: translateY(-2px); filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .68)); }
+
+.unfold-face {
+  display: inline-flex; align-items: center; gap: 11px;
+  padding: 15px 24px;
+  font-family: var(--fat); font-size: 12.5px; letter-spacing: .2em;
+  color: #17170f;
+  border-radius: 3px;
+  transform: rotate(-.7deg);
+  background-color: var(--cloth);
+  background-image:
+    /* fibre grain — turbulence, so it is irregular the way thread is */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='90' height='90' filter='url(%23f)' opacity='0.42'/%3E%3C/svg%3E"),
+    /* twill running one way, then the other, both barely there */
+    repeating-linear-gradient(64deg,
+      rgba(0,0,0,.05) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(-26deg,
+      rgba(255,255,255,.16) 0 1px, transparent 1px 4px),
+    linear-gradient(150deg, rgba(255,255,255,.46), rgba(0,0,0,.16));
+  background-size: 90px 90px, auto, auto, auto;
+  background-blend-mode: multiply, normal, normal, normal;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .55),
+    inset 0 -2px 5px rgba(0, 0, 0, .28),
+    inset 0 0 0 1px rgba(0, 0, 0, .16);
+  transition: transform .1s ease, box-shadow .1s ease, filter .1s ease;
+}
+
+.unfold:active .unfold-face,
+.unfold.pressed .unfold-face {
+  transform: rotate(-.7deg) translateY(2px) scale(.985);
+  box-shadow:
+    inset 0 2px 7px rgba(0, 0, 0, .42),
+    inset 0 -1px 0 rgba(255, 255, 255, .28),
+    inset 0 0 0 1px rgba(0, 0, 0, .22);
+  filter: brightness(.94);
+}
+
+.unfold-ico {
+  width: 0; height: 0; border-style: solid;
+  border-width: 6px 0 6px 11px;
+  border-color: transparent transparent transparent #17170f;
+  transition: transform .34s cubic-bezier(.3, 1.4, .5, 1);
+}
+.album.open .unfold-ico { transform: rotate(90deg); }
+
+.rc-title {
+  font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--chalk-dim);
+}
+
+/* ------------------------------------------------------------ player face
+   The transport is the waveform itself. */
+
+.pf {
+  padding: 12px 14px 10px;
+  background: rgba(232, 229, 222, .05);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  transition: border-color .25s ease, background .25s ease;
+}
+.is-playing .pf {
+  border-color: rgba(232, 229, 222, .34);
+  background: rgba(232, 229, 222, .08);
+}
+
+.pf-top { display: flex; align-items: baseline; gap: 10px; }
+.pf-track {
+  flex: 1; min-width: 0; font-size: 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pf-time { font-size: 10px; color: var(--chalk-dim); font-variant-numeric: tabular-nums; }
+
+.pf-wave {
+  display: block;
+  width: 100%; height: 66px;
+  margin: 6px 0 4px;
+  cursor: pointer;
+  touch-action: none;
+}
+.pf-wave:focus-visible { outline: 2px solid var(--hot); outline-offset: 2px; }
+
+.pf-row { display: flex; align-items: center; gap: 8px; }
+.pf-btn {
+  background: transparent; border: 1px solid var(--line); color: var(--chalk);
+  font-size: 9px; padding: 5px 8px; cursor: pointer; font-family: var(--mono);
+}
+.pf-btn:hover { background: var(--paper); color: var(--ink); }
+.pf-play { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.pf-note {
+  margin-left: auto; font-size: 9px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--chalk-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------ singles */
+.single-grid {
+  display: grid; gap: 14px; position: relative; z-index: 3;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.single {
+  display: flex; flex-direction: column; gap: 6px;
+  text-align: left; font: inherit; color: inherit; cursor: pointer;
+  padding: 18px; background: rgba(232, 229, 222, .04);
+  border: 1px solid var(--line); transform: rotate(.4deg);
+  transition: transform .2s ease, background .2s ease, border-color .2s ease;
+}
+.single:hover { border-color: rgba(232, 229, 222, .3); }
+.s-open {
+  margin-top: auto; padding-top: 10px;
+  font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--chalk-dim);
+}
+.single:hover .s-open { color: var(--chalk); }
+.single:nth-child(odd) { transform: rotate(-.5deg); }
+.single:hover { transform: rotate(0) translateY(-3px); background: rgba(232, 229, 222, .08); }
+.s-year { font-family: var(--fat); font-size: 12px; color: var(--chalk-dim); }
+.s-title { font-family: var(--fat); font-size: 15px; line-height: 1.2; }
+.s-note { font-size: 12.5px; color: #b3afa6; }
+
+/* --- artwork, when the Genius fetch has supplied it --- */
+.album-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; }
+.album-cover {
+  flex: 0 0 84px; width: 84px; height: 84px; object-fit: cover;
+  border: 1px solid var(--line);
+  filter: grayscale(1) contrast(1.1);
+  transition: filter .3s ease, transform .3s ease;
+}
+.album:hover .album-cover { filter: grayscale(.15) contrast(1.05); transform: rotate(-1.5deg); }
+
+.m-photo, .mm-photo { object-fit: cover; filter: grayscale(1) contrast(1.12); }
+.m-photo { width: 46px; height: 46px; }
+.mm-photo { width: 62px; height: 62px; padding: 0; }
+
+.tm-art {
+  flex: 0 0 auto; width: 74px; height: 74px; object-fit: cover;
+  border: 1px solid var(--line); filter: grayscale(1) contrast(1.1);
+}
+
+/* --- a line, and what Genius says it means --- */
+.tm-line-row { list-style: none; }
+.tm-line { position: relative; }
+.tm-line-row.has-note .tm-line { border-left-color: rgba(232, 229, 222, .35); }
+
+.tm-note-flag {
+  flex: 0 0 auto;
+  width: 15px; height: 15px; margin-left: auto;
+  display: grid; place-items: center;
+  font-size: 9px; line-height: 1;
+  color: var(--ink); background: var(--chalk-dim);
+  border-radius: 50%;
+}
+/* `display: grid` above beats the hidden attribute, so a line with no
+   annotation was still drawing the marker. Barely noticeable on six cue
+   points; unmissable on a fifty-line song. */
+.tm-note-flag[hidden] { display: none; }
+.tm-line-row.has-note:hover .tm-note-flag,
+.tm-line-row .tm-line[aria-expanded="true"] .tm-note-flag { background: var(--paper); }
+.tm-note-flag.inline {
+  display: inline-grid; vertical-align: middle;
+  width: 13px; height: 13px; margin: 0 2px;
+}
+
+.tm-line-note {
+  padding: 4px 10px 12px 62px;
+  border-left: 2px solid var(--paper);
+  background: rgba(232, 229, 222, .06);
+  animation: title-in .26s ease both;
+}
+.tm-line-note p {
+  margin: 0 0 8px; font-size: 12.5px; line-height: 1.65; color: #a8a49b;
+}
+.tm-line-note a {
+  font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--chalk-dim);
+}
+.tm-line-note a:hover { color: var(--chalk); }
+
+/* --- what Genius knows about the song --- */
+.tm-hot {
+  font-size: 8.5px; letter-spacing: .18em;
+  background: var(--paper); color: var(--ink);
+  padding: 2px 6px; margin-left: 6px; border-radius: 2px;
+}
+.tm-rels { display: grid; gap: 8px; margin-top: 14px; }
+.tm-rel { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.tm-rel-kind {
+  flex: 0 0 auto; font-size: 9px; letter-spacing: .14em;
+  text-transform: uppercase; color: #6f6b64;
+}
+.tm-rel a {
+  font-size: 11.5px; color: #c3bfb6; text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+.tm-rel a:hover { color: var(--chalk); border-bottom-color: var(--chalk); }
+.tm-media { margin-top: 14px; }
+
+/* --- Genius annotations --- */
+.tm-notes { display: grid; gap: 2px; }
+.tm-note-item {
+  background: rgba(232, 229, 222, .04);
+  border-left: 2px solid rgba(232, 229, 222, .18);
+}
+.tm-note-item[open] { border-left-color: var(--paper); background: rgba(232, 229, 222, .07); }
+.tm-note-item summary {
+  cursor: pointer; list-style: none;
+  padding: 9px 11px; font-size: 12.5px; color: #c3bfb6;
+}
+.tm-note-item summary::-webkit-details-marker { display: none; }
+.tm-note-item summary::before {
+  content: '“'; color: var(--chalk-dim); margin-right: 3px;
+}
+.tm-note-item summary::after {
+  content: '”'; color: var(--chalk-dim); margin-left: 3px;
+}
+.tm-note-item summary:hover { color: var(--chalk); }
+.tm-note-body { padding: 0 11px 11px; }
+.tm-note-body p { margin: 0 0 8px; font-size: 12.5px; line-height: 1.65; color: #a8a49b; }
+.tm-note-body a {
+  font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--chalk-dim);
+}
+.tm-note-body a:hover { color: var(--chalk); }
+
+/* ------------------------------------------------------------ quizzes */
+.quiz-grid {
+  display: grid; gap: 14px; position: relative; z-index: 3;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.quiz-card {
+  display: flex; flex-direction: column; gap: 6px; text-align: left;
+  padding: 20px 18px; cursor: pointer; color: inherit; font: inherit;
+  background: rgba(232, 229, 222, .04);
+  border: 1px solid var(--line); border-radius: var(--r);
+  transform: rotate(-.5deg);
+  transition: transform .2s ease, background .2s ease, border-color .2s ease;
+}
+.quiz-card:nth-child(even) { transform: rotate(.6deg); }
+.quiz-card:hover {
+  transform: rotate(0) translateY(-3px);
+  background: rgba(232, 229, 222, .09);
+  border-color: rgba(232, 229, 222, .3);
+}
+.q-count { font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--chalk-dim); }
+.q-title { font-family: var(--fat); font-size: 17px; line-height: 1.15; }
+.q-blurb { font-size: 12.5px; color: #a9a59c; }
+.q-best {
+  margin-top: 8px; font-size: 9.5px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--chalk-dim);
+}
+
+/* --- the quiz window, backed by the 505 heart --- */
+.overlay-quiz .quiz::before {
+  background: url('../assets/bg/heart-505.webp') center 12% / min(300px, 58%) no-repeat;
+  opacity: .5;
+  /* the same layered glow and stutter as the sign outside */
+  filter:
+    drop-shadow(0 0 6px rgba(255, 255, 255, .5))
+    drop-shadow(0 0 22px rgba(214, 232, 255, .38))
+    drop-shadow(0 0 54px rgba(140, 180, 255, .26));
+  animation: neon-flicker 1.5s steps(1, end) infinite;
+}
+.overlay-quiz .quiz::after {
+  background: linear-gradient(180deg, rgba(20, 20, 19, .58), rgba(20, 20, 19, .82) 55%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .overlay-quiz .quiz::before { animation: none; }
+}
+
+.qz-head { margin-bottom: 14px; padding-right: 40px; }
+
+.qz-bar { height: 3px; background: rgba(232, 229, 222, .16); margin-bottom: 24px; }
+.qz-fill { height: 100%; background: var(--paper); transition: width .3s ease; }
+
+.qz-q {
+  font-family: var(--fat); font-size: clamp(16px, 2.3vw, 21px);
+  line-height: 1.3; margin: 0 0 20px; max-width: 46ch;
+}
+
+.qz-opts { display: grid; gap: 8px; margin-bottom: 16px; }
+.qz-opt {
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  padding: 13px 15px; cursor: pointer; font: inherit;
+  color: var(--chalk);
+  background: rgba(232, 229, 222, .05);
+  border: 1px solid var(--line);
+  transition: background .18s ease, border-color .18s ease, opacity .18s ease;
+}
+.qz-opt:hover:not(:disabled) { background: rgba(232, 229, 222, .12); border-color: var(--chalk-dim); }
+.qz-opt:disabled { cursor: default; }
+.qz-key {
+  flex: 0 0 22px; height: 22px; display: grid; place-items: center;
+  font-size: 10px; color: var(--chalk-dim);
+  border: 1px solid var(--line);
+}
+.qz-text { flex: 1; font-size: 13.5px; }
+.qz-mark { font-size: 14px; }
+
+.qz-opt.right { border-color: var(--paper); background: rgba(244, 242, 236, .16); }
+.qz-opt.right .qz-key { border-color: var(--paper); color: var(--chalk); }
+.qz-opt.wrong { border-color: rgba(232, 229, 222, .42); background: rgba(232, 229, 222, .05); }
+.qz-opt.wrong .qz-text { text-decoration: line-through; opacity: .65; }
+.qz-opt.dim { opacity: .4; }
+
+.qz-hint, .qz-after { font-size: 12px; color: #8b8880; margin: 0 0 4px; }
+.qz-after strong { color: var(--chalk); }
+
+/* --- result --- */
+.qz-result { text-align: center; padding: 14px 0 26px; }
+.qz-score { font-family: var(--fat); font-size: clamp(44px, 9vw, 76px); line-height: 1; }
+.qz-score span { font-size: .42em; color: var(--chalk-dim); }
+.qz-verdict { font-size: 14px; color: #b9b5ac; margin: 12px 0 0; }
+.qz-best-note { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--chalk-dim); margin: 8px 0 0; }
+
+.qz-review { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.qz-row {
+  display: grid; grid-template-columns: 26px 1fr auto; gap: 12px;
+  padding: 8px 10px; font-size: 12px;
+  background: rgba(232, 229, 222, .04);
+  border-left: 2px solid transparent;
+}
+.qz-row.ok { border-left-color: var(--paper); }
+.qz-row.no { border-left-color: rgba(232, 229, 222, .25); opacity: .78; }
+.qz-row-n { color: var(--chalk-dim); font-variant-numeric: tabular-nums; }
+.qz-row-a { color: #b9b5ac; text-align: right; }
+
+@media (max-width: 620px) {
+  .qz-row { grid-template-columns: 24px 1fr; }
+  .qz-row-a { grid-column: 2; text-align: left; font-size: 11px; }
+}
+
+/* ------------------------------------------------------------ motion
+   Windows arrive rather than appear, and anything clickable gives back
+   under the finger. Every one of these is a transform or an opacity, so
+   none of it touches layout. */
+
+@keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes window-in {
+  from { opacity: 0; transform: translateY(22px) scale(.965) rotate(-.5deg); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes deco-in {
+  from { opacity: 0; transform: rotate(var(--rot, 0deg)) scale(.9); }
+  to   { opacity: .28; transform: rotate(var(--rot, 0deg)) scale(1); }
+}
+
+.overlay:not([hidden]) { animation: overlay-in .2s ease both; }
+.overlay:not([hidden]) .tm {
+  animation: window-in .38s cubic-bezier(.18, .9, .28, 1) both;
+}
+.overlay:not([hidden]) .tm-deco {
+  animation: deco-in .5s .12s cubic-bezier(.2, .9, .3, 1) both;
+}
+
+/* a heading's letters settle one after another when the window lands */
+@keyframes title-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.overlay:not([hidden]) .tm-title { animation: title-in .34s .06s ease both; }
+.overlay:not([hidden]) .tm-player,
+.overlay:not([hidden]) .tm-grid,
+.overlay:not([hidden]) .qz-opts { animation: title-in .38s .12s ease both; }
+
+/* --- pressing things --- */
+.btn, .pf-btn, .tm-nav button, .tm-links a, .s-links a,
+.qz-opt, .quiz-card, .member, .single, .tm-close, .rc-row {
+  transition: transform .13s cubic-bezier(.2, .8, .3, 1),
+              background .18s ease, border-color .18s ease, color .18s ease;
+}
+.btn:active, .pf-btn:active, .tm-nav button:active,
+.tm-links a:active, .tm-close:active { transform: translateY(2px) scale(.97); }
+.qz-opt:active:not(:disabled) { transform: translateX(3px) scale(.995); }
+.quiz-card:active, .member:active, .single:active { transform: scale(.985); }
+.rc-row:active { transform: translateX(4px); }
+
+/* the search field lifts when it takes focus */
+#searchInput { transition: transform .18s ease, background .2s ease, border-color .2s ease; }
+#searchInput:focus { transform: translateY(-1px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay:not([hidden]),
+  .overlay:not([hidden]) .tm,
+  .overlay:not([hidden]) .tm-deco,
+  .overlay:not([hidden]) .tm-title,
+  .overlay:not([hidden]) .tm-player,
+  .overlay:not([hidden]) .tm-grid,
+  .overlay:not([hidden]) .qz-opts { animation: none; }
+}
+
+/* ------------------------------------------------------------ modals */
+.overlay {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(6, 6, 6, .9);
+  display: grid; place-items: center; padding: 18px;
+  overflow-y: auto;
+}
+.overlay[hidden] { display: none; }
+
+.tm {
+  position: relative; width: min(880px, 100%); max-height: 92vh; overflow-y: auto;
+  background: #1c1c1a; border: 1px solid rgba(232, 229, 222, .2);
+  padding: clamp(20px, 3.6vw, 36px);
+  isolation: isolate;
+}
+/* the pinboard collage, sunk far enough back to read type over it */
+.tm::before {
+  content: '';
+  position: absolute; inset: 0; z-index: -1;
+  background: url('../assets/bg/modal.webp') center top / cover no-repeat;
+  opacity: .85;
+}
+.tm::after {
+  content: '';
+  position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(24, 24, 22, .5), rgba(24, 24, 22, .68));
+}
+/* objects taped into the corners of an open window */
+.tm-deco {
+  position: absolute; z-index: 0;
+  pointer-events: none; user-select: none;
+  opacity: .28;
+  transform: rotate(var(--rot, 0deg));
+}
+.tm-deco img {
+  display: block; width: 100%; height: auto;
+  filter: grayscale(1) contrast(1.02) brightness(.85);
+}
+.tm-deco-tl { top: -14px; left: -12px; }
+.tm-deco-br { right: -14px; bottom: -12px; }
+@media (max-width: 620px) { .tm-deco { display: none; } }
+
+/* the particle layer inside an open window */
+.tm-dust {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+/* Lift the window's content above its dust layer — but not the close
+   button or the corner objects, which are absolutely positioned and
+   would be dropped back into the flow by a blanket `position: relative`.
+   That is exactly what moved the × out of the corner. */
+.tm > *:not(.tm-dust):not(.tm-close):not(.tm-deco) { position: relative; z-index: 1; }
+
+.tm-close {
+  position: absolute; top: 10px; right: 12px; z-index: 5;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  background: rgba(20, 20, 19, .72);
+  border: 1px solid var(--line); border-radius: 2px;
+  color: var(--chalk-dim);
+  font-size: 24px; line-height: 1; cursor: pointer; padding: 0;
+}
+.tm-close:hover { color: var(--ink); background: var(--paper); border-color: var(--paper); }
+
+.tm-head, .mm-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
+.tm-no, .mm-mono {
+  flex: 0 0 auto; background: var(--paper); color: var(--ink);
+  font-family: var(--fat); font-size: 16px; padding: 8px 11px;
+}
+.mm-mono { font-size: 20px; padding: 14px 16px; }
+.tm-title { font-family: var(--fat); font-size: clamp(19px, 3vw, 27px); margin: 0; line-height: 1.12; }
+.tm-sub { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--chalk-dim); margin: 6px 0 0; }
+
+.tm-player { margin-bottom: 22px; }
+
+.tm-grid { display: grid; gap: clamp(18px, 3vw, 34px); grid-template-columns: 1fr 1fr; }
+.tm-h {
+  font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--chalk-dim); margin: 0 0 12px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--line);
+}
+.tm-col .tm-h:not(:first-child) { margin-top: 26px; }
+
+.tm-lines { list-style: none; margin: 0 0 12px; padding: 0; }
+.tm-line {
+  display: flex; gap: 12px; width: 100%; text-align: left;
+  background: transparent; border: 0; color: #b3afa6;
+  font-family: var(--mono); font-size: 13px; padding: 7px 8px;
+  cursor: pointer; border-left: 2px solid transparent;
+}
+.tm-line:hover { background: rgba(232, 229, 222, .05); color: var(--chalk); }
+.tm-line.now { border-left-color: var(--paper); background: rgba(232, 229, 222, .09); color: var(--chalk); }
+.tm-tc { flex: 0 0 52px; font-size: 10px; color: #6f6b64; padding-top: 2px; }
+
+/* A whole song is fifty lines or more, which would push the credits off
+   the bottom of the window. It gets its own scroll instead, with the
+   marker kept in view by the browser as it moves. */
+.tm-lines-full {
+  max-height: min(46vh, 420px);
+  overflow-y: auto;
+  padding-right: 6px;
+  scroll-behavior: smooth;
+  border-left: 1px solid var(--line);
+}
+.tm-lines-full .tm-line { padding: 5px 8px; }
+/* An instrumental gap: the marker still moves through it, so it is drawn
+   rather than skipped, but quietly. */
+.tm-line-rest .tm-line { color: #5c5952; }
+
+.tm-hint, .tm-empty, .tm-attr {
+  font-size: 11px; line-height: 1.7; color: #83807a;
+}
+.tm-attr { margin-top: 22px; padding-top: 12px; border-top: 1px solid var(--line); }
+.tm-note { font-size: 13px; color: #b3afa6; margin: 0; }
+
+.tm-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; font-size: 12.5px; }
+.tm-dl dt { font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: #6f6b64; padding-top: 3px; }
+.tm-dl dd { margin: 0; color: #c3bfb6; }
+
+.tm-links { display: flex; flex-wrap: wrap; gap: 7px; }
+.tm-links a {
+  font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase;
+  text-decoration: none; padding: 6px 10px; border: 1px solid var(--line);
+}
+.tm-links a:hover { background: var(--paper); color: var(--ink); }
+
+.tm-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line);
+}
+.tm-nav button {
+  background: transparent; border: 1px solid var(--line); color: var(--chalk);
+  font-family: var(--mono); font-size: 11px; padding: 9px 14px; cursor: pointer;
+}
+.tm-nav button:hover { background: var(--paper); color: var(--ink); }
+.tm-of { font-size: 10px; letter-spacing: .16em; color: var(--chalk-dim); }
+
+.mm-body p { font-size: 14px; color: #b9b5ac; }
+.mm-dl { margin-top: 20px; }
+
+/* ------------------------------------------------------------ neon sign
+   The photographed sign, cut off its black field by luminance, lit with
+   layered drop-shadows and dropped to a lower duty cycle once every
+   1.5s — the stutter a failing tube actually has. */
+.neon {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  width: min(560px, 46vw);
+  opacity: .9;
+  animation: neon-flicker 1.5s steps(1, end) infinite;
+}
+.neon img {
+  display: block; width: 100%; height: auto;
+  filter:
+    drop-shadow(0 0 2px rgba(255, 255, 255, .95))
+    drop-shadow(0 0 9px rgba(214, 232, 255, .7))
+    drop-shadow(0 0 26px rgba(150, 190, 255, .45))
+    drop-shadow(0 0 60px rgba(110, 160, 255, .28));
+}
+
+@keyframes neon-flicker {
+  0%, 86% { opacity: .9; }
+  87% { opacity: .28; }
+  89% { opacity: .85; }
+  91% { opacity: .34; }
+  94% { opacity: .9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neon { animation: none; }
+}
+
+/* ------------------------------------------------------------ collage */
+/* Cut-outs live in the margins outside the content column. Anchoring to
+   the viewport edge (not the section) is what guarantees they can never
+   reach a heading, a button or a receipt, at any width. */
+.deco, .scrap {
+  position: absolute; z-index: 1;
+  pointer-events: none; user-select: none;
+}
+.deco[data-anchor="vl"], .scrap[data-anchor="vl"] { left: calc(50% - 50vw + var(--inset, 20px)); }
+.deco[data-anchor="vr"], .scrap[data-anchor="vr"] { right: calc(50% - 50vw + var(--inset, 20px)); }
+.deco[data-anchor="ir"], .scrap[data-anchor="ir"] { right: var(--inset, 20px); }
+
+.deco img {
+  display: block; width: 100%; height: auto;
+  /* Cut from several different papers — warm, grey, newsprint, chalk on
+     black. Desaturating puts them on one grade of grey; the shadow gives
+     them an edge against the star field so they read as taped-on paper
+     rather than a watermark. Blending them into the background made them
+     disappear, which is not the same as fitting in. */
+  filter: grayscale(1) contrast(1.05) brightness(.88)
+          drop-shadow(0 5px 12px rgba(0, 0, 0, .75));
+}
+
+.float { animation: drift var(--dur, 24s) ease-in-out infinite alternate; }
+@keyframes drift {
+  from { transform: rotate(var(--rot, 0deg)) translate(0, 0); }
+  to { transform: rotate(calc(var(--rot, 0deg) * -1)) translate(var(--dx, 8px), var(--dy2, -12px)); }
+}
+
+.scrap {
+  color: var(--chalk); white-space: nowrap;
+}
+/* A gutter is tall and narrow, so anything long is set down it rather
+   than truncated. */
+.scrap.vert {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+.scrap.vert.scrap-box { padding: 8px 3px; }
+.scrap-plain { font-family: var(--fat); font-size: clamp(10px, 1.1vw, 15px); letter-spacing: .04em; }
+.scrap-hand { font-family: var(--hand); font-size: clamp(13px, 1.7vw, 23px); }
+.scrap-box {
+  font-family: var(--fat); font-size: clamp(9px, 1vw, 13px);
+  background: var(--chalk); color: var(--ink); padding: 3px 8px;
+}
+.scrap-huge {
+  font-family: var(--fat); font-size: clamp(34px, 5vw, 74px);
+  color: transparent; -webkit-text-stroke: 1.5px rgba(232, 229, 222, .45);
+}
+
+/* Two sets are mounted; the width decides which one is drawn.
+
+   Above 1240px there are side margins, so the full set of 55 hangs in
+   them. Below that the margins are gone — instead of dropping everything
+   (which is what used to happen, and left the phone with a bare
+   background) a smaller set is laid into the vertical gaps between
+   blocks of content, sized to the gap it lands in. See layoutNarrow().
+   Under 380px even those gaps are too tight to be worth it. */
+@media (max-width: 1240px) {
+  .deco:not(.deco-n), .scrap:not(.scrap-n) { display: none; }
+}
+@media (min-width: 1241px) {
+  .deco-n, .scrap-n { display: none; }
+}
+@media (max-width: 330px) {
+  .deco, .scrap { display: none; }
+}
+
+/* The narrow set sits between blocks rather than beside them, so it is
+   centred on its own slot and given a lighter hand: less contrast, a
+   shorter shadow, no drift (a moving object in a 60px gap reads as a
+   glitch). */
+.deco-n, .scrap-n {
+  left: 50%;
+  transform-origin: 50% 50%;
+  animation: none;
+  transform: translateX(-50%) rotate(var(--rot, 0deg));
+}
+/* Sized by the gap, so the height is what is set and the width follows
+   from the picture. */
+.deco-n { height: 60px; max-width: calc(100vw - 30px); }
+.deco-n img {
+  height: 100%; width: auto;
+  filter: grayscale(1) contrast(1.03) brightness(.92)
+          drop-shadow(0 3px 8px rgba(0, 0, 0, .7));
+}
+.scrap-n { white-space: nowrap; }
+/* A gutter scrap is set vertically; a gap scrap has width but no height,
+   so it goes back to reading across. */
+.scrap-n.vert { writing-mode: horizontal-tb; }
+
+/* ------------------------------------------------------------ footer */
+.foot {
+  border-top: 1px solid var(--line);
+  padding: 26px clamp(16px, 4vw, 40px);
+  text-align: center; position: relative; z-index: 3;
+}
+.foot p { margin: 0; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #6f6b64; }
+/* Quiet enough to ignore, loud enough to read when something is wrong. */
+.foot-status { margin-top: 8px !important; font-size: 9.5px !important; color: #4f4c47 !important; }
+
+/* ?debug only — never mounted otherwise. */
+.debug-panel {
+  position: fixed; left: 10px; bottom: 10px; z-index: 999;
+  max-width: min(360px, calc(100vw - 20px));
+  padding: 9px 12px;
+  font: 11px/1.55 ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color: #d8d4cc; background: rgba(8, 8, 10, .93);
+  border: 1px solid rgba(232, 229, 222, .22);
+  pointer-events: none; white-space: normal; word-break: break-word;
+}
+.debug-panel .debug-err { color: #ff8b7a; }
+
+/* ------------------------------------------------------------ responsive */
+
+/* Touch has no hover, so anything that only appears on hover is invisible,
+   and 18px targets are not reachable. */
+@media (pointer: coarse) {
+    .rc-row { padding: 7px 0; }
+  .pf-btn { padding: 10px 14px; font-size: 11px; }
+  .pf-wave { height: 78px; }
+  .tm-links a, .nav-links a { padding: 10px 12px; }
+  .tm-line { padding: 11px 8px; }
+  .qz-opt { padding: 15px; }
+  /* objects taped into the corners of an open window */
+.tm-deco {
+  position: absolute; z-index: 0;
+  pointer-events: none; user-select: none;
+  opacity: .28;
+  transform: rotate(var(--rot, 0deg));
+}
+.tm-deco img {
+  display: block; width: 100%; height: auto;
+  filter: grayscale(1) contrast(1.02) brightness(.85);
+}
+.tm-deco-tl { top: -14px; left: -12px; }
+.tm-deco-br { right: -14px; bottom: -12px; }
+@media (max-width: 620px) { .tm-deco { display: none; } }
+
+/* the particle layer inside an open window */
+.tm-dust {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+/* Lift the window's content above its dust layer — but not the close
+   button or the corner objects, which are absolutely positioned and
+   would be dropped back into the flow by a blanket `position: relative`.
+   That is exactly what moved the × out of the corner. */
+.tm > *:not(.tm-dust):not(.tm-close):not(.tm-deco) { position: relative; z-index: 1; }
+
+.tm-close { font-size: 32px; padding: 10px 14px; }
+}
+
+@media (max-width: 760px) {
+  .tm-grid { grid-template-columns: 1fr; }
+  .tl { grid-template-columns: 1fr; gap: 8px; }
+  .nav-links { gap: 12px; }
+  .brand-sub { display: none; }
+}
+
+@media (max-width: 620px) {
+  .album-list { grid-template-columns: 1fr; }
+  .rc-controls { gap: 10px; }
+  .unfold { padding: 13px 18px; }
+  .overlay { padding: 8px; }
+  .tm { max-height: 94vh; }
+  .qz-opts { gap: 10px; }
+}
+
+/* nothing may push the page sideways, whatever a frame measures */
+html, body { max-width: 100%; }
+
+/* ------------------------------------------------------------ reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .float { animation: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+    .rc-stage, .rc-ball, .rc-paper { transition: none; }
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

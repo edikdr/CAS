@@ -1,0 +1,57 @@
+# Deploying to Netlify
+#
+#   1. point it at this repository
+#   2. add GENIUS_ACCESS_TOKEN under Site settings → Environment variables
+#      (a free read-only "client access token" from genius.com/api-clients)
+#   3. redeploy — a variable added after a build does not reach the
+#      function that is already live
+#
+# Deploy the WHOLE unpacked folder, not arctic-monkeys/ on its own: this
+# file and netlify/functions/ live beside it, and without them there is
+# no /api/genius at all. Check it with
+#
+#   curl -s https://<site>/api/genius/health
+#
+# which answers {"ok":true,"token":true}. HTML back means the site was
+# deployed without this file.
+#
+# There is no build step and no .env file. The site is static; the one
+# function below answers /api/genius/* with the token attached, so the
+# credential stays on the server.
+#
+# Without the variable the site still works — it falls back to the data
+# baked in by tools/fetch_am_data.py and to the credits written by hand.
+
+# Netlify Functions v2 declares its own route with `export const config`.
+# When that is not honoured — an older build image, or a UI setting that
+# pins the classic mapping — the request falls through to the static site
+# and the browser gets the HTML of the home page instead of JSON. These
+# two redirects say the same thing the function already says, so the route
+# works either way. Harmless when the v2 config is honoured; the function
+# accepts both path shapes.
+[[redirects]]
+  from = "/api/genius/*"
+  to = "/.netlify/functions/genius/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/lyrics"
+  to = "/.netlify/functions/genius/lyrics"
+  status = 200
+  force = true
+
+[build]
+  publish = "arctic-monkeys"
+  functions = "netlify/functions"
+  command = ""
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

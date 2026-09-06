@@ -442,17 +442,26 @@ function footStatus() {
   line.textContent = `build ${Diag.build} · genius: checking…`;
   foot.appendChild(line);
 
-  /* Three states, because the two ways a deploy goes wrong want different
-     things done about them and used to read as the same word. */
+  /* Four things it can say, because they want four different actions —
+     and one of them is "nothing, this is fine". A page carrying a fetched
+     js/am-api-data.js has the credits, the statistics and the annotations
+     already and needs no proxy at all, so telling that deploy to go and
+     configure one is worse than saying nothing. */
   const SAYS = {
     connected: 'connected',
     'no-token': 'no token — add GENIUS_ACCESS_TOKEN to the site environment, then redeploy',
-    absent: 'no /api/genius — deploy the whole folder, not just arctic-monkeys/'
+    absent: 'no /api/genius — either deploy the function, or bake the data in '
+          + 'with tools/fetch_am_data.py --genius'
   };
   Genius.probeProxy().then(state => {
-    line.textContent = `build ${Diag.build} · genius: ${SAYS[state] || state}` +
+    const baked = Genius.bakedCount();
+    const say = state !== 'connected' && baked.notes
+      ? `baked in — ${baked.tracks} track${baked.tracks === 1 ? '' : 's'}, `
+        + `${baked.notes} with annotations`
+      : (SAYS[state] || state);
+    line.textContent = `build ${Diag.build} · genius: ${say}` +
       ' · sleeves, portraits and the words need no token';
-    Diag.set('genius', state);
+    Diag.set('genius', baked.notes && state !== 'connected' ? 'baked' : state);
   }).catch(e => {
     line.textContent = `build ${Diag.build} · genius: unreachable`;
     Diag.note('genius.probeProxy', e);

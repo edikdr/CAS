@@ -19,9 +19,48 @@ python3 -m http.server 8000    # from inside arctic-monkeys/
 
 ### Deploying
 
-**Any static host.** Upload the `arctic-monkeys/` directory. Done — and almost
-everything works, because most of what the page asks for needs no key and no
-server:
+### The short version
+
+Which of these you are doing decides everything else:
+
+| How you deploy | What to use | Genius annotations |
+|---|---|---|
+| Drag a zip / folder onto the host | `dist/am-site.zip` | **bake them in first** (below) |
+| Connect a Git repository | this whole folder | live, with a token |
+| `node server.js` | this whole folder | live, with a token |
+
+**A dragged deploy has no build step, so it cannot carry a serverless
+function — on any host, ever.** That is not a limitation of this project; it is
+what "manual deploy" means. So on that route `/api/genius/*` will always come
+back as the site's own HTML, and the answer is not to configure anything but to
+put the data inside the site before you send it:
+
+```bash
+GENIUS_ACCESS_TOKEN=your_token python3 tools/fetch_am_data.py --genius
+python3 tools/fetch_lyrics.py
+python3 tools/make_zip.py          # rebuilds dist/am-site.zip with it all inside
+```
+
+The first writes the credits, the artwork, the statistics and the annotations
+into `js/am-api-data.js`; the second writes every song's words into
+`js/lyrics-data.js`; the page reads both before it reaches for anything else.
+After that the dropped archive is the whole site — annotations included — with
+no token on the server, no environment variable and no function. `make_zip.py`
+tells you whether the data is in there.
+
+If you would rather have Genius answered live, the deploy has to be one that
+builds: connect the repository, or use the Netlify CLI, which does deploy
+functions —
+
+```bash
+npx netlify-cli deploy --prod --dir=arctic-monkeys --functions=netlify/functions
+```
+
+---
+
+**Any static host.** Upload the `arctic-monkeys/` directory, or drop
+`dist/am-site.zip`. Done — and almost everything works, because most of what
+the page asks for needs no key and no server:
 
 | | needs | works on a bare static host |
 |---|---|---|
@@ -36,7 +75,8 @@ cross-origin browser requests, so there is no way to ask it from a page — a
 server-side route is the only shape that exists. Everything above it is asked
 for directly and arrives either way.
 
-**Netlify.** In order, and the order matters:
+**Netlify, from the repository.** In order, and the order matters. (None of
+this applies to a dragged deploy — see the short version above.)
 
 0. **This project is a subfolder of the repository it lives in.** Set the
    site's *base directory* to `arctic-monkeys-fan-site` under Site settings →

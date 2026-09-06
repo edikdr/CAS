@@ -558,11 +558,14 @@ const TrackModal = {
         ? `No annotations for this one yet. Anyone can write one on ${page}.`
         : Genius.state === 'no-token'
           ? `Annotations need a Genius token. Add <code>GENIUS_ACCESS_TOKEN</code> to the
-             site\u2019s environment variables and redeploy, and they appear here.
-             Until then they are on ${page}.`
-          : `Annotations come through this site\u2019s own <code>/api/genius</code> route,
-             which this deploy has not got \u2014 deploy the whole folder rather than
-             the site directory on its own. They are on ${page}.`;
+             site\u2019s environment variables and redeploy, or run
+             <code>tools/fetch_am_data.py --genius</code> once with a token and they
+             travel inside the site. Until then they are on ${page}.`
+          : `Nothing is answering for Genius on this deploy, and nothing was baked
+             into it. Either deploy the function beside the site, or run
+             <code>tools/fetch_am_data.py --genius</code> once with a token \u2014 which
+             is the shape that works on a host that only serves files. They are
+             on ${page}.`;
       host.innerHTML = `<p class="tm-empty">${why}</p>`;
       return;
     }

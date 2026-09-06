@@ -97,8 +97,41 @@ const Genius = {
     } catch { return null; }
   },
 
-  /** The Genius song record for a track, live. */
+  /**
+   * How much of Genius is already in the page.
+   *
+   * tools/fetch_am_data.py --genius writes the credits, the statistics and
+   * the annotations into js/am-api-data.js, and everything below reads
+   * that before it reads anything else. A deploy carrying a fetched file
+   * needs no proxy, no token and no serverless anything — which is the
+   * only way any of it works on a host that just serves files, a manual
+   * drag-and-drop deploy included.
+   */
+  bakedCount() {
+    const d = this.data();
+    const rows = Object.values((d && d.tracks) || {});
+    return {
+      tracks: rows.filter(r => r && (r.geniusId || (r.writers || []).length)).length,
+      notes: rows.filter(r => r && (r.notes || []).length).length
+    };
+  },
+
+  /** The baked Genius record for a track, if the fetcher supplied one. */
+  bakedSong(name) {
+    const rec = this.track(name);
+    if (!rec) return null;
+    return (rec.geniusId || (rec.writers || []).length) ? rec : null;
+  },
+
+  /** The Genius song record for a track: baked if there is one, else live. */
   async song(name) {
+    /* Before the session cache and before the network. A fetched file is
+       both faster and the only thing that answers at all where there is
+       no proxy — and the two carry the same fields, so nothing downstream
+       can tell which it got. */
+    const baked = this.bakedSong(name);
+    if (baked) return baked;
+
     const key = 'song:' + name;
     const cached = this.session(key);
     if (cached !== null) return cached;

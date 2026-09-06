@@ -19,14 +19,30 @@ python3 -m http.server 8000    # from inside arctic-monkeys/
 
 ### Deploying
 
-**Any static host.** Upload this directory. Done. The archive reads, plays and
-quizzes exactly as it should; what you lose is the two live lookups — Genius
-metadata and the full lyrics — because both need a server-side route. The page
-falls back to the data baked into `js/am-api-data.js` and to the cue points in
-`js/data.js`.
+**Any static host.** Upload the `arctic-monkeys/` directory. Done — and almost
+everything works, because most of what the page asks for needs no key and no
+server:
+
+| | needs | works on a bare static host |
+|---|---|---|
+| Previews | iTunes Search API | yes |
+| Album sleeves | Genius, then iTunes | yes |
+| Band photographs | Wikipedia, then Genius | yes |
+| The full words | LRCLIB, then lyrics.ovh | yes |
+| Annotations, credits, statistics | **Genius, with a token** | **no** |
+
+Only the last row needs the function and the token. Genius refuses
+cross-origin browser requests, so there is no way to ask it from a page — a
+server-side route is the only shape that exists. Everything above it is asked
+for directly and arrives either way.
 
 **Netlify.** In order, and the order matters:
 
+0. **This project is a subfolder of the repository it lives in.** Set the
+   site's *base directory* to `arctic-monkeys-fan-site` under Site settings →
+   Build & deploy. Netlify reads `netlify.toml` from the base directory, and
+   with the base left at the repository root it never sees this one — so no
+   function is built and step 1 has already gone wrong.
 1. **Deploy the whole unpacked folder, not `arctic-monkeys/` on its own.**
    `netlify.toml` and `netlify/functions/` live *beside* it. Deploy the inner
    folder and there is no function, so `/api/genius/*` falls through to the
@@ -51,9 +67,21 @@ curl -s https://<your-site>/api/genius/health
 `{"ok":true,"token":false}` means the folder is right and the variable is not
 set (or you have not redeployed since setting it). HTML back means step 1.
 
-You can also just look: the footer of the live site prints the build and the
-proxy's state — *genius: connected* or *genius: offline*. `?debug` on the end of
-the URL opens a panel with the rest.
+You can also just look. The footer of the live site prints the build and which
+of the three states the proxy is in, in the words of what to do about it:
+
+* *genius: connected* — the route is there and the token is set
+* *genius: no token* — the route is there, step 2 or step 3 is not done
+* *genius: no /api/genius* — step 1: the inner folder was deployed on its own
+
+`?debug` on the end of the URL opens a panel with the rest, including where the
+words on screen came from.
+
+**Vercel.** Set the project's root directory to this folder and add
+`GENIUS_ACCESS_TOKEN` under Settings → Environment Variables, then redeploy.
+Nothing else: `api/lyrics.js` and `api/genius/[...path].js` are the same two
+routes in the shape Vercel reads them from the filename, and `vercel.json`
+points the static half at `arctic-monkeys/`.
 
 No `.env` file is ever deployed and no build step runs. `netlify/functions/genius.mjs`
 answers `/api/genius/*` with the token attached, so the credential stays on the
@@ -63,8 +91,11 @@ The same function answers `/api/lyrics`, which needs no key at all.
 **Any Node host.** `node server.js` serves the site and both routes, reading
 `GENIUS_ACCESS_TOKEN` and `PORT` from the environment. No dependencies.
 
-The three paths are interchangeable: the page calls `/api/genius/…` and
-`/api/lyrics` and does not know which one answered, or whether anything did.
+The four paths are interchangeable: the page calls `/api/genius/…` and
+`/api/lyrics` and does not know which one answered, or whether anything did. It
+also tries `/.netlify/functions/genius/…` — the same function under the classic
+mapping — for the builds where the route declared in the function is not
+honoured, and uses whichever of the two answers for the rest of the session.
 
 ---
 
@@ -80,11 +111,38 @@ time-stamped LRC, which is better than a plain text: the follow-along marker
 gets the song's real timing for its whole length instead of the handful of cue
 points written by hand against a thirty-second preview.
 
-- The request goes through the site's own `/api/lyrics`, not straight from the
-  browser — one entry point, no CORS to argue with.
-- Nothing is stored in this repository and nothing is written to disk. The words
-  are fetched when a window opens and live in the tab until it closes.
-- If LRCLIB has nothing for a track, the baked cue points stay on screen.
+Four places are asked, in the order that gets the words on screen soonest, and
+the first one to answer wins:
+
+1. **`js/lyrics-data.js`**, if `tools/fetch_lyrics.py` has been run. No network
+   at all, so the whole song is there on the frame the window opens.
+2. **the site's own `/api/lyrics`**, which `server.js` and both serverless
+   functions answer.
+3. **LRCLIB, straight from the browser.**
+4. **[lyrics.ovh](https://api.lyrics.ovh)**, which has no timings and no key
+   either, for the B-sides and live cuts LRCLIB has not got.
+
+(3) and (4) are why every song has its words on a plain static host with no
+function behind it, which is the deploy most people actually do. (2) is still
+first of the three because one entry point is one thing to cache and one thing
+to debug. If all four come back with nothing, the baked cue points stay on
+screen and the window is still usable.
+
+Nothing is stored in this repository unless you run the fetcher, and nothing is
+written to disk at runtime. The words are fetched when a window opens and live
+in the tab until it closes.
+
+To bake them in instead:
+
+```bash
+python3 tools/fetch_lyrics.py             # all 80 tracks → js/lyrics-data.js
+python3 tools/fetch_lyrics.py --only 505  # one of them
+```
+
+Already-fetched tracks are skipped, so a second run only picks up what was
+missed. The words belong to their publishers: baking them into a public deploy
+is your decision and your responsibility, which is why it is a step you take
+rather than one already taken for you.
 
 The words belong to their publishers. Reproducing them on a public site is the
 site owner's decision and the site owner's responsibility — worth knowing before
@@ -171,9 +229,21 @@ It writes `js/am-api-data.js` and `assets/art/`. Both are read only if present.
 
 With a token in the platform's environment, the page resolves everything live
 on first use and remembers it for the session: songwriter credits, cover art,
-artist photographs, and the annotations. Without one it uses whatever
-`tools/fetch_am_data.py` baked in, and failing that the credits written by hand
-in `data.js`. Nothing waits on the network — a window opens usable and fills in.
+artist photographs, the statistics and the annotations.
+
+Without one, only the annotations and the statistics are actually lost. The
+sleeves fall back to the iTunes Search API and the portraits to Wikipedia,
+neither of which needs a key — see `js/media.js` — and the credits fall back to
+what `tools/fetch_am_data.py` baked in, and failing that to the ones written by
+hand in `data.js`. Nothing waits on the network: a window opens usable and
+fills in behind you.
+
+Portraits ask Wikipedia before Genius, which is the opposite way round from the
+sleeves, and deliberately: Genius' artist image for a band member is usually a
+photograph of the whole band, which under a card headed with one name is a
+wrong caption. A search result whose title does not carry that person's surname
+is thrown away for the same reason — two of the five have no article of their
+own, and they keep their monogram rather than being given somebody else's face.
 
 
 Genius does not serve lyrics through its API, and it refuses cross-origin
@@ -213,6 +283,15 @@ GENIUS_ACCESS_TOKEN=your_token_here
 
 The transport is the AM waveform. It is drawn to a canvas, and its amplitude
 follows the music through a Web Audio `AnalyserNode`.
+
+The bands are spaced logarithmically across the spectrum, with a lift for the
+roughly 1/f fall-off and a floor under each one. An even split hands the
+right-hand half of the panel the top two octaves, where music has almost no
+energy, so that end of the wave sat flat however hard a track was playing; and
+the burst envelope used to close to 5% of full height at the edges, which the
+same amount of signal could not have moved visibly. The line is drawn in a
+moving greyscale ramp — a ripple of brightness travelling along it, which turns
+over while a track plays and holds still when it does not.
 
 Whether that analysis is real depends on the file: attaching an analyser to a
 cross-origin stream only works when the response carries CORS headers, and some
@@ -336,7 +415,8 @@ js/data.js                members, discography, credits, lore, lyric excerpts
 js/receipt.js             the receipt, and frame playback
 js/player.js              preview engine + the waveform transport
 js/genius.js              baked Genius data, and the optional live proxy
-js/lyrics.js              full words from LRCLIB, and the LRC parser
+js/media.js               sleeves and portraits from the keyless sources
+js/lyrics.js              the words: four sources, and the LRC parser
 js/trackmodal.js          the track window: words, annotations, credits, links
 js/main.js                rendering, search, member window
 js/quizzes.js             the four decks
@@ -344,6 +424,7 @@ js/quiz.js                quiz engine and window
 js/collage.js             cut letters, background objects, stars, particles
 js/crumple-manifest.js    generated — frame geometry
 js/am-api-data.js         generated — previews, credits, artwork, annotations
+js/lyrics-data.js         generated — the words, if you bake them in
 assets/crumple/           generated — 10 rendered frames per album
 assets/bg/                backdrop, modal collage, neon sign, 505 heart
 assets/fonts/             four bundled faces

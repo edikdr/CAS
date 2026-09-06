@@ -451,7 +451,7 @@ function footStatus() {
   };
   Genius.probeProxy().then(state => {
     line.textContent = `build ${Diag.build} · genius: ${SAYS[state] || state}` +
-      ' · sleeves and portraits work either way';
+      ' · sleeves, portraits and the words need no token';
     Diag.set('genius', state);
   }).catch(e => {
     line.textContent = `build ${Diag.build} · genius: unreachable`;

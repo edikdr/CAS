@@ -1,5 +1,9 @@
 # Deploying to Netlify
 #
+#   0. set the site's base directory to arctic-monkeys-fan-site — this
+#      project is a subfolder of the repository, and Netlify reads this
+#      file from the base directory. With the base left at the repository
+#      root it never sees this file and never builds the function.
 #   1. point it at this repository
 #   2. add GENIUS_ACCESS_TOKEN under Site settings → Environment variables
 #      (a free read-only "client access token" from genius.com/api-clients)
@@ -19,8 +23,10 @@
 # function below answers /api/genius/* with the token attached, so the
 # credential stays on the server.
 #
-# Without the variable the site still works — it falls back to the data
-# baked in by tools/fetch_am_data.py and to the credits written by hand.
+# Without the variable the site still works, and loses less than it looks:
+# the previews, the sleeves, the band photographs and the full words are
+# all resolved from sources that need no key (iTunes, Wikipedia, LRCLIB).
+# Only the annotations, the statistics and the live credits need Genius.
 
 # Netlify Functions v2 declares its own route with `export const config`.
 # When that is not honoured — an older build image, or a UI setting that

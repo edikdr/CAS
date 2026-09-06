@@ -1,0 +1,10 @@
+# Read from the publish directory itself, whatever else Netlify did or did
+# not read. netlify.toml says the same two things; this is here for the
+# deploy where that file was never seen — a manual drop, or a site whose
+# base directory points somewhere else. It cannot conjure the function
+# into existence, but where the function is there and only the routing is
+# not, this is what fixes it.
+#
+# Harmless everywhere else: every other host ignores the file.
+/api/genius/*   /.netlify/functions/genius/:splat   200!
+/api/lyrics     /.netlify/functions/genius/lyrics   200!

@@ -2,8 +2,9 @@
 #
 #   0. set the site's base directory to arctic-monkeys-fan-site — this
 #      project is a subfolder of the repository, and Netlify reads this
-#      file from the base directory. With the base left at the repository
-#      root it never sees this file and never builds the function.
+#      file from the base directory. There is a netlify.toml at the
+#      repository root that points here, so a site with no base set works
+#      too; setting it is still the clearer of the two.
 #   1. point it at this repository
 #   2. add GENIUS_ACCESS_TOKEN under Site settings → Environment variables
 #      (a free read-only "client access token" from genius.com/api-clients)
@@ -50,7 +51,6 @@
 [build]
   publish = "arctic-monkeys"
   functions = "netlify/functions"
-  command = ""
 
 [[headers]]
   for = "/assets/*"

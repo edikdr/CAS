@@ -107,9 +107,9 @@ are on the page, behind terms that say not to scrape them.
 
 So the words come from **[LRCLIB](https://lrclib.net)**, which is open, needs no
 key, and is what a number of open-source players use. It usually answers with a
-time-stamped LRC, which is better than a plain text: the follow-along marker
-gets the song's real timing for its whole length instead of the handful of cue
-points written by hand against a thirty-second preview.
+time-stamped LRC, which is better than a plain text: every line carries its
+real position in the song, so pressing one seeks the preview there, instead of
+the handful of cue points written by hand against a thirty-second preview.
 
 Four places are asked, in the order that gets the words on screen soonest, and
 the first one to answer wins:

@@ -1,0 +1,52 @@
+# Repository-root config.
+#
+# The site lives in arctic-monkeys-fan-site/, which has a netlify.toml of
+# its own. Netlify reads that one only when the site's *base directory* is
+# set to that folder — and a site created by pointing Netlify at this
+# repository has no base directory set, so it reads this file instead. If
+# this file did not exist it would read none at all: the publish directory
+# can be corrected in the UI, which is why such a site serves the pages
+# perfectly well, but the functions directory cannot be, so no function is
+# ever built and every /api/genius/* request falls through to the static
+# site and comes back as the home page's HTML.
+#
+# That is the whole of this file: say where the project is, so a site
+# connected to the repository root builds the function too.
+#
+#   curl -s https://<site>/api/genius/health   ->  {"ok":true,"token":true}
+#
+# HTML instead means the function is not there. Check the deploy log for
+# a "Functions bundling" section naming genius.mjs; if there is none, the
+# base directory or this file is not being read.
+
+[build]
+  base = "arctic-monkeys-fan-site"
+  publish = "arctic-monkeys"
+  functions = "netlify/functions"
+
+# Netlify Functions v2 declares its own route with `export const config`.
+# When that is not honoured — an older build image, or a UI setting that
+# pins the classic mapping — the request falls through to the static site
+# and the browser gets HTML instead of JSON. These say the same thing the
+# function already says, so the route works either way.
+[[redirects]]
+  from = "/api/genius/*"
+  to = "/.netlify/functions/genius/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/lyrics"
+  to = "/.netlify/functions/genius/lyrics"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

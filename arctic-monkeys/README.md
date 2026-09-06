@@ -11,23 +11,33 @@ works with them.
 
 ## Running it
 
-It is a static site. Any web server will do:
+The site is static and self-contained — this directory is the whole thing.
 
 ```bash
-python3 -m http.server 8000    # from the repository root
-# → http://localhost:8000/arctic-monkeys/
+python3 -m http.server 8000    # from inside arctic-monkeys/
 ```
 
-Or, if you want Genius answered live as well:
+### Deploying
 
-```bash
-cp .env.example .env           # put your token in
-node server.js                 # → http://localhost:8080
+**Any static host.** Upload this directory. Done. Everything works except the
+live Genius lookups, which fall back to the data baked into `js/am-api-data.js`.
+
+**Netlify.** Point it at the repository; `netlify.toml` already sets the publish
+directory and the function. Then add one environment variable:
+
+```
+GENIUS_ACCESS_TOKEN = your read-only client access token
 ```
 
-`server.js` has no dependencies and reads `PORT` from the environment, so it
-runs unchanged on anything that runs Node. Nothing in the project is tied to a
-particular host.
+No `.env` file is deployed and no build step runs. `netlify/functions/genius.js`
+answers `/api/genius/*` with the token attached, so the credential stays on the
+server — which it has to, because Genius refuses cross-origin browser requests.
+
+**Any Node host.** `node server.js` serves the site and the same proxy, reading
+`GENIUS_ACCESS_TOKEN` and `PORT` from the environment. No dependencies.
+
+The three paths are interchangeable: the page calls `/api/genius/…` and does not
+know which one answered, or whether anything did.
 
 ---
 
@@ -47,9 +57,14 @@ tools/crumple/
                  transforms, and it is screenshot as the paper texture
   crumple.html   maps that onto a paper mesh and deforms it in three phases:
                  creases press in, the sheet rolls up, the roll is crushed
-  render.mjs     drives it and captures ten stages per album
+  render.mjs     drives it and captures sixty stages per album
   to_webp.py     crops, compresses, and writes js/crumple-manifest.js
 ```
+
+Sixty poses, not ten. The site cross-fades continuously between whichever two
+are nearest, interpolating the column height and the frame offset at the same
+time, so nothing is ever switched — the paper is only ever a blend of two
+neighbouring poses. Ten frames read as a slideshow; sixty read as movement.
 
 The three phases matter. Interpolating a flat plane straight into a sphere
 makes the paper pancake half way, which is not what paper does — it rolls
@@ -101,6 +116,13 @@ python3 tools/fetch_am_data.py --all        # + Genius + artwork + MusicBrainz
 It writes `js/am-api-data.js` and `assets/art/`. Both are read only if present.
 
 ### Genius
+
+With a token in the platform's environment, the page resolves everything live
+on first use and remembers it for the session: songwriter credits, cover art,
+artist photographs, and the annotations. Without one it uses whatever
+`tools/fetch_am_data.py` baked in, and failing that the credits written by hand
+in `data.js`. Nothing waits on the network — a window opens usable and fills in.
+
 
 Genius does not serve lyrics through its API, and it refuses cross-origin
 requests from a browser. Both facts shape the design:
@@ -189,18 +211,22 @@ stops, the neon holds steady.
 
 ## Performance
 
-First paint pulls the stylesheet, the scripts, four fonts and the backdrop —
-about 700 KB, and none of the 70 crumple frames. A record's frames are fetched
-when it scrolls into view, and the rest are decoded on the way to the button,
-so the unfold never waits on the network.
+First paint pulls the stylesheet, the scripts, four fonts and the backdrop, and
+none of the crumple frames.
 
-- `content-visibility` skips layout for sections far from the viewport
-- the dust canvas stops entirely in a hidden tab, and thins out on phones
+Sixty frames per album is a couple of megabytes, so they arrive in two waves: a
+coarse spread of about a dozen first, which is enough to animate from, and the
+rest while it plays. `neighbours()` only ever blends between frames that have
+actually arrived, so on a slow connection the paper still moves — just with
+fewer in-betweens. Only the album you open is ever fetched.
+
+- the particle layers stop entirely in a hidden tab, and thin out on phones
+- every cut-out declares its aspect ratio, so nothing reflows as images land
 - artwork and frames are lazy, `decoding="async"`, and served `immutable`
   by `server.js`
 
-Measured cold on a local server: **load event at ~225 ms**, 22 image requests,
-zero frames.
+Measured cold on a local server: **load event at ~225 ms**, and zero crumple
+frames until you scroll to the records.
 
 ---
 
@@ -219,10 +245,11 @@ js/quizzes.js             the four decks
 js/quiz.js                quiz engine and window
 js/crumple-manifest.js    generated — frame geometry
 js/am-api-data.js         generated — previews, credits, artwork, annotations
-assets/crumple/           generated — 70 rendered frames
+assets/crumple/           generated — 60 rendered frames per album
 assets/bg/                backdrop, modal collage, neon sign, 505 heart
 assets/fonts/             four bundled faces
-../assets/letters/        five cut alphabets, shared with the sister site
+assets/letters/           five cut alphabets, 130 scans
+assets/cut/               35 objects cut from the fan collages
 ```
 
 Press `/` anywhere to jump to the search.

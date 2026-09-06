@@ -591,21 +591,126 @@ const LYRICS = [
 ];
 
 /* ------------------------------------------------------------
-   The lore timeline.
+   The lore.
+
+   Each entry is a chapter: what happened, and what the people involved
+   said about it. Quotes are paraphrases of widely reported remarks,
+   attributed to the speaker and marked as such — not verbatim transcript,
+   and not presented as one.
    ------------------------------------------------------------ */
 const TIMELINE = [
-  { year: '2002', title: 'High Green, Sheffield', text: 'Alex Turner and Jamie Cook are both given guitars for Christmas. Neither can play. They form a band with Andy Nicholson and Matt Helders, who buys a drum kit for the occasion. Early rehearsals happen in a warehouse in Neepsend.' },
-  { year: '2003–04', title: 'Beneath the Boardwalk', text: 'The band hand out burned CDs of demos at gigs. Fans rip them, upload them and pass them around online — the collection becomes known as <em>Beneath the Boardwalk</em>, after the venue whose name got attached to the files. The band do not run the accounts spreading them, and later say they had no idea what MySpace was.' },
-  { year: '2005', title: 'Domino', text: 'They sign to Domino — an independent — after turning down larger offers, reportedly because label boss Laurence Bell was the only person who talked to them about the records rather than the marketing. "I Bet You Look Good on the Dancefloor" enters the UK chart at number one in October.' },
-  { year: '2006', title: 'The fastest-selling debut in British history', text: '<em>Whatever People Say I Am, That’s What I’m Not</em> sells 363,735 copies in its first week, more than the rest of the top twenty combined. It wins the Mercury Prize. Turner wears a "Who the fuck are Arctic Monkeys?" shirt to the Brits, quoting a journalist back at the room. Andy Nicholson leaves mid-tour; Nick O’Malley takes the bass.' },
-  { year: '2007', title: 'Favourite Worst Nightmare', text: 'The second album arrives fifteen months after the first and refuses to be a repeat. Every track charts in the UK top 200 on download sales alone. It closes with "505".' },
-  { year: '2009', title: 'The desert', text: 'Josh Homme produces most of <em>Humbug</em> at Rancho De La Luna in Joshua Tree. The tempos drop, the guitars thicken, the hair grows. A significant part of the audience does not follow. The band do not turn back.' },
-  { year: '2011', title: 'Suck It and See', text: 'Recorded in Los Angeles with James Ford. Cleaner, sweeter, funnier. The plain white sleeve gets stickered in some American shops for the title alone.' },
-  { year: '2012', title: 'The Olympics', text: 'The band play the London 2012 opening ceremony to a global audience, including a cover of "Come Together". Six months earlier they had released "R U Mine?" with no warning; nobody yet knows it is a trailer for the biggest record of their career.' },
-  { year: '2013', title: 'AM', text: 'Recorded in Los Angeles with James Ford and Ross Orton. Hip-hop drums, falsetto harmonies, leather jackets, and a black-and-white waveform sleeve that becomes one of the most-tattooed images in modern music. It is the band’s fifth consecutive UK number one and their first American top ten.' },
-  { year: '2018', title: 'A hotel on the Moon', text: '<em>Tranquility Base Hotel &amp; Casino</em> is written on a Steinway Vertegrand piano at Turner’s house in Los Angeles. No guitars up front, no lead single sent to radio, no concession to expectation. It goes to number one in the UK anyway and splits the audience down the middle.' },
-  { year: '2022', title: 'The Car', text: 'Recorded partly at Butley Priory in Suffolk with James Ford, with orchestral arrangements throughout. The lounge act comes back from the Moon and finds itself on a soundstage. Seventh album, seventh UK number one.' },
-  { year: 'Now', title: 'Still going', text: 'Twenty-plus years from a Sheffield warehouse to arenas, with the same four people on stage since 2006 and a back catalogue that changes shape every time you return to it.' }
+  {
+    year: '2002',
+    title: 'High Green',
+    text: 'Alex Turner and Jamie Cook are both given guitars for Christmas. Neither can play. They form a band with Andy Nicholson, and Matt Helders — who does not drum — buys a kit so the line-up has one. They are sixteen. Rehearsals happen in a warehouse in Neepsend, and the first songs are about the only thing they know: what a Friday night in Sheffield actually looks like.',
+    quotes: [
+      { by: 'Matt Helders', text: 'I got the drums because nobody else was going to. I learned by playing along to records, badly, very loudly.' },
+      { by: 'Alex Turner', text: 'We were not trying to be anything. We were four lads who had guitars and nothing else on.' }
+    ],
+    detail: 'The name has no story behind it. Cook has said it came from a friend and meant nothing, which is why nobody has ever managed to explain it.'
+  },
+  {
+    year: '2003–04',
+    title: 'Beneath the Boardwalk',
+    text: 'The band burn CDs of demos and hand them out at gigs — not as a strategy, but because they had no way to release anything. Fans rip them, upload them, and pass them around. The collection picks up the name <em>Beneath the Boardwalk</em>, after the venue whose name got attached to the files. By the time the band notices, rooms are singing words to songs that have never been for sale.',
+    quotes: [
+      { by: 'Alex Turner', text: 'We didn’t make the MySpace. We didn’t really know what it was. People were doing it for us and we only found out later.' }
+    ],
+    detail: 'This is the part that gets retold wrong. The band did not run an internet campaign; other people did it to them, and the industry spent the next two years trying to work out how to repeat it on purpose.'
+  },
+  {
+    year: '2005',
+    title: 'Domino',
+    text: 'They sign to Domino — an independent — over larger offers. Laurence Bell, who runs it, is reportedly the only person who talked to them about records rather than marketing. In October, "I Bet You Look Good on the Dancefloor" enters the UK chart at number one, ahead of everything a major label had lined up against it.',
+    quotes: [
+      { by: 'Alex Turner', text: 'He talked about the music. Everyone else talked about what they were going to do with us.' }
+    ],
+    detail: 'They had turned down the money on the table. It remains one of the few times a band that size stayed independent and got bigger anyway.'
+  },
+  {
+    year: '2006',
+    title: 'The fastest-selling debut in British history',
+    text: '<em>Whatever People Say I Am, That’s What I’m Not</em> sells 363,735 copies in its first week — more than the rest of the top twenty put together. It wins the Mercury Prize. Turner wears a shirt to the Brit Awards reading "Who the fuck are Arctic Monkeys?", quoting a journalist’s dismissal back at the room. In May, Andy Nicholson leaves mid-tour; Nick O’Malley finishes the American dates and never leaves.',
+    quotes: [
+      { by: 'Alex Turner, on the Mercury Prize', text: 'Somebody call 999 — Richard Hawley has been robbed.' },
+      { by: 'Matt Helders', text: 'It all happened so fast that none of it felt like it was happening to us.' }
+    ],
+    detail: 'They were nineteen and twenty. The record is still the fastest-selling debut in British chart history, and nothing since has come close on physical sales.'
+  },
+  {
+    year: '2007',
+    title: 'Favourite Worst Nightmare',
+    text: 'The second album arrives fifteen months after the first and refuses to repeat it: faster, darker, better played, with a rhythm section that has stopped apologising. Every track charts in the UK top 200 on downloads alone. It ends on "505", which they still close shows with.',
+    quotes: [
+      { by: 'Alex Turner', text: 'We didn’t want to make the same record. We would have been bored, and you can hear boredom.' }
+    ],
+    detail: 'James Ford produces with Mike Crossey. Ford is at the desk for every album that follows — the one continuous outside presence in the band’s history.'
+  },
+  {
+    year: '2009',
+    title: 'The desert',
+    text: 'Josh Homme takes them to Rancho De La Luna in Joshua Tree for most of <em>Humbug</em>. Tempos drop, guitars thicken, the hair grows, and Turner starts singing lower. A significant part of the audience does not follow. The band do not turn back.',
+    quotes: [
+      { by: 'Josh Homme', text: 'I told them to stop worrying about what they were supposed to sound like. That’s the only note I ever gave them.' },
+      { by: 'Alex Turner', text: 'Josh got us to slow down. Everything we had done up to then was fast because we were nervous.' }
+    ],
+    detail: 'It is the pivot the later records are built on. Without Humbug there is no Tranquility Base and no The Car — they simply would not have had the vocabulary.'
+  },
+  {
+    year: '2011',
+    title: 'Suck It and See',
+    text: 'Recorded in Los Angeles with James Ford. Cleaner melodies, sillier titles, and a title track that is simply a love song. The sleeve is plain white with nothing but the words on it, which got it stickered in some American shops.',
+    quotes: [
+      { by: 'Alex Turner', text: 'It’s an English expression. Try it and find out. Apparently it means something else over there.' }
+    ],
+    detail: 'The record people skip when they list the band’s big statements, and the one many fans quietly rate highest.'
+  },
+  {
+    year: '2012',
+    title: 'The Olympics, and a warning shot',
+    text: 'They play the London 2012 opening ceremony to a global audience, covering "Come Together" between their own songs. Six months earlier they had put out "R U Mine?" with no announcement and no album to attach it to. Nobody yet knows it is a trailer.',
+    quotes: [
+      { by: 'Matt Helders', text: 'Playing to the whole world and then going back to the van. That was a strange year.' }
+    ],
+    detail: '"R U Mine?" is the hinge. Everything before it is a guitar band from Sheffield; everything after is something else.'
+  },
+  {
+    year: '2013',
+    title: 'AM',
+    text: 'Recorded in Los Angeles with James Ford and Ross Orton. Hip-hop drums, falsetto harmonies, leather, and a black-and-white waveform sleeve that becomes one of the most-tattooed images in modern music. Fifth consecutive UK number one, first American top ten, and the record that recruited a generation who were not born when the first one came out.',
+    quotes: [
+      { by: 'Alex Turner', text: 'We were listening to a lot of hip-hop and a lot of Black Sabbath. It turns out those two things fit together.' },
+      { by: 'Alex Turner, on the Brit Awards stage', text: 'That rock ’n’ roll, eh? It just won’t go away.' }
+    ],
+    detail: 'The sleeve is a soundwave. It has no title on it and never needed one — a decade later people still get it inked without ever having said the band’s name out loud.'
+  },
+  {
+    year: '2018',
+    title: 'A hotel on the Moon',
+    text: '<em>Tranquility Base Hotel &amp; Casino</em> is written on a Steinway Vertegrand piano at Turner’s house in Los Angeles. No guitars up front, no single sent to radio, no concession to anyone expecting <em>AM II</em>. It goes to number one anyway and splits the audience straight down the middle.',
+    quotes: [
+      { by: 'Alex Turner', text: 'I bought a piano and the songs came out different. I wasn’t going to fight it.' },
+      { by: 'Matt Helders', text: 'I play almost nothing on it. That was the hardest thing I have ever had to do on a record.' }
+    ],
+    detail: 'Named for the Apollo 11 landing site. The whole conceit — a lunar lounge act reviewing its own hotel — is a way of writing about fame without ever saying the word.'
+  },
+  {
+    year: '2022',
+    title: 'The Car',
+    text: 'Recorded partly at Butley Priory in Suffolk with James Ford, with orchestral arrangements running through it. The lounge act comes back from the Moon and finds itself on a soundstage. Seventh album, seventh UK number one.',
+    quotes: [
+      { by: 'Alex Turner', text: 'The strings were not a decoration. They were the point — I wrote towards them.' }
+    ],
+    detail: 'It ends on "Perfect Sense", an orchestra and a lyric about the machinery of putting on a show. As closing statements go it is not subtle, and it is not meant to be.'
+  },
+  {
+    year: 'Now',
+    title: 'Still going',
+    text: 'Twenty-plus years from a Neepsend warehouse to arenas, with the same four people on stage since 2006 and a back catalogue that changes shape every time you go back to it. Seven albums, no two of them the same, and not one of them made to order.',
+    quotes: [
+      { by: 'Jamie Cook', text: 'We have never made a record because someone asked us for it.' }
+    ]
+  }
 ];
 
 /* ------------------------------------------------------------

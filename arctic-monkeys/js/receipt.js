@@ -128,8 +128,20 @@ function crumpleFrames(album) {
   return (typeof CRUMPLE !== 'undefined' && CRUMPLE[album.id]) || null;
 }
 
-const FRAME_MS = 105;      // one stage to the next
-const FADE_MS = 150;       // cross-fade between two stages
+/* The unfold is one continuous move, not a slideshow.
+
+   A float position runs from 100 to 0 on an eased curve. At any moment
+   it sits between two rendered stages, and both are on screen: the one
+   behind fading out as the one ahead fades in, with the column height
+   and the frame offset interpolated between their boxes at the same
+   time. Nothing snaps, because nothing is ever switched — it is only
+   ever a blend of the two nearest poses. */
+const UNFOLD_MS = 1500;      // 100 → 0
+const FOLD_MS = 1050;        // and back, a screw-up is quicker than a smoothing
+
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+const easeInOutCubic = t =>
+  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 /**
  * Lay the frame images over the live receipt.
@@ -149,21 +161,19 @@ function fitFrames(card) {
   const rw = live.offsetWidth;
   if (!rw) return;
   const [fw, fh] = data.frame;
-  const [fx, fy, flw] = data.flat;
+  const [fx, , flw] = data.flat;
   const k = rw / flw;
 
   card.__k = k;
   stack.style.width = (fw * k).toFixed(1) + 'px';
   stack.style.height = (fh * k).toFixed(1) + 'px';
-  // Horizontally the frames line up with the live receipt, so the last
-  // step of the unfold lands exactly on the real thing. Vertically each
-  // stage is placed by its own content box in applyStage(), so a balled
-  // receipt sits inside its column instead of spilling onto the button.
+  // Horizontally the frames line up with the live receipt, so the hand-off
+  // to the real thing is invisible. Vertically each pose is placed by its
+  // own content box in applyPos().
   stack.style.left = (live.offsetLeft - fx * k).toFixed(1) + 'px';
 
   card.__liveH = live.offsetHeight;
-  card.__liveLeft = live.offsetLeft;
-  applyStage(card, card.__pct, true);
+  applyPos(card, card.__pos, true);
 }
 
 /** The drawn area of one stage, in css px, or null if not recorded. */
@@ -172,91 +182,150 @@ function stageBox(card, pct) {
   const box = data && data.boxes && data.boxes[pct];
   if (!box || !card.__k) return null;
   const k = card.__k;
-  return { x: box[0] * k, y: box[1] * k, w: box[2] * k, h: box[3] * k };
+  return { y: box[1] * k, h: box[3] * k };
 }
 
-/** Height the column should take at a given stage. */
-function stageHeight(card, pct) {
-  const liveH = card.__liveH || 0;
-  if (!card.__frames || pct <= 0) return liveH;
-  const box = stageBox(card, pct);
-  if (box) return box.h;
-  // no per-stage box recorded — shrink on a curve instead
-  return liveH * (0.34 + 0.66 * (1 - pct / 100));
+/** The stages whose images have arrived, newest-first. */
+function loadedStages(card) {
+  const imgs = card.__img;
+  if (!imgs) return card.__frames.stages;
+  const ready = card.__frames.stages.filter(p => {
+    const img = imgs[p];
+    return img && img.complete && img.naturalWidth > 0;
+  });
+  return ready.length ? ready : card.__frames.stages.slice(0, 1);
 }
 
-/** Show one stage. `hard` skips the cross-fade. */
-function applyStage(card, pct, hard) {
-  card.__pct = pct;
-  card.dataset.pct = pct;
+/** The two loaded stages either side of a position, and the mix between. */
+function neighbours(card, pos) {
+  const stages = loadedStages(card);             // descending: 100 … 2
+  if (pos >= stages[0]) return { hi: stages[0], lo: stages[0], t: 0 };
+  for (let i = 0; i < stages.length - 1; i++) {
+    const hi = stages[i], lo = stages[i + 1];
+    if (pos <= hi && pos >= lo) {
+      return { hi, lo, t: (hi - pos) / (hi - lo) };
+    }
+  }
+  // below the last rendered stage the flat receipt takes over
+  const last = stages[stages.length - 1];
+  return { hi: last, lo: last, t: Math.min(1, (last - pos) / last) };
+}
 
-  const flat = pct <= 0;
+/** Show a position on the 100…0 scale. `hard` skips any easing of state. */
+function applyPos(card, pos, hard) {
+  card.__pos = pos;
+  card.dataset.pct = Math.round(pos);
+
+  const data = card.__frames;
+  const flat = pos <= 0.01;
   card.classList.toggle('flat', flat);
 
+  if (!data) return;
+
+  const { hi, lo, t } = neighbours(card, pos);
+  const last = data.stages[data.stages.length - 1];
+
+  /* Under the last rendered stage the paper is nearly flat already, so
+     the frames dissolve into the live receipt rather than cutting to it. */
+  const handover = pos < last ? 1 - pos / last : 0;
+
   card.querySelectorAll('.rc-frame').forEach(img => {
-    const on = !flat && +img.dataset.pct === pct;
-    img.style.transitionDuration = hard ? '0ms' : FADE_MS + 'ms';
-    img.style.opacity = on ? '1' : '0';
+    const pct = +img.dataset.pct;
+    let o = 0;
+    if (pct === hi) o = (1 - t);
+    if (pct === lo) o = Math.max(o, t);
+    if (hi === lo && pct === hi) o = 1;
+    img.style.opacity = (o * (1 - handover)).toFixed(3);
   });
 
+  const live = card.querySelector('.rc-paper');
+  if (live) live.style.opacity = flat ? '1' : handover.toFixed(3);
+
+  // height and offset interpolate too, so the column never jumps
+  const bHi = stageBox(card, hi);
+  const bLo = stageBox(card, lo);
   const stage = card.querySelector('.rc-stage');
   const stack = card.querySelector('.rc-frames');
-  if (stage) {
-    const h = stageHeight(card, pct);
-    if (h) stage.style.height = h.toFixed(0) + 'px';
-    // slide the stack so this stage's drawing starts at the top of the column
-    const box = stageBox(card, pct);
-    if (stack && box) stack.style.top = (-box.y).toFixed(1) + 'px';
+  if (stage && bHi && bLo) {
+    const h = lerp(bHi.h, bLo.h, t);
+    const y = lerp(bHi.y, bLo.y, t);
+    stage.style.height = lerp(h, card.__liveH || h, handover).toFixed(1) + 'px';
+    if (stack) stack.style.top = (-y).toFixed(1) + 'px';
+  } else if (stage && flat) {
+    stage.style.height = (card.__liveH || 0).toFixed(1) + 'px';
   }
-
 }
 
-/** Make sure every frame of this album is decoded before we animate. */
-function preloadFrames(card, album) {
+const lerp = (a, b, t) => a + (b - a) * t;
+
+/**
+ * Fetch the frames in two waves.
+ *
+ * Sixty images is a couple of megabytes, and waiting for all of them
+ * before the paper moves would be worse than the stepping this was meant
+ * to fix. So a coarse spread arrives first — enough to animate from — and
+ * the movement starts on that. The rest land while it plays and join in
+ * as they do, because `neighbours()` only ever blends between frames that
+ * have actually arrived. On a fast connection the difference is invisible;
+ * on a slow one the paper still moves, just with fewer in-betweens.
+ */
+function preloadFrames(card) {
   if (card.__preloaded) return card.__preloaded;
-  const data = card.__frames;
-  if (!data) return (card.__preloaded = Promise.resolve());
+  if (!card.__frames) return (card.__preloaded = Promise.resolve());
 
-  const imgs = [...card.querySelectorAll('.rc-frame')];
-  imgs.forEach(img => { if (!img.getAttribute('src')) img.src = img.dataset.src; });
+  const stages = card.__frames.stages;
+  const imgs = card.__img || {};
+  const load = pct => {
+    const img = imgs[pct];
+    if (!img) return Promise.resolve();
+    if (!img.getAttribute('src')) img.src = img.dataset.src;
+    return img.complete
+      ? Promise.resolve()
+      : new Promise(r => { img.onload = img.onerror = r; });
+  };
 
-  const settled = imgs.map(img => img.complete
-    ? Promise.resolve()
-    : new Promise(r => { img.onload = img.onerror = r; }));
+  // one in five, plus both ends — about a dozen images
+  const coarse = stages.filter((_, i) => i % 5 === 0);
+  if (!coarse.includes(stages[stages.length - 1])) coarse.push(stages[stages.length - 1]);
 
-  // never let a slow image hold the interaction up for long
   card.__preloaded = Promise.race([
-    Promise.all(settled),
+    Promise.all(coarse.map(load)),
     new Promise(r => setTimeout(r, 2500))
-  ]);
+  ]).then(() => {
+    // the rest, unawaited — they slot in as they arrive
+    stages.filter(p => !coarse.includes(p)).forEach(load);
+  });
+
   return card.__preloaded;
 }
 
-/** Walk the stages from where we are to `target`, one frame at a time. */
+/** Run the paper from where it is to `target`, as one movement. */
 async function playTo(card, target, done) {
-  const data = card.__frames;
-  if (!data) { applyStage(card, target, true); if (done) done(); return; }
+  if (!card.__frames) { applyPos(card, target, true); if (done) done(); return; }
 
-  if (card.__timer) { clearTimeout(card.__timer); card.__timer = null; }
-  await preloadFrames(card, null);
+  if (card.__raf) { cancelAnimationFrame(card.__raf); card.__raf = null; }
+  await preloadFrames(card);
 
-  const all = [...data.stages, 0].sort((a, b) => b - a);   // 100 … 10, 0
-  const from = card.__pct;
-  let path = from > target
-    ? all.filter(p => p < from && p >= target)
-    : all.filter(p => p > from && p <= target).reverse();
-  if (!path.length) path = [target];
+  const from = card.__pos;
+  if (REDUCED() || Math.abs(target - from) < 0.5) {
+    applyPos(card, target, true);
+    if (done) done();
+    return;
+  }
 
-  if (REDUCED()) { applyStage(card, target, true); if (done) done(); return; }
+  const opening = target < from;
+  const span = Math.abs(target - from) / 100;
+  const dur = (opening ? UNFOLD_MS : FOLD_MS) * Math.max(0.35, span);
+  const ease = opening ? easeInOutCubic : easeOutCubic;
+  const start = performance.now();
 
-  let i = 0;
-  const step = () => {
-    applyStage(card, path[i]);
-    i++;
-    if (i < path.length) card.__timer = setTimeout(step, FRAME_MS);
-    else { card.__timer = null; if (done) done(); }
+  const step = now => {
+    const t = Math.min(1, (now - start) / dur);
+    applyPos(card, lerp(from, target, ease(t)));
+    if (t < 1) card.__raf = requestAnimationFrame(step);
+    else { card.__raf = null; if (done) done(); }
   };
-  step();
+  card.__raf = requestAnimationFrame(step);
 }
 
 /* ------------------------------------------------------------
@@ -270,7 +339,7 @@ function buildAlbumCard(album) {
   card.id = 'album-' + album.id;
   card.dataset.album = album.id;
   card.__frames = data;
-  card.__pct = data ? 100 : 0;
+  card.__pos = data ? 100 : 0;
 
   const frames = data ? data.stages.map(pct => `
         <img class="rc-frame" data-pct="${pct}" alt="" aria-hidden="true"
@@ -300,6 +369,12 @@ function buildAlbumCard(album) {
     </div>
   `;
 
+  // pct → image, so playback never touches the DOM to find a frame
+  card.__img = {};
+  card.querySelectorAll('.rc-frame').forEach(img => {
+    card.__img[+img.dataset.pct] = img;
+  });
+
   const btn = card.querySelector('.unfold');
   if (data) {
     // decode the frames while the pointer is still on its way to the button
@@ -313,7 +388,7 @@ function buildAlbumCard(album) {
     });
   }
 
-  applyStage(card, card.__pct, true);
+  applyPos(card, card.__pos, true);
   return card;
 }
 

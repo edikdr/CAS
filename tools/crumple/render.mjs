@@ -30,8 +30,18 @@ const args = process.argv.slice(2);
 const only = args.includes('--album') ? args[args.indexOf('--album') + 1] : null;
 const QUICK = args.includes('--quick');
 
-// 100 → 10 in tens; 0 is the live DOM receipt, never an image
-const STAGES = QUICK ? [100, 60, 20] : [100, 90, 80, 70, 60, 50, 40, 30, 20, 10];
+/* Sixty poses between a ball and a flat sheet. 0 is the live DOM
+   receipt and never an image.
+
+   The site cross-fades continuously between neighbours, so the closer
+   together the poses are the less the dissolve has to invent. Ten read
+   as a slideshow; sixty read as movement. Spacing is even in percent and
+   rounded to whole numbers, which keeps the filenames clean and happens
+   to come out with no collisions. */
+const STAGES = QUICK
+  ? [100, 60, 20]
+  : [...new Set(Array.from({ length: 60 },
+      (_, i) => Math.round(100 - i * 98 / 59)))];
 
 const FRAME_W = 700, FRAME_H = 1180;
 

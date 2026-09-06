@@ -36,6 +36,22 @@ function renderMembers() {
   $$('[data-member]', host).forEach(btn =>
     btn.addEventListener('click', () => MemberModal.open(+btn.dataset.member)));
   observeReveals(host);
+
+  // photographs, if Genius is reachable and none were baked in
+  MEMBERS.forEach(async (m, i) => {
+    if (Genius.photo(m.name)) return;
+    const live = await Genius.artistLive(m.name);
+    if (!live || !live.photo) return;
+    const card = host.querySelector(`[data-member="${i}"] .mono`);
+    if (!card || card.tagName === 'IMG') return;
+    const img = document.createElement('img');
+    img.className = 'mono m-photo';
+    img.src = live.photo;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    card.replaceWith(img);
+  });
 }
 
 const MemberModal = {
@@ -60,6 +76,8 @@ const MemberModal = {
     this.render();
     this.overlay.hidden = false;
     document.body.classList.add('locked');
+    if (this.dust) this.dust.destroy();
+    this.dust = startModalParticles(this.overlay);
     this.overlay.querySelector('.tm-close').focus();
   },
 
@@ -67,6 +85,7 @@ const MemberModal = {
     if (this.overlay.hidden) return;
     this.overlay.hidden = true;
     document.body.classList.remove('locked');
+    if (this.dust) { this.dust.destroy(); this.dust = null; }
     if (this.lastFocus && this.lastFocus.focus) this.lastFocus.focus();
   },
 
@@ -118,6 +137,9 @@ const MemberModal = {
     this.overlay.querySelector('.tm-close').addEventListener('click', () => this.close());
     this.overlay.querySelector('.tm-prev').addEventListener('click', () => this.step(-1));
     this.overlay.querySelector('.tm-next').addEventListener('click', () => this.step(1));
+
+    if (this.dust) this.dust.destroy();
+    this.dust = startModalParticles(this.overlay);
   }
 };
 
@@ -299,6 +321,9 @@ const SingleModal = {
     // a one-track album, so the transport has something to walk
     const stub = { title: s.title, tracks: [{ name: s.title, duration: '—' }] };
     this.face = new PlayerFace(this.overlay.querySelector('[data-sm="player"]'), stub);
+
+    if (this.dust) this.dust.destroy();
+    this.dust = startModalParticles(this.overlay);
   }
 };
 
@@ -311,6 +336,12 @@ function renderTimeline() {
       <div class="tl-body">
         <h4 class="tl-title">${esc(t.title)}</h4>
         <p>${t.text}</p>
+        ${(t.quotes || []).map(q => `
+          <blockquote class="tl-quote">
+            <p>${esc(q.text)}</p>
+            <cite>${esc(q.by)}</cite>
+          </blockquote>`).join('')}
+        ${t.detail ? `<p class="tl-detail">${t.detail}</p>` : ''}
       </div>
     </article>`).join('');
   observeReveals(host);
@@ -338,6 +369,17 @@ document.addEventListener('DOMContentLoaded', () => {
   startDust();
   observeReveals();
   watchNav();
+
+  /* The sections finish growing after the receipts and singles are in, so
+     the gutters get one more pass once the page has settled — and again
+     whenever it is resized, since every position is a percentage of a
+     height that just changed. */
+  requestAnimationFrame(() => spaceOut());
+  let spaceTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(spaceTimer);
+    spaceTimer = setTimeout(spaceOut, 220);
+  });
 
   const search = $('#searchInput');
   if (search) {

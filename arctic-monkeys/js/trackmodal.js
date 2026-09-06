@@ -43,6 +43,7 @@ const TrackModal = {
     this.render();
     this.overlay.hidden = false;
     document.body.classList.add('locked');
+    this.dust = startModalParticles(this.overlay);
     const close = this.overlay.querySelector('.tm-close');
     if (close) close.focus();
   },
@@ -51,6 +52,7 @@ const TrackModal = {
     if (!this.overlay || this.overlay.hidden) return;
     this.overlay.hidden = true;
     document.body.classList.remove('locked');
+    if (this.dust) { this.dust.destroy(); this.dust = null; }
     if (this.face) { Player.unregister(this.face); this.face = null; }
     if (this.timer) { clearInterval(this.timer); this.timer = null; }
     if (this.lastFocus && this.lastFocus.focus) this.lastFocus.focus();
@@ -184,8 +186,47 @@ const TrackModal = {
       });
     });
 
+    // render() replaces the panel, so the dust layer has to be remade
+    if (this.dust) this.dust.destroy();
+    this.dust = startModalParticles(this.overlay);
+
     this.follow(words);
     this.loadNotes(name, genius);
+    this.hydrate(name);
+  },
+
+  /**
+   * Fill in anything Genius can tell us that was not baked in: the
+   * credits, the sleeve. Arrives after the window is already usable, so
+   * nothing waits on the network.
+   */
+  async hydrate(name) {
+    const live = await Genius.song(name);
+    if (!live) return;
+    if (!this.overlay || this.overlay.hidden) return;
+    if (this.album.tracks[this.idx].name !== name) return;
+
+    const set = (label, value) => {
+      if (!value) return;
+      const dts = [...this.overlay.querySelectorAll('.tm-dl dt')];
+      const dt = dts.find(d => d.textContent.trim() === label);
+      if (dt && dt.nextElementSibling) dt.nextElementSibling.textContent = value;
+    };
+    if (live.writers && live.writers.length) set('Written by', live.writers.join(', '));
+    if (live.producers && live.producers.length) set('Produced by', live.producers.join(', '));
+
+    const art = live.art || live.albumCover;
+    const head = this.overlay.querySelector('.tm-head');
+    if (art && head && !head.querySelector('.tm-art')) {
+      const img = document.createElement('img');
+      img.className = 'tm-art';
+      img.src = art;
+      img.alt = '';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      const no = head.querySelector('.tm-no');
+      if (no) no.replaceWith(img); else head.prepend(img);
+    }
   },
 
   /**

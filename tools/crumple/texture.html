@@ -11,11 +11,20 @@
   html, body { margin: 0; background: #fff; }
   #tex { width: 340px; }
   #tex .rc-paper {
+    /* The site holds the receipt to 78% of its column so the rendered
+       frames fit beside it. The texture must be the full width the live
+       receipt is *displayed* at, or the print wraps differently here and
+       the hand-off from the last frame to the DOM visibly reflows. */
+    width: 340px !important;
     transform: none !important;
     filter: none !important;
     background-image: none !important;
     grid-area: auto;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    box-shadow: none !important;
   }
+  #tex .rc-paper::after { display: none !important; }
   #tex .rc-creases, #tex .rc-cue { display: none !important; }
   #tex .rc-row { pointer-events: none; }
 </style>

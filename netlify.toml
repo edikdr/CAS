@@ -1,0 +1,27 @@
+# Deploying to Netlify
+#
+#   1. point it at this repository
+#   2. add GENIUS_ACCESS_TOKEN under Site settings → Environment variables
+#      (a free read-only "client access token" from genius.com/api-clients)
+#
+# There is no build step and no .env file. The site is static; the one
+# function below answers /api/genius/* with the token attached, so the
+# credential stays on the server.
+#
+# Without the variable the site still works — it falls back to the data
+# baked in by tools/fetch_am_data.py and to the credits written by hand.
+
+[build]
+  publish = "arctic-monkeys"
+  functions = "netlify/functions"
+  command = ""
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

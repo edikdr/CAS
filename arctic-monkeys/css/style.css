@@ -213,11 +213,14 @@ body.locked { overflow: hidden; }
   .hero, .section { scroll-margin-top: 124px; }
 }
 
-/* everything the reader actually reads sits above the collage */
+/* Everything the reader actually reads sits above the collage.
+   The decor is excluded by name: it is also a direct child div, and a
+   blanket `.section > div` outranks `.deco`'s own rule, which quietly
+   turned every cut-out back into a flow element stacked at the bottom. */
 .hero-inner,
 .section > h2,
 .section > p,
-.section > div { position: relative; z-index: 3; }
+.section > div:not(.deco) { position: relative; z-index: 3; }
 
 .hero {
   max-width: var(--wrap); margin: 0 auto;
@@ -284,13 +287,36 @@ body.locked { overflow: hidden; }
 .timeline { display: grid; gap: 2px; position: relative; z-index: 3; }
 .tl {
   display: grid; grid-template-columns: 120px 1fr; gap: 22px;
-  padding: 20px 18px; background: rgba(232, 229, 222, .035);
+  padding: 26px 20px; background: rgba(232, 229, 222, .035);
   border-left: 2px solid transparent; transition: border-color .2s, background .2s;
 }
 .tl:hover { background: rgba(232, 229, 222, .07); border-left-color: var(--chalk); }
 .tl-year { font-family: var(--fat); font-size: 17px; letter-spacing: -.02em; color: var(--chalk); }
 .tl-title { margin: 0 0 6px; font-family: var(--fat); font-size: 14px; letter-spacing: .04em; text-transform: uppercase; }
 .tl-body p { margin: 0; color: #b3afa6; font-size: 14px; }
+
+/* remarks, set as what they are: reported speech, with a name on it */
+.tl-quote {
+  margin: 14px 0 0; padding: 12px 16px;
+  border-left: 2px solid rgba(232, 229, 222, .3);
+  background: rgba(232, 229, 222, .035);
+}
+.tl-quote p {
+  font-family: var(--hand);
+  font-size: 18px; line-height: 1.4; color: #d3cfc6; margin: 0;
+}
+.tl-quote p::before { content: '“'; }
+.tl-quote p::after { content: '”'; }
+.tl-quote cite {
+  display: block; margin-top: 7px; font-style: normal;
+  font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--chalk-dim);
+}
+.tl-detail {
+  margin-top: 14px !important; padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13px !important; color: #918d85 !important;
+}
 
 /* ------------------------------------------------------------ members */
 .member-grid {
@@ -387,6 +413,31 @@ body.locked { overflow: hidden; }
   pointer-events: none;
   transition: opacity .2s ease;
   box-shadow: 0 18px 34px rgba(0, 0, 0, .55);
+  isolation: isolate;
+}
+
+/* Paper that has been screwed up and opened out again does not go flat.
+   Soft creases are laid over the live receipt in the same places the last
+   rendered frame has them, so the hand-off from image to DOM does not
+   show — light on one side of each fold, shadow on the other. Multiply
+   keeps the print underneath crisp; nothing here blurs the text. */
+.rc-paper::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 3;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: .5;
+  background:
+    linear-gradient(101deg, transparent 18%, rgba(0,0,0,.07) 21%,
+      rgba(255,255,255,.5) 23%, transparent 27%),
+    linear-gradient(-97deg, transparent 44%, rgba(0,0,0,.055) 47%,
+      rgba(255,255,255,.42) 49%, transparent 53%),
+    linear-gradient(88deg, transparent 66%, rgba(0,0,0,.05) 69%,
+      rgba(255,255,255,.38) 71%, transparent 74%),
+    linear-gradient(180deg, rgba(0,0,0,.05), transparent 12%,
+      transparent 88%, rgba(0,0,0,.06)),
+    radial-gradient(120% 60% at 30% 8%, rgba(255,255,255,.32), transparent 60%),
+    radial-gradient(100% 55% at 78% 92%, rgba(0,0,0,.05), transparent 62%);
 }
 .album.flat .rc-paper, .album.no-frames .rc-paper {
   opacity: 1;
@@ -781,6 +832,15 @@ body.locked { overflow: hidden; }
   position: absolute; inset: 0; z-index: -1;
   background: linear-gradient(180deg, rgba(24, 24, 22, .5), rgba(24, 24, 22, .68));
 }
+/* the particle layer inside an open window */
+.tm-dust {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.tm > *:not(.tm-dust) { position: relative; z-index: 1; }
+
 .tm-close {
   position: absolute; top: 10px; right: 12px;
   background: transparent; border: 0; color: var(--chalk-dim);
@@ -895,7 +955,17 @@ body.locked { overflow: hidden; }
 .deco[data-anchor="vr"], .scrap[data-anchor="vr"] { right: calc(50% - 50vw + var(--inset, 20px)); }
 .deco[data-anchor="ir"], .scrap[data-anchor="ir"] { right: var(--inset, 20px); }
 
-.deco svg { display: block; width: 100%; height: auto; }
+.deco img {
+  display: block; width: 100%; height: auto;
+  /* They were cut from three different papers — warm, grey and newsprint.
+     Desaturating and pulling the highlights down settles all three onto
+     the same black page, and `luminosity` lets the star field read
+     through them instead of them sitting on top as stickers. */
+  filter: grayscale(1) contrast(.82) brightness(.68);
+  mix-blend-mode: luminosity;
+}
+/* the light objects — moons, dice, paper — would otherwise glare */
+.deco { mix-blend-mode: screen; }
 
 .float { animation: drift var(--dur, 24s) ease-in-out infinite alternate; }
 @keyframes drift {
@@ -953,7 +1023,16 @@ body.locked { overflow: hidden; }
   .tm-links a, .nav-links a { padding: 10px 12px; }
   .tm-line { padding: 11px 8px; }
   .qz-opt { padding: 15px; }
-  .tm-close { font-size: 32px; padding: 10px 14px; }
+  /* the particle layer inside an open window */
+.tm-dust {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.tm > *:not(.tm-dust) { position: relative; z-index: 1; }
+
+.tm-close { font-size: 32px; padding: 10px 14px; }
 }
 
 @media (max-width: 760px) {

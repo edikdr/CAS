@@ -84,6 +84,8 @@ const Quiz = {
     this.render();
     this.overlay.hidden = false;
     document.body.classList.add('locked');
+    if (this.dust) this.dust.destroy();
+    this.dust = startModalParticles(this.overlay);
     const close = this.overlay.querySelector('.tm-close');
     if (close) close.focus();
   },
@@ -92,6 +94,7 @@ const Quiz = {
     if (!this.overlay || this.overlay.hidden) return;
     this.overlay.hidden = true;
     document.body.classList.remove('locked');
+    if (this.dust) { this.dust.destroy(); this.dust = null; }
     this.renderCards();          // a new best may have just been set
     if (this.lastFocus && this.lastFocus.focus) this.lastFocus.focus();
   },
@@ -181,6 +184,9 @@ const Quiz = {
 
     const again = this.overlay.querySelector('[data-nav="again"]');
     if (again) again.addEventListener('click', () => this.open(deck.id));
+
+    if (this.dust) this.dust.destroy();
+    this.dust = startModalParticles(this.overlay);
   },
 
   questionMarkup(total) {

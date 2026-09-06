@@ -82,16 +82,7 @@ function serveStatic(req, res, pathname) {
   if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
     file = path.join(file, 'index.html');
   }
-  if (!fs.existsSync(file)) {
-    // the repo also holds shared assets one level up (the cut letters)
-    const shared = path.resolve(ROOT, rel);
-    if (shared.startsWith(ROOT + path.sep) && fs.existsSync(shared)
-        && fs.statSync(shared).isFile()) {
-      file = shared;
-    } else {
-      return notFound(res);
-    }
-  }
+  if (!fs.existsSync(file)) return notFound(res);
 
   const ext = path.extname(file).toLowerCase();
   res.writeHead(200, {

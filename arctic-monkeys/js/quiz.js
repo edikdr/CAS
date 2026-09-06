@@ -84,6 +84,7 @@ const Quiz = {
     this.render();
     this.overlay.hidden = false;
     document.body.classList.add('locked');
+    mountModalDecor(this.overlay, 'quiz');
     if (this.dust) this.dust.destroy();
     this.dust = startModalParticles(this.overlay);
     const close = this.overlay.querySelector('.tm-close');
@@ -185,6 +186,7 @@ const Quiz = {
     const again = this.overlay.querySelector('[data-nav="again"]');
     if (again) again.addEventListener('click', () => this.open(deck.id));
 
+    mountModalDecor(this.overlay, 'quiz');
     if (this.dust) this.dust.destroy();
     this.dust = startModalParticles(this.overlay);
   },

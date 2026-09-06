@@ -187,6 +187,7 @@ const TrackModal = {
     });
 
     // render() replaces the panel, so the dust layer has to be remade
+    mountModalDecor(this.overlay, 'track');
     if (this.dust) this.dust.destroy();
     this.dust = startModalParticles(this.overlay);
 

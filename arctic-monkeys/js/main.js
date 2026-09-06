@@ -138,6 +138,7 @@ const MemberModal = {
     this.overlay.querySelector('.tm-prev').addEventListener('click', () => this.step(-1));
     this.overlay.querySelector('.tm-next').addEventListener('click', () => this.step(1));
 
+    mountModalDecor(this.overlay, 'member');
     if (this.dust) this.dust.destroy();
     this.dust = startModalParticles(this.overlay);
   }
@@ -322,6 +323,7 @@ const SingleModal = {
     const stub = { title: s.title, tracks: [{ name: s.title, duration: '—' }] };
     this.face = new PlayerFace(this.overlay.querySelector('[data-sm="player"]'), stub);
 
+    mountModalDecor(this.overlay, 'member');
     if (this.dust) this.dust.destroy();
     this.dust = startModalParticles(this.overlay);
   }
@@ -366,6 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSingles();
 
   mountDecor();
+  mountStars();
   startDust();
   observeReveals();
   watchNav();

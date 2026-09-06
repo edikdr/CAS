@@ -136,8 +136,20 @@ function crumpleFrames(album) {
    and the frame offset interpolated between their boxes at the same
    time. Nothing snaps, because nothing is ever switched — it is only
    ever a blend of the two nearest poses. */
-const UNFOLD_MS = 1500;      // 100 → 0
-const FOLD_MS = 1050;        // and back, a screw-up is quicker than a smoothing
+const UNFOLD_MS = 1350;      // 100 → 0
+const FOLD_MS = 950;         // and back, a screw-up is quicker than a smoothing
+
+/* How hard to bias the cross-fade towards whichever pose is nearer.
+   A straight linear mix spends half of every gap at 50/50, and two
+   half-strength poses on top of each other read as a flat smear rather
+   than paper with volume. This keeps one pose dominant for most of the
+   gap and does the actual swap quickly through the middle. */
+function blendCurve(t) {
+  const k = 2.4;
+  return t < 0.5
+    ? 0.5 * Math.pow(2 * t, k)
+    : 1 - 0.5 * Math.pow(2 * (1 - t), k);
+}
 
 const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
 const easeInOutCubic = t =>
@@ -222,7 +234,8 @@ function applyPos(card, pos, hard) {
 
   if (!data) return;
 
-  const { hi, lo, t } = neighbours(card, pos);
+  const { hi, lo, t: raw } = neighbours(card, pos);
+  const t = blendCurve(raw);
   const last = data.stages[data.stages.length - 1];
 
   /* Under the last rendered stage the paper is nearly flat already, so
@@ -247,8 +260,10 @@ function applyPos(card, pos, hard) {
   const stage = card.querySelector('.rc-stage');
   const stack = card.querySelector('.rc-frames');
   if (stage && bHi && bLo) {
-    const h = lerp(bHi.h, bLo.h, t);
-    const y = lerp(bHi.y, bLo.y, t);
+    // height and offset track the real position, not the biased blend,
+    // so the column moves evenly even while the images swap quickly
+    const h = lerp(bHi.h, bLo.h, raw);
+    const y = lerp(bHi.y, bLo.y, raw);
     stage.style.height = lerp(h, card.__liveH || h, handover).toFixed(1) + 'px';
     if (stack) stack.style.top = (-y).toFixed(1) + 'px';
   } else if (stage && flat) {

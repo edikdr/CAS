@@ -31,15 +31,18 @@ def manifest_only():
 
     for album, entry in old.items():
         d = os.path.join(FRAMES, album)
+        # trust the files, not the old list — frames may have been thinned
+        present = sorted(
+            (int(f[:-5]) for f in os.listdir(d) if f.endswith('.webp')),
+            reverse=True)
         boxes = {}
-        for pct in entry['stages']:
-            f = os.path.join(d, f'{pct}.webp')
-            if not os.path.exists(f):
-                continue
-            bb = Image.open(f).convert('RGBA').getbbox() or (0, 0, 1, 1)
+        for pct in present:
+            bb = Image.open(os.path.join(d, f'{pct}.webp')).convert('RGBA').getbbox()
+            bb = bb or (0, 0, 1, 1)
             boxes[str(pct)] = [bb[0], bb[1], bb[2] - bb[0], bb[3] - bb[1]]
+        entry['stages'] = present
         entry['boxes'] = boxes
-        print(f'{album:8s} {len(boxes)} boxes')
+        print(f'{album:8s} {len(present)} frames')
 
     write_manifest(old, out)
     print(f'\nrewrote {out}')

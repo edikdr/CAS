@@ -151,49 +151,78 @@ const CUT_ASPECT = {
 };
 
 const DECOR = [
-  /* Spacing rule: within one section and one gutter, no two objects are
-     closer than 30% of the section height, and each gutter carries at
-     most three. They are meant to be found, not stacked. */
+  /* Spacing is enforced at runtime by spaceOut(); these are the intended
+     positions. Three to five per gutter, chosen for the section they sit
+     beside — tape and film for the history, instruments for the band,
+     sleeves and stickers for the records, hand-lettered lyrics wherever
+     the words are the subject. */
 
-  // hero — the record, and the moon it gets played under
-  ['.hero', 'vinyl',        'vl',  18, 30, 168,  -7, 0.34, 34],
-  ['.hero', 'smokes',       'vl',  26, 76, 112,   9, 0.26, 30],
-  ['.hero', 'moon',         'vr',  22,  8, 124,   4, 0.32, 40],
-  ['.hero', 'star-spiral',  'vr',  34, 68,  68, -12, 0.26, 26],
+  // hero
+  ['.hero', 'vinyl',        'vl',  16, 22, 172,  -7, 0.60, 34],
+  ['.hero', 'rumine',       'vl',  30, 62, 104,   6, 0.62, 28],
+  ['.hero', 'smokes',       'vl',  26, 88, 108,   9, 0.50, 30],
+  ['.hero', 'moon',         'vr',  20,  6, 126,   4, 0.60, 40],
+  ['.hero', 'pick',         'vr',  34, 46,  86,  -9, 0.58, 26],
+  ['.hero', 'star-spiral',  'vr',  30, 82,  70, -12, 0.52, 24],
 
-  // lore — the formats the demos travelled on
-  ['#lore', 'vhs',          'vl',  16,  6, 132,  -6, 0.28, 35],
-  ['#lore', 'filmstrip',    'vl',  22, 42, 140,  -4, 0.24, 36],
-  ['#lore', 'whothefuck',   'vl',  26, 80, 128,   5, 0.26, 31],
-  ['#lore', 'tapes',        'vr',  18, 20, 130,   7, 0.28, 32],
-  ['#lore', 'poster',       'vr',  24, 56, 112,  -5, 0.24, 27],
-  ['#lore', 'ticket',       'vr',  20, 90, 126,   4, 0.26, 29],
+  // lore — how the demos travelled, and what got said
+  ['#lore', 'vhs',          'vl',  16,  4, 138,  -6, 0.55, 35],
+  ['#lore', 'cassette-line','vl',  22, 22, 132,   5, 0.55, 30],
+  ['#lore', 'filmstrip',    'vl',  20, 44, 146,  -4, 0.48, 36],
+  ['#lore', 'walk-two',     'vl',  26, 64, 130,   3, 0.52, 32],
+  ['#lore', 'whothefuck',   'vl',  24, 86, 132,   5, 0.55, 31],
+  ['#lore', 'tapes',        'vr',  18, 10, 134,   7, 0.52, 32],
+  ['#lore', 'band-strip',   'vr',  16, 30, 150,  -3, 0.48, 34],
+  ['#lore', 'poster',       'vr',  24, 52, 116,  -5, 0.50, 27],
+  ['#lore', 'ticket',       'vr',  20, 72, 130,   4, 0.52, 29],
+  ['#lore', 'illuminations','vr',  18, 92, 148,   3, 0.50, 26],
+  ['#lore', 'receipt-cut',  'vl',  30, 96,  84,  -4, 0.42, 33],
+  ['#lore', 'letter',       'vr',  22, 40, 128,  -6, 0.50, 28],
 
-  // members — what they actually play
-  ['#members', 'knight',    'vl',  32, 18,  70,  -7, 0.28, 29],
-  ['#members', 'dice',      'vl',  22, 66, 108,  -5, 0.28, 30],
-  ['#members', 'bass',      'vr',  32, 12,  70,   9, 0.28, 33],
-  ['#members', 'skeleton',  'vr',  26, 72,  86,   6, 0.24, 25],
+  // members
+  ['#members', 'knight',    'vl',  30, 14,  76,  -7, 0.55, 29],
+  ['#members', 'guitar-line','vl', 24, 48, 104,   6, 0.52, 31],
+  ['#members', 'dice',      'vl',  22, 80, 112,  -5, 0.55, 30],
+  ['#members', 'bass',      'vr',  30,  8,  74,   9, 0.55, 33],
+  ['#members', 'figure-a',  'vr',  30, 44,  84,  -4, 0.50, 28],
+  ['#members', 'skeleton',  'vr',  26, 78,  90,   6, 0.48, 25],
 
-  // discography — sleeves, players, stickers
-  ['#discography', 'headphones',  'vl', 24,  6, 104,   8, 0.26, 28],
-  ['#discography', 'spotify',     'vl', 14, 38, 140,  -4, 0.24, 30],
-  ['#discography', 'vinyl-label', 'vl', 20, 70, 128,   5, 0.26, 38],
-  ['#discography', 'advisory',    'vr', 16, 12, 130,   4, 0.26, 32],
-  ['#discography', 'hotel',       'vr', 22, 46, 138,   6, 0.26, 34],
-  ['#discography', 'logo-script', 'vr', 20, 82, 134,   5, 0.24, 31],
+  // discography
+  ['#discography', 'headphones',   'vl', 22,  4, 108,   8, 0.52, 28],
+  ['#discography', 'vinyl-wave',   'vl', 16, 22, 132,  -4, 0.52, 30],
+  ['#discography', 'spotify',      'vl', 14, 42, 146,  -4, 0.48, 30],
+  ['#discography', 'player-widget','vl', 16, 62, 150,   3, 0.48, 27],
+  ['#discography', 'vinyl-label',  'vl', 20, 82, 130,   5, 0.52, 38],
+  ['#discography', 'advisory',     'vr', 14,  6, 134,   4, 0.52, 32],
+  ['#discography', 'hotel',        'vr', 20, 26, 142,   6, 0.52, 34],
+  ['#discography', 'whyd',         'vr', 18, 48, 138,  -5, 0.55, 29],
+  ['#discography', 'logo-script',  'vr', 20, 70, 138,   5, 0.48, 31],
+  ['#discography', 'globe',        'vr', 26, 90,  98,  -7, 0.50, 27],
+  ['#discography', 'vinyl-moon',   'vl', 20, 12, 126,   4, 0.48, 36],
+  ['#discography', 'wave-fat',     'vl', 18, 52, 140,  -3, 0.44, 25],
+  ['#discography', 'logo-rough',   'vr', 22, 16, 126,  -5, 0.46, 30],
+  ['#discography', 'ticket-hotel', 'vr', 20, 58, 138,   4, 0.46, 28],
+  ['#discography', 'eye-vinyl',    'vr', 24, 80, 120,   6, 0.44, 29],
 
   // singles
-  ['#singles', 'moon-full',    'vl', 26, 26,  96,   6, 0.30, 37],
-  ['#singles', 'teddy',        'vl', 20, 74, 122,  -6, 0.26, 28],
-  ['#singles', 'star-marquee', 'vr', 28, 18,  80, -10, 0.28, 24],
-  ['#singles', 'fluorescent',  'vr', 18, 68, 136,   5, 0.24, 29],
+  ['#singles', 'moon-full',    'vl', 24, 12, 100,   6, 0.55, 37],
+  ['#singles', 'laserquest',   'vl', 20, 44, 126,  -5, 0.55, 28],
+  ['#singles', 'teddy',        'vl', 20, 78, 126,  -6, 0.52, 28],
+  ['#singles', 'star-marquee', 'vr', 26,  8,  84, -10, 0.55, 24],
+  ['#singles', 'fluorescent',  'vr', 16, 40, 144,   5, 0.50, 29],
+  ['#singles', 'rainyday',     'vr', 22, 74, 120,   4, 0.52, 30],
+  ['#singles', 'spotify-hearts','vl', 18, 60, 140,   3, 0.44, 27],
+  ['#singles', 'logo-lower',   'vr', 24, 56, 118,  -4, 0.46, 31],
 
   // quizzes
-  ['#quiz', 'heart-music',   'vl', 26, 20,  94,  -6, 0.28, 27],
-  ['#quiz', 'saturn',        'vl', 22, 72, 118,   7, 0.26, 33],
-  ['#quiz', 'iloveyou',      'vr', 24, 28, 110,   8, 0.26, 26],
-  ['#quiz', 'am-square',     'vr', 26, 80,  78,   4, 0.24, 25]
+  ['#quiz', 'heart-music',   'vl', 24, 12,  98,  -6, 0.55, 27],
+  ['#quiz', 'scales',        'vl', 26, 48, 100,   5, 0.52, 31],
+  ['#quiz', 'saturn',        'vl', 22, 84, 120,   7, 0.50, 33],
+  ['#quiz', 'twin',          'vr', 26, 16,  94,   8, 0.55, 26],
+  ['#quiz', 'numbers',       'vr', 30, 52,  54,  -3, 0.50, 29],
+  ['#quiz', 'am-square',     'vr', 26, 86,  80,   4, 0.48, 25],
+  ['#quiz', 'letter-c',      'vl', 30, 66,  70,  -5, 0.46, 28],
+  ['#quiz', 'brickbybrick',  'vr', 24, 68, 104,   5, 0.48, 27]
 ];
 
 /** Position one element against a viewport gutter (see the note above). */
@@ -255,6 +284,44 @@ function mountDecor() {
   }, { passive: true });
 }
 
+/* Objects for the windows: two per corner, small and quiet, chosen so
+   each kind of window gets its own furniture. */
+const MODAL_DECOR = {
+  track:  [['pick', 'tl', 74, -10], ['vinyl-wave', 'br', 96, 8]],
+  single: [['star-marquee', 'tl', 66, -8], ['rainyday', 'br', 104, 6]],
+  member: [['bass', 'tl', 54, -12], ['dice', 'br', 84, 7]],
+  quiz:   [['shalala-circle', 'tl', 78, -9], ['dice', 'br', 80, 6]]
+};
+
+/**
+ * Tape a couple of cut-outs into the corners of an open window.
+ *
+ * They sit behind the text on the panel's own stacking context, dimmer
+ * than the ones outside, and are torn down with the window.
+ */
+function mountModalDecor(overlay, kind) {
+  const panel = overlay && overlay.querySelector('.tm');
+  if (!panel) return;
+  panel.querySelectorAll('.tm-deco').forEach(el => el.remove());
+
+  (MODAL_DECOR[kind] || []).forEach(([file, corner, w, rot]) => {
+    const box = document.createElement('div');
+    box.className = `tm-deco tm-deco-${corner}`;
+    box.setAttribute('aria-hidden', 'true');
+    box.style.width = w + 'px';
+    if (CUT_ASPECT[file]) box.style.aspectRatio = String(CUT_ASPECT[file]);
+    box.style.setProperty('--rot', rot + 'deg');
+
+    const img = document.createElement('img');
+    img.src = `${CUTS}/${file}.webp`;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    box.appendChild(img);
+    panel.appendChild(box);
+  });
+}
+
 /**
  * Push apart anything that ended up too close.
  *
@@ -264,7 +331,7 @@ function mountDecor() {
  * that crowds its neighbour further down. Order is preserved, so the
  * composition stays as written — only the gaps change.
  */
-const MIN_GAP = 26;      // px of clear space between two objects
+const MIN_GAP = 32;      // px of clear space between two objects
 
 function spaceOut() {
   const groups = new Map();
@@ -272,13 +339,19 @@ function spaceOut() {
   document.querySelectorAll('.deco, .scrap').forEach(el => {
     const host = el.closest('.hero, .section');
     if (!host) return;
-    // offsetHeight ignores the drift rotation; the rotated bounding box
-    // would over-report and open gaps that are not really there
-    const r = { top: el.offsetTop, height: el.offsetHeight };
+    el.hidden = false;                       // re-measure from a clean slate
+    const hostTop = host.getBoundingClientRect().top;
+    const r = el.getBoundingClientRect();
     if (!r.height) return;
     const key = `${host.id || 'hero'}|${el.dataset.anchor}`;
     if (!groups.has(key)) groups.set(key, { host, items: [] });
-    groups.get(key).items.push({ el, top: r.top, h: r.height });
+    /* Measure the rendered box, rotation and drift included — a long
+       vertical scrap turned ten degrees covers far more than its
+       offsetHeight, which is what let things touch before. `offset` is
+       the value actually written back, since `top` is set in that space. */
+    groups.get(key).items.push({
+      el, top: r.top - hostTop, h: r.height, offset: el.offsetTop
+    });
   });
 
   groups.forEach(({ host, items }) => {
@@ -286,17 +359,18 @@ function spaceOut() {
     const limit = host.offsetHeight;
     let cursor = -Infinity;
     items.forEach(it => {
-      let top = Math.max(it.top, cursor + MIN_GAP);
+      const want = Math.max(it.top, cursor + MIN_GAP);
       /* If pushing it down would run it out of the section, there is no
          room for it here — a short section simply carries fewer objects.
          Crowding them together to fit would undo the point of this. */
-      if (top + it.h > limit - 8) {
+      if (want + it.h > limit - 8) {
         it.el.hidden = true;
         return;
       }
-      it.el.hidden = false;
-      if (Math.abs(top - it.top) > 1) it.el.style.top = `${top.toFixed(0)}px`;
-      cursor = top + it.h;
+      if (Math.abs(want - it.top) > 1) {
+        it.el.style.top = `${(it.offset + (want - it.top)).toFixed(0)}px`;
+      }
+      cursor = want + it.h;
     });
   });
 }
@@ -363,7 +437,8 @@ function mountScraps() {
     el.setAttribute('aria-hidden', 'true');
     el.textContent = text;
     place(el, anchor, inset, y);
-    el.style.setProperty('--rot', `${(rnd() * 20 - 10).toFixed(1)}deg`);
+    el.style.setProperty('--rot',
+      `${(vertical ? rnd() * 6 - 3 : rnd() * 20 - 10).toFixed(1)}deg`);
     el.style.setProperty('--dur', `${(24 + rnd() * 16).toFixed(0)}s`);
     el.style.setProperty('--dx', `${(rnd() * 10 - 5).toFixed(0)}px`);
     el.style.setProperty('--dy2', `${(-5 - rnd() * 9).toFixed(0)}px`);
@@ -426,7 +501,7 @@ class Particles {
       r: (Math.random() * this.opts.size + 0.25) * d,
       vy: (Math.random() * 0.34 + 0.06) * d * this.opts.speed,
       vx: (Math.random() - 0.5) * this.opts.drift * d,
-      a: Math.random() * 0.3 + 0.05,
+      a: Math.random() * 0.4 + 0.08,
       light: Math.random() > this.opts.light
     };
   }
@@ -464,11 +539,139 @@ class Particles {
   }
 }
 
+/* Where the stars are in assets/bg/stars.webp, as fractions of its own
+   width and height. Found by blurring the halftone until each star's dots
+   merge into one blob, then taking the centroids and dropping streaks.
+   The backdrop is `cover`, so these are mapped through the same crop at
+   runtime — see mountStars(). Regenerate if the backdrop changes. */
+const STAR_POINTS = [
+  { x: 0.26575, y: 0.57469, r: 0.22571, a: 0.558 },
+  { x: 0.24233, y: 0.21103, r: 0.17750, a: 0.554 },
+  { x: 0.68521, y: 0.34029, r: 0.16214, a: 0.528 },
+  { x: 0.51688, y: 0.84089, r: 0.13250, a: 0.528 },
+  { x: 0.74978, y: 0.58388, r: 0.09179, a: 0.518 },
+  { x: 0.81244, y: 0.08300, r: 0.08143, a: 0.517 },
+  { x: 0.78260, y: 0.77722, r: 0.06036, a: 0.504 },
+  { x: 0.84220, y: 0.28501, r: 0.05214, a: 0.445 },
+  { x: 0.10885, y: 0.40558, r: 0.05071, a: 0.531 },
+  { x: 0.56310, y: 0.11619, r: 0.04143, a: 0.486 },
+  { x: 0.87681, y: 0.96686, r: 0.03500, a: 0.530 },
+  { x: 0.16711, y: 0.90024, r: 0.03250, a: 0.523 },
+  { x: 0.48954, y: 0.47714, r: 0.03214, a: 0.577 },
+  { x: 0.36269, y: 0.05279, r: 0.03179, a: 0.484 },
+  { x: 0.23742, y: 0.78228, r: 0.02893, a: 0.517 },
+  { x: 0.92309, y: 0.48347, r: 0.02536, a: 0.533 },
+  { x: 0.15957, y: 0.50070, r: 0.02321, a: 0.514 },
+  { x: 0.50588, y: 0.69196, r: 0.02286, a: 0.463 },
+  { x: 0.56811, y: 0.60795, r: 0.02179, a: 0.568 },
+  { x: 0.75335, y: 0.19927, r: 0.02107, a: 0.511 },
+  { x: 0.07600, y: 0.04507, r: 0.01821, a: 0.498 },
+  { x: 0.48347, y: 0.25383, r: 0.01750, a: 0.514 },
+  { x: 0.15096, y: 0.68835, r: 0.01679, a: 0.437 },
+  { x: 0.87839, y: 0.87271, r: 0.01607, a: 0.470 },
+  { x: 0.27066, y: 0.35989, r: 0.01393, a: 0.503 },
+  { x: 0.95206, y: 0.15355, r: 0.01286, a: 0.554 },
+  { x: 0.38358, y: 0.95857, r: 0.01286, a: 0.492 },
+  { x: 0.66213, y: 0.55326, r: 0.01250, a: 0.421 },
+  { x: 0.07143, y: 0.80725, r: 0.01143, a: 0.457 },
+  { x: 0.63324, y: 0.03193, r: 0.00964, a: 0.424 },
+  { x: 0.52839, y: 0.34874, r: 0.00857, a: 0.428 },
+  { x: 0.65988, y: 0.54375, r: 0.00821, a: 0.431 },
+  { x: 0.15943, y: 0.69291, r: 0.00821, a: 0.424 },
+  { x: 0.80700, y: 0.43246, r: 0.00750, a: 0.389 },
+  { x: 0.38544, y: 0.66494, r: 0.00750, a: 0.432 },
+  { x: 0.04336, y: 0.19286, r: 0.00714, a: 0.444 },
+  { x: 0.64967, y: 0.53890, r: 0.00714, a: 0.429 },
+  { x: 0.34317, y: 0.22950, r: 0.00679, a: 0.409 },
+  { x: 0.05966, y: 0.38652, r: 0.00679, a: 0.388 },
+  { x: 0.77240, y: 0.54569, r: 0.00679, a: 0.414 },
+  { x: 0.80518, y: 0.55628, r: 0.00679, a: 0.408 },
+  { x: 0.20766, y: 0.64502, r: 0.00679, a: 0.391 },
+  { x: 0.51280, y: 0.90833, r: 0.00679, a: 0.402 },
+  { x: 0.79087, y: 0.26868, r: 0.00607, a: 0.410 },
+  { x: 0.63197, y: 0.34749, r: 0.00607, a: 0.389 },
+  { x: 0.64079, y: 0.88739, r: 0.00607, a: 0.420 },
+  { x: 0.12233, y: 0.12896, r: 0.00571, a: 0.434 },
+  { x: 0.24143, y: 0.17385, r: 0.00571, a: 0.428 },
+  { x: 0.59972, y: 0.34419, r: 0.00571, a: 0.384 },
+  { x: 0.52625, y: 0.10480, r: 0.00536, a: 0.401 },
+  { x: 0.84138, y: 0.55825, r: 0.00536, a: 0.371 },
+  { x: 0.39890, y: 0.66904, r: 0.00536, a: 0.394 },
+  { x: 0.65191, y: 0.89216, r: 0.00536, a: 0.458 },
+  { x: 0.84783, y: 0.55136, r: 0.00500, a: 0.375 },
+  { x: 0.62610, y: 0.25354, r: 0.00464, a: 0.392 },
+  { x: 0.51660, y: 0.49583, r: 0.00464, a: 0.386 },
+  { x: 0.81757, y: 0.05314, r: 0.00429, a: 0.394 },
+  { x: 0.76541, y: 0.07825, r: 0.00429, a: 0.445 },
+  { x: 0.72521, y: 0.31044, r: 0.00429, a: 0.433 },
+  { x: 0.71295, y: 0.38685, r: 0.00429, a: 0.427 },
+  { x: 0.72867, y: 0.39474, r: 0.00429, a: 0.408 },
+  { x: 0.15663, y: 0.59464, r: 0.00429, a: 0.404 },
+  { x: 0.15788, y: 0.60347, r: 0.00429, a: 0.435 },
+  { x: 0.66421, y: 0.63041, r: 0.00429, a: 0.437 }
+];
+
+/**
+ * Light the stars.
+ *
+ * The backdrop is a `cover` image, so the same crop has to be applied to
+ * the coordinates or the glows drift off their stars: work out the
+ * scale, centre the overflow, and place each glow at its star. Each one
+ * gets its own delay, so they come up in turn rather than pulsing as a
+ * block, and the whole layer is re-measured on resize.
+ */
+function mountStars() {
+  const host = document.querySelector('.backdrop');
+  if (!host) return;
+
+  let layer = host.querySelector('.star-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.className = 'star-layer';
+    layer.setAttribute('aria-hidden', 'true');
+    host.appendChild(layer);
+  }
+
+  // the backdrop's natural size, so `cover` can be reproduced exactly
+  const NAT_W = 1400, NAT_H = 2488;
+
+  const place = () => {
+    const cw = innerWidth, ch = innerHeight;
+    const scale = Math.max(cw / NAT_W, ch / NAT_H);
+    const w = NAT_W * scale, h = NAT_H * scale;
+    const ox = (cw - w) / 2;
+    const oy = 0;                      // the CSS anchors the image to the top
+
+    layer.innerHTML = '';
+    STAR_POINTS.forEach((st, i) => {
+      const x = ox + st.x * w;
+      const y = oy + st.y * h;
+      if (x < -80 || x > cw + 80 || y < -80 || y > ch + 80) return;
+
+      const size = Math.max(14, st.r * w * 2.1);
+      const el = document.createElement('span');
+      el.className = 'star';
+      el.style.cssText =
+        `left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;` +
+        `width:${size.toFixed(0)}px;height:${size.toFixed(0)}px;` +
+        // one at a time: the delays are spread across the whole cycle
+        `--delay:${(i * 0.37).toFixed(2)}s;` +
+        `--dur:${(5.5 + (i % 7) * 0.6).toFixed(1)}s;` +
+        `--peak:${(0.35 + st.a * 0.5).toFixed(2)}`;
+      layer.appendChild(el);
+    });
+  };
+
+  place();
+  let t = null;
+  addEventListener('resize', () => { clearTimeout(t); t = setTimeout(place, 200); });
+}
+
 /** The layer behind the whole page. */
 function startDust() {
   const canvas = document.getElementById('dust');
   if (!canvas) return;
-  return new Particles(canvas, { count: 90 });
+  return new Particles(canvas, { count: 170, size: 2.0 });
 }
 
 /**
@@ -483,7 +686,7 @@ function startModalParticles(overlay) {
   canvas.setAttribute('aria-hidden', 'true');
   panel.prepend(canvas);
   // let the panel lay out before the canvas measures it
-  return new Particles(canvas, { count: 34, speed: 0.45, size: 1.3, drift: 0.16 });
+  return new Particles(canvas, { count: 70, speed: 0.5, size: 1.5, drift: 0.2 });
 }
 
 /* ------------------------------------------------------------

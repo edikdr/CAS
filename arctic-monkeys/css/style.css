@@ -69,10 +69,39 @@ body {
   .backdrop { background-image: url('../assets/bg/stars-sm.webp'); }
 }
 
+/* One glow per star in the backdrop, positioned by mountStars(). They
+   come up in turn rather than together — the delays are spread across
+   the cycle — so the sky reads as flickering, not breathing. */
+.star-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+
+.star {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  opacity: 0;
+  background:
+    radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(226,238,255,.5) 22%,
+      rgba(180,206,255,.18) 45%, transparent 70%);
+  animation: star-blink var(--dur, 6s) var(--delay, 0s) ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes star-blink {
+  0%, 62%   { opacity: 0; }
+  70%       { opacity: var(--peak, .6); }
+  74%       { opacity: calc(var(--peak, .6) * .35); }
+  78%       { opacity: var(--peak, .6); }
+  100%      { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star { animation: none; opacity: calc(var(--peak, .6) * .45); }
+}
+
 /* keeps the type off the brightest stars without dulling them */
 .backdrop::after {
   content: '';
-  position: absolute; inset: 0;
+  position: absolute; inset: 0; z-index: 2;
   background:
     radial-gradient(ellipse at 50% 10%, rgba(11, 11, 10, .18), rgba(11, 11, 10, .74) 64%),
     linear-gradient(180deg, rgba(11, 11, 10, .42), rgba(11, 11, 10, .66));
@@ -805,6 +834,68 @@ body.locked { overflow: hidden; }
   .qz-row-a { grid-column: 2; text-align: left; font-size: 11px; }
 }
 
+/* ------------------------------------------------------------ motion
+   Windows arrive rather than appear, and anything clickable gives back
+   under the finger. Every one of these is a transform or an opacity, so
+   none of it touches layout. */
+
+@keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes window-in {
+  from { opacity: 0; transform: translateY(22px) scale(.965) rotate(-.5deg); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes deco-in {
+  from { opacity: 0; transform: rotate(var(--rot, 0deg)) scale(.9); }
+  to   { opacity: .28; transform: rotate(var(--rot, 0deg)) scale(1); }
+}
+
+.overlay:not([hidden]) { animation: overlay-in .2s ease both; }
+.overlay:not([hidden]) .tm {
+  animation: window-in .38s cubic-bezier(.18, .9, .28, 1) both;
+}
+.overlay:not([hidden]) .tm-deco {
+  animation: deco-in .5s .12s cubic-bezier(.2, .9, .3, 1) both;
+}
+
+/* a heading's letters settle one after another when the window lands */
+@keyframes title-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.overlay:not([hidden]) .tm-title { animation: title-in .34s .06s ease both; }
+.overlay:not([hidden]) .tm-player,
+.overlay:not([hidden]) .tm-grid,
+.overlay:not([hidden]) .qz-opts { animation: title-in .38s .12s ease both; }
+
+/* --- pressing things --- */
+.btn, .pf-btn, .tm-nav button, .tm-links a, .s-links a,
+.qz-opt, .quiz-card, .member, .single, .tm-close, .rc-row {
+  transition: transform .13s cubic-bezier(.2, .8, .3, 1),
+              background .18s ease, border-color .18s ease, color .18s ease;
+}
+.btn:active, .pf-btn:active, .tm-nav button:active,
+.tm-links a:active, .tm-close:active { transform: translateY(2px) scale(.97); }
+.qz-opt:active:not(:disabled) { transform: translateX(3px) scale(.995); }
+.quiz-card:active, .member:active, .single:active { transform: scale(.985); }
+.rc-row:active { transform: translateX(4px); }
+
+/* the search field lifts when it takes focus */
+#searchInput { transition: transform .18s ease, background .2s ease, border-color .2s ease; }
+#searchInput:focus { transform: translateY(-1px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay:not([hidden]),
+  .overlay:not([hidden]) .tm,
+  .overlay:not([hidden]) .tm-deco,
+  .overlay:not([hidden]) .tm-title,
+  .overlay:not([hidden]) .tm-player,
+  .overlay:not([hidden]) .tm-grid,
+  .overlay:not([hidden]) .qz-opts { animation: none; }
+}
+
 /* ------------------------------------------------------------ modals */
 .overlay {
   position: fixed; inset: 0; z-index: 90;
@@ -832,6 +923,21 @@ body.locked { overflow: hidden; }
   position: absolute; inset: 0; z-index: -1;
   background: linear-gradient(180deg, rgba(24, 24, 22, .5), rgba(24, 24, 22, .68));
 }
+/* objects taped into the corners of an open window */
+.tm-deco {
+  position: absolute; z-index: 0;
+  pointer-events: none; user-select: none;
+  opacity: .28;
+  transform: rotate(var(--rot, 0deg));
+}
+.tm-deco img {
+  display: block; width: 100%; height: auto;
+  filter: grayscale(1) contrast(1.02) brightness(.85);
+}
+.tm-deco-tl { top: -14px; left: -12px; }
+.tm-deco-br { right: -14px; bottom: -12px; }
+@media (max-width: 620px) { .tm-deco { display: none; } }
+
 /* the particle layer inside an open window */
 .tm-dust {
   position: absolute; inset: 0; z-index: 0;
@@ -839,14 +945,22 @@ body.locked { overflow: hidden; }
   pointer-events: none;
   mix-blend-mode: screen;
 }
-.tm > *:not(.tm-dust) { position: relative; z-index: 1; }
+/* Lift the window's content above its dust layer — but not the close
+   button or the corner objects, which are absolutely positioned and
+   would be dropped back into the flow by a blanket `position: relative`.
+   That is exactly what moved the × out of the corner. */
+.tm > *:not(.tm-dust):not(.tm-close):not(.tm-deco) { position: relative; z-index: 1; }
 
 .tm-close {
-  position: absolute; top: 10px; right: 12px;
-  background: transparent; border: 0; color: var(--chalk-dim);
-  font-size: 26px; line-height: 1; cursor: pointer; padding: 4px 8px;
+  position: absolute; top: 10px; right: 12px; z-index: 5;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  background: rgba(20, 20, 19, .72);
+  border: 1px solid var(--line); border-radius: 2px;
+  color: var(--chalk-dim);
+  font-size: 24px; line-height: 1; cursor: pointer; padding: 0;
 }
-.tm-close:hover { color: var(--chalk); }
+.tm-close:hover { color: var(--ink); background: var(--paper); border-color: var(--paper); }
 
 .tm-head, .mm-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
 .tm-no, .mm-mono {
@@ -957,15 +1071,14 @@ body.locked { overflow: hidden; }
 
 .deco img {
   display: block; width: 100%; height: auto;
-  /* They were cut from three different papers — warm, grey and newsprint.
-     Desaturating and pulling the highlights down settles all three onto
-     the same black page, and `luminosity` lets the star field read
-     through them instead of them sitting on top as stickers. */
-  filter: grayscale(1) contrast(.82) brightness(.68);
-  mix-blend-mode: luminosity;
+  /* Cut from several different papers — warm, grey, newsprint, chalk on
+     black. Desaturating puts them on one grade of grey; the shadow gives
+     them an edge against the star field so they read as taped-on paper
+     rather than a watermark. Blending them into the background made them
+     disappear, which is not the same as fitting in. */
+  filter: grayscale(1) contrast(1.05) brightness(.88)
+          drop-shadow(0 5px 12px rgba(0, 0, 0, .75));
 }
-/* the light objects — moons, dice, paper — would otherwise glare */
-.deco { mix-blend-mode: screen; }
 
 .float { animation: drift var(--dur, 24s) ease-in-out infinite alternate; }
 @keyframes drift {
@@ -1023,14 +1136,33 @@ body.locked { overflow: hidden; }
   .tm-links a, .nav-links a { padding: 10px 12px; }
   .tm-line { padding: 11px 8px; }
   .qz-opt { padding: 15px; }
-  /* the particle layer inside an open window */
+  /* objects taped into the corners of an open window */
+.tm-deco {
+  position: absolute; z-index: 0;
+  pointer-events: none; user-select: none;
+  opacity: .28;
+  transform: rotate(var(--rot, 0deg));
+}
+.tm-deco img {
+  display: block; width: 100%; height: auto;
+  filter: grayscale(1) contrast(1.02) brightness(.85);
+}
+.tm-deco-tl { top: -14px; left: -12px; }
+.tm-deco-br { right: -14px; bottom: -12px; }
+@media (max-width: 620px) { .tm-deco { display: none; } }
+
+/* the particle layer inside an open window */
 .tm-dust {
   position: absolute; inset: 0; z-index: 0;
   width: 100%; height: 100%;
   pointer-events: none;
   mix-blend-mode: screen;
 }
-.tm > *:not(.tm-dust) { position: relative; z-index: 1; }
+/* Lift the window's content above its dust layer — but not the close
+   button or the corner objects, which are absolutely positioned and
+   would be dropped back into the flow by a blanket `position: relative`.
+   That is exactly what moved the × out of the corner. */
+.tm > *:not(.tm-dust):not(.tm-close):not(.tm-deco) { position: relative; z-index: 1; }
 
 .tm-close { font-size: 32px; padding: 10px 14px; }
 }

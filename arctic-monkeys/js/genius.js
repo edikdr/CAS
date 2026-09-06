@@ -50,9 +50,14 @@ const Genius = {
     return null;
   },
 
+  /* Photographs resolved live are kept here so that a window opened
+     later sees the same one the card already found, without asking
+     again. */
+  livePhotos: {},
+
   photo(name) {
     const a = this.artist(name);
-    return (a && a.photo) || null;
+    return (a && a.photo) || this.livePhotos[name] || null;
   },
 
   /* ---------- live lookups ----------
@@ -131,8 +136,27 @@ const Genius = {
       geniusUrl: artist.url,
       photo: artist.image_url || artist.header_image_url || null
     };
+    if (rec.photo) this.livePhotos[name] = rec.photo;
     this.remember(key, rec);
     return rec;
+  },
+
+  /**
+   * A sleeve for a record, live. Genius has no album search, so this goes
+   * through the first track and reads the album hanging off it.
+   */
+  async coverLive(album) {
+    const key = 'cover:' + album.id;
+    const cached = this.session(key);
+    if (cached !== null) return cached;
+
+    for (const t of album.tracks.slice(0, 3)) {
+      const song = await this.song(t.name);
+      const url = song && (song.albumCover || song.art);
+      if (url) { this.remember(key, url); return url; }
+    }
+    this.remember(key, false);
+    return null;
   },
 
   /** Is a Genius proxy answering? Probed once, ever — callers share it. */

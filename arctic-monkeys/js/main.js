@@ -41,7 +41,7 @@ function renderMembers() {
   MEMBERS.forEach(async (m, i) => {
     if (Genius.photo(m.name)) return;
     const live = await Genius.artistLive(m.name);
-    if (!live || !live.photo) return;
+    if (!live || !live.photo) return;   // Genius.photo() can see it from here on
     const card = host.querySelector(`[data-member="${i}"] .mono`);
     if (!card || card.tagName === 'IMG') return;
     const img = document.createElement('img');
@@ -211,6 +211,30 @@ function renderAlbums(filter = '') {
 
   updateSearchMeta(q, shown.length, hits);
   observeReveals(host);
+  hydrateCovers(shown);
+}
+
+/**
+ * Hang a sleeve on each record once Genius can supply one.
+ *
+ * Nothing waits on this: the cards are already complete without it, and
+ * an album that has a cover baked in never asks.
+ */
+async function hydrateCovers(albums) {
+  for (const album of albums) {
+    if (Genius.cover(album)) continue;
+    const url = await Genius.coverLive(album);
+    if (!url) continue;
+    const head = document.querySelector(`#album-${album.id} .album-head`);
+    if (!head || head.querySelector('.album-cover')) continue;
+    const img = document.createElement('img');
+    img.className = 'album-cover';
+    img.src = url;
+    img.alt = `${album.title} sleeve`;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    head.prepend(img);
+  }
 }
 
 function updateSearchMeta(q, albums, hits = 0) {

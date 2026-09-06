@@ -7,8 +7,13 @@
    cross-origin browser requests anyway, so a proxy is the only way the
    page can read it at all.
 
-   netlify.toml maps /api/genius/* here, which is the same path server.js
-   serves locally. The site does not know or care which one answered.
+   `export const config` at the bottom claims /api/genius/*, which is the
+   same path server.js serves locally — the site does not know or care
+   which one answered.
+
+   The .mjs extension is deliberate. Netlify's v2 functions are ESM, and a
+   bare .js here would be read as CommonJS unless a package.json declared
+   otherwise; .mjs removes the ambiguity without adding one.
    ============================================================ */
 
 // only these, so the route cannot be used as an open relay

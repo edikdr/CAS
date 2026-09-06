@@ -162,12 +162,6 @@ function renderAlbums(filter = '') {
       </p>`;
     card.querySelector('.rc-stage').insertAdjacentElement('beforebegin', head);
 
-    // a player face per record, under the receipt
-    const pf = document.createElement('div');
-    pf.className = 'album-player';
-    card.appendChild(pf);
-    const face = new PlayerFace(pf, album);
-
     // Choosing a track screws the receipt back up and opens the window —
     // the paper goes away, the song takes over.
     $$('.rc-row', card).forEach(row => {
@@ -179,17 +173,6 @@ function renderAlbums(filter = '') {
       row.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(); }
       });
-
-      const cue = document.createElement('button');
-      cue.className = 'rc-cue';
-      cue.type = 'button';
-      cue.textContent = '▶';
-      cue.setAttribute('aria-label', `Preview ${row.dataset.track}`);
-      cue.addEventListener('click', e => {
-        e.stopPropagation();
-        face.cueTrack(row.dataset.track);
-      });
-      row.appendChild(cue);
 
       if (q && row.dataset.track.toLowerCase().includes(q)) {
         row.classList.add('hit');
@@ -222,18 +205,102 @@ function updateSearchMeta(q, albums, hits = 0) {
 function renderSingles() {
   const host = $('#singleGrid');
   if (!host) return;
-  host.innerHTML = SINGLES.map(s => `
-    <article class="single reveal">
-      <div class="s-year">${s.year}</div>
-      <h4 class="s-title">${esc(s.title)}</h4>
-      <p class="s-note">${s.note}</p>
-      <div class="s-links">
-        <a href="${PLATFORMS[0].url(s.title)}" target="_blank" rel="noopener">Listen</a>
-        <a href="${geniusUrl(s.title)}" target="_blank" rel="noopener">Genius</a>
-      </div>
-    </article>`).join('');
+  host.innerHTML = SINGLES.map((s, i) => `
+    <button class="single reveal" type="button" data-single="${i}"
+            aria-label="${esc(s.title)} — open">
+      <span class="s-year">${s.year}</span>
+      <span class="s-title">${esc(s.title)}</span>
+      <span class="s-note">${s.note}</span>
+      <span class="s-open">Open →</span>
+    </button>`).join('');
+
+  $$('[data-single]', host).forEach(btn =>
+    btn.addEventListener('click', () => openSingle(SINGLES[+btn.dataset.single])));
   observeReveals(host);
 }
+
+/**
+ * Open a single.
+ *
+ * Most of them are album tracks, and the track window already holds
+ * everything — words, annotations, credits, the player. Only the
+ * standalone releases need a window of their own.
+ */
+function openSingle(single) {
+  const album = albumOf(single.title);
+  if (album) return TrackModal.open(single.title, album.id);
+  SingleModal.open(single);
+}
+
+const SingleModal = {
+  overlay: null, single: null, face: null, lastFocus: null,
+
+  init() {
+    this.overlay = $('#singleModal');
+    if (!this.overlay) return;
+    this.overlay.addEventListener('click', e => { if (e.target === this.overlay) this.close(); });
+    document.addEventListener('keydown', e => {
+      if (this.overlay.hidden) return;
+      if (e.key === 'Escape') { e.preventDefault(); this.close(); }
+    });
+  },
+
+  open(single) {
+    this.single = single;
+    this.lastFocus = document.activeElement;
+    this.render();
+    this.overlay.hidden = false;
+    document.body.classList.add('locked');
+    this.overlay.querySelector('.tm-close').focus();
+  },
+
+  close() {
+    if (this.overlay.hidden) return;
+    this.overlay.hidden = true;
+    document.body.classList.remove('locked');
+    if (this.face) { Player.unregister(this.face); this.face = null; }
+    if (this.lastFocus && this.lastFocus.focus) this.lastFocus.focus();
+  },
+
+  render() {
+    const s = this.single;
+    const genius = geniusUrl(s.title);
+    this.overlay.innerHTML = `
+      <div class="tm" role="dialog" aria-modal="true" aria-labelledby="smTitle">
+        <button class="tm-close" type="button" aria-label="Close">×</button>
+        <header class="tm-head">
+          <div class="tm-no">${s.year}</div>
+          <div>
+            <h3 id="smTitle" class="tm-title">${esc(s.title)}</h3>
+            <p class="tm-sub">Standalone single · ${s.year}</p>
+          </div>
+        </header>
+
+        <div class="tm-player" data-sm="player"></div>
+
+        <p class="tm-note">${s.note}</p>
+
+        <h4 class="tm-h">Hear it in full</h4>
+        <div class="tm-links">
+          ${PLATFORMS.map(p =>
+            `<a href="${p.url(s.title)}" target="_blank" rel="noopener">${p.name}</a>`).join('')}
+          <a href="${videoUrl(s.title)}" target="_blank" rel="noopener">Video</a>
+          <a href="${genius}" target="_blank" rel="noopener">Genius</a>
+        </div>
+
+        <p class="tm-attr">
+          Words and credits: <a href="${genius}" target="_blank" rel="noopener">Genius</a>.
+          Preview audio: iTunes Search API. Unofficial fan page.
+        </p>
+      </div>`;
+
+    this.overlay.querySelector('.tm-close').addEventListener('click', () => this.close());
+
+    // a one-track album, so the transport has something to walk
+    const stub = { title: s.title, tracks: [{ name: s.title, duration: '—' }] };
+    this.face = new PlayerFace(this.overlay.querySelector('[data-sm="player"]'), stub);
+  }
+};
 
 function renderTimeline() {
   const host = $('#timeline');
@@ -256,6 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
   Player.init();
   MemberModal.init();
   TrackModal.init();
+  SingleModal.init();
   Quiz.init();
 
   // cut-paper headings

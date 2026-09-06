@@ -209,8 +209,6 @@ function applyStage(card, pct, hard) {
     if (stack && box) stack.style.top = (-box.y).toFixed(1) + 'px';
   }
 
-  const label = card.querySelector('.rc-pct');
-  if (label) label.textContent = pct + '%';
 }
 
 /** Make sure every frame of this album is decoded before we animate. */
@@ -291,14 +289,14 @@ function buildAlbumCard(album) {
 
     <div class="rc-controls">
       <button class="unfold" type="button" aria-expanded="${data ? 'false' : 'true'}"
-              aria-controls="album-${album.id}">
-        <span class="unfold-ico" aria-hidden="true"></span>
-        <span class="unfold-txt">${data ? 'PLAY' : 'TRACKS'}</span>
+              aria-controls="album-${album.id}"
+              aria-label="${data ? 'Unfold' : 'Show'} the ${esc(album.title)} receipt">
+        <span class="unfold-face">
+          <span class="unfold-ico" aria-hidden="true"></span>
+          <span class="unfold-txt">${data ? 'PLAY' : 'TRACKS'}</span>
+        </span>
       </button>
-      <div class="rc-status">
-        <span class="rc-pct">${data ? '100%' : ''}</span>
-        <span class="rc-title">${esc(album.short)} · ${album.year}</span>
-      </div>
+      <span class="rc-title">${esc(album.short)} · ${album.year}</span>
     </div>
   `;
 

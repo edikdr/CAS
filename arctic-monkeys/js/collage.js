@@ -263,13 +263,13 @@ const DECOR = [
   ['#singles', 'star',     'vr', 32, 14,  62, -10, 0.32, 24],
   ['#singles', 'cassette', 'vr', 20, 66, 100,  -8, 0.28, 29],
 
-  // colophon
+  // quiz tail
   // quizzes
   ['#quiz', 'eye',        'vl', 30, 20,  84,  -6, 0.28, 27],
   ['#quiz', 'dice',       'vr', 24, 62,  98,   7, 0.30, 26],
 
-  ['#colophon', 'triangle', 'vl', 30, 30, 56,  -6, 0.26, 28],
-  ['#colophon', 'spiral',   'vr', 28, 55, 68,   8, 0.24, 31]
+  ['#quiz', 'triangle', 'vl', 30, 82, 56,  -6, 0.26, 28],
+  ['#quiz', 'spiral',   'vr', 28, 88, 68,   8, 0.24, 31]
 ];
 
 function place(el, anchor, inset, y) {
@@ -353,13 +353,13 @@ const SCRAP_PLAN = [
   ['#discography', 'TRANQUILITY BASE', 'vr', 20, 72],
   ['#discography', 'MIRRORBALL', 'vl', 32, 88],
 
-  // singles + colophon
+  // singles + quiz
   ['#singles', 'TEDDY PICKER', 'vl', 18, 24],
   ['#singles', 'on a RAINY day', 'vr', 26, 78],
   ['#quiz', 'Make a wish, concentrate?', 'vl', 22, 40],
   ['#quiz', 'PERHAPS VAMPIRES IS A BIT STRONG BUT…', 'vr', 26, 12],
-  ['#colophon', 'XOXO', 'vl', 24, 60],
-  ['#colophon', 'MORE LIKE BLACK TREACLE THAN TAR', 'vr', 20, 20]
+  ['#quiz', 'XOXO', 'vl', 24, 68],
+  ['#singles', 'MORE LIKE BLACK TREACLE THAN TAR', 'vr', 20, 44]
 ];
 
 /* how each scrap is set — picked by its own text, so it never changes */

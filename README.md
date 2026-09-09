@@ -338,20 +338,22 @@ column at the artwork's own proportion, and the image is drawn at
 `100% auto`: full width, never cropped sideways, running from the top
 down as far as it goes.
 
-### Three frames, and each one is built to its artwork
+### The frames, and each one is built to its artwork
 
-**The track panel** is bordered by `assets/ornateframe.webp`. That
-artwork has a skull centred on its top edge, another motif centred on the
-bottom and four corner clusters, which rules out `border-image`: it
-stretches or tiles the edge segments and either one visibly mangles a
-centred skull. So the panel is given the artwork's own aspect ratio and
-the frame is drawn across it at `100% 100%` — which, at that ratio, is
-not a stretch at all. The width is bounded three ways (a maximum, the
-viewport width, and whatever width the viewport *height* allows at that
-ratio) so it is never cropped and never overflows, and the content
-scrolls inside it. The padding that clears the ornament was measured off
-the asset rather than guessed: the band reaches a median 12% in from the
-sides, 17% from the top, 10% from the bottom.
+**The track panel** has no frame image. It used to be bordered by an
+ornate skull-and-corners artwork, which forced the panel to be locked to
+that picture's portrait ratio and padded in percentages to clear the
+ornament's band — a frame bought at the cost of the layout everywhere
+else. The frame is gone and the panel is an ordinary responsive modal:
+`min(680px, 100%)` wide, as tall as its content, capped at the viewport
+height, with a thin bone line around the edge. Under 720px it takes the
+full width and the real visual viewport height; under 480px it goes edge
+to edge.
+
+None of the modals draw scrollbars. Every scrolling region inside one
+still scrolls by wheel, drag, keyboard and trackpad — the track is just
+not painted, because a pale native gutter was the one piece of default
+browser chrome left on the page.
 
 The artwork arrives inverted from what the page wants — a pale card with
 the ornament cut into it in dark line. The band is found, and inside it

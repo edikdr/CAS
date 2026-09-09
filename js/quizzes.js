@@ -1,100 +1,290 @@
 /* ============================================================
-   Four quizzes. answer = index into options.
+   Four decks.
+
+   THE CORRECT ANSWER IS STORED AS A STRING, NOT AN INDEX. js/quiz.js
+   shuffles the options every time a deck is started and resolves the
+   correct position afterwards, so where the right answer sits changes
+   from one play to the next and cannot be learned — or read out of this
+   file, which is the more interesting half.
+
+   ON ACCURACY. This was written without a network to check against, so
+   it sticks to what is firmly on the record: formation, line-up changes,
+   album titles and years, labels, who plays what. Chart positions, sales
+   figures and guest credits are left out rather than guessed at, and
+   anything genuinely contested — the exact shape of the early label
+   history, for one — is not asked as though it had a single clean answer.
+   Everything lives in this one file, so a correction is a one-line edit.
+
+   ON "FINISH THE LYRIC". The brief asked for it and this deck does not do
+   it, deliberately: printing a band's words to quiz someone on the next
+   ones means reproducing them, and no lyric text ships in this folder.
+   The Lyrical Genius deck asks about what the songs are doing instead —
+   titles, subjects, who delivers what, and where a title was borrowed
+   from. It is a better deck for it.
    ============================================================ */
 
 const QUIZZES = [
   {
     id: 'lore',
-    name: 'Lore & Basics',
-    blurb: 'Where they came from and how the records happened.',
+    title: 'Band Lore & Origins',
+    blurb: 'A profile, six masks, and a record deal that arrived after the audience did.',
     questions: [
-      { q: 'Which song contains the line “Your lips, my lips, apocalypse”?', options: ['K.', 'Apocalypse', 'Sweet', 'Cry'], answer: 1 },
-      { q: 'In which city was the band formed?', options: ['Brooklyn', 'Los Angeles', 'El Paso', 'Austin'], answer: 2 },
-      { q: 'What year was the self-titled debut album released?', options: ['2015', '2017', '2019', '2012'], answer: 1 },
-      { q: 'Who is the frontman and primary songwriter?', options: ['Randall Miller', 'Jacob Tomsky', 'Greg Gonzalez', 'Phillip Tubbs'], answer: 2 },
-      { q: 'Which album features the track “Heavenly”?', options: ['I.', 'Cigarettes After Sex', 'Cry', "X's"], answer: 2 },
-      { q: 'The EP “I.” was famously recorded in…', options: ['A basement studio', 'A four-story stairwell', 'An abandoned church', 'A bedroom'], answer: 1 },
-      { q: 'What is the name of the 2024 album?', options: ['Cry II', "X's", 'Affection', 'Twizzler'], answer: 1 },
-      { q: 'Which member wrote the book “Heads in Beds”?', options: ['Greg Gonzalez', 'Randall Miller', 'Jacob Tomsky', 'Phillip Tubbs'], answer: 2 },
-      { q: '“Nothing’s Gonna Hurt You Baby” first appeared on which release?', options: ['Affection', 'I.', 'Cigarettes After Sex', 'Cry'], answer: 1 },
-      { q: 'What does the band name reference?', options: ['A cigarette brand', 'A personal intimate moment', 'A film title', 'A poem'], answer: 1 },
-      { q: 'Which of these is a cover released by the band?', options: ['Apocalypse', 'Neon Moon', 'Tejano Blue', 'Dark Vacay'], answer: 1 },
-      { q: 'The current drummer of the band is…', options: ['Greg Leah', 'Jacob Tomsky', 'Josh Marcus', 'Steve Herrada'], answer: 1 },
-      { q: 'Which single was released as a double A-side with “Keep On Loving You”?', options: ['K.', 'Affection', 'Crush', 'Pistol'], answer: 1 },
-      { q: 'On which album does the track “Tejano Blue” appear?', options: ['Cry', "X's", 'I.', 'Cigarettes After Sex'], answer: 1 },
-      { q: 'Who is primarily responsible for the band’s graphic design?', options: ['Greg Gonzalez', 'Jacob Tomsky', 'Randall Miller', 'Phillip Tubbs'], answer: 2 },
-      { q: 'Which song opens the self-titled 2017 album?', options: ['Apocalypse', 'K.', 'Sunsetz', 'Sweet'], answer: 1 },
-      { q: '“Sesame Syrup” is the B-side of which single?', options: ['Affection', 'Crush', 'Pistol', 'Bubblegum'], answer: 1 },
-      { q: 'Greg Gonzalez originally studied at which university?', options: ['NYU', 'University of Texas at El Paso', 'Berklee', 'UCLA'], answer: 1 }
+      { q: 'Which city did Hollywood Undead form in?',
+        a: 'Los Angeles',
+        o: ['Los Angeles', 'Las Vegas', 'San Diego', 'Sacramento'] },
+
+      { q: 'What year did the band form?',
+        a: '2005',
+        o: ['2001', '2003', '2005', '2008'] },
+
+      { q: 'Which platform did the band build its following on before signing to a label?',
+        a: 'MySpace',
+        o: ['MySpace', 'Bandcamp', 'SoundCloud', 'LiveJournal'] },
+
+      { q: 'Who co-founded the band with J-Dog?',
+        a: 'Deuce',
+        o: ['Deuce', 'Danny', 'Charlie Scene', 'Da Kurlzz'] },
+
+      { q: 'What is the band’s long-standing emblem?',
+        a: 'A dove and a grenade',
+        o: ['A dove and a grenade', 'A skull and crossbones',
+            'A burning palm tree', 'A cracked bell'] },
+
+      { q: 'What was unusual about the band’s position when the industry first noticed them?',
+        a: 'They already had a large audience with no album released',
+        o: ['They already had a large audience with no album released',
+            'They had toured for a decade first',
+            'They were signed before writing a song',
+            'They had charted under another name'] },
+
+      { q: 'What is the band’s debut album called?',
+        a: 'Swan Songs',
+        o: ['Swan Songs', 'American Tragedy', 'Day of the Dead', 'Notes from the Underground'] },
+
+      { q: 'What year was the debut released?',
+        a: '2008',
+        o: ['2006', '2007', '2008', '2010'] },
+
+      { q: 'In what year did Deuce leave the band?',
+        a: '2010',
+        o: ['2009', '2010', '2012', '2013'] },
+
+      { q: 'Who joined in 2010 to replace him?',
+        a: 'Danny',
+        o: ['Danny', 'Funny Man', 'Johnny 3 Tears', 'Da Kurlzz'] },
+
+      { q: 'What is J-Dog’s name off stage?',
+        a: 'Jorel Decker',
+        o: ['Jorel Decker', 'Jordon Terrell', 'George Ragan', 'Dylan Alvarez'] },
+
+      { q: 'What is Johnny 3 Tears’ name off stage?',
+        a: 'George Ragan',
+        o: ['George Ragan', 'Aron Erlichman', 'Daniel Murillo', 'Matthew St. Claire'] },
+
+      { q: 'What is Danny’s name off stage?',
+        a: 'Daniel Murillo',
+        o: ['Daniel Murillo', 'Dylan Alvarez', 'Jorel Decker', 'Jordon Terrell'] },
+
+      { q: 'Which member left the band in 2017, after twelve years?',
+        a: 'Da Kurlzz',
+        o: ['Da Kurlzz', 'Funny Man', 'Charlie Scene', 'Danny'] },
+
+      { q: 'Which state has the band written about, and from, for its whole career?',
+        a: 'California',
+        o: ['California', 'Nevada', 'Arizona', 'Oregon'] }
     ]
   },
 
   {
-    id: 'tracks',
-    name: 'Tracks & Albums',
-    blurb: 'Track lists, running order, which record holds what.',
+    id: 'masks',
+    title: 'Mask Evolution & Personas',
+    blurb: 'Six faces, redrawn every album cycle, and the people behind them.',
     questions: [
-      { q: 'Which album opens with “Don’t Let Me Go”?', options: ['Cigarettes After Sex', 'Cry', "X's", 'I.'], answer: 1 },
-      { q: '“Silver Sable” appears on which album?', options: ['Cry', "X's", 'Cigarettes After Sex', 'I Can See You'], answer: 1 },
-      { q: 'How many tracks are on the self-titled 2017 album?', options: ['9', '10', '11', '12'], answer: 1 },
-      { q: 'Which track closes the self-titled album?', options: ['John Wayne', 'Truly', 'Young & Dumb', 'Opera House'], answer: 2 },
-      { q: '“Opera House” is found on…', options: ['Cry', 'Cigarettes After Sex', "X's", 'I.'], answer: 1 },
-      { q: 'Which album contains both “Touch” and “Pure”?', options: ["X's", 'Cry', 'Cigarettes After Sex', 'I.'], answer: 1 },
-      { q: '“Ambien Slide” closes which album?', options: ['Cry', "X's", 'Cigarettes After Sex', 'I.'], answer: 1 },
-      { q: 'Which of these is NOT a track on “X’s”?', options: ['Hideaway', 'Hot', 'Heavenly', 'Dark Vacay'], answer: 2 },
-      { q: '“Kiss It Off Me” is the second track on which album?', options: ['Cry', "X's", 'Cigarettes After Sex', 'I.'], answer: 0 },
-      { q: 'Which EP contains “Starry Eyes” and “I’m a Firefighter”?', options: ['I Can See You', 'I.', 'Affection', 'Crush'], answer: 1 },
-      { q: 'Which track opens the album “X’s”?', options: ['Tejano Blue', "X's", 'Hideaway', 'Hot'], answer: 1 },
-      { q: '“Hentai” appears on which album?', options: ['Cigarettes After Sex', 'Cry', "X's", 'I.'], answer: 1 },
-      { q: 'How many tracks are on “Cry”?', options: ['8', '9', '10', '11'], answer: 1 },
-      { q: '“Each Time You Fall in Love” is track two on…', options: ['Cry', 'Cigarettes After Sex', "X's", 'I.'], answer: 1 },
-      { q: 'Which of these tracks is the longest on the self-titled album?', options: ['K.', 'Opera House', 'Sweet', 'Apocalypse'], answer: 1 }
+      { q: 'Whose mask carries three tears under the eye?',
+        a: 'Johnny 3 Tears',
+        o: ['Johnny 3 Tears', 'J-Dog', 'Danny', 'Funny Man'] },
+
+      { q: 'Which member wears a bandana and a cap rather than a full mask?',
+        a: 'Charlie Scene',
+        o: ['Charlie Scene', 'Funny Man', 'Da Kurlzz', 'Danny'] },
+
+      { q: 'On the Day of the Dead poster set, whose mask is gold?',
+        a: 'Danny',
+        o: ['Danny', 'J-Dog', 'Charlie Scene', 'Johnny 3 Tears'] },
+
+      { q: 'Whose mask on that set is plain black, worn under a cap?',
+        a: 'Funny Man',
+        o: ['Funny Man', 'Da Kurlzz', 'Danny', 'Charlie Scene'] },
+
+      { q: 'Which member played drums and delivered the screamed vocals?',
+        a: 'Da Kurlzz',
+        o: ['Da Kurlzz', 'Charlie Scene', 'J-Dog', 'Funny Man'] },
+
+      { q: 'What is Charlie Scene’s name off stage?',
+        a: 'Jordon Terrell',
+        o: ['Jordon Terrell', 'George Ragan', 'Daniel Murillo', 'Jorel Decker'] },
+
+      { q: 'What is Funny Man’s name off stage?',
+        a: 'Dylan Alvarez',
+        o: ['Dylan Alvarez', 'Matthew St. Claire', 'Aron Erlichman', 'Jordon Terrell'] },
+
+      { q: 'What is Da Kurlzz’s name off stage?',
+        a: 'Matthew St. Claire',
+        o: ['Matthew St. Claire', 'Dylan Alvarez', 'Daniel Murillo', 'George Ragan'] },
+
+      { q: 'Which member plays lead guitar?',
+        a: 'Charlie Scene',
+        o: ['Charlie Scene', 'J-Dog', 'Johnny 3 Tears', 'Danny'] },
+
+      { q: 'Which member carries most of the production and programming?',
+        a: 'J-Dog',
+        o: ['J-Dog', 'Funny Man', 'Da Kurlzz', 'Charlie Scene'] },
+
+      { q: 'Which member brought a straight clean singing voice to the group?',
+        a: 'Danny',
+        o: ['Danny', 'Deuce', 'Johnny 3 Tears', 'Funny Man'] },
+
+      { q: 'How many masked members appear in the Day of the Dead poster set?',
+        a: 'Six',
+        o: ['Four', 'Five', 'Six', 'Seven'] },
+
+      { q: 'Which album is named for how many members were left after a departure?',
+        a: 'Five',
+        o: ['Five', 'Day of the Dead', 'New Empire', 'Notes from the Underground'] },
+
+      { q: 'Which instrument does Johnny 3 Tears play alongside singing?',
+        a: 'Bass',
+        o: ['Bass', 'Drums', 'Lead guitar', 'Saxophone'] }
     ]
   },
 
   {
-    id: 'releases',
-    name: 'Releases & Covers',
-    blurb: 'Years, singles, B-sides and the songs they borrowed.',
+    id: 'words',
+    title: 'Lyrical Genius',
+    blurb: 'What the songs are about, who delivers them, and where a title was borrowed from.',
     questions: [
-      { q: 'In which year was the EP “I.” released?', options: ['2009', '2012', '2015', '2017'], answer: 1 },
-      { q: '“Neon Moon” is a cover of a song by…', options: ['The Doors', 'Brooks & Dunn', 'REO Speedwagon', 'Radiohead'], answer: 1 },
-      { q: '“Motion Picture Soundtrack” is a cover of a song by…', options: ['Radiohead', 'The Cure', 'Mazzy Star', 'The Doors'], answer: 0 },
-      { q: '“Keep On Loving You”, the flip side of “Affection”, is originally by…', options: ['Brooks & Dunn', 'REO Speedwagon', 'Fleetwood Mac', 'The Doors'], answer: 1 },
-      { q: 'Which label released the self-titled album?', options: ['4AD', 'Partisan Records', 'Sub Pop', 'Matador'], answer: 1 },
-      { q: 'In which year was “X’s” released?', options: ['2022', '2023', '2024', '2025'], answer: 2 },
-      { q: 'What was the first self-released EP, from 2009?', options: ['I.', 'I Can See You', 'Affection', 'Starry Eyes'], answer: 1 },
-      { q: '“Sesame Syrup” was released as the B-side to…', options: ['Crush', 'Bubblegum', 'Pistol', 'Heavenly'], answer: 0 },
-      { q: 'In which year was the album “Cry” released?', options: ['2017', '2018', '2019', '2020'], answer: 2 },
-      { q: 'The 2025 single “Anna Karenina” came with a cover of which Doors song?', options: ['Riders on the Storm', 'The Crystal Ship', 'People Are Strange', 'The End'], answer: 1 },
-      { q: '“Stop Waiting” is the B-side of which single?', options: ['Pistol', 'Bubblegum', 'Twizzler', 'Crush'], answer: 1 },
-      { q: 'Which of these singles was released in 2022?', options: ['Pistol', 'Bubblegum', 'Tejano Blue', "You're All I Want"], answer: 0 },
-      { q: '“Tejano Blue” served as the lead single from…', options: ['Cry', "X's", 'Cigarettes After Sex', 'I.'], answer: 1 },
-      { q: 'Which track has been certified multi-platinum by the RIAA?', options: ['K.', 'Apocalypse', 'Sunsetz', 'Heavenly'], answer: 1 },
-      { q: 'In which year did the band form?', options: ['2005', '2008', '2010', '2012'], answer: 1 }
+      { q: 'Which city functions less as a setting and more as the antagonist across the catalogue?',
+        a: 'Los Angeles',
+        o: ['Los Angeles', 'New York', 'Detroit', 'Miami'] },
+
+      { q: 'Which song gives every member a verse and names the band to itself?',
+        a: '“Undead”',
+        o: ['“Undead”', '“Everywhere I Go”', '“Hear Me Now”', '“Gravity”'] },
+
+      { q: 'The title “California Dreaming” borrows from a song originally by which group?',
+        a: 'The Mamas & the Papas',
+        o: ['The Mamas & the Papas', 'The Beach Boys', 'The Doors', 'Creedence Clearwater Revival'] },
+
+      { q: 'How is “Hotel Kalifornia” spelled on the 2022 album?',
+        a: 'With a K',
+        o: ['With a K', 'With a C', 'With two Ls', 'In all lower case'] },
+
+      { q: 'Which record pushed furthest towards metal, with the jokes at their thinnest?',
+        a: 'Notes from the Underground',
+        o: ['Notes from the Underground', 'Swan Songs', 'Five', 'Hotel Kalifornia'] },
+
+      { q: 'On which album did fully sung choruses first appear across the record?',
+        a: 'American Tragedy',
+        o: ['American Tragedy', 'Swan Songs', 'Day of the Dead', 'Five'] },
+
+      { q: 'Which album cycle produced the six masked posters used on this site?',
+        a: 'Day of the Dead',
+        o: ['Day of the Dead', 'American Tragedy', 'Five', 'New Empire'] },
+
+      { q: 'Which of these is NOT a Hollywood Undead album?',
+        a: 'Paper Tigers',
+        o: ['Paper Tigers', 'Swan Songs', 'Five', 'Day of the Dead'] },
+
+      { q: 'What was the band’s output in 2020?',
+        a: 'New Empire, in two volumes',
+        o: ['New Empire, in two volumes', 'A single live album',
+            'Nothing at all', 'A covers record'] },
+
+      { q: 'What does the debut album’s unevenness reflect?',
+        a: 'It collects three years of separate uploads',
+        o: ['It collects three years of separate uploads',
+            'It was recorded in one day',
+            'It was written by session musicians',
+            'It was a contractual obligation'] },
+
+      { q: 'Which song title reads as a joke about the band’s own presentation — six masked men in a line-up?',
+        a: '“Usual Suspects”',
+        o: ['“Usual Suspects”', '“Day of the Dead”', '“How We Roll”', '“Disease”'] },
+
+      { q: 'What structural format did the band settle on with its first song and keep?',
+        a: 'Passing a song between voices that do not sound alike',
+        o: ['Passing a song between voices that do not sound alike',
+            'One lead vocalist throughout',
+            'Purely instrumental sections',
+            'Spoken-word interludes only'] }
     ]
   },
 
   {
     id: 'deep',
-    name: 'Deep Fan',
-    blurb: 'For the ones who read the liner notes.',
+    title: 'Deep Cuts & Discography',
+    blurb: 'Running order, labels, and which record a departure landed on.',
     questions: [
-      { q: 'Which member is a New York Times bestselling author?', options: ['Greg Gonzalez', 'Randall Miller', 'Jacob Tomsky', 'Josh Marcus'], answer: 2 },
-      { q: 'The reverb on the “I.” EP came from…', options: ['A plate reverb unit', 'The stairwell they recorded in', 'A cathedral', 'A tape delay'], answer: 1 },
-      { q: 'Besides singing, Greg Gonzalez plays…', options: ['Drums', 'Guitar', 'Saxophone', 'Piano only'], answer: 1 },
-      { q: 'Which city did the band relocate to?', options: ['Los Angeles', 'Austin', 'Brooklyn', 'Chicago'], answer: 2 },
-      { q: 'Which genre label is most associated with the band?', options: ['Ambient pop', 'Thrash metal', 'Bluegrass', 'Drum and bass'], answer: 0 },
-      { q: 'The album “Cry” was largely made in a villa on…', options: ['Ibiza', 'Mallorca', 'Sicily', 'Crete'], answer: 1 },
-      { q: 'Which former member played keyboards and electric guitar in the El Paso era?', options: ['Phillip Tubbs', 'Jacob Tomsky', 'Randall Miller', 'Emily Davis'], answer: 0 },
-      { q: 'Greg Gonzalez’s vocals are most often described as…', options: ['Gravelly', 'Androgynous and hushed', 'Operatic', 'Shouted'], answer: 1 },
-      { q: '“Dreams from Bunker Hill” shares its title with a novel by…', options: ['John Fante', 'Charles Bukowski', 'Joan Didion', 'Raymond Carver'], answer: 0 },
-      { q: 'El Paso is in which US state?', options: ['New Mexico', 'Arizona', 'Texas', 'Nevada'], answer: 2 },
-      { q: 'Which platform’s recommendation algorithm helped the early material find a mass audience?', options: ['MySpace', 'YouTube', 'SoundCloud', 'Bandcamp'], answer: 1 },
-      { q: 'Who plays bass in the current line-up?', options: ['Randall Miller', 'Greg Leah', 'Steve Herrada', 'Emily Davis'], answer: 0 },
-      { q: 'Which instrument did Emily Davis contribute to the earliest recordings?', options: ['Acoustic guitar', 'Cello', 'Synthesiser', 'Trumpet'], answer: 0 },
-      { q: 'How many years separate the self-titled debut and “X’s”?', options: ['Five', 'Six', 'Seven', 'Nine'], answer: 2 },
-      { q: 'The visual identity of the records is dominated by…', options: ['Neon colour', 'Stark black and white', 'Pastel gradients', 'Hand-drawn cartoons'], answer: 1 }
+      { q: 'Which came first?',
+        a: 'American Tragedy',
+        o: ['American Tragedy', 'Notes from the Underground', 'Day of the Dead', 'Five'] },
+
+      { q: 'What year was American Tragedy released?',
+        a: '2011',
+        o: ['2009', '2010', '2011', '2012'] },
+
+      { q: 'What year was Notes from the Underground released?',
+        a: '2013',
+        o: ['2011', '2012', '2013', '2015'] },
+
+      { q: 'What year was Day of the Dead released?',
+        a: '2015',
+        o: ['2013', '2014', '2015', '2016'] },
+
+      { q: 'What year was Five released?',
+        a: '2017',
+        o: ['2015', '2016', '2017', '2019'] },
+
+      { q: 'What year was Hotel Kalifornia released?',
+        a: '2022',
+        o: ['2019', '2020', '2021', '2022'] },
+
+      { q: 'Which label released Five and Hotel Kalifornia?',
+        a: 'BMG',
+        o: ['BMG', 'A&M/Octone', 'Domino', 'Roadrunner'] },
+
+      { q: 'Which label released the first three studio albums?',
+        a: 'A&M/Octone',
+        o: ['A&M/Octone', 'BMG', 'Interscope', 'Epitaph'] },
+
+      { q: 'Which 2009 release was built largely around live recordings?',
+        a: 'Desperate Measures',
+        o: ['Desperate Measures', 'Swan Songs', 'American Tragedy', 'New Empire'] },
+
+      { q: 'Which studio album sits between Notes from the Underground and Five?',
+        a: 'Day of the Dead',
+        o: ['Day of the Dead', 'American Tragedy', 'Hotel Kalifornia', 'New Empire, Vol. 1'] },
+
+      { q: 'Which is the first studio album Danny appears on?',
+        a: 'American Tragedy',
+        o: ['American Tragedy', 'Swan Songs', 'Notes from the Underground', 'Day of the Dead'] },
+
+      { q: 'Which is the first studio album Da Kurlzz does NOT appear on?',
+        a: 'Five',
+        o: ['Five', 'Day of the Dead', 'Notes from the Underground', 'American Tragedy'] },
+
+      { q: 'How many volumes was New Empire released in?',
+        a: 'Two',
+        o: ['One', 'Two', 'Three', 'Four'] },
+
+      { q: 'Which of these is a Day of the Dead track?',
+        a: '“Usual Suspects”',
+        o: ['“Usual Suspects”', '“Hear Me Now”', '“Undead”', '“Whatever It Takes”'] },
+
+      { q: 'What did the band name its 2017 album after?',
+        a: 'The number of members remaining',
+        o: ['The number of members remaining', 'Its release year',
+            'A street in Los Angeles', 'A track from the debut'] }
     ]
   }
 ];

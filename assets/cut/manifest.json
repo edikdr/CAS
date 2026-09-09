@@ -1,0 +1,794 @@
+[
+ {
+  "src": "assets/cut/american-tragedy.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 216,
+  "h": 143,
+  "soft": "assets/cut/soft/american-tragedy.webp"
+ },
+ {
+  "src": "assets/cut/barbed-bone.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 230,
+  "h": 115,
+  "soft": "assets/cut/soft/barbed-bone.webp"
+ },
+ {
+  "src": "assets/cut/barbed-wire-long.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 285,
+  "h": 175,
+  "soft": "assets/cut/soft/barbed-wire-long.webp"
+ },
+ {
+  "src": "assets/cut/barbed-wire.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 231,
+  "h": 115,
+  "soft": "assets/cut/soft/barbed-wire.webp"
+ },
+ {
+  "src": "assets/cut/bat-flat.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 152,
+  "h": 109,
+  "soft": "assets/cut/soft/bat-flat.webp"
+ },
+ {
+  "src": "assets/cut/bat-small.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 124,
+  "h": 102,
+  "soft": "assets/cut/soft/bat-small.webp"
+ },
+ {
+  "src": "assets/cut/bat-wide.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 158,
+  "h": 107,
+  "soft": "assets/cut/soft/bat-wide.webp"
+ },
+ {
+  "src": "assets/cut/bat.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 152,
+  "h": 119,
+  "soft": "assets/cut/soft/bat.webp"
+ },
+ {
+  "src": "assets/cut/blood-splat.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 199,
+  "h": 176,
+  "soft": "assets/cut/soft/blood-splat.webp"
+ },
+ {
+  "src": "assets/cut/bullet-undead.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 241,
+  "h": 157,
+  "soft": "assets/cut/soft/bullet-undead.webp"
+ },
+ {
+  "src": "assets/cut/bullet-word.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 234,
+  "h": 133,
+  "soft": "assets/cut/soft/bullet-word.webp"
+ },
+ {
+  "src": "assets/cut/california-dreaming.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 254,
+  "h": 157,
+  "soft": "assets/cut/soft/california-dreaming.webp"
+ },
+ {
+  "src": "assets/cut/charlie-scene.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 223,
+  "h": 334,
+  "soft": "assets/cut/soft/charlie-scene.webp"
+ },
+ {
+  "src": "assets/cut/crossed-arrows.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 240,
+  "h": 156,
+  "soft": "assets/cut/soft/crossed-arrows.webp"
+ },
+ {
+  "src": "assets/cut/crown-alt.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 130,
+  "h": 120,
+  "soft": "assets/cut/soft/crown-alt.webp"
+ },
+ {
+  "src": "assets/cut/crown-plain.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 130,
+  "h": 111,
+  "soft": "assets/cut/soft/crown-plain.webp"
+ },
+ {
+  "src": "assets/cut/crown-small.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 117,
+  "h": 117,
+  "soft": "assets/cut/soft/crown-small.webp"
+ },
+ {
+  "src": "assets/cut/crown-tiny.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 118,
+  "h": 111,
+  "soft": "assets/cut/soft/crown-tiny.webp"
+ },
+ {
+  "src": "assets/cut/crown.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 144,
+  "h": 126,
+  "soft": "assets/cut/soft/crown.webp"
+ },
+ {
+  "src": "assets/cut/crowned-skull-pin.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 186,
+  "h": 258,
+  "soft": "assets/cut/soft/crowned-skull-pin.webp"
+ },
+ {
+  "src": "assets/cut/danny-name.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 133,
+  "h": 98,
+  "soft": "assets/cut/soft/danny-name.webp"
+ },
+ {
+  "src": "assets/cut/danny.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 200,
+  "h": 267,
+  "soft": "assets/cut/soft/danny.webp"
+ },
+ {
+  "src": "assets/cut/day-of-the-dead.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 161,
+  "h": 160,
+  "soft": "assets/cut/soft/day-of-the-dead.webp"
+ },
+ {
+  "src": "assets/cut/dead-bite-red.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 207,
+  "h": 171,
+  "soft": "assets/cut/soft/dead-bite-red.webp"
+ },
+ {
+  "src": "assets/cut/dead-bite.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 248,
+  "h": 127,
+  "soft": "assets/cut/soft/dead-bite.webp"
+ },
+ {
+  "src": "assets/cut/dotd-skull.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 188,
+  "h": 266,
+  "soft": "assets/cut/soft/dotd-skull.webp"
+ },
+ {
+  "src": "assets/cut/dove-grenade-black.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 175,
+  "h": 216,
+  "soft": "assets/cut/soft/dove-grenade-black.webp"
+ },
+ {
+  "src": "assets/cut/dove-grenade-crest.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 342,
+  "h": 380,
+  "soft": "assets/cut/soft/dove-grenade-crest.webp"
+ },
+ {
+  "src": "assets/cut/dove-grenade-dark.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 163,
+  "h": 213,
+  "soft": "assets/cut/soft/dove-grenade-dark.webp"
+ },
+ {
+  "src": "assets/cut/dove-grenade.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 198,
+  "h": 246,
+  "soft": "assets/cut/soft/dove-grenade.webp"
+ },
+ {
+  "src": "assets/cut/dove-small.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 110,
+  "h": 114,
+  "soft": "assets/cut/soft/dove-small.webp"
+ },
+ {
+  "src": "assets/cut/enamel-pins.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 332,
+  "h": 263,
+  "soft": "assets/cut/soft/enamel-pins.webp"
+ },
+ {
+  "src": "assets/cut/funny-man-name.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 186,
+  "h": 99,
+  "soft": "assets/cut/soft/funny-man-name.webp"
+ },
+ {
+  "src": "assets/cut/funny-man.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 216,
+  "h": 277,
+  "soft": "assets/cut/soft/funny-man.webp"
+ },
+ {
+  "src": "assets/cut/gas-mask.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 254,
+  "h": 322,
+  "soft": "assets/cut/soft/gas-mask.webp"
+ },
+ {
+  "src": "assets/cut/gear-skull.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 241,
+  "h": 253,
+  "soft": "assets/cut/soft/gear-skull.webp"
+ },
+ {
+  "src": "assets/cut/ghost-beach.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 211,
+  "h": 169,
+  "soft": "assets/cut/soft/ghost-beach.webp"
+ },
+ {
+  "src": "assets/cut/gold-rose-crown.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 207,
+  "h": 327,
+  "soft": "assets/cut/soft/gold-rose-crown.webp"
+ },
+ {
+  "src": "assets/cut/gold-rose.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 226,
+  "h": 305,
+  "soft": "assets/cut/soft/gold-rose.webp"
+ },
+ {
+  "src": "assets/cut/hlp-tag.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 134,
+  "h": 121,
+  "soft": "assets/cut/soft/hlp-tag.webp"
+ },
+ {
+  "src": "assets/cut/hoodie.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 353,
+  "h": 386,
+  "soft": "assets/cut/soft/hoodie.webp"
+ },
+ {
+  "src": "assets/cut/hotel-kalifornia.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 210,
+  "h": 268,
+  "soft": "assets/cut/soft/hotel-kalifornia.webp"
+ },
+ {
+  "src": "assets/cut/hu-bandana-skull.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 254,
+  "h": 295,
+  "soft": "assets/cut/soft/hu-bandana-skull.webp"
+ },
+ {
+  "src": "assets/cut/hu-bold.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 136,
+  "h": 158,
+  "soft": "assets/cut/soft/hu-bold.webp"
+ },
+ {
+  "src": "assets/cut/hu-crossbones.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 186,
+  "h": 211,
+  "soft": "assets/cut/soft/hu-crossbones.webp"
+ },
+ {
+  "src": "assets/cut/hu-daisy.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 238,
+  "h": 256,
+  "soft": "assets/cut/soft/hu-daisy.webp"
+ },
+ {
+  "src": "assets/cut/hu-graf-alt.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 151,
+  "h": 171,
+  "soft": "assets/cut/soft/hu-graf-alt.webp"
+ },
+ {
+  "src": "assets/cut/hu-graf-drip.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 152,
+  "h": 170,
+  "soft": "assets/cut/soft/hu-graf-drip.webp"
+ },
+ {
+  "src": "assets/cut/hu-graf.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 158,
+  "h": 151,
+  "soft": "assets/cut/soft/hu-graf.webp"
+ },
+ {
+  "src": "assets/cut/hu-hockey.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 288,
+  "h": 303,
+  "soft": "assets/cut/soft/hu-hockey.webp"
+ },
+ {
+  "src": "assets/cut/hu-mark.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 155,
+  "h": 168,
+  "soft": "assets/cut/soft/hu-mark.webp"
+ },
+ {
+  "src": "assets/cut/hu-skyline.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 556,
+  "h": 349,
+  "soft": "assets/cut/soft/hu-skyline.webp"
+ },
+ {
+  "src": "assets/cut/hu-splat-alt.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 189,
+  "h": 195,
+  "soft": "assets/cut/soft/hu-splat-alt.webp"
+ },
+ {
+  "src": "assets/cut/hu-splat.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 211,
+  "h": 275,
+  "soft": "assets/cut/soft/hu-splat.webp"
+ },
+ {
+  "src": "assets/cut/hu-star-hands.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 255,
+  "h": 278,
+  "soft": "assets/cut/soft/hu-star-hands.webp"
+ },
+ {
+  "src": "assets/cut/hu-web.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 223,
+  "h": 250,
+  "soft": "assets/cut/soft/hu-web.webp"
+ },
+ {
+  "src": "assets/cut/j-dog-name.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 127,
+  "h": 99,
+  "soft": "assets/cut/soft/j-dog-name.webp"
+ },
+ {
+  "src": "assets/cut/j-dog.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 216,
+  "h": 274,
+  "soft": "assets/cut/soft/j-dog.webp"
+ },
+ {
+  "src": "assets/cut/johnny-3-tears.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 239,
+  "h": 317,
+  "soft": "assets/cut/soft/johnny-3-tears.webp"
+ },
+ {
+  "src": "assets/cut/knuckles.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 236,
+  "h": 178,
+  "soft": "assets/cut/soft/knuckles.webp"
+ },
+ {
+  "src": "assets/cut/live-photo.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 352,
+  "h": 306,
+  "soft": "assets/cut/soft/live-photo.webp"
+ },
+ {
+  "src": "assets/cut/mask-blue-red.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 171,
+  "h": 225,
+  "soft": "assets/cut/soft/mask-blue-red.webp"
+ },
+ {
+  "src": "assets/cut/mask-blue.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 174,
+  "h": 218,
+  "soft": "assets/cut/soft/mask-blue.webp"
+ },
+ {
+  "src": "assets/cut/mask-mesh.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 172,
+  "h": 222,
+  "soft": "assets/cut/soft/mask-mesh.webp"
+ },
+ {
+  "src": "assets/cut/mask-red.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 172,
+  "h": 219,
+  "soft": "assets/cut/soft/mask-red.webp"
+ },
+ {
+  "src": "assets/cut/mask-warpaint.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 171,
+  "h": 223,
+  "soft": "assets/cut/soft/mask-warpaint.webp"
+ },
+ {
+  "src": "assets/cut/mask-x.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 172,
+  "h": 224,
+  "soft": "assets/cut/soft/mask-x.webp"
+ },
+ {
+  "src": "assets/cut/razor-smoke.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 223,
+  "h": 295,
+  "soft": "assets/cut/soft/razor-smoke.webp"
+ },
+ {
+  "src": "assets/cut/scratch.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 160,
+  "h": 254,
+  "soft": "assets/cut/soft/scratch.webp"
+ },
+ {
+  "src": "assets/cut/sell-your-soul.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 290,
+  "h": 131,
+  "soft": "assets/cut/soft/sell-your-soul.webp"
+ },
+ {
+  "src": "assets/cut/skull-dagger.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 614,
+  "h": 1457,
+  "soft": "assets/cut/soft/skull-dagger.webp"
+ },
+ {
+  "src": "assets/cut/skull-roses-crown.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 221,
+  "h": 257,
+  "soft": "assets/cut/soft/skull-roses-crown.webp"
+ },
+ {
+  "src": "assets/cut/skull-roses.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 223,
+  "h": 230,
+  "soft": "assets/cut/soft/skull-roses.webp"
+ },
+ {
+  "src": "assets/cut/skull-thorns.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 201,
+  "h": 221,
+  "soft": "assets/cut/soft/skull-thorns.webp"
+ },
+ {
+  "src": "assets/cut/skull-three.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 199,
+  "h": 289,
+  "soft": "assets/cut/soft/skull-three.webp"
+ },
+ {
+  "src": "assets/cut/star-alt.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 98,
+  "h": 108,
+  "soft": "assets/cut/soft/star-alt.webp"
+ },
+ {
+  "src": "assets/cut/star-tiny.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 96,
+  "h": 106,
+  "soft": "assets/cut/soft/star-tiny.webp"
+ },
+ {
+  "src": "assets/cut/star.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 98,
+  "h": 109,
+  "soft": "assets/cut/soft/star.webp"
+ },
+ {
+  "src": "assets/cut/swan-sabres.webp",
+  "kind": "skull",
+  "family": "steel",
+  "w": 230,
+  "h": 277,
+  "soft": "assets/cut/soft/swan-sabres.webp"
+ },
+ {
+  "src": "assets/cut/swan-songs-vinyl.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 386,
+  "h": 290,
+  "soft": "assets/cut/soft/swan-songs-vinyl.webp"
+ },
+ {
+  "src": "assets/cut/swan-songs.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 213,
+  "h": 196,
+  "soft": "assets/cut/soft/swan-songs.webp"
+ },
+ {
+  "src": "assets/cut/the-undead.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 226,
+  "h": 155,
+  "soft": "assets/cut/soft/the-undead.webp"
+ },
+ {
+  "src": "assets/cut/thorn-crown.webp",
+  "kind": "icon",
+  "family": "blood",
+  "w": 181,
+  "h": 160,
+  "soft": "assets/cut/soft/thorn-crown.webp"
+ },
+ {
+  "src": "assets/cut/thorn-tomb.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 218,
+  "h": 343,
+  "soft": "assets/cut/soft/thorn-tomb.webp"
+ },
+ {
+  "src": "assets/cut/three-bullet.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 429,
+  "h": 336,
+  "soft": "assets/cut/soft/three-bullet.webp"
+ },
+ {
+  "src": "assets/cut/tour-tickets.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 361,
+  "h": 277,
+  "soft": "assets/cut/soft/tour-tickets.webp"
+ },
+ {
+  "src": "assets/cut/undead-graf-patch.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 212,
+  "h": 174,
+  "soft": "assets/cut/soft/undead-graf-patch.webp"
+ },
+ {
+  "src": "assets/cut/undead-or-alive.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 183,
+  "h": 220,
+  "soft": "assets/cut/soft/undead-or-alive.webp"
+ },
+ {
+  "src": "assets/cut/undead-patch-alt.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 237,
+  "h": 157,
+  "soft": "assets/cut/soft/undead-patch-alt.webp"
+ },
+ {
+  "src": "assets/cut/undead-patch-sm.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 188,
+  "h": 130,
+  "soft": "assets/cut/soft/undead-patch-sm.webp"
+ },
+ {
+  "src": "assets/cut/undead-patch-xs.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 175,
+  "h": 122,
+  "soft": "assets/cut/soft/undead-patch-xs.webp"
+ },
+ {
+  "src": "assets/cut/undead-patch.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 240,
+  "h": 153,
+  "soft": "assets/cut/soft/undead-patch.webp"
+ },
+ {
+  "src": "assets/cut/undead-red.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 149,
+  "h": 99,
+  "soft": "assets/cut/soft/undead-red.webp"
+ },
+ {
+  "src": "assets/cut/wordmark-black.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 310,
+  "h": 173,
+  "soft": "assets/cut/soft/wordmark-black.webp"
+ },
+ {
+  "src": "assets/cut/wordmark-outline.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 274,
+  "h": 157,
+  "soft": "assets/cut/soft/wordmark-outline.webp"
+ },
+ {
+  "src": "assets/cut/wordmark-patch.webp",
+  "kind": "relic",
+  "family": "steel",
+  "w": 347,
+  "h": 202,
+  "soft": "assets/cut/soft/wordmark-patch.webp"
+ },
+ {
+  "src": "assets/cut/wordmark-red-alt.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 263,
+  "h": 153,
+  "soft": "assets/cut/soft/wordmark-red-alt.webp"
+ },
+ {
+  "src": "assets/cut/wordmark-red.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 302,
+  "h": 167,
+  "soft": "assets/cut/soft/wordmark-red.webp"
+ },
+ {
+  "src": "assets/cut/wordmark-white.webp",
+  "kind": "mark",
+  "family": "blood",
+  "w": 290,
+  "h": 164,
+  "soft": "assets/cut/soft/wordmark-white.webp"
+ }
+]

@@ -1,0 +1,14 @@
+{
+  "name": "hollywood-undead-fan-archive",
+  "version": "2.0.0",
+  "private": true,
+  "description": "An unofficial Hollywood Undead fan archive — static, with two keyless-by-default API routes.",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs 8080",
+    "check": "node tools/check.mjs",
+    "test:genius": "node tools/genius.test.mjs"
+  }
+}

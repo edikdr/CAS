@@ -1,265 +1,290 @@
 /* ============================================================
-   Collage engine
-   - ransom(): headings built from real cut-paper letter scans,
-     alternating the warm/colour set with the newsprint set
-   - floating cut-out objects with drift + scroll parallax
-   - drifting ash canvas
-   - scroll reveal
+   The collage layer.
+
+   assets/cut/ is the supplied artwork with its paper background taken
+   off: 72 stickers, patches, masks and wordmarks, each one already
+   alpha-keyed (tools/cut_assets.py does the cutting). This file is what
+   puts them on the page.
+
+   Three rules run the whole thing.
+
+   IT NEVER TOUCHES THE READING COLUMN. Every piece is placed in the
+   left or right margin, outside the band the body copy occupies, and the
+   band is measured rather than guessed — so the collage thins out by
+   itself on a narrow screen instead of ending up behind a paragraph.
+
+   IT IS THE SAME COLLAGE EVERY TIME. Placement runs off a seeded
+   generator, not Math.random. A background that rearranges itself on
+   every reload reads as the page being unsure of itself; one that is
+   always the same reads as artwork.
+
+   IT PARALLAXES IN FOUR PLANES, NOT NINETY-SIX. Each piece belongs to
+   one depth group, and scrolling moves four wrapper elements. That is
+   four transforms per frame no matter how many pieces are up.
+
+   NOTHING IS PLACED ON TOP OF ANYTHING ELSE. Positions are drawn from
+   the seeded generator, but a candidate that would overlap a piece
+   already down is rejected and another is drawn — up to a dozen tries,
+   after which that piece is dropped rather than stacked. Overlapping
+   stickers read as a mistake, not as a pile.
    ============================================================ */
 
-const LETTER_SETS = ['warm', 'mono'];
-const HAS_LETTER = /^[a-z]$/;
+const Collage = {
+  layer: null,
+  planes: [],
+  pieces: 0,
 
-/* deterministic jitter so a heading looks the same on every reload */
-function seeded(str) {
-  let h = 2166136261;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return () => {
-    h ^= h << 13; h ^= h >>> 17; h ^= h << 5;
-    return ((h >>> 0) % 1000) / 1000;
-  };
-}
+  /* FOUR PLANES, AND ONE OF THEM IS ALLOWED BEHIND THE WORDS.
 
-/**
- * Render `text` into `el` as cut-out paper letters.
- * @param {HTMLElement} el
- * @param {string} text
- * @param {{start?:number}} [opts] start = which letter set the first glyph uses
- */
-function ransom(el, text, opts = {}) {
-  if (!el) return;
-  el.innerHTML = '';
-  el.setAttribute('aria-label', text);
-  const rnd = seeded(text);
-  let i = opts.start || 0;
+     The first three live in the margins and get progressively larger,
+     sharper and faster as they come forward. `deep` is the new one and
+     it breaks the margin rule on purpose: it spans the full width,
+     including the reading column, at an opacity and a blur where it
+     reads as texture in the paper rather than as a picture behind a
+     paragraph. That is what stops the middle of the page being an empty
+     black strip between two decorated edges.
 
-  text.split(/(\s+)/).forEach(chunk => {
-    if (!chunk.trim()) return;
-    const word = document.createElement('span');
-    word.className = 'word';
+     `drift` is multiplied by the scroll offset. */
+  PLANES: [
+    { key: 'deep', drift: -0.014, soft: true,  op: 0.15, scale: [0.75, 1.6], full: true },
+    { key: 'far',  drift: -0.032, soft: true,  op: 0.42, scale: [0.34, 0.62] },
+    { key: 'mid',  drift: -0.064, soft: false, op: 0.60, scale: [0.55, 0.95] },
+    { key: 'near', drift: -0.108, soft: false, op: 0.78, scale: [0.85, 1.45] }
+  ],
 
-    [...chunk].forEach(ch => {
-      const low = ch.toLowerCase();
-      const rot = (rnd() * 5 - 2.5).toFixed(2);
+  async init() {
+    this.layer = document.getElementById('collage');
+    if (!this.layer) return;
 
-      if (HAS_LETTER.test(low)) {
-        const set = LETTER_SETS[i % LETTER_SETS.length];
-        i++;
-        const img = document.createElement('img');
-        img.src = asset(`letters/${set}/${low}`);
-        img.alt = '';
-        img.setAttribute('aria-hidden', 'true');
-        img.draggable = false;
-        img.style.setProperty('--r', `${rot}deg`);
-        img.style.setProperty('--dy', `${(rnd() * 4 - 2).toFixed(1)}px`);
-        word.appendChild(img);
-      } else {
-        // digits, punctuation, & — a small paper chip carries them
-        const chip = document.createElement('span');
-        chip.className = 'chip';
-        chip.setAttribute('aria-hidden', 'true');
-        chip.textContent = ch;
-        chip.style.setProperty('--r', `${rot}deg`);
-        word.appendChild(chip);
-      }
-    });
-    el.appendChild(word);
-  });
-}
-
-/* ------------------------------------------------------------
-   Floating cut-outs. Each entry is placed inside a host section.
-   x/y are percentages, w is a width in px (clamped on mobile).
-   ------------------------------------------------------------ */
-const DECOR = [
-  // hero
-  { host: '.hero', key: 'cut/fingerprint_heart', x: 78, y: 16, w: 210, rot: -9, op: 0.5, blend: 'screen', dur: 19 },
-  { host: '.hero', key: 'cut/yourlips_torn', x: 4, y: 60, w: 250, rot: 3, op: 0.42, blend: 'screen', dur: 23, sm: false },
-  { host: '.hero', key: 'cut/cig_lit', x: 30, y: 7, w: 340, rot: -2, op: 0.34, blend: 'screen', dur: 27, sm: false },
-  { host: '.hero', key: 'cut/moon_sm', x: 86, y: 72, w: 130, rot: 6, op: 0.4, blend: 'screen', dur: 25, sm: false },
-  { host: '.hero', key: 'cut/stars_red', x: 8, y: 12, w: 165, rot: -7, op: 0.6, dur: 21, sm: false },
-
-  // about
-  { host: '#about', key: 'cut/eye', x: 46, y: 3, w: 128, rot: 4, op: 0.4, blend: 'screen', dur: 22, sm: false },
-  { host: '#about', key: 'cut/time_444', x: 3, y: 78, w: 110, rot: -8, op: 0.34, blend: 'screen', dur: 18, sm: false },
-  { host: '#about', key: 'cut/eiffel', x: 90, y: 58, w: 78, rot: 5, op: 0.3, blend: 'screen', dur: 26, sm: false },
-  { host: '#about', key: 'cut/note', x: 84, y: 8, w: 92, rot: -11, op: 0.36, blend: 'screen', dur: 20, sm: false },
-
-  // members
-  { host: '#members', key: 'cut/think_bubble', x: 68, y: 2, w: 260, rot: -3, op: 0.34, blend: 'screen', dur: 24, sm: false },
-  { host: '#members', key: 'cut/heart_anatomy', x: 2, y: 40, w: 96, rot: 7, op: 0.3, blend: 'screen', dur: 19, sm: false },
-  { host: '#members', key: 'cut/crying_room', x: 91, y: 74, w: 104, rot: -6, op: 0.32, dur: 23, sm: false },
-  { host: '#members', key: 'cut/pick_heals', x: 5, y: 88, w: 120, rot: -14, op: 0.4, dur: 21, sm: false },
-
-  // discography
-  { host: '#discography', key: 'cut/cd_disc', x: 86, y: 5, w: 190, rot: 0, op: 0.24, dur: 30, sm: false },
-  { host: '#discography', key: 'cut/tracklist_box', x: 2, y: 30, w: 130, rot: 4, op: 0.3, blend: 'screen', dur: 25, sm: false },
-  { host: '#discography', key: 'cut/cig_pack', x: 92, y: 56, w: 150, rot: -8, op: 0.26, blend: 'screen', dur: 27, sm: false },
-  { host: '#discography', key: 'cut/marquee', x: 1, y: 82, w: 175, rot: 3, op: 0.26, dur: 22, sm: false },
-
-  // singles
-  { host: '#singles', key: 'cut/stars_blue', x: 88, y: 10, w: 96, rot: -9, op: 0.42, blend: 'screen', dur: 18, sm: false },
-  { host: '#singles', key: 'cut/vinyl', x: 3, y: 62, w: 150, rot: 6, op: 0.3, dur: 29, sm: false },
-  { host: '#singles', key: 'cut/censored', x: 78, y: 84, w: 140, rot: -12, op: 0.4, dur: 20, sm: false },
-
-  { host: '#discography', key: 'cut/headphones', x: 88, y: 34, w: 130, rot: 5, op: 0.24, dur: 24, sm: false },
-  { host: '#discography', key: 'cut/yourlips_serif', x: 1, y: 58, w: 190, rot: -4, op: 0.2, blend: 'screen', dur: 26, sm: false },
-  { host: '#singles', key: 'cut/cry_player', x: 60, y: 40, w: 200, rot: 3, op: 0.22, dur: 21, sm: false },
-
-  // quiz
-  { host: '#quiz', key: 'cut/eight_ball', x: 8, y: 12, w: 84, rot: 8, op: 0.4, dur: 19, sm: false },
-  { host: '#quiz', key: 'cut/good_night', x: 82, y: 16, w: 165, rot: -7, op: 0.34, blend: 'screen', dur: 23, sm: false },
-  { host: '#quiz', key: 'cut/people_write', x: 4, y: 80, w: 165, rot: 5, op: 0.3, blend: 'screen', dur: 25, sm: false },
-  { host: '#quiz', key: 'cut/music_heals', x: 88, y: 82, w: 82, rot: -10, op: 0.42, dur: 18, sm: false },
-  { host: '#quiz', key: 'cut/forever', x: 46, y: 94, w: 150, rot: 2, op: 0.34, dur: 27, sm: false }
-];
-
-function mountDecor() {
-  const parallax = [];
-  DECOR.forEach((d, idx) => {
-    const host = document.querySelector(d.host);
-    if (!host) return;
-    const src = asset(d.key);
-    if (!src) return;
-
-    const box = document.createElement('div');
-    box.className = 'deco float' + (d.blend === 'screen' ? ' screen' : '') + (d.sm === false ? ' hide-sm' : '');
-    box.style.left = d.x + '%';
-    box.style.top = d.y + '%';
-    box.style.width = d.w + 'px';
-    box.style.opacity = d.op;
-    box.style.setProperty('--rot', (d.rot || 0) + 'deg');
-    box.style.setProperty('--dur', (d.dur || 20) + 's');
-    box.style.setProperty('--dx', (idx % 2 ? 8 : -8) + 'px');
-    box.style.setProperty('--dy2', (idx % 3 ? -14 : -8) + 'px');
-
-    const img = document.createElement('img');
-    img.src = src;
-    img.alt = '';
-    img.setAttribute('aria-hidden', 'true');
-    img.loading = 'lazy';
-    img.draggable = false;
-    box.appendChild(img);
-
-    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
-    host.appendChild(box);
-    parallax.push({ box, speed: 0.012 + (idx % 5) * 0.006 });
-  });
-
-  // gentle scroll parallax on top of the drift animation
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  let raf = null;
-  const onScroll = () => {
-    if (raf) return;
-    raf = requestAnimationFrame(() => {
-      const y = window.scrollY;
-      parallax.forEach(p => {
-        // clamped so a cut-out never drifts far enough to leave its section
-        const shift = Math.max(-70, Math.min(70, -y * p.speed + 30));
-        p.box.style.marginTop = shift.toFixed(1) + 'px';
-      });
-      raf = null;
-    });
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-}
-
-/* ------------------------------------------------------------
-   Ash / ember canvas
-   ------------------------------------------------------------ */
-function startAsh() {
-  const canvas = document.getElementById('ash');
-  if (!canvas || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const ctx = canvas.getContext('2d');
-  let w = 0, h = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-  function resize() {
-    w = canvas.width = Math.floor(window.innerWidth * dpr);
-    h = canvas.height = Math.floor(window.innerHeight * dpr);
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  class Bit {
-    constructor(kind) { this.kind = kind; this.reset(true); }
-    reset(init) {
-      this.x = Math.random() * w;
-      this.y = init ? Math.random() * h : -20 * dpr;
-      if (this.kind === 'ash') {
-        this.r = (Math.random() * 1.9 + 0.3) * dpr;
-        this.vy = (Math.random() * 0.42 + 0.1) * dpr;
-        this.vx = (Math.random() - 0.5) * 0.34 * dpr;
-        this.a = Math.random() * 0.26 + 0.05;
-        this.c = '196,167,125';
-      } else {
-        this.r = (Math.random() * 1.3 + 0.4) * dpr;
-        this.vy = (Math.random() * 0.24 + 0.05) * dpr;
-        this.vx = (Math.random() - 0.5) * 0.15 * dpr;
-        this.a = Math.random() * 0.42 + 0.14;
-        this.c = '214,132,84';
-        this.life = 1;
-      }
+    let items;
+    try {
+      const r = await fetch('assets/cut/manifest.json');
+      if (!r.ok) throw new Error('manifest ' + r.status);
+      items = await r.json();
+    } catch (e) {
+      /* Opened from file:// or the folder was deployed without its
+         manifest. The page is fully readable without any of this. */
+      Diag.note('collage.manifest', e);
+      return;
     }
-    step() {
-      this.y += this.vy; this.x += this.vx;
-      if (this.kind === 'ember') {
-        this.life -= 0.0028;
-        this.a = Math.max(0, this.life * 0.4);
-        if (this.life <= 0) this.reset(false);
+    if (!Array.isArray(items) || !items.length) return;
+
+    this.build(items);
+    this.watch();
+    Diag.set('collage', `${this.pieces} pieces / ${this.planes.length} planes`);
+  },
+
+  /* ----------------------------------------------------------
+     Deterministic noise — the same generator the bone frame uses.
+     ---------------------------------------------------------- */
+  rand(seed) {
+    let t = (seed + 0x6D2B79F5) | 0;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  },
+
+  /**
+   * How much room there is beside the reading column, as a fraction of
+   * the viewport, and how many pieces that is worth.
+   *
+   * .section is capped at --wrap and centred, so the margin is whatever
+   * is left over on each side. Below about 60px of it there is nowhere to
+   * put a sticker that is not also behind a sentence, and the collage
+   * stands down rather than getting in the way.
+   */
+  margins() {
+    const probe = document.querySelector('.section') || document.body;
+    const colW = probe.getBoundingClientRect().width;
+    const pad = parseFloat(getComputedStyle(probe).paddingLeft) || 0;
+    const free = (innerWidth - (colW - pad * 2)) / 2;
+    return { free, band: Math.max(0, free / innerWidth) };
+  },
+
+  build(items) {
+    const { free, band } = this.margins();
+    /* A phone has no margin, so the margin planes stand down — but the
+       deep plane does not need one, and a page with no artwork on it at
+       all is not what was asked for. Below the threshold the collage
+       runs on `deep` alone. */
+    const narrow = free < 62;
+
+    /* Kinds are weighted rather than shuffled flat. The big skulls and
+       masks are the anchors and want to be rare; the small glyphs are
+       filler and want to be common. */
+    const by = k => items.filter(i => i.kind === k);
+    const pools = [
+      { rows: by('skull'), weight: 1, size: 1.35 },
+      { rows: by('relic'), weight: 1, size: 1.15 },
+      { rows: by('mark'),  weight: 2, size: 1.00 },
+      { rows: by('icon'),  weight: 4, size: 0.80 }
+    ].filter(p => p.rows.length);
+    if (!pools.length) return;
+
+    const bag = [];
+    pools.forEach(p => { for (let i = 0; i < p.weight; i++) bag.push(p); });
+
+    /* Density follows the page, not the window: a long page gets more
+       pieces so the spacing stays even from top to bottom. */
+    const pageH = Math.max(document.body.scrollHeight, innerHeight);
+    const budget = narrow
+      ? Math.min(22, Math.round((pageH / innerHeight) * 2.6))
+      : Math.min(96, Math.round((pageH / innerHeight) * 11 * Math.min(1, free / 170)));
+
+    /* Every rectangle already committed, in layer pixels, so a candidate
+       can be tested against them. Planes share one list on purpose: a
+       near piece sitting exactly over a deep one looks like a stacking
+       error even though they are at different depths. */
+    const taken = [];
+    const clashes = (x, y, w, h) => {
+      /* A margin, so pieces are not merely non-overlapping but visibly
+         apart. Proportional to the piece, so small glyphs can sit closer
+         together than a hoodie can. */
+      const m = Math.max(14, Math.min(w, h) * 0.22);
+      for (let k = 0; k < taken.length; k++) {
+        const r = taken[k];
+        if (x - m < r.x + r.w && x + w + m > r.x &&
+            y - m < r.y + r.h && y + h + m > r.y) return true;
       }
-      if (this.y > h + 20 * dpr) this.reset(false);
-    }
-    draw() {
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${this.c},${this.a})`;
-      ctx.fill();
-    }
-  }
+      return false;
+    };
 
-  const bits = [];
-  for (let i = 0; i < 80; i++) bits.push(new Bit('ash'));
-  for (let i = 0; i < 22; i++) bits.push(new Bit('ember'));
-  (function loop() {
-    ctx.clearRect(0, 0, w, h);
-    bits.forEach(b => { b.step(); b.draw(); });
-    requestAnimationFrame(loop);
-  })();
-}
+    const layerW = innerWidth;
+    const layerH = pageH;
 
-/* ------------------------------------------------------------
-   Scroll reveal + nav highlighting
-   ------------------------------------------------------------ */
-function observeReveals(root = document) {
-  const els = root.querySelectorAll('.reveal:not(.in)');
-  if (!('IntersectionObserver' in window)) {
-    els.forEach(e => e.classList.add('in'));
-    return;
-  }
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(en => {
-      if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+    const frag = document.createDocumentFragment();
+    this.planes = this.PLANES.filter(cfg => cfg.full || !narrow).map(cfg => {
+      const el = document.createElement('div');
+      el.className = 'collage-plane';
+      el.dataset.drift = String(cfg.drift);
+      frag.appendChild(el);
+      return { cfg, el };
     });
-  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
-  els.forEach(e => io.observe(e));
-}
 
-function watchNav() {
-  const links = [...document.querySelectorAll('.nav-links a')];
-  const sections = links
-    .map(a => document.querySelector(a.getAttribute('href')))
-    .filter(Boolean);
-  if (!sections.length || !('IntersectionObserver' in window)) return;
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(en => {
-      if (!en.isIntersecting) return;
-      links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + en.target.id));
-    });
-  }, { rootMargin: '-45% 0px -50% 0px' });
-  sections.forEach(s => io.observe(s));
-}
+    for (let n = 0; n < budget; n++) {
+      const r = i => this.rand(n * 7919 + i * 104729);
+
+      const plane = this.planes[Math.floor(r(1) * this.planes.length)];
+      const pool = bag[Math.floor(r(2) * bag.length)];
+      const item = pool.rows[Math.floor(r(3) * pool.rows.length)];
+
+      const [lo, hi] = plane.cfg.scale;
+      /* Width comes from the artwork's own, so a wordmark stays a
+         wordmark and a skull stays a skull. Margin pieces are capped to
+         the gutter they live in; deep ones are not, because they are
+         meant to be larger than the column and read as scenery. */
+      const raw = item.w * 0.52 * pool.size * (lo + r(4) * (hi - lo));
+      const w = plane.cfg.full ? Math.min(innerWidth * 0.34, raw * 1.5)
+                               : Math.min(free * 1.18, raw);
+      const h = w * (item.h / Math.max(1, item.w));
+
+      /* Up to a dozen seeded attempts at somewhere this fits. The band
+         a piece may be placed in is the same either way — the tries
+         only move it within that band. */
+      let x = 0, y = 0, placed = false;
+      for (let attempt = 0; attempt < 12 && !placed; attempt++) {
+        const a = j => this.rand(n * 7919 + attempt * 31337 + j * 104729);
+
+        let fx;
+        if (plane.cfg.full) {
+          /* The deep plane uses the whole width. Pieces are still pushed
+             away from dead centre — a wordmark sitting exactly behind a
+             column of text is legible enough to fight it, one drifting
+             past the shoulder is not. */
+          const side = a(5) > 0.5 ? 1 : -1;
+          fx = 0.5 + side * (0.08 + a(6) * 0.44);
+        } else {
+          const into = (0.06 + a(6) * 0.78) * band;
+          fx = a(5) > 0.5 ? (1 - into) : into;
+        }
+
+        /* Spread down the page by index, so the density is even top to
+           bottom, with the attempt allowed to slide it within its slot. */
+        const fy = 0.012 + ((n + a(7) * 0.9) / budget) * 0.975;
+
+        x = fx * layerW - w / 2;
+        y = fy * layerH;
+        if (!clashes(x, y, w, h)) placed = true;
+      }
+      /* Twelve misses means this band is full. Dropping the piece is the
+         right answer; stacking it is not. */
+      if (!placed) continue;
+
+      taken.push({ x, y, w, h });
+
+      const el = document.createElement('img');
+      /* THE FAR PLANES LOAD A DIFFERENT FILE, THEY ARE NOT BLURRED HERE.
+
+         These planes used to carry `filter: blur()`. Measured on a
+         1440x900 window it took the page from 44fps to 13 — a CSS blur
+         on a layer the size of the document is re-rasterised on every
+         composite, and the parallax composites on every scroll frame.
+
+         So the softness is baked: assets/cut/soft/ holds each piece at
+         half resolution with the blur already in it, and the browser
+         upsamples it back to the display width, which softens it again
+         for nothing. Same depth cue, no per-frame cost, and the files
+         are a fifth of the size of the sharp ones. */
+      el.src = (plane.cfg.soft && item.soft) ? item.soft : item.src;
+      el.alt = '';
+      el.loading = 'lazy';
+      el.decoding = 'async';
+      /* Intrinsic size on the element itself. Without it the browser has
+         no aspect ratio until the bitmap lands, so every arrival is a
+         layout change inside a promoted layer — which is a re-raster of
+         that whole layer. With it, the box is right from the first
+         frame and the image just fills it. */
+      el.width = Math.round(w);
+      el.height = Math.round(h);
+      el.className = 'collage-piece';
+
+      el.style.cssText =
+        `left:${(x / layerW * 100).toFixed(3)}%;` +
+        `top:${(y / layerH * 100).toFixed(3)}%;` +
+        `width:${w.toFixed(0)}px;` +
+        `opacity:${(plane.cfg.op * (0.74 + r(8) * 0.5)).toFixed(3)};` +
+        `--rot:${((r(9) * 2 - 1) * 15).toFixed(1)}deg;` +
+        `--sway:${(7 + r(10) * 9).toFixed(1)}s;` +
+        `animation-delay:${(-r(11) * 12).toFixed(1)}s`;
+
+      plane.el.appendChild(el);
+      this.pieces++;
+    }
+
+    this.layer.appendChild(frag);
+  },
+
+  /* ----------------------------------------------------------
+     Parallax.
+
+     One rAF, coalesced: scroll fires far more often than the screen
+     redraws, and moving three elements once per frame is the whole
+     budget this effect gets.
+     ---------------------------------------------------------- */
+  watch() {
+    if (REDUCED || !this.planes.length) return;
+
+    let queued = false;
+    let last = null;
+    const paint = () => {
+      queued = false;
+      const y = scrollY;
+      /* Rounded to the pixel and compared against the last value. A
+         sub-pixel transform forces the compositor to resample the whole
+         layer, and a scroll of zero pixels — which fires plenty, from
+         inertia and from the address bar — forces it for nothing. */
+      if (y === last) return;
+      last = y;
+      for (let i = 0; i < this.planes.length; i++) {
+        const p = this.planes[i];
+        p.el.style.transform = `translate3d(0,${Math.round(y * p.cfg.drift)}px,0)`;
+      }
+    };
+    addEventListener('scroll', () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(paint);
+    }, { passive: true });
+    paint();
+  }
+};

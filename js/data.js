@@ -1,392 +1,456 @@
 /* ============================================================
-   CAS Fan Sanctuary — data layer
-   Members, discography, singles, timecoded lyric excerpts
-   and the platform links each track opens on.
+   Hollywood Undead — data layer
+
+   Band, roster, records, lore, and the liner notes that open under a
+   track. An unofficial fan archive: not affiliated with the band, with
+   BMG, or with anyone who works with them.
+
+   A NOTE ON WHAT IS AND IS NOT WRITTEN DOWN HERE.
+
+   Tracklists are not. Six records is a few hundred songs once you count
+   the deluxe editions, the bonus discs and the re-releases, and a
+   tracklist typed from memory is a tracklist with mistakes in it. So the
+   real one is read from the iTunes Search API at runtime — the same call
+   that fetches the previews — and each record keeps only a short seed of
+   its best-known songs for when that lookup cannot be made. What you see
+   on screen is the store's own listing, not mine.
+
+   Lyrics are not here either. They belong to their publishers. The track
+   panel fetches them from LRCLIB when it is opened and keeps them for as
+   long as the tab is; what ships in this folder is commentary, credits
+   and a link to the song's page on Genius.
    ============================================================ */
 
-const MEMBERS = [
+const BAND = {
+  name: 'Hollywood Undead',
+  formed: 2005,
+  origin: 'Los Angeles, California',
+  symbol: 'The dove and grenade',
+  genres: 'Rap rock · rap metal · nu metal · alternative'
+};
+
+const ARTIST = 'Hollywood Undead';
+
+/* ------------------------------------------------------------
+   The roster.
+
+   `cell` is the [column, row] of this member's poster in
+   assets/masks.webp, which is a 2-column, 3-row sheet. Every mask on it
+   is from the Day of the Dead cycle — all six posters name a song from
+   that record — so this is one era's set of faces, not a career's.
+
+   The mapping of mask to member was given by the site's owner for five
+   of the six. The sixth, Da Kurlzz, is the member of that line-up left
+   over once the other five are placed, so it is a deduction and not a
+   sighting. Move a `cell` pair to correct it; nothing else needs to
+   change.
+   ------------------------------------------------------------ */
+const ROSTER = [
   {
-    name: 'Greg Gonzalez',
-    role: 'Vocals · Guitar · Songwriter',
+    id: 'j3t',
+    cell: [0, 0],
+    poster: 'Usual Suspects',
+    name: 'Johnny 3 Tears',
+    real: 'George Ragan',
+    mask: 'Blue, with three tears under the right eye',
+    role: 'Vocals · Bass',
+    years: '2005 — present',
     status: 'current',
-    initials: 'GG',
-    photo: 'assets/photo/greg.webp',
-    years: '2008 — present',
-    origin: 'El Paso, Texas',
-    instruments: 'Voice, electric guitar',
-    bio: 'Founder (2008). Born and raised in El Paso. Writes almost all of the material. The hushed, androgynous voice at the centre of every record.',
-    extra: [
-      'Started the project in El Paso in 2008 and recorded the <em>I.</em> EP inside a four-story stairwell at the University of Texas at El Paso — the reverb on those tracks is the building, not a plugin.',
-      'Moved the project to Brooklyn, where the self-titled debut (2017) was shaped. His writing keeps returning to the same few things: desire, cigarettes, hotel rooms, the exact moment something ends.',
-      'Handles the arrangements and production direction. When people say a song "sounds like Cigarettes After Sex", they usually mean his guitar tone and the space he leaves around the vocal.'
-    ],
-    notable: 'Wrote “Apocalypse”, “K.”, “Sunsetz”, “Heavenly”, “Tejano Blue”.'
+    short: 'The low, flat delivery the records keep coming back to. Founding member; the tears are the mask everyone can draw from memory.',
+    story: [
+      'One of the voices the band was built around in 2005, and the one that has changed least since — a low, unhurried, deliberately unmusical delivery that sits underneath whatever the song is doing above it.',
+      'Writes the bleakest material on most records. Where the band is at its most cartoonish, he is usually the one turning it back towards something that hurts.',
+      'The three tears have been redrawn every album cycle and never replaced. It is the one mask in the group that a stranger could sketch.'
+    ]
   },
   {
-    name: 'Randall Miller',
-    role: 'Bass · Graphic Design',
+    id: 'danny',
+    cell: [1, 0],
+    poster: 'Gravity',
+    name: 'Danny',
+    real: 'Daniel Murillo',
+    mask: 'Gold',
+    role: 'Clean vocals · Guitar · Keys',
+    years: '2010 — present',
     status: 'current',
-    initials: 'RM',
-    photo: 'assets/photo/randall.webp',
-    years: 'Brooklyn era — present',
-    origin: 'Brooklyn, NY',
-    instruments: 'Bass guitar',
-    bio: 'Bassist and visual contributor. Joined after the move to Brooklyn. Responsible for much of the band’s graphic design language.',
-    extra: [
-      'Plays a deliberately minimal low end — long held notes that let the reverb bloom instead of competing with it. On record his bass is often the only thing keeping time.',
-      'Also shapes a large part of the band’s visual identity: covers, packaging, type. The stark black-and-white grammar of the sleeves runs through his hands.',
-      'The quiet architecture underneath everything else.'
-    ],
-    notable: 'Bass and design across the Brooklyn-era releases.'
+    short: 'The sung chorus. Joined in 2010 and turned the band into one that could hold a melody without irony.',
+    story: [
+      'Joined in 2010, after Deuce left. He had come up through the Los Angeles scene and had a range nobody in the group had had before: an actual singing voice, used straight.',
+      'That single change is most of what separates <em>American Tragedy</em> from <em>Swan Songs</em>. The choruses stop being shouted and start being sung, and the band suddenly has a second mode to move between.',
+      'The gold mask arrived with the Day of the Dead cycle and is the most ornamental thing any of them have worn.'
+    ]
   },
   {
-    name: 'Jacob Tomsky',
-    role: 'Drums',
+    id: 'jdog',
+    cell: [0, 1],
+    poster: 'How We Roll',
+    name: 'J-Dog',
+    real: 'Jorel Decker',
+    mask: 'Half-and-half, with retouching under the eyes',
+    role: 'Rhythm guitar · Bass · Keys · Programming · Vocals',
+    years: '2005 — present',
     status: 'current',
-    initials: 'JT',
-    photo: 'assets/photo/jacob.webp',
-    years: 'Brooklyn era — present',
-    origin: 'Brooklyn, NY',
-    instruments: 'Drums, percussion',
-    bio: 'Drummer. Also the author of the New York Times bestseller “Heads in Beds”. Plays with deliberate restraint.',
-    extra: [
-      'Plays slower than you expect him to. The whole live show breathes at the pace he sets — never rushing a fill, always leaving the room for the guitar to decay.',
-      'Outside the band he is a writer: <em>Heads in Beds</em>, a memoir of years spent working in hotels, was a New York Times bestseller.',
-      'The heartbeat of the live set.'
-    ],
-    notable: 'Author of “Heads in Beds”; drums on the Brooklyn-era records.'
+    short: 'Co-founded the band and builds most of what it sounds like. The producer in the room as much as the player.',
+    story: [
+      'Co-founded Hollywood Undead in 2005 and has been the group’s musical spine ever since — rhythm guitar, bass, keys, programming, and a large share of the production.',
+      'The band began as songs uploaded to MySpace with nothing behind them, which meant somebody had to actually build the records. That was, and largely still is, him.',
+      'His mask is the one that has been redesigned most often: split down the middle, worked over with paint under the eyes, different on nearly every cycle.'
+    ]
   },
   {
-    name: 'Phillip Tubbs',
-    role: 'Keyboards · Electric Guitar',
-    status: 'past',
-    initials: 'PT',
-    photo: null,
-    years: 'El Paso / debut era',
-    origin: 'El Paso, Texas',
-    instruments: 'Keyboards, electric guitar',
-    bio: 'Early collaborator from the El Paso period. Keyboards and electric guitar through the debut era and several singles.',
-    extra: [
-      'Part of the line-up that carried the band out of El Paso and into the self-titled album.',
-      'His keyboard pads sit under the early material as a second horizon behind the guitars.'
-    ],
-    notable: 'Debut-era keyboards and guitar.'
+    id: 'funnyman',
+    cell: [1, 1],
+    poster: 'Live Forever',
+    name: 'Funny Man',
+    real: 'Dylan Alvarez',
+    mask: 'All black, worn under a cap',
+    role: 'Vocals',
+    years: '2005 — present',
+    status: 'current',
+    short: 'The comic register, and the one who most often refuses to take the record’s own mood seriously.',
+    story: [
+      'With the group from the beginning. His verses are the ones that puncture whatever tone the rest of the song was building, and that friction is a large part of why the band sounds like nobody else.',
+      'The plainest mask in the set — flat black, no features, usually under a cap — which on stage reads as more unsettling than the decorated ones, not less.',
+      'The joke is a real one and it is also a structural device: the records need somewhere to let the air out.'
+    ]
   },
   {
-    name: 'Josh Marcus',
-    role: 'Keyboards',
+    id: 'dakurlzz',
+    cell: [0, 2],
+    poster: 'Disease',
+    name: 'Da Kurlzz',
+    real: 'Matthew St. Claire',
+    mask: 'Split face, half drawn and half blank',
+    role: 'Drums · Percussion · Screamed vocals',
+    years: '2005 — 2017',
     status: 'past',
-    initials: 'JM',
-    photo: null,
-    years: 'Later line-ups',
-    origin: '—',
-    instruments: 'Keyboards',
-    bio: 'Keyboards in later line-ups and live configurations.',
-    extra: ['Contributed to the atmospheric layer that sits under the vocal in the live arrangements.'],
-    notable: 'Live and later-era keyboards.'
+    short: 'Drums, percussion and every scream on the first four records. Left in 2017.',
+    story: [
+      'A founding member, on drums and percussion, and the source of the screamed vocal that cuts across so much of the early catalogue.',
+      'Played on <em>Swan Songs</em>, <em>American Tragedy</em>, <em>Notes from the Underground</em> and <em>Day of the Dead</em> — the whole of the run that built the band’s audience.',
+      'Left the group in 2017, which is why <em>Five</em> is the first record made by the line-up that has held ever since.',
+      '<em>This is the one mask on the sheet identified by elimination rather than by sight — see the note in the README.</em>'
+    ]
   },
   {
-    name: 'Emily Davis',
-    role: 'Acoustic Guitar',
-    status: 'past',
-    initials: 'ED',
-    photo: null,
-    years: 'Earliest recordings',
-    origin: 'El Paso, Texas',
-    instruments: 'Acoustic guitar',
-    bio: 'Acoustic guitar on the earliest recordings, including the “I.” EP sessions.',
-    extra: ['Part of the original El Paso circle around the first recordings.'],
-    notable: 'Played on the “I.” era material.'
-  },
-  {
-    name: 'Steve Herrada',
-    role: 'Keyboards',
-    status: 'past',
-    initials: 'SH',
-    photo: null,
-    years: '“I.” era',
-    origin: 'El Paso, Texas',
-    instruments: 'Keyboards',
-    bio: 'Keyboards on the formative “I.” era, including the first stairwell recordings.',
-    extra: ['Present for the sessions that gave the band its reverb-drenched signature.'],
-    notable: 'Keyboards on the stairwell sessions.'
-  },
-  {
-    name: 'Greg Leah',
-    role: 'Drums · Visuals',
-    status: 'past',
-    initials: 'GL',
-    photo: null,
-    years: 'Pre-Brooklyn',
-    origin: 'El Paso, Texas',
-    instruments: 'Drums',
-    bio: 'Early drums and visual work in the pre-Brooklyn configuration.',
-    extra: ['Played on early material and contributed to the band’s first visual output.'],
-    notable: 'Early drums and visuals.'
+    id: 'charlie',
+    cell: [1, 2],
+    poster: 'Day of the Dead',
+    name: 'Charlie Scene',
+    real: 'Jordon Terrell',
+    mask: 'Bandana and a cap, name written across the poster',
+    role: 'Lead guitar · Vocals',
+    years: '2005 — present',
+    status: 'current',
+    short: 'Lead guitar and the most quotable verses on the band’s best-known songs.',
+    story: [
+      'Lead guitar, and the voice most people can do an impression of — a drawled, deadpan register that carries the hooks on a lot of the singles.',
+      'The guitar work is the thing that gets least credit: the riffs under the early material are what keep it from being a rap record with distortion on top.',
+      'His look is barely a mask at all — a bandana, a cap, sunglasses — which somehow makes him the most identifiable of the six.'
+    ]
   }
 ];
 
+/* Not on the mask sheet, but he is half of why the band exists. */
+const FORMER = [
+  {
+    name: 'Deuce',
+    real: 'Aron Erlichman',
+    years: '2005 — 2010',
+    role: 'Vocals · Production',
+    note: 'Co-founded the band with J-Dog in 2005 and sang on <em>Swan Songs</em>. '
+        + 'Left in 2010, in acrimony that played out in public and in songs on both '
+        + 'sides for years afterwards. Danny replaced him.'
+  }
+];
+
+/* ------------------------------------------------------------
+   The records.
+
+   `seed` is a handful of songs each record is known by, shown until the
+   iTunes lookup returns the real listing. It is not the tracklist and is
+   not presented as one.
+   ------------------------------------------------------------ */
 const ALBUMS = [
   {
-    id: 'icsy',
-    title: 'I Can See You',
-    year: 2009,
-    type: 'EP (self-released)',
-    spotifyAlbum: null,
-    cover: { art: 'assets/cut/vinyl.webp', tone: 'warm' },
-    note: 'The first self-released EP, made while the project was still entirely in El Paso.',
-    tracks: [
-      { name: 'I Can See You', duration: '—' },
-      { name: 'Never Let Me Go', duration: '—' },
-      { name: 'Your Hair Should Be Black and Long', duration: '—' },
-      { name: "Where's My Heart", duration: '—' }
-    ]
+    id: 'swan-songs',
+    title: 'Swan Songs',
+    year: 2008,
+    label: 'A&M/Octone',
+    era: 'The MySpace record, finally pressed',
+    note: 'Three years of songs uploaded to a profile, collected and released as a debut. '
+        + 'It is uneven on purpose and it is the reason the band had an audience before it had a label deal.',
+    seed: ['Undead', 'Everywhere I Go', 'Young', 'No. 5', 'California', 'Black Dahlia']
   },
   {
-    id: 'romans',
-    title: 'Romans 13:9',
+    id: 'american-tragedy',
+    title: 'American Tragedy',
     year: 2011,
-    type: 'Demo album',
-    spotifyAlbum: null,
-    cover: { art: 'assets/cut/cig_heart.webp', tone: 'warm' },
-    note: 'A long, largely unreleased demo album from the El Paso years — the writing that led into the stairwell sessions. Circulated among fans rather than pressed.',
-    tracks: [
-      { name: 'Our Last Day', duration: '—' },
-      { name: 'The Night Train', duration: '—' },
-      { name: 'You', duration: '—' },
-      { name: "Please Don't Cry", duration: '—' },
-      { name: 'Woman with a Crow (The Last Train)', duration: '—' },
-      { name: 'Sing', duration: '—' },
-      { name: 'Lay Here', duration: '—' },
-      { name: 'Every Light Is Out', duration: '—' },
-      { name: "I Can't Stop These Tears from Falling", duration: '—' },
-      { name: 'Run Towards Your Fears', duration: '—' },
-      { name: 'Do You Know Where I Should Go?', duration: '—' }
-    ]
+    label: 'A&M/Octone',
+    era: 'First record with Danny',
+    note: 'The line-up change rebuilt the band. Choruses are sung rather than shouted, the production is enormous, '
+        + 'and the group stops sounding like a joke that got out of hand.',
+    seed: ['Hear Me Now', 'Been to Hell', 'Comin’ in Hot', 'Levitate', 'Coming Back Down']
   },
   {
-    id: 'i',
-    title: 'I.',
-    year: 2012,
-    type: 'EP',
-    spotifyAlbum: '5fzwP4FRJjFQBBmhKJwpWn',
-    cover: { art: 'assets/cut/filmstrip.webp', tone: 'mono' },
-    note: 'Recorded in a four-story stairwell at the University of Texas at El Paso. Years later the algorithms found it.',
-    tracks: [
-      { name: "Nothing's Gonna Hurt You Baby", duration: '4:46' },
-      { name: "I'm a Firefighter", duration: '4:31' },
-      { name: 'Dreaming of You', duration: '5:22' },
-      { name: 'Starry Eyes', duration: '3:26' }
-    ]
+    id: 'notes',
+    title: 'Notes from the Underground',
+    year: 2013,
+    label: 'A&M/Octone',
+    era: 'The heaviest of them',
+    note: 'Darker and more compressed than anything either side of it. The band pushes towards metal '
+        + 'and away from the party record its reputation was built on.',
+    seed: ['We Are', 'Dead Bite', 'Another Way Out', 'Up in Smoke']
   },
   {
-    id: 'self',
-    title: 'Cigarettes After Sex',
+    id: 'day-of-the-dead',
+    title: 'Day of the Dead',
+    year: 2015,
+    label: 'Interscope',
+    era: 'The masks on this site',
+    note: 'Every poster in the roster above comes from this cycle. Electronics come forward, the hooks get bigger, '
+        + 'and the artwork becomes as much of the release as the songs.',
+    seed: ['Day of the Dead', 'Usual Suspects', 'How We Roll', 'Gravity', 'Disease', 'Live Forever']
+  },
+  {
+    id: 'five',
+    title: 'Five',
     year: 2017,
-    type: 'Album',
-    spotifyAlbum: '2mxFsS5yylSTHNivV53HoA',
-    cover: { art: 'assets/cut/album_couple.webp', tone: 'mono' },
-    note: 'The self-titled debut on Partisan Records. The record that turned a bedroom sound into a global mood.',
-    tracks: [
-      { name: 'K.', id: '3Mlhgm39yBpuCwyZB8d8Md', duration: '5:19' },
-      { name: 'Each Time You Fall in Love', duration: '4:50' },
-      { name: 'Sunsetz', duration: '3:34' },
-      { name: 'Apocalypse', id: '52k6PTgqVCBHrLndNtutrC', duration: '4:50' },
-      { name: 'Flash', duration: '4:34' },
-      { name: 'Sweet', duration: '4:51' },
-      { name: 'Opera House', duration: '6:04' },
-      { name: 'Truly', duration: '4:03' },
-      { name: 'John Wayne', duration: '4:18' },
-      { name: 'Young & Dumb', duration: '4:33' }
-    ]
+    label: 'BMG',
+    era: 'Five members, and it is the title',
+    note: 'The first record after Da Kurlzz left, and the band names it after what is left. '
+        + 'Looser and warmer than <em>Notes</em>, with the group audibly enjoying itself again.',
+    seed: ['California Dreaming', 'Whatever It Takes', 'Renegade', 'Black Cadillac']
   },
   {
-    id: 'cry',
-    title: 'Cry',
-    year: 2019,
-    type: 'Album',
-    spotifyAlbum: '63yRRBtLX8eqbOLD6f0y9U',
-    cover: { art: 'assets/cut/cd_disc.webp', tone: 'disc' },
-    note: 'Written and recorded away from the city, in a villa on Mallorca. Warmer, slower, further gone.',
-    tracks: [
-      { name: "Don't Let Me Go", duration: '4:22' },
-      { name: 'Kiss It Off Me', duration: '4:29' },
-      { name: 'Heavenly', duration: '4:48' },
-      { name: "You're the Only Good Thing in My Life", duration: '4:35' },
-      { name: 'Touch', duration: '4:52' },
-      { name: 'Hentai', duration: '4:45' },
-      { name: 'Cry', duration: '4:16' },
-      { name: 'Falling in Love', duration: '4:05' },
-      { name: 'Pure', duration: '4:14' }
-    ]
-  },
-  {
-    id: 'xs',
-    title: "X's",
-    year: 2024,
-    type: 'Album',
-    spotifyAlbum: '10i6evsxSFs2fuPQRWvI6I',
-    cover: { art: 'assets/cut/polaroid_xs.webp', tone: 'mono' },
-    note: 'Seven years after the debut: the same reverb, a harder edge, more Texas in the guitar.',
-    tracks: [
-      { name: "X's", duration: '3:33' },
-      { name: 'Tejano Blue', duration: '3:54' },
-      { name: 'Silver Sable', duration: '3:52' },
-      { name: 'Hideaway', duration: '4:37' },
-      { name: 'Holding You, Holding Me', duration: '3:30' },
-      { name: 'Dark Vacay', duration: '3:33' },
-      { name: 'Baby Blue Movie', duration: '4:05' },
-      { name: 'Hot', duration: '3:57' },
-      { name: 'Dreams from Bunker Hill', duration: '3:39' },
-      { name: 'Ambien Slide', duration: '3:33' }
-    ]
+    id: 'hotel-kalifornia',
+    title: 'Hotel Kalifornia',
+    year: 2022,
+    label: 'BMG',
+    era: 'Twenty years in',
+    note: 'A record about the state the band is named after and has never left, made by a line-up that has now '
+        + 'been together longer than the one people remember.',
+    seed: ['Chaos', 'Alright', 'Wild in These Streets', 'House of Mirrors']
   }
 ];
 
-const SINGLES = [
-  { title: 'Affection', year: 2015, note: 'b/w “Keep On Loving You” (REO Speedwagon cover)' },
-  { title: 'K.', year: 2016, note: 'Lead single from the debut' },
-  { title: 'Apocalypse', year: 2017, note: 'Multi-platinum (RIAA)' },
-  { title: 'Each Time You Fall in Love', year: 2017 },
-  { title: 'Sweet', year: 2017 },
-  { title: 'Crush', year: 2018, note: 'b/w “Sesame Syrup”' },
-  { title: 'Neon Moon', year: 2018, note: 'Brooks & Dunn cover' },
-  { title: 'Heavenly', year: 2019 },
-  { title: 'Falling in Love', year: 2019 },
-  { title: "You're All I Want", year: 2020 },
-  { title: 'Pistol', year: 2022 },
-  { title: 'Bubblegum', year: 2023, note: 'b/w “Stop Waiting”' },
-  { title: 'Motion Picture Soundtrack', year: 2023, note: 'Radiohead cover' },
-  { title: 'Tejano Blue', year: 2024, note: 'Lead single from X’s' },
-  { title: 'Dark Vacay', year: 2024 },
-  { title: 'Baby Blue Movie', year: 2024 },
-  { title: 'Anna Karenina', year: 2025, note: 'b/w “The Crystal Ship” (The Doors cover)' },
-  { title: 'Twizzler', year: 2026 }
-];
-
 /* ------------------------------------------------------------
-   Timecoded lyric EXCERPTS.
-   Short signature lines only, for identification/study — the
-   full lyrics are not reproduced here. Timings are approximate
-   fan transcriptions used by the follow-along marker in the
-   track window.
+   Liner notes, in the shape Genius publishes them.
+
+   Written here rather than fetched: Genius refuses cross-origin browser
+   requests, so a page cannot read its API without a server in front of
+   it, and this site has none by design. Each entry carries the credits
+   and the commentary; the words themselves come from LRCLIB at runtime
+   and are never stored.
    ------------------------------------------------------------ */
-const LYRICS = [
+const TRACK_NOTES = {
+  'Undead': {
+    album: 'Swan Songs',
+    writers: ['Aron Erlichman', 'Jorel Decker', 'George Ragan', 'Jordon Terrell', 'Dylan Alvarez'],
+    producers: ['Jorel Decker', 'Aron Erlichman'],
+    annotation: 'The song that names the band to itself. Every member takes a verse, which becomes '
+      + 'the format the group runs on for the next fifteen years: six people who do not sound alike, '
+      + 'passing a song between them.'
+  },
+  'Everywhere I Go': {
+    album: 'Swan Songs',
+    writers: ['Aron Erlichman', 'Jorel Decker', 'Jordon Terrell'],
+    producers: ['Jorel Decker'],
+    annotation: 'The MySpace-era single, and the clearest surviving evidence of what the band sounded '
+      + 'like before anyone was paying for it — cheap, fast, and completely certain of itself.'
+  },
+  'Young': {
+    album: 'Swan Songs',
+    writers: ['Aron Erlichman', 'Jorel Decker', 'George Ragan'],
+    producers: ['Jorel Decker'],
+    annotation: 'The first sign that the band could do something other than the party song. It is the '
+      + 'template for everything Johnny 3 Tears writes later.'
+  },
+  'Hear Me Now': {
+    album: 'American Tragedy',
+    writers: ['Daniel Murillo', 'Jorel Decker', 'George Ragan', 'Jordon Terrell'],
+    producers: ['Ben Grosse', 'Jorel Decker'],
+    annotation: 'Danny’s arrival, stated plainly: a sung chorus at full height, over a band that '
+      + 'until a year earlier had no one who could deliver one. It is the pivot the whole catalogue turns on.'
+  },
+  'Been to Hell': {
+    album: 'American Tragedy',
+    writers: ['Jorel Decker', 'George Ragan', 'Jordon Terrell', 'Daniel Murillo'],
+    producers: ['Griffin Boice', 'Jorel Decker'],
+    annotation: 'Los Angeles as the underworld, which is the band’s oldest and best idea. The city is '
+      + 'not a backdrop in their songs; it is the antagonist.'
+  },
+  'Day of the Dead': {
+    album: 'Day of the Dead',
+    writers: ['Jorel Decker', 'George Ragan', 'Jordon Terrell', 'Daniel Murillo', 'Dylan Alvarez'],
+    producers: ['Jorel Decker', 'Griffin Boice'],
+    annotation: 'The title track of the cycle every mask on this page comes from. The record leans hardest '
+      + 'into electronics, and this is where that decision is loudest.'
+  },
+  'Usual Suspects': {
+    album: 'Day of the Dead',
+    writers: ['Jorel Decker', 'George Ragan', 'Jordon Terrell', 'Daniel Murillo'],
+    producers: ['Jorel Decker'],
+    annotation: 'Six masked men and a title lifted from a police line-up. The joke is the band’s whole '
+      + 'public presentation, made explicit for one song.'
+  },
+  'How We Roll': {
+    album: 'Day of the Dead',
+    writers: ['Jorel Decker', 'Jordon Terrell', 'Dylan Alvarez'],
+    producers: ['Jorel Decker'],
+    annotation: 'Charlie Scene and Funny Man doing what they were put in the band to do, over a riff that '
+      + 'would have fitted on the first record.'
+  },
+  'We Are': {
+    album: 'Notes from the Underground',
+    writers: ['Jorel Decker', 'George Ragan', 'Daniel Murillo'],
+    producers: ['Griffin Boice', 'Jorel Decker'],
+    annotation: 'The closest the band has come to writing an anthem without flinching from it. '
+      + '<em>Notes</em> is their bleakest record and this is the one moment it looks up.'
+  },
+  'California Dreaming': {
+    album: 'Five',
+    writers: ['Jorel Decker', 'George Ragan', 'Jordon Terrell', 'Daniel Murillo', 'Dylan Alvarez'],
+    producers: ['Jorel Decker'],
+    annotation: 'Not the Mamas and the Papas song, and the borrowed title is the point: the same state, '
+      + 'the same dream, read back as a threat.'
+  },
+  'Whatever It Takes': {
+    album: 'Five',
+    writers: ['Jorel Decker', 'Daniel Murillo', 'Jordon Terrell'],
+    producers: ['Jorel Decker'],
+    annotation: 'The five-piece finding out it still works. Made immediately after the line-up '
+      + 'shrank, and it sounds like a band with something to prove.'
+  },
+  'Hotel Kalifornia': {
+    album: 'Hotel Kalifornia',
+    writers: ['Jorel Decker', 'George Ragan', 'Jordon Terrell', 'Daniel Murillo', 'Dylan Alvarez'],
+    producers: ['Jorel Decker'],
+    annotation: 'Twenty years in, the band writes about the place it never left and names it with a K, '
+      + 'which is roughly how seriously it wants you to take the homage.'
+  }
+};
+
+/* ------------------------------------------------------------
+   The lore.
+   ------------------------------------------------------------ */
+const TIMELINE = [
   {
-    track: 'Apocalypse', album: 'Cigarettes After Sex', year: 2017, duration: 290,
-    spotify: '52k6PTgqVCBHrLndNtutrC',
-    lines: [
-      { t: 34.0, text: 'Your lips, my lips — apocalypse' },
-      { t: 62.5, text: 'Your mouth, my mouth' },
-      { t: 96.0, text: '[ instrumental — the guitar takes the verse ]' },
-      { t: 148.0, text: 'Your lips, my lips — apocalypse' },
-      { t: 214.0, text: '[ outro: reverb tail, no vocal ]' }
-    ]
+    year: '2005',
+    title: 'A profile, not a band',
+    text: 'Jorel Decker and Aron Erlichman start writing together in Los Angeles and put the results on '
+        + 'MySpace. There is no label, no manager, no plan and no live show — there is a page, and songs '
+        + 'appear on it. Friends are pulled in one at a time until there are six of them.',
+    detail: 'The masks arrive early and for a practical reason as much as an artistic one: none of them '
+          + 'particularly wanted to be recognised while the thing was still a joke.'
   },
   {
-    track: 'Sweet', album: 'Cigarettes After Sex', year: 2017, duration: 291,
-    lines: [
-      { t: 28.0, text: 'Think I like you best when you’re just with me' },
-      { t: 74.0, text: '[ chorus enters ]' },
-      { t: 132.0, text: 'I will gladly break my heart for you' },
-      { t: 205.0, text: '[ instrumental outro ]' }
-    ]
+    year: '2006 — 2007',
+    title: 'An audience before a record',
+    text: 'The songs spread the way things spread on MySpace in 2006 — profile to profile, with no press '
+        + 'and no radio anywhere in the chain. By the time the industry notices, there is already a '
+        + 'crowd, which inverts the usual order of operations and gives the band unusual leverage.',
+    detail: 'They sign to MySpace Records, then move to A&M/Octone. The label history of these two years '
+          + 'is contested enough that it is not asked about in the quizzes as though it had one clean answer.'
   },
   {
-    track: 'Cry', album: 'Cry', year: 2019, duration: 256,
-    lines: [
-      { t: 22.0, text: 'I swear I’ll only make you cry' },
-      { t: 68.0, text: '[ second verse ]' },
-      { t: 118.0, text: 'I swear I’ll only make you cry' },
-      { t: 190.0, text: '[ outro ]' }
-    ]
+    year: '2008',
+    title: 'Swan Songs',
+    text: 'The debut collects three years of uploads. It is wildly inconsistent, swinging between party '
+        + 'songs and something much darker inside a single tracklist, and that inconsistency is the '
+        + 'record — it is what a profile sounds like when you press it to a disc.',
+    detail: '"Undead" gives every member a verse and sets the format the band has used ever since.'
   },
   {
-    track: 'K.', album: 'Cigarettes After Sex', year: 2017, duration: 319,
-    spotify: '3Mlhgm39yBpuCwyZB8d8Md',
-    lines: [
-      { t: 40.0, text: '[ opening verse — hotel room, cigarette ]' },
-      { t: 96.0, text: 'Kiss me now that I’m older' },
-      { t: 164.0, text: '[ guitar solo ]' },
-      { t: 246.0, text: '[ final chorus ]' }
-    ]
+    year: '2010',
+    title: 'The split',
+    text: 'Deuce leaves. It is not amicable, and it plays out in public and in songs on both sides for '
+        + 'years. Daniel Murillo comes in and brings something the band had never had: a straight '
+        + 'singing voice, used without irony.',
+    detail: 'Everything the band does after this point is possible because of that one substitution.'
   },
   {
-    track: 'Heavenly', album: 'Cry', year: 2019, duration: 288,
-    lines: [
-      { t: 30.0, text: '[ verse one ]' },
-      { t: 88.0, text: 'You’re heavenly' },
-      { t: 158.0, text: '[ bridge ]' },
-      { t: 232.0, text: 'You’re heavenly' }
-    ]
+    year: '2011',
+    title: 'American Tragedy',
+    text: 'The first record with Danny, and the sound of a group that has decided to be good at this. '
+        + 'The production is huge, the choruses are sung, and Los Angeles becomes the subject rather '
+        + 'than the setting.',
+    detail: 'The masks are redesigned wholesale for this cycle — the first time they are treated as a '
+          + 'visual identity to be art-directed rather than six things people happened to own.'
   },
   {
-    track: 'Tejano Blue', album: "X's", year: 2024, duration: 234,
-    lines: [
-      { t: 18.0, text: '[ intro — the Texas guitar figure ]' },
-      { t: 46.0, text: 'Dancing in the dark with you' },
-      { t: 112.0, text: '[ chorus ]' },
-      { t: 186.0, text: '[ outro ]' }
-    ]
+    year: '2013',
+    title: 'Notes from the Underground',
+    text: 'The heaviest and least forgiving record they have made. The guitars come forward, the jokes '
+        + 'thin out, and the band pushes towards metal.',
+    detail: 'It is the record their audience argues about most, which is usually the sign of a good one.'
   },
   {
-    track: 'Sunsetz', album: 'Cigarettes After Sex', year: 2017, duration: 214,
-    lines: [
-      { t: 24.0, text: '[ verse ]' },
-      { t: 70.0, text: 'When you’re gone I’ll still see you' },
-      { t: 140.0, text: '[ chorus ]' },
-      { t: 182.0, text: '[ outro ]' }
-    ]
+    year: '2015',
+    title: 'Day of the Dead',
+    text: 'Electronics move to the front and the artwork becomes half the release. This is the cycle '
+        + 'every mask on this page comes from, and the one where the band’s visual language is at '
+        + 'its most designed.',
+    detail: 'Six posters, six masks, six songs — the set the roster above is cut from.'
   },
   {
-    track: "Nothing's Gonna Hurt You Baby", album: 'I.', year: 2012, duration: 286,
-    lines: [
-      { t: 36.0, text: '[ stairwell reverb, first verse ]' },
-      { t: 92.0, text: 'Nothing’s gonna hurt you baby' },
-      { t: 168.0, text: '[ instrumental ]' },
-      { t: 238.0, text: 'Nothing’s gonna hurt you baby' }
-    ]
+    year: '2017',
+    title: 'Five',
+    text: 'Da Kurlzz leaves after twelve years. The record is named for what remains, which is either '
+        + 'defiant or resigned depending on the day. It is looser and warmer than <em>Notes</em>, and '
+        + 'the band sounds like it is enjoying itself again.',
+    detail: 'The line-up settled here has now held longer than the one most people picture.'
+  },
+  {
+    year: '2020',
+    title: 'New Empire',
+    text: 'Released in two volumes across a year that took the live show away from everyone. The band '
+        + 'keeps working anyway, which by this point is the most predictable thing about them.',
+    detail: null
+  },
+  {
+    year: '2022',
+    title: 'Hotel Kalifornia',
+    text: 'Twenty years from a MySpace profile to a record about the state they are named after and have '
+        + 'never left. The K is doing a lot of work, and it is meant to.',
+    detail: null
   }
 ];
 
 /* ------------------------------------------------------------
-   Where to hear each track. Search links rather than hard-coded
-   ids: they resolve for every release without going stale.
+   Where to hear a track. Search links rather than hard-coded ids:
+   they resolve for every release and do not go stale.
    ------------------------------------------------------------ */
 const PLATFORMS = [
-  { id: 'spotify', name: 'Spotify',
-    url: (t) => `https://open.spotify.com/search/${encodeURIComponent(t + ' Cigarettes After Sex')}` },
-  { id: 'apple', name: 'Apple Music',
-    url: (t) => `https://music.apple.com/search?term=${encodeURIComponent(t + ' Cigarettes After Sex')}` },
-  { id: 'ytmusic', name: 'YouTube Music',
-    url: (t) => `https://music.youtube.com/search?q=${encodeURIComponent(t + ' Cigarettes After Sex')}` },
-  { id: 'bandcamp', name: 'Bandcamp',
-    url: () => 'https://cigarettesaftersex.bandcamp.com' },
-  { id: 'deezer', name: 'Deezer',
-    url: (t) => `https://www.deezer.com/search/${encodeURIComponent(t + ' Cigarettes After Sex')}` }
+  { name: 'Spotify', url: t => `https://open.spotify.com/search/${encodeURIComponent(t + ' ' + ARTIST)}` },
+  { name: 'Apple Music', url: t => `https://music.apple.com/search?term=${encodeURIComponent(t + ' ' + ARTIST)}` },
+  { name: 'YouTube', url: t => `https://www.youtube.com/results?search_query=${encodeURIComponent(ARTIST + ' ' + t)}` },
+  { name: 'Deezer', url: t => `https://www.deezer.com/search/${encodeURIComponent(t + ' ' + ARTIST)}` }
 ];
 
-function videoUrl(track) {
-  return 'https://www.youtube.com/results?search_query='
-    + encodeURIComponent(`Cigarettes After Sex ${track} official video`);
+/* Genius' own slug rule: lowercase, ampersand spelled out, apostrophes
+   dropped, every other run of non-alphanumerics collapsed to one hyphen. */
+function geniusSlug(title) {
+  return String(title)
+    .replace(/&/g, ' and ')
+    .replace(/['’]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
-function spotifyTrackUrl(track, id) {
-  return id
-    ? `https://open.spotify.com/track/${id}`
-    : `https://open.spotify.com/search/${encodeURIComponent(track + ' Cigarettes After Sex')}`;
+function geniusUrl(track) {
+  return `https://genius.com/Hollywood-undead-${geniusSlug(track)}-lyrics`;
 }
 
-function lyricsFor(trackName) {
-  return LYRICS.find(l => l.track.toLowerCase() === String(trackName).toLowerCase()) || null;
+function geniusSearchUrl(q) {
+  return `https://genius.com/search?q=${encodeURIComponent(q + ' ' + ARTIST)}`;
 }
 
-function albumOf(trackName) {
-  return ALBUMS.find(a => a.tracks.some(t => t.name.toLowerCase() === String(trackName).toLowerCase())) || null;
+function notesFor(track) {
+  return TRACK_NOTES[track] || null;
 }
 
-function fmtLrc(sec) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${String(m).padStart(2, '0')}:${s.toFixed(2).padStart(5, '0')}`;
+function memberById(id) {
+  return ROSTER.find(m => m.id === id) || null;
 }

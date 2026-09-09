@@ -1,0 +1,22 @@
+# The folder is already the site, so there is nothing to build.
+[build]
+  publish = "."
+  command = ""
+  functions = "netlify/functions"
+
+# Same paths the other platforms use, so js/genius.js and js/player.js
+# never need to know which host they landed on.
+[[redirects]]
+  from = "/api/genius"
+  to = "/.netlify/functions/genius"
+  status = 200
+
+[[redirects]]
+  from = "/api/itunes"
+  to = "/.netlify/functions/itunes"
+  status = 200
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

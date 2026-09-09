@@ -1,240 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Cigarettes After Sex — Fan Sanctuary</title>
-<meta name="description" content="A fan-made sanctuary for Cigarettes After Sex: cut-paper collage, full discography, lyric timecodes, 30-second previews and four quizzes." />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hollywood Undead — Unofficial Fan Archive</title>
+<meta name="description" content="An unofficial Hollywood Undead fan archive: six masks, six records, the lore, a preview player and four trivia decks.">
+<meta name="theme-color" content="#060506">
+
+<!-- The store is asked the moment the records render, so the handshake
+     is worth starting now rather than then. LRCLIB is only reached
+     directly when this is deployed as a plain static folder; with a back
+     end the words come through /api/genius on this origin instead. -->
+<link rel="preconnect" href="https://itunes.apple.com">
+<link rel="dns-prefetch" href="https://lrclib.net">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Barlow+Condensed:wght@400;500;600&display=swap">
+
+<link rel="preload" href="assets/hellscape.webp" as="image" fetchpriority="high">
+<link rel="preload" href="assets/marquee.webp" as="image" fetchpriority="low">
+<link rel="prefetch" href="assets/cut/manifest.json" as="fetch" crossorigin>
+<link rel="stylesheet" href="css/style.css">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23060506'/><path d='M16 5c-5 0-8 3.4-8 8 0 2.6 1.2 4.4 2.6 5.6L10 26h4l.5-3h3l.5 3h4l-.6-7.4C22.8 17.4 24 15.6 24 13c0-4.6-3-8-8-8zm-3.4 8.6a2 2 0 110-4 2 2 0 010 4zm6.8 0a2 2 0 110-4 2 2 0 010 4z' fill='%23c8102e'/></svg>">
 </head>
 <body>
 
+<div class="backdrop" aria-hidden="true">
+  <div class="sky"></div>
+  <div class="pit"></div>
+</div>
+
+<!-- The supplied stickers, patches and masks, cut off their paper and
+     scattered down both margins. Filled by js/collage.js from
+     assets/cut/manifest.json; empty, and harmless, if that is missing. -->
+<div class="collage" id="collage" aria-hidden="true"></div>
+
 <canvas id="ash" aria-hidden="true"></canvas>
-<div class="vignette" aria-hidden="true"></div>
 
-<nav>
-  <a href="#top" class="brand"><span class="dot" aria-hidden="true"></span> Cigarettes After Sex</a>
-  <ul class="nav-links">
-    <li><a href="#about">About</a></li>
-    <li><a href="#members">Members</a></li>
-    <li><a href="#discography">Albums</a></li>
-    <li><a href="#singles">Singles</a></li>
-    <li><a href="#quiz">Quizzes</a></li>
-  </ul>
-</nav>
+<a class="skip" href="#roster">Skip to the band</a>
 
-<!-- ============================= HERO ============================= -->
-<header class="hero" id="top">
-  <div class="hero-bg" aria-hidden="true"></div>
-  <div class="hero-collage" aria-hidden="true"></div>
-  <div class="hero-inner">
-    <div class="hero-tag">EST. 2008 · EL PASO, TEXAS</div>
-    <h1 class="ransom xl" id="heroTitle"></h1>
-    <p class="hero-sub">Ambient pop. Slowcore. Desire wrapped in reverb — cut out and taped back together.</p>
-    <div class="hero-cta">
-      <a href="#discography" class="btn solid">Enter the discography</a>
-      <a href="#members" class="btn">Meet the line-up</a>
-    </div>
-  </div>
+<header class="topbar">
+  <a class="brand" href="#top">
+    <b>Hollywood Undead</b>
+    <span>fan archive</span>
+  </a>
+  <nav class="nav" aria-label="Sections">
+    <a href="#band">Band</a>
+    <a href="#records">Records</a>
+    <a href="#lore">Lore</a>
+    <a href="#quizzes">Quizzes</a>
+  </nav>
 </header>
 
-<!-- ============================= ABOUT ============================= -->
-<section id="about" class="bg-collage bg-c4" style="--collage-op:.08">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">The Band</div>
-      <h2 class="ransom lg" data-ransom-static="El Paso to Everywhere"></h2>
-    </div>
-    <div class="about-grid">
-      <div class="about-text reveal">
-        <p>Cigarettes After Sex formed in 2008 in El Paso, Texas, around songwriter Greg Gonzalez. The name came from a private moment — intimacy, then the quiet ritual afterwards.</p>
-        <p>The earliest recordings happened inside a four-story stairwell at the University of Texas at El Paso. That building is the reverb you hear on the <em>I.</em> EP (2012), and on “Nothing’s Gonna Hurt You Baby”, a song that sat almost unheard until recommendation algorithms found it years later.</p>
-        <p>After a move to Brooklyn came the single “Affection” (2015) and then the self-titled debut in 2017 on Partisan Records. Hushed androgynous vocals, endless reverb, lyrics about wanting people — it became a global mood. <em>Cry</em> followed in 2019, written in a villa on Mallorca. <em>X’s</em> arrived in 2024.</p>
-        <p>Before any of that there were the El Paso years: the <em>I Can See You</em> EP (2009) and the long demo album <em>Romans 13:9</em> (2011), which circulated among fans rather than being pressed.</p>
-        <p>Current core: Greg Gonzalez (vocals, guitar), Randall Miller (bass), Jacob Tomsky (drums).</p>
-        <div class="fact-strip">
-          <span class="fact" style="--r:-1.2deg">Ambient pop</span>
-          <span class="fact" style="--r:.8deg">Dream pop</span>
-          <span class="fact" style="--r:-.6deg">Slowcore</span>
-          <span class="fact" style="--r:1.1deg">Partisan Records</span>
-          <span class="fact" style="--r:-.9deg">6 releases</span>
-          <span class="fact" style="--r:.5deg">18 singles</span>
-        </div>
-      </div>
-      <div class="about-visual reveal">
-        <figure class="pin p1"><img src="assets/bg/collage1.webp" alt="Fan collage of Cigarettes After Sex imagery" loading="lazy" /></figure>
-        <figure class="pin p2"><img src="assets/bg/collage5.webp" alt="Cut-and-paste collage of album references" loading="lazy" /></figure>
-        <figure class="pin p3"><img src="assets/cut/polaroid_xs.webp" alt="Polaroid of the X's album sleeve" loading="lazy" /></figure>
+<main id="top">
+
+  <!-- ---------------------------------------------------- hero -->
+  <section class="hero">
+    <div class="marquee" aria-hidden="true"></div>
+    <div class="hero-inner">
+      <p class="kicker">Los Angeles · since 2005 · unofficial fan archive</p>
+      <h1>Hollywood <em>Undead</em></h1>
+      <p class="hero-lede">
+        Six masks, six records, and a band that had an audience before it had a label.
+        Open a member and the bones come together around them; open a track and its
+        window brings the player, the words and the credits with it.
+      </p>
+      <div class="cta">
+        <a class="btn" href="#band">Meet the six</a>
+        <a class="btn ghost" href="#records">Open the records</a>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ============================= MEMBERS ============================= -->
-<section id="members" class="bg-collage bg-c2" style="--collage-op:.1">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">The People</div>
-      <h2 class="ransom lg" data-ransom-static="Members"></h2>
-      <p class="lede">Eight names have passed through the line-up. Open any card for the full profile — photo, role, years and the longer story.</p>
-    </div>
-    <div class="members-grid" id="membersGrid"></div>
-  </div>
-</section>
+  <!-- ---------------------------------------------------- band -->
+  <section id="band" class="section">
+    <p class="kicker">The line-up</p>
+    <h2 class="h2">The Six</h2>
+    <p class="lede">
+      Every poster here comes from one album cycle — <em>Day of the Dead</em>, 2015 — so
+      this is one era's set of faces rather than a career's. Open any of them.
+    </p>
+    <div id="roster" class="roster"></div>
+    <p class="roster-foot">
+      <b>On the masks.</b> Five of the six were identified by the person who commissioned
+      this page. The sixth, Da Kurlzz, is whoever is left once the other five are placed —
+      a deduction, not a sighting. If it is wrong, it is one line in
+      <code>js/data.js</code> to put right.
+    </p>
+  </section>
 
-<!-- ============================= DISCOGRAPHY ============================= -->
-<section id="discography" class="bg-collage bg-c3" style="--collage-op:.07">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">Complete Discography</div>
-      <h2 class="ransom lg" data-ransom-static="Albums and Tracks"></h2>
-      <p class="lede">Tap any track for the words, the video and everywhere it plays. Each record has its own player.</p>
-    </div>
-    <div class="search-row reveal">
-      <div class="search-wrap">
-        <input type="text" id="searchInput" placeholder="Search tracks, albums or a year…  ( press / )"
-               aria-label="Search tracks and albums" />
-        <div class="search-meta" id="searchMeta"></div>
-      </div>
-    </div>
-    <div class="albums" id="albumsList"></div>
-  </div>
-</section>
+  <!-- ---------------------------------------------------- records -->
+  <section id="records" class="section">
+    <p class="kicker">Discography</p>
+    <h2 class="h2">The Records</h2>
+    <p class="lede">
+      Six studio albums, from a collection of MySpace uploads to a record about the state
+      they never left. Listings and thirty-second previews come from the iTunes store, so
+      what you see is its listing and not one typed from memory.
+      <strong>Click any track to open it</strong> — the player, the words and the credits
+      are all inside the song's own window.
+    </p>
+    <div id="albums" class="albums"></div>
+  </section>
 
-<!-- ============================= SINGLES ============================= -->
-<section id="singles" class="bg-collage bg-c5" style="--collage-op:.07">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">Singles &amp; Covers</div>
-      <h2 class="ransom lg" data-ransom-static="Singles and Covers"></h2>
-      <p class="lede">Newest first — including the covers: Brooks &amp; Dunn, REO Speedwagon, Radiohead, The Doors.</p>
-    </div>
-    <div class="singles-grid" id="singlesGrid"></div>
-  </div>
-</section>
+  <!-- ---------------------------------------------------- lore -->
+  <section id="lore" class="section">
+    <p class="kicker">Twenty years</p>
+    <h2 class="h2">The Lore</h2>
+    <p class="lede">
+      A profile with songs on it, a deal that came after the crowd did, one split that
+      changed what the band could do, and eight records since.
+    </p>
+    <div id="timeline" class="timeline"></div>
+  </section>
 
-<!-- ============================= QUIZZES ============================= -->
-<section id="quiz" class="bg-collage bg-c1" style="--collage-op:.08">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">Interactive</div>
-      <h2 class="ransom lg" data-ransom-static="How well do you know them"></h2>
-      <p class="lede">Four quizzes, 63 questions. Pick a deck.</p>
-    </div>
+  <!-- ---------------------------------------------------- quizzes -->
+  <section id="quizzes" class="section">
+    <p class="kicker">Four decks</p>
+    <h2 class="h2">Quizzes</h2>
+    <p class="lede">
+      Fifty-six questions across four decks. An answer locks once chosen and the right one
+      is always shown, so a wrong guess still tells you something — and the four options are
+      re-shuffled every play, so there is no pattern to learn.
+      Answer with the mouse or press <strong>1–4</strong>.
+    </p>
+    <div id="quizGrid" class="quiz-grid"></div>
+  </section>
 
-    <div class="quiz-tabs reveal" id="quizTabs"></div>
+</main>
 
-    <div class="quiz-card paper torn-b reveal">
-      <span class="tape tl" aria-hidden="true"></span>
-      <span class="tape br" aria-hidden="true"></span>
-
-      <div id="quizStage">
-        <div class="quiz-meta">
-          <span id="quizWhich">—</span>
-          <span id="quizCount">0 / 0</span>
-        </div>
-        <div class="quiz-bar"><span id="quizBarFill"></span></div>
-        <p class="quiz-q" id="quizQuestion">Loading…</p>
-        <div class="quiz-options" id="quizOptions"></div>
-        <div class="quiz-verdict" id="quizVerdict"></div>
-        <div class="quiz-nav">
-          <button type="button" class="btn ghost" id="quizPrev">← Prev</button>
-          <button type="button" class="btn" id="quizNext">Next →</button>
-        </div>
-        <p class="modal-hint" id="quizBlurb"></p>
-      </div>
-
-      <div class="quiz-done" id="quizDone" hidden>
-        <div class="quiz-score" id="quizFinalScore">0 / 0</div>
-        <p id="quizFinalWord"></p>
-        <button type="button" class="btn solid" id="quizRestart">Run it again</button>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================= FOOTER ============================= -->
-<footer>
-  <p>Fan-made sanctuary. Not affiliated with the band or Partisan Records.</p>
-  <p>All music rights belong to Cigarettes After Sex / Partisan Records. Lyric lines appear as short excerpts for identification only.</p>
-  <p>Collage built from fan artwork · letters scanned from a ransom-note alphabet sheet</p>
-  <div class="footer-xoxo"><img id="footerXoxo" src="" alt="XOXO cut from paper letters" /></div>
+<footer class="foot">
+  <p>An unofficial fan archive. Not affiliated with Hollywood Undead, with BMG, or with anyone who works with them.</p>
+  <p>Listings and previews: iTunes Search API. Words: <a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a>, fetched on demand and stored nowhere. Credits, annotations and release data: <a href="https://genius.com/artists/Hollywood-undead" target="_blank" rel="noopener">Genius</a>, when a token is set in this deployment's environment. Every track panel says which of those actually answered.</p>
+  <p>Artwork supplied by the site's owner. All music, lyrics and imagery remain the property of their respective owners.</p>
 </footer>
 
-<!-- ============================= TRACK MODAL ============================= -->
-<div class="modal-overlay" id="trackModal" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Track">
-  <div class="modal track-modal">
-    <button type="button" class="modal-close" id="tmClose" aria-label="Close track">&times;</button>
+<!-- The transport is not here any more. It is built inside the track
+     panel by js/player.js when a song is opened, and taken down with it
+     when the song is closed. -->
 
-    <div class="tm-head">
-      <div class="tm-eyebrow" id="tmEyebrow"></div>
-      <h3 class="tm-title" id="tmTitle"></h3>
-      <div class="tm-dur" id="tmDur"></div>
-    </div>
-
-    <div class="cas-player compact" id="tmPlayer"></div>
-
-    <div class="tm-section">
-      <div class="tm-legend">
-        <span>Words</span>
-        <span class="tm-follow-wrap">
-          <span class="tm-follow-time" id="tmFollowTime">0:00 / 0:00</span>
-          <button type="button" class="tm-follow" id="tmFollow">Follow along</button>
-        </span>
-      </div>
-      <div class="tm-lyrics" id="tmLyrics"></div>
-      <p class="tm-foot" id="tmLyricsFoot" hidden>
-        Short signature lines with approximate timings — tap a line to jump the marker.
-      </p>
-    </div>
-
-    <div class="tm-section">
-      <div class="tm-legend"><span>Watch</span></div>
-      <a class="btn solid tm-video" id="tmVideo" target="_blank" rel="noopener">Video on YouTube →</a>
-    </div>
-
-    <div class="tm-section">
-      <div class="tm-legend"><span>Listen in full</span></div>
-      <div class="tm-platforms" id="tmPlatforms"></div>
-    </div>
-
-    <div class="modal-nav">
-      <button type="button" class="btn ghost" id="tmPrev">← Previous track</button>
-      <button type="button" class="btn ghost" id="tmNext">Next track →</button>
-    </div>
-    <p class="modal-hint">Esc or a click outside closes · ← → move through the record</p>
-  </div>
+<!-- ---------------------------------------------------- overlays -->
+<div class="bone-layer" id="boneLayer" hidden>
+  <canvas></canvas>
+  <button class="close bone-close" type="button" aria-label="Close">×</button>
+  <div class="bone-content"></div>
+  <p class="bone-hint">Esc, or click outside, to shatter it</p>
 </div>
 
-<!-- ============================= MEMBER MODAL ============================= -->
-<div class="modal-overlay" id="memberModal" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Member profile">
-  <div class="modal">
-    <button type="button" class="modal-close" id="modalClose" aria-label="Close profile">&times;</button>
-    <div class="modal-figure" id="modalFigure"></div>
-    <div class="modal-body">
-      <div class="modal-role" id="modalRole"></div>
-      <h3 class="modal-name" id="modalName"></h3>
-      <p class="modal-lead" id="modalLead"></p>
-      <div class="modal-text" id="modalText"></div>
-      <dl class="modal-meta" id="modalMeta"></dl>
-      <div class="modal-nav">
-        <button type="button" class="btn ghost" id="modalPrev">← Previous</button>
-        <button type="button" class="btn ghost" id="modalNext">Next →</button>
-      </div>
-      <p class="modal-hint">Esc or a click outside closes · ← → walks the line-up</p>
-    </div>
-  </div>
-</div>
+<div class="overlay" id="memberModal" hidden></div>
+<div class="overlay" id="trackModal" hidden></div>
+<div class="overlay" id="quizModal" hidden></div>
 
-<script src="js/assets.js"></script>
+<!-- Three.js and GSAP from the CDN, with a local copy behind each.
+
+     The fallback is not belt-and-braces for its own sake: a fan site gets
+     dropped on a static host and then sits there for years, and a page
+     whose centrepiece is a WebGL modal should not go dark because a CDN
+     had a bad afternoon or because someone is reading it on a train. The
+     CDN is tried first and the vendored copy only loads if the global it
+     defines is not there a moment later. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>window.THREE || document.write('<script src="vendor/three.min.js"><\/script>');</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>window.gsap || document.write('<script src="vendor/gsap.min.js"><\/script>');</script>
+
 <script src="js/data.js"></script>
 <script src="js/quizzes.js"></script>
-<script src="js/collage.js"></script>
+<script src="js/atmos.js"></script>
+<script src="js/words.js"></script>
 <script src="js/player.js"></script>
-<script src="js/trackmodal.js"></script>
+<script src="js/collage.js"></script>
+<script src="js/boneframe.js"></script>
 <script src="js/quiz.js"></script>
 <script src="js/main.js"></script>
 </body>

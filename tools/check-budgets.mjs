@@ -12,7 +12,8 @@
  *    and XML namespaces): third parties load only after a user action, from lazy code
  *  - the initial graph never contains Three.js, the lyrics engine or a .glb (mobile bundle)
  *  - DOM guitar layers (assets/guitar/dom/): <= 8 WebP, each <= 60 KB, total <= 300 KB
- *  - GLB files <= 2 MB; cover images WebP <= 100 KB; fonts are woff2 with OFL.txt beside them
+ *  - GLB files <= 2 MB, <= 30k triangles, <= 5 materials, textures <= 2048 px;
+ *    cover images WebP <= 100 KB; fonts are woff2 with OFL.txt beside them
  */
 
 import { readFile, stat } from 'node:fs/promises';
@@ -21,6 +22,7 @@ import { gzipSync } from 'node:zlib';
 import { pathToFileURL } from 'node:url';
 import { build } from './build.mjs';
 import { ROOT, walk, fail } from './lib.mjs';
+import { inspectGlb } from './glb.mjs';
 
 const KB = 1024;
 export const BUDGETS = {
@@ -30,6 +32,9 @@ export const BUDGETS = {
   domLayerMax: 60 * KB,
   domTotal: 300 * KB,
   glbMax: 2048 * KB,
+  glbTriangles: 30000,
+  glbMaterials: 5,
+  glbTexture: 2048,
   coverMax: 100 * KB,
 };
 const FORBIDDEN_INITIAL = [/^vendor\/three\//, /^vendor\/lyrics-engine\//, /\.glb$/];
@@ -130,7 +135,13 @@ export async function checkBudgets(dir) {
     if (!f.endsWith('.webp')) errors.push(`${f}: DOM guitar layers must be WebP`);
     if (sizes.get(f) > BUDGETS.domLayerMax) errors.push(`${f}: ${kb(sizes.get(f))} > ${kb(BUDGETS.domLayerMax)}`);
   }
-  for (const f of files.filter((x) => x.endsWith('.glb'))) row(`GLB ${f}`, sizes.get(f), BUDGETS.glbMax);
+  for (const f of files.filter((x) => x.endsWith('.glb'))) {
+    const g = inspectGlb(await read(f));
+    row(`GLB size ${path.posix.basename(f)}`, sizes.get(f), BUDGETS.glbMax);
+    row('GLB triangles', g.triangles, BUDGETS.glbTriangles, String);
+    row('GLB materials', g.materials, BUDGETS.glbMaterials, String);
+    row('GLB largest texture side', Math.max(0, ...g.textures.map((t) => Math.max(t.width, t.height))), BUDGETS.glbTexture, (v) => `${v}px`);
+  }
   for (const f of files.filter((x) => x.startsWith('assets/covers/'))) {
     if (!f.endsWith('.webp')) errors.push(`${f}: covers must be WebP`);
     if (sizes.get(f) > BUDGETS.coverMax) errors.push(`${f}: ${kb(sizes.get(f))} > ${kb(BUDGETS.coverMax)}`);

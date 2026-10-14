@@ -32,7 +32,7 @@ async function build(want) {
   if (want === 'gl') {
     try {
       const { createGlGuitar } = await import('./gl-guitar.js');
-      impl = await createGlGuitar(slot);
+      impl = await createGlGuitar(slot, { onFail: () => GuitarStage.setMode('dom', false) });
       return 'gl';
     } catch (err) {
       console.warn('GuitarStage: WebGL guitar unavailable, using the flat guitar', err);

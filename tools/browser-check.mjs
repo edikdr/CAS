@@ -65,7 +65,7 @@ async function routeAudio(page, fallback = 'Fantasy Prologue/01 - The Shallow En
 
 const ready = (page) => page.waitForFunction(() => ['ready', 'error'].includes(document.documentElement.dataset.state));
 
-const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required', '--enable-unsafe-swiftshader'] });
 const distDir = path.join(ROOT, '.tmp/check-dist');
 await build({ out: distDir });
 const dist = await serve(distDir, 8301);
@@ -233,15 +233,31 @@ try {
   }
 
   if (want('gl')) {
+    // headless Chromium only has software WebGL, which the site refuses on purpose; ?gl=force accepts it
     const desk = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await desk.newPage();
     const reqs = [];
     page.on('request', (r) => reqs.push(r.url()));
-    await page.goto(DIST);
+    await page.goto(`${DIST}?gl=force&debug`);
     await ready(page);
-    await page.waitForFunction(() => document.querySelector('.guitar-gl canvas') || document.querySelector('.guitar'), null, { timeout: 15000 });
+    await page.waitForSelector('.guitar-gl canvas', { timeout: 20000 }).catch(() => {});
     const glb = reqs.find((u) => u.endsWith('.glb'));
-    check('gl: desktop loads the WebGL guitar and its GLB', !!glb && (await page.evaluate(() => !!document.querySelector('.guitar-gl canvas'))));
+    check('gl: desktop loads the WebGL guitar and its GLB', !!glb && (await page.evaluate(() => window.sunniva.GuitarStage.mode === 'gl')));
+    const cdp = await desk.newCDPSession(page);
+    await cdp.send('Performance.enable');
+    const m = async () => Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map((x) => [x.name, x.value]));
+    await sleep(1500);
+    const a = await m();
+    await sleep(4000);
+    const b = await m();
+    const busy = ((b.TaskDuration - a.TaskDuration) / 4) * 100;
+    check('gl: renders on demand (idle main thread < 2 %)', busy < 2, `${busy.toFixed(2)} % over 4 s`);
+    await page.evaluate(() => window.sunniva.GuitarStage.setMode('dom'));
+    check('gl: the 3D/flat toggle switches to the DOM guitar and back', await page.evaluate(async () => {
+      const flat = !!document.querySelector('.guitar:not(.guitar-gl)') && !document.querySelector('.guitar-gl');
+      await window.sunniva.GuitarStage.setMode('gl');
+      return flat && !!document.querySelector('.guitar-gl canvas');
+    }));
     await desk.close();
     const phone = await browser.newContext(devices['Pixel 7']);
     const p2 = await phone.newPage();
@@ -250,7 +266,7 @@ try {
     await p2.goto(DIST);
     await ready(p2);
     await sleep(1500);
-    check('gl: phone never requests Three.js or the GLB', !r2.some((u) => /vendor\/three|\.glb|gl-guitar/.test(u)));
+    check('gl: phone never requests Three.js, the GL module or the GLB', !r2.some((u) => /vendor\/three|\.glb|gl-guitar/.test(u)));
     await phone.close();
   }
 } finally {

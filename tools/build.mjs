@@ -15,7 +15,9 @@
  *     every literal reference in shipped HTML/CSS/JS/JSON. Asset paths must therefore be literal
  *     strings or come from a JSON manifest; building them with `${}` or `+` is an error (except the
  *     dev-only assets/previews-local/, which never ships).
- *  4. Public build only: fails if HTML/CSS/JS still reference a stripped file (static import, url())
+ *  4. Every inline <script> in index.html (the import map) must have its sha256 in the CSP of
+ *     vercel.json, or the browser would refuse it.
+ *  5. Public build only: fails if HTML/CSS/JS still reference a stripped file (static import, url())
  *     or if any shipped text contains a host of a class that is not cleared (e.g. mzstatic.com).
  *
  * Must not change: the rights logic lives in core/rights.js, not here.
@@ -41,6 +43,8 @@ const RULES = [
   [/^data\/facts\/verification\.json$/, 'facts'],
   [/^config\/rights\.json$/, 'rights'],
   [/^vendor\/lyrics-engine\/lyrics-engine\.m?js$/, 'text'],
+  [/^vendor\/three\/(build|examples)\/.+\.js$/, 'text'],
+  [/^vendor\/three\/LICENSE$/, 'text'],
   [/^assets\/(?!reference\/|previews-local\/).+$/, 'asset'],
 ];
 const STRICT = /^(core|features|styles|content)\//;
@@ -128,7 +132,17 @@ export async function build({ root = ROOT, out = path.join(root, 'dist'), isPubl
     output.set(renames.get(rel) ?? rel, data);
   }
 
-  // 4. public-build guarantees
+  // 4. inline scripts must be allowed by the CSP hash list
+  const html = output.get('index.html');
+  if (typeof html === 'string') {
+    const csp = JSON.stringify(JSON.parse(await readFile(path.join(root, 'vercel.json'), 'utf8').catch(() => '{}')));
+    for (const m of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
+      const hash = `'sha256-${createHash('sha256').update(m[1]).digest('base64')}'`;
+      if (!csp.includes(hash)) errors.push(`index.html: inline script needs ${hash} in the vercel.json CSP script-src`);
+    }
+  }
+
+  // 5. public-build guarantees
   if (isPublic) {
     const textFiles = [...output].filter(([rel, d]) => typeof d === 'string' && TEXT.test(rel));
     for (const s of stripped) {

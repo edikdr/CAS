@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="styles/scene.css">
   <link rel="stylesheet" href="styles/modal.css">
   <script src="core/boot.js"></script>
+  <script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js"}}</script>
   <script type="module" src="core/app.js"></script>
 </head>
 <body>
@@ -30,6 +31,7 @@
         <button class="control" id="toggle-lights" type="button" aria-pressed="true">Lights</button>
         <button class="control" id="toggle-motion" type="button" aria-pressed="true">Motion</button>
         <button class="control" id="enable-tilt" type="button" hidden>Tilt</button>
+        <button class="control" id="toggle-guitar" type="button" aria-pressed="false" hidden>3D</button>
       </div>
     </div>
   </main>

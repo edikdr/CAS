@@ -20,7 +20,7 @@ import { Motion } from './motion.js';
 import { PreviewPlayer } from './preview-player.js';
 import { BeatClock } from './clock.js';
 import { GuitarStage } from './guitar/guitar-stage.js';
-import { needsOrientationPermission } from './capability.js';
+import { canUseGl, needsOrientationPermission } from './capability.js';
 import { ModalManager } from './modal-manager.js';
 import { TrackModal } from './track-modal.js';
 
@@ -63,6 +63,14 @@ if (params.has('debug')) {
 try {
   await Promise.all([RightsGate.load(), DataStore.load()]);
   await GuitarStage.mount($('#guitar-slot'));
+  const modeButton = $('#toggle-guitar');
+  if (canUseGl()) {
+    modeButton.hidden = false;
+    const paintMode = () => modeButton.setAttribute('aria-pressed', String(GuitarStage.mode === 'gl'));
+    modeButton.addEventListener('click', () => GuitarStage.setMode(GuitarStage.mode === 'gl' ? 'dom' : 'gl'));
+    GuitarStage.on('mode', paintMode);
+    paintMode();
+  }
   const tilt = $('#enable-tilt');
   if (needsOrientationPermission()) {
     tilt.hidden = false;

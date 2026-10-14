@@ -1,6 +1,6 @@
 # HANDOFF
 
-Status: **Stage 1, M4 done** (scaffold, data layer, safety rails, scene + light rig, DOM guitar + strings + BeatClock, player + modals + lyrics). M5-M6 pending. This file grows every milestone; at M6 it is the full guide for Stage 2. Rules: `docs/CONTRACT.md`. Plan: `docs/TZ_01_OPUS_foundation.md`.
+Status: **Stage 1, M5 done** (scaffold, data layer, safety rails, scene + light rig, DOM guitar + strings + BeatClock, player + modals + lyrics, WebGL guitar). M6 (hardening + final HANDOFF) pending. This file grows every milestone; at M6 it is the full guide for Stage 2. Rules: `docs/CONTRACT.md`. Plan: `docs/TZ_01_OPUS_foundation.md`.
 
 ## Run
 ```
@@ -16,7 +16,12 @@ sh tools/subset_fonts.sh # OFL TTF -> subset woff2 (pip install fonttools brotli
 node tools/lyrics-from-words.mjs words.json <trackId>   # ElevenLabs word timings -> data/lyrics/<id>.json
 node tools/make-lyric-fixture.mjs <trackId>             # "la la la" test lyrics on the beat grid
 ```
-Node >= 22, no npm dependencies so far.
+Node >= 22. npm devDependencies (tooling only, exact pins): `three` (source for `vendor/three`), `@gltf-transform/*`, `meshoptimizer`, `sharp` (GLB pipeline). The site itself has no runtime dependency.
+```
+node tools/vendor-three.mjs                 # node_modules/three -> vendor/three (never edit the copies)
+node tools/optimize_glb.mjs [raw.glb]       # Meshy export -> assets/models/guitar.glb (+ budget check)
+node tools/glb.mjs <file.glb>               # triangles, materials, texture sizes
+```
 
 ## Architecture (so far)
 ```
@@ -31,7 +36,8 @@ core/emitter.js     createEmitter() used by core services
 core/preview-player.js  PreviewPlayer: the single <audio>
 core/beat-clock.js  createBeatClock (pure, unit-tested); core/clock.js = the site's BeatClock instance
 core/capability.js  preferredGuitarMode(), orientation checks
-core/guitar/        guitar-stage.js (GuitarStage), dom-guitar.js (layers, tilt, flip), strings.js
+core/guitar/        guitar-stage.js (GuitarStage), dom-guitar.js (layers, flip), strings.js, tilt.js (shared
+                    drag/tap/orientation input), gl-guitar.js (WebGL, dynamic import only)
 core/modal-manager.js  ModalManager on native <dialog>
 core/track-modal.js the 'track' modal shell (TrackModal.setContent for Stage 2)
 core/lyrics/        lyric-renderer.js (contract + registry), font-wipe-renderer.js, engine-adapter.js, word-times.js
@@ -67,7 +73,7 @@ vercel.json         build command, output dir, headers (CSP, noindex, cache)
 - `Loop.add((now, dtMs) => keepGoing)` -> `remove()`. Prefer CSS / Web Animations for fire-and-forget motion.
 - `PreviewPlayer.play(trackId)` (from a click/tap), `pause()`, `seek(sec)`, `currentTime()`, `isPlaying()`, `trackId`, `audio`, `setVolume(0..1)` / `volume` (remembered), `setMuted(bool)` / `muted`, `canSetVolume` (false on iOS, where only mute works), events `play | pause | ended | timeupdate | seeked | track | error | volume` (`error` detail `{trackId, appleUrl}` -> show an "Open in Apple Music" link). Dev only: `http://127.0.0.1:8000/?local` plays the files in `assets/previews-local/`.
 - `BeatClock.on('beat', i => ...)`, `BeatClock.on('onset', ({t, s}) => ...)`, `BeatClock.latencyOffsetMs`, `BeatClock.time()`. `core/app.js` already wires onsets (s >= 0.22) to `GuitarStage.pluck` with alternating down/up strums and beats to `LightRig.pulse(0.45)`; the beats file of the playing track is loaded on the player's `track` event.
-- `GuitarStage.pluck(strength, 'down' | 'up')`, `.flip()`, `.setMode('dom' | 'gl')`, `.mode`, `.on('mode', fn)`, `.enableTilt()` (iOS permission; the "Tilt" control calls it). Nothing mounts when `RightsGate.allows('guitarPhotos')` is false.
+- `GuitarStage.pluck(strength, 'down' | 'up')`, `.flip()`, `.setMode('dom' | 'gl')`, `.mode`, `.on('mode', fn)`, `.enableTilt()` (iOS permission; the "Tilt" control calls it). Nothing mounts when `RightsGate.allows('guitarPhotos')` is false. Mode: saved choice, else `preferredGuitarMode()` (fine pointer, >= 900 px, hardware WebGL2, >= 4 GB, no Save-Data -> 'gl'). The "3D" control appears only where `canUseGl()`. GL falls back to DOM on load errors, context loss, or when most of its first 60 animated frames exceed 50 ms. `?gl=force` accepts software WebGL (testing only).
 - `ModalManager.register(kind, { render(body, payload, api) -> cleanup, className? })`, `.open(kind, payload)`, `.close()`, `.current`, `.on('open' | 'close', fn)`. Kinds for Stage 2: `about`, `quiz`, `receipt`, `merch` (core registered `track`). `api = { close(), setTitle(text), dialog }`. Esc, close button, tap on the empty area and phone Back close the top modal; focus returns to the opener; audio stops on every close; modals stack.
   ```js
   ModalManager.register('about', {
@@ -95,6 +101,7 @@ Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspo
 - Lyric files ship only if their `permission` allows it in that build; `data/facts/verification.json` ships filtered to `verified: true`; `artist.json`, `itunes-raw/`, beats `_index.json` never ship.
 - Public build also fails if HTML/CSS/static imports still load a stripped file, or if a host of a non-cleared class (e.g. `mzstatic.com`) appears in any shipped text.
 - `check:budgets`: critical path <= 350 KB gzip, initial JS <= 90 KB gzip, no `http(s)://` in the initial HTML/CSS/JS graph or any shipped CSS (except `<a href>`), Three.js / lyrics engine / `.glb` never in the initial graph, DOM guitar layers (`assets/guitar/dom/`) <= 8 WebP, <= 60 KB each, <= 300 KB total, GLB <= 2 MB, covers WebP <= 100 KB, fonts woff2 with `OFL.txt`.
+- `index.html` has one inline script, the import map that resolves `three` for the vendored GLTFLoader; its sha256 is in the CSP and the build fails if the two drift apart (edit the map -> update the hash).
 - CSP (in `vercel.json`, also served by the dev server) allows third parties only for: Apple artwork (`img-src *.mzstatic.com`), Apple previews (`media-src audio-ssl.itunes.apple.com`), Bandcamp (`frame-src`). A new third-party host needs a core change (`REQUESTS_FOR_CORE.md`). `connect-src 'self'` also blocks LRCLIB at the browser level.
 
 ## Measured (M1)
@@ -123,13 +130,22 @@ Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspo
 - The Shallow End: a private-preview draft transcript (ElevenLabs Scribe, 33 words, 10 lines) was made with `tools/lyrics-from-words.mjs` into the gitignored `data/lyrics/6808001979.json`; it shows word-timed in the track window. It is unreviewed and is not in git or in any archive.
 - Luxurious Script subset woff2: 27 KB (all features: 82 KB).
 
+## Measured (M5)
+- Meshy: multi-image-to-3D from front.jpg + back.jpg, meshy-7.1, 2K texture, remesh to 30k: 30 credits (balance was 2000), 84 s. Raw 4.53 MB / 27,858 triangles / 1 material / 2048 JPEG.
+- `tools/optimize_glb.mjs`: 1.25 MB, 22,285 triangles, 1 material, 2048 px WebP texture (504 KB), quantized; no Meshopt/Draco (not needed under 2 MB, so no WASM decoder and no CSP change). A 1024 px texture would give 0.96 MB but a visibly softer top.
+- Desktop extra download when the GL path runs: Three.js 457 KB gzip (core 288 + module 131 + loaders/utils 38) + gl-guitar.js 4 KB + GLB 1.25 MB (barely compressible). Phones never request any of it (`browser-check gl`).
+- Browser checks: 27/27 (`node tools/browser-check.mjs`), incl. GL idle main thread 0.11-0.18 % (render on demand) and the 3D/flat toggle.
+- Frame rate: headless Chromium only has software WebGL (SwiftShader): GL guitar ready ~1.2 s on a local server, 11 fps while plucking every 330 ms at 1440x900. That is CPU rasterization, not a GPU number; real desktop GPUs were not measured (owner check). The watchdog above protects slow real GPUs.
+
 ## Known issues and notes for later milestones
 - `extract/receipt/js/receipt.js` creates two extra `new Audio()` for paper sounds (CONTRACT: one `<audio>`), loads them from `assets/sfx/` (files sit in `extract/receipt/sfx/`, 480 KB WAV, provenance unknown). Stage 2: play them through Web Audio buffers or drop them; register them first.
 - `data/lyrics/` is gitignored, so a Vercel deploy built from git has no lyrics. To show lyrics privately, build locally and deploy `dist/` (decided in M6).
 - Lyrics engine keeps its own rAF loop while a track modal with lyrics is open and playing: accepted exception to "one rAF loop" (owner, M0). Its scene is rendered off-screen and hidden; only its line/gap events are used. LRCLIB is never used (only our source is passed, and CSP `connect-src 'self'` blocks it anyway).
 - `data/lyrics/` stays out of git, so private deploys with lyrics must be built and deployed from a machine that has the files (M6 note).
 - Headless Chromium lacks AAC: real-browser checks transcode the previews; Safari/Chrome play the m4a.
-- M5: if the GLB uses Meshopt/Draco (WASM), CSP `script-src` needs `'wasm-unsafe-eval'`; GLB triangle/material checks are added to `check:budgets` then.
+- If a future GLB uses Meshopt/Draco (WASM), CSP `script-src` needs `'wasm-unsafe-eval'`.
+- The Meshy texture has artefacts: the soundhole is painted as a brown surface (no real hole) and the lower bout has a few dark patches; a side photo and a re-generation would improve it (and on own photos, for the public build).
+- Three.js 0.186 ships no minified build; vendored files are unminified (457 KB gzip). A minifying vendor step would roughly halve it - only if desktop load time matters.
 - Beat data is unverified (`docs/BEATS_REVIEW.md`); 5 tracks may be at half/double tempo. Strings pluck on onsets (tempo-independent), lights pulse on beats: a half/double-tempo track only changes the light rhythm.
 - `tools/cutout_guitar.py` holds nut/saddle/soundhole landmarks measured on `front.jpg`; new photos need new measurements.
 

@@ -25,9 +25,9 @@ Every asset in the project has a row. "Private OK" = may appear on the private p
 | Raw iTunes JSON | `data/itunes-raw/` | Apple Search API | Facts + URLs | Yes | - |
 | Beat data | `data/beats/` | Computed by us from previews | Numbers only | Yes | Yes |
 | Lyrics | `data/lyrics/` (does not exist) | Her booklet / her email | Hers | **Not shipped** | Only with permission |
-| Three.js | `vendor/three/` (to add) | npm | MIT (keep the notice) | Yes | Yes |
+| Three.js 0.186.1 | `vendor/three/` (6 files + LICENSE, copied by `tools/vendor-three.mjs`) | npm `three` (exact pin in package.json) | MIT; `LICENSE` ships next to the files | Yes (desktop WebGL path only) | Yes |
 | DOM guitar layers (5 WebP + manifest.json, 93 KB) | `assets/guitar/dom/` | Built by `tools/cutout_guitar.py` from the guitar photos (background removed, photo strings painted out) | Not cleared (derived from the guitar photos; class `guitarPhotos`) | Private OK | Re-run the script on own photos (re-measure the nut/saddle landmarks) |
-| Meshy guitar model | `assets/models/guitar.glb` (to generate) | Meshy from the guitar photos | Depends on Meshy plan terms (free plan may require attribution) + photo origin | Private OK | Re-generate from own photos on a paid plan or credit per terms |
+| Meshy guitar model | `assets/models/guitar.glb` (1.25 MB, 22,285 triangles, 1 material, 2048 px WebP texture); raw export kept only in `.tmp/meshy/` | Meshy multi-image-to-3D (meshy-7.1, 2K texture, remesh) from `front.jpg` + `back.jpg`, task 01a13a19-5d3a-73ff-8627-dca3ed88a7a9, 2026-10-14, 30 credits; optimized by `tools/optimize_glb.mjs` | Not cleared: derived from the guitar photos (class `guitarPhotos`) + Meshy plan terms (check whether the plan requires attribution) | Private OK | Re-generate from own photos (and a side view) on a paid plan or credit per terms |
 | Extra OFL fonts (Anton / Bebas Neue / Permanent Marker / Caveat / Ballet / Oswald / Barlow Condensed...) | `assets/fonts/` (to add) | Google Fonts | OFL | Yes | Yes, keep OFL files |
 
 ## Rules

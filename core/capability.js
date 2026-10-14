@@ -2,15 +2,20 @@
  * core/capability.js - device checks that choose the guitar renderer (CONTRACT section 7).
  *
  * Public API:
- *   preferredGuitarMode() -> 'gl' | 'dom'   'gl' only for a fine pointer, >= 900 px wide, >= 4 GB
- *                                           (when reported), no Save-Data, and a working WebGL2
+ *   canUseGl()            a fine pointer, >= 900 px wide and a hardware WebGL2 context: the "3D"
+ *                         toggle is offered
+ *   preferredGuitarMode() -> 'gl' | 'dom'   'gl' when canUseGl() and >= 4 GB (when reported) and
+ *                                           no Save-Data
+ *   forceGl               ?gl=force (testing): accept software WebGL, e.g. headless browsers
  *   needsOrientationPermission()            iOS: DeviceOrientationEvent.requestPermission exists
  *   hasOrientation()                        a coarse pointer and DeviceOrientationEvent exist
  */
 
+export const forceGl = new URLSearchParams(location.search).get('gl') === 'force';
+
 function webgl2() {
   try {
-    const gl = document.createElement('canvas').getContext('webgl2', { failIfMajorPerformanceCaveat: true });
+    const gl = document.createElement('canvas').getContext('webgl2', { failIfMajorPerformanceCaveat: !forceGl });
     gl?.getExtension('WEBGL_lose_context')?.loseContext();
     return !!gl;
   } catch {
@@ -18,12 +23,16 @@ function webgl2() {
   }
 }
 
+export function canUseGl() {
+  if (forceGl) return webgl2();
+  return !matchMedia('(pointer: coarse)').matches && innerWidth >= 900 && webgl2();
+}
+
 export function preferredGuitarMode() {
-  const coarse = matchMedia('(pointer: coarse)').matches;
   const memory = navigator.deviceMemory;
   const saveData = navigator.connection?.saveData === true;
-  if (coarse || innerWidth < 900 || (memory && memory < 4) || saveData) return 'dom';
-  return webgl2() ? 'gl' : 'dom';
+  if ((memory && memory < 4) || saveData) return 'dom';
+  return canUseGl() ? 'gl' : 'dom';
 }
 
 export const hasOrientation = () => 'DeviceOrientationEvent' in window && matchMedia('(pointer: coarse)').matches;

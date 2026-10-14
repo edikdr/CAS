@@ -64,8 +64,16 @@ Row = track: number, title, duration. Nothing else on the receipt face.
 - Draft transcripts are unreliable (never publish unreviewed). `permission` decides visibility per build mode (see CONTRACT section 3).
 
 ## Facts and quiz
-`data/facts/artist.json` (provided, mostly unverified), `data/facts/verification-todo.md` (what to check), `data/facts/verification.json` (you create: `{claim, value, source, retrieved, verified:true}`).
+`data/facts/artist.json` (provided, mostly unverified), `data/facts/verification-todo.md` (what to check), `data/facts/verification.json` (you create: a JSON **array** of `{claim, value, source, retrieved, verified}`; `source` is an https URL, `retrieved` is `YYYY-MM-DD`). Only this file ships, filtered to `verified: true`; `artist.json` is input only and never ships (it holds the private contact address).
 `data/quiz.json` (Sonnet creates): `{"questions":[{"q":"","options":["","","",""],"answer":0,"explain":"","source":"url","verified":true}]}` - 8-10 questions from public facts only (release names, order, dates, collabs, counts). No lyric questions.
 
 ## Config
-`config/rights.json` - see CONTRACT section 3. `config/theme-tokens` is defined by Opus in `styles/tokens.css`.
+`config/rights.json` - see CONTRACT section 3. Per class:
+```json
+"coverArt": {"cleared": false, "paths": ["assets/covers/"], "fields": ["artworkTemplate"], "hosts": ["mzstatic.com"], "note": "..."}
+```
+- `cleared` (required) - may a public build use it.
+- `paths` - files/dirs that belong to the class. Every shipped file under `assets/` must be covered by some class, or the build fails. In a public build, files of non-cleared classes are not copied.
+- `fields` - JSON keys removed from every shipped JSON file when the class is not allowed.
+- `hosts` - hostnames that must not appear in any shipped text of a public build while the class is not cleared.
+The shipped copy is reduced to `{buildMode, classes: {name: {cleared}}}`. `config/theme-tokens` is defined by Opus in `styles/tokens.css`.

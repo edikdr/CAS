@@ -1,0 +1,18 @@
+{
+  "name": "sunniva-room",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Private preview site for sunniva: a dark room, a guitar that plays along, receipts and lyrics.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node tools/dev-server.mjs",
+    "validate": "node tools/validate.mjs",
+    "check:budgets": "node tools/check-budgets.mjs",
+    "build": "node tools/build.mjs",
+    "build:public": "node tools/build.mjs --public",
+    "test": "node --test \"test/*.test.mjs\" \"extract/receipt/test/*.test.mjs\""
+  }
+}

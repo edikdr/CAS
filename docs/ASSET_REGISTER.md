@@ -32,3 +32,5 @@ Every asset in the project has a row. "Private OK" = may appear on the private p
 ## Rules
 - Add a row before you add an asset. Mark "Not cleared" when unsure.
 - If an asset is not cleared, `RightsGate.allows()` must be able to switch it off for `PUBLIC_BUILD=1`.
+- Put each shipped asset in the folder of its class (`config/rights.json` -> `paths`): `assets/fonts/` (fontsOFL), `assets/covers/` (coverArt), `assets/photos/` (photosOfHer), `assets/guitar/` + `assets/models/` (guitarPhotos and everything derived from them), `assets/collage/` (collageCutouts), `assets/letters/` (magazineLetters). `npm run build` fails on a file under `assets/` that no class covers.
+- `assets/reference/` and `assets/previews-local/` never ship (build whitelist) and stay out of git.

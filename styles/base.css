@@ -1,0 +1,45 @@
+/*
+ * styles/base.css - reset and the dark room placeholder (M1).
+ * M2 moves colours into styles/tokens.css and adds the layer stack.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  color-scheme: dark;
+  background: #0c0a0b;
+  color: #ece4de;
+  font: 400 1rem/1.5 Georgia, "Times New Roman", serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+body { margin: 0; }
+
+.room {
+  position: relative;
+  display: grid;
+  place-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 1rem;
+  text-align: center;
+  overflow: hidden;
+  /* warm spill where the garlands will hang, falling off into a dark floor */
+  background:
+    radial-gradient(120% 55% at 50% 0%, rgb(255 190 120 / 0.10), transparent 70%),
+    radial-gradient(90% 70% at 50% 110%, rgb(0 0 0 / 0.65), transparent 70%),
+    #120e0f;
+}
+
+.room__title {
+  margin: 0;
+  font-weight: 400;
+  font-size: clamp(2.5rem, 12vw, 5rem);
+  letter-spacing: 0.04em;
+}
+
+.room__note {
+  margin: 0.5rem 0 0;
+  color: #b8ada6;
+  font-size: 0.9rem;
+}

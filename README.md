@@ -12,6 +12,7 @@ Everything needed to start building a **private preview website** for the singer
 2. `docs/SEND_PLAN.md` - how to run the two stages; `docs/PROMPT_01.md` - first prompt.
 3. `docs/TZ_01_OPUS_foundation.md` (Opus 5.5), `docs/TZ_02_SONNET_content.md` (Sonnet 5.5).
 4. `docs/DATA_SCHEMA.md`, `docs/ASSET_REGISTER.md`.
+5. `HANDOFF.md` - current state of the code: how to run it, interfaces, build/rights rails, measured numbers.
 
 ## What is inside
 ```

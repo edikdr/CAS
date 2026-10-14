@@ -1,15 +1,15 @@
 {
-  "_note": "Single source of truth for what may ship. A PUBLIC_BUILD=1 build must strip every class whose cleared is not true. Flip a flag only after written permission from sunniva (an email reply is enough) and record it in docs/ASSET_REGISTER.md.",
+  "_note": "Single source of truth for what may ship. A PUBLIC_BUILD=1 build must strip every class whose cleared is not true. Flip a flag only after written permission from sunniva (an email reply is enough) and record it in docs/ASSET_REGISTER.md. Per class: paths = shipped files/dirs of the class (every shipped file under assets/ must belong to a class), fields = JSON keys removed from shipped data, hosts = hostnames that must not appear in a public build while the class is not cleared.",
   "buildMode": "private-preview",
   "classes": {
-    "lyrics":          {"cleared": false, "note": "Needs her permission. Lyric text is shown only if data/lyrics/<trackId>.json exists AND its permission is 'granted' (public) or 'private-preview' (private build only)."},
-    "coverArt":        {"cleared": false, "note": "Apple artwork URLs. Private preview only. Load after user action. Never on receipts."},
-    "photosOfHer":     {"cleared": false, "note": "Instagram/CD photos. Max 3-5, private preview only."},
-    "previewAudio":    {"cleared": true,  "note": "Apple 30s previews, streamed from Apple's URL on user click. Never re-hosted."},
-    "guitarPhotos":    {"cleared": false, "note": "Source of the catalogue photos is unknown. Private preview only; replace with own photos or CC0 before public."},
-    "collageCutouts":  {"cleared": false, "note": "Vibe-board pieces: text snippets are fine; photos/clip-art may belong to others. Replace before public."},
-    "filmTextures":    {"cleared": false, "note": "Reference images only (Pinterest-like). Production uses procedural textures."},
-    "magazineLetters": {"cleared": false, "note": "Provenance of the 130 scans in the Arctic Monkeys archive is not documented by the project. Confirm they are the owner's own scans or replace."},
-    "fontsOFL":        {"cleared": true,  "note": "Only SIL OFL fonts. Ship OFL.txt next to every font file."}
+    "lyrics":          {"cleared": false, "paths": ["data/lyrics/"], "note": "Needs her permission. Lyric text is shown only if data/lyrics/<trackId>.json exists AND its permission is 'granted' (public) or 'private-preview' (private build only)."},
+    "coverArt":        {"cleared": false, "paths": ["assets/covers/"], "fields": ["artworkTemplate"], "hosts": ["mzstatic.com"], "note": "Apple artwork URLs. Private preview only. Load after user action. Never on receipts."},
+    "photosOfHer":     {"cleared": false, "paths": ["assets/photos/"], "note": "Instagram/CD photos. Max 3-5, private preview only."},
+    "previewAudio":    {"cleared": true,  "fields": ["previewUrl"], "hosts": ["audio-ssl.itunes.apple.com"], "note": "Apple 30s previews, streamed from Apple's URL on user click. Never re-hosted."},
+    "guitarPhotos":    {"cleared": false, "paths": ["assets/guitar/", "assets/models/"], "note": "Source of the catalogue photos is unknown. Covers everything derived from them (DOM guitar layers, Meshy model). Private preview only; replace with own photos or CC0 before public."},
+    "collageCutouts":  {"cleared": false, "paths": ["assets/collage/"], "note": "Vibe-board pieces: text snippets are fine; photos/clip-art may belong to others. Replace before public."},
+    "filmTextures":    {"cleared": false, "paths": [], "note": "Reference images only (Pinterest-like), never shipped. Production uses procedural textures."},
+    "magazineLetters": {"cleared": false, "paths": ["assets/letters/"], "note": "Provenance of the 130 scans in the Arctic Monkeys archive is not documented by the project. Confirm they are the owner's own scans or replace."},
+    "fontsOFL":        {"cleared": true,  "paths": ["assets/fonts/"], "note": "Only SIL OFL fonts. Ship OFL.txt next to every font file."}
   }
 }

@@ -10,6 +10,7 @@
     "collageCutouts":  {"cleared": false, "paths": ["assets/collage/"], "note": "Vibe-board pieces: text snippets are fine; photos/clip-art may belong to others. Replace before public."},
     "filmTextures":    {"cleared": false, "paths": [], "note": "Reference images only (Pinterest-like), never shipped. Production uses procedural textures."},
     "magazineLetters": {"cleared": false, "paths": ["assets/letters/"], "note": "Provenance of the 130 scans in the Arctic Monkeys archive is not documented by the project. Confirm they are the owner's own scans or replace."},
-    "fontsOFL":        {"cleared": true,  "paths": ["assets/fonts/"], "note": "Only SIL OFL fonts. Ship OFL.txt next to every font file."}
+    "fontsOFL":        {"cleared": true,  "paths": ["assets/fonts/"], "note": "Only SIL OFL fonts. Ship OFL.txt next to every font file."},
+    "uiSounds":        {"cleared": false, "paths": ["assets/sfx/"], "note": "Wall switch clicks made with ElevenLabs Sound Effects in the owner's account (2026-10-14). Clear once the account's plan is confirmed to allow commercial use without attribution."}
   }
 }

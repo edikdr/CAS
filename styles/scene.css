@@ -13,7 +13,7 @@
 
 .layer { position: absolute; inset: 0; }
 
-/* wall: plum-black base, darker floor, and a soft rose spill from the garlands (dims with them) */
+/* wall: plum-black base, darker floor, and a soft rose spill from the garlands */
 .layer--wall {
   z-index: var(--z-wall);
   background:
@@ -27,9 +27,7 @@
   background:
     radial-gradient(140% 48% at 50% 0%, rgb(var(--c-light) / 0.09), transparent 70%),
     radial-gradient(70% 30% at 50% 22%, rgb(var(--c-light) / 0.06), transparent 75%);
-  transition: opacity var(--m-slow) var(--ease-out);
 }
-[data-lights="off"] .layer--wall::after { opacity: 0.1; }
 
 .layer--collage { z-index: var(--z-collage); }
 .layer--garland { z-index: var(--z-garland); pointer-events: none; }
@@ -40,33 +38,55 @@
 .layer--ui > * { pointer-events: auto; }
 
 /* ---- string lights (built by core/light-rig.js) ---------------------------------------- */
+/* Below the guitar: light on the wall, wires, unlit plastic stars. All static: switching the
+   lights never repaints this (the room shade above does the dimming). */
 .garland { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .garland__wire { fill: none; stroke: var(--c-wire); stroke-width: 1.2; }
-.garland__stem { stroke: var(--c-wire); stroke-width: 1.2; }
-.garland__star { fill: var(--c-bulb); transition: fill var(--m-slow) var(--ease-out); }
-[data-lights="off"] .garland__star { fill: var(--c-bulb-off); }
+.garland__stem { stroke: var(--c-wire); stroke-width: 1.4; }
+.garland__star {
+  fill: var(--c-bulb-off);
+  stroke: var(--c-bulb-rim);
+  stroke-width: 0.09;          /* star units (the path is scaled to --star-size) */
+  stroke-linejoin: round;
+}
+.garland__spill { fill: none; stroke: rgb(var(--c-light) / 0.08); stroke-linecap: round; }
+.garland__pool { fill: rgb(var(--c-light) / 0.24); }
+.garland__hot { fill: rgb(var(--c-light) / 0.3); }
 
-/* light falling on the wall: blurred once (static SVG filter), never animated */
-.garland__wash { transition: opacity var(--m-slow) var(--ease-out); }
-.garland__spill { fill: none; stroke: rgb(var(--c-light) / 0.1); stroke-linecap: round; }
-.garland__pool { fill: rgb(var(--c-light) / 0.2); }
-[data-lights="off"] .garland__wash { opacity: 0; }
+/* Above the guitar. Switched off, the lights keep 25% of their light (tokens: --light-dim):
+   the shade dims everything they light, the bloom and the lit stars dim with it. Three opacity
+   changes on composited layers; the shade is a solid colour (no texture to paint). */
+.layer--glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--c-shade);
+  opacity: 0;
+  transition: opacity var(--m-switch-on) linear;
+}
+[data-lights="off"] .layer--glow::before {
+  opacity: calc(1 - var(--light-dim));
+  transition-duration: var(--m-switch-off);
+}
 
-/* bloom around each bulb, above the guitar. The glow layers only cover the garland band
-   (core/light-rig.js: band = min(55vw, 42vh)) + a halo: small composited layers. */
+/* the glow layers only cover the garland band (core/light-rig.js: band = min(55vw, 42vh)) + a
+   halo: small composited layers */
 .glow {
   position: absolute;
   inset: 0 0 auto 0;
   height: calc(min(55vw, 42dvh) + var(--glow-size));
-  transition: opacity var(--m-slow) var(--ease-out);
 }
-[data-lights="off"] .glow { opacity: 0; }
-.glow__group, .glow__pulse { position: absolute; inset: 0; }
+.glow__bloom, .glow__group, .glow__pulse { position: absolute; inset: 0; }
+.glow__bloom, .glow__stars { transition: opacity var(--m-switch-on) linear; }
+[data-lights="off"] .glow__bloom { opacity: var(--light-dim); transition-duration: var(--m-switch-off); }
+[data-lights="off"] .glow__stars { opacity: var(--light-dim-star); transition-duration: var(--m-switch-off); }
 .glow__group { opacity: 0.9; animation: breathe var(--m-breath-a) var(--ease-in-out) infinite alternate; }
 .glow__group:nth-child(2) { animation-duration: var(--m-breath-b); animation-delay: -1.7s; }
 .glow__group:nth-child(3) { animation-duration: var(--m-breath-c); animation-delay: -3.1s; }
 .glow__pulse { opacity: 0; }
 
+/* bloom: a tight bright core (the frosted star scatters the LED) inside a wide soft halo,
+   close to a Gaussian falloff: no visible disc edge */
 .glow__halo {
   position: absolute;
   left: 0; top: 0;
@@ -74,15 +94,28 @@
   height: var(--glow-size);
   margin: calc(var(--glow-size) / -2) 0 0 calc(var(--glow-size) / -2);
   border-radius: 50%;
-  /* close to a Gaussian falloff: no visible disc edge */
   background: radial-gradient(closest-side,
-    rgb(var(--c-light) / 0.6) 0%, rgb(var(--c-light) / 0.4) 6%, rgb(var(--c-light) / 0.22) 16%,
-    rgb(var(--c-light) / 0.11) 30%, rgb(var(--c-light) / 0.045) 50%, rgb(var(--c-light) / 0.012) 72%,
+    rgb(var(--c-light) / 0.75) 0%, rgb(var(--c-light) / 0.5) 7%, rgb(var(--c-light) / 0.24) 15%,
+    rgb(var(--c-light) / 0.12) 27%, rgb(var(--c-light) / 0.055) 44%, rgb(var(--c-light) / 0.018) 66%,
     rgb(var(--c-light) / 0) 100%);
 }
 .glow__pulse .glow__halo {
   background: radial-gradient(closest-side, rgb(var(--c-light) / 0.65) 0%, rgb(var(--c-light) / 0.22) 22%, rgb(var(--c-light) / 0) 62%);
 }
+
+/* lit stars: drawn over the plastic ones (same shapes), from the LED out to the tips */
+.glow__stars { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+.glow__star {
+  fill: url(#star-lit);
+  stroke: rgb(255 240 245 / 0.9);  /* light caught in the frosted edge */
+  stroke-width: 0.07;
+  stroke-linejoin: round;
+}
+.glow__led { fill: url(#star-led); }
+.glow__stop--core { stop-color: var(--c-bulb-core); }
+.glow__stop--body { stop-color: var(--c-bulb); }
+.glow__stop--edge { stop-color: var(--c-bulb-edge); }
+.glow__stop--clear { stop-color: var(--c-bulb-core); stop-opacity: 0; }
 
 @keyframes breathe {
   from { opacity: 0.7; }
@@ -90,6 +123,113 @@
 }
 
 [data-motion="off"] .glow__group { animation: none; opacity: 0.9; }
+
+/* ---- wall switch (bound in core/app.js) ----------------------------------------------------- */
+/* An old push-button switch: pearl plate, two bakelite buttons; the one in use is pressed in.
+   Lit by the garlands like the wall: darker when they are down; the symbols glow a little then,
+   so the switch can be found in the dark. */
+.wall-switch {
+  --plate-hi: var(--c-plate-hi);
+  --plate-lo: var(--c-plate-lo);
+  --knob: var(--c-knob);
+  position: absolute;
+  right: max(var(--s-4), env(safe-area-inset-right));
+  bottom: calc(max(var(--s-4), env(safe-area-inset-bottom)) + var(--tap) + var(--s-4));
+  display: grid;
+  padding: 13px 6px;
+  border-radius: 9px;
+  background:
+    radial-gradient(130% 60% at 35% 0%, rgb(255 255 255 / 0.22), transparent 65%),
+    linear-gradient(172deg, var(--plate-hi), var(--plate-lo));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.4),
+    inset 0 -1.5px 0 rgb(0 0 0 / 0.22),
+    0 0 0 1px rgb(20 10 20 / 0.45),
+    2px 9px 14px -2px rgb(0 0 0 / 0.6);   /* cast on the wall, away from the lights above */
+}
+/* two screws */
+.wall-switch::before, .wall-switch::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 6px; height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background:
+    linear-gradient(35deg, transparent 42%, rgb(0 0 0 / 0.45) 43% 57%, transparent 58%),
+    radial-gradient(circle at 35% 30%, var(--plate-hi), var(--plate-lo));
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.35);
+}
+.wall-switch::before { top: 4px; }
+.wall-switch::after { bottom: 4px; }
+
+.wall-switch__button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.wall-switch__button:focus-visible { outline-offset: -3px; }
+/* bezel in the plate + the button standing out of it */
+.wall-switch__button::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 28%, color-mix(in srgb, var(--knob), #fff 22%), var(--knob) 55%, color-mix(in srgb, var(--knob), #000 35%));
+  box-shadow:
+    0 0 0 2.5px color-mix(in srgb, var(--plate-lo), #000 18%),
+    0 0 0 3.5px rgb(255 255 255 / 0.35),
+    0 3px 3px 2px rgb(0 0 0 / 0.42);
+  transition: transform var(--m-fast) var(--ease-out), box-shadow var(--m-fast) var(--ease-out);
+}
+/* symbols: | on, O off (IEC 60417) */
+.wall-switch__button::after {
+  content: "";
+  grid-area: 1 / 1;
+  width: 2.5px; height: 10px;
+  border-radius: 2px;
+  background: var(--c-paper);
+  opacity: 0.7;
+  transition: transform var(--m-fast) var(--ease-out);
+}
+.wall-switch__button--off::after {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: none;
+  box-shadow: inset 0 0 0 2px var(--c-paper);
+}
+/* the button in use is pressed in */
+:root:not([data-lights="off"]) .wall-switch__button--on::before,
+[data-lights="off"] .wall-switch__button--off::before,
+.wall-switch__button:active::before {
+  transform: translateY(1px) scale(0.93);
+  box-shadow:
+    0 0 0 2.5px color-mix(in srgb, var(--plate-lo), #000 30%),
+    0 0 0 3.5px rgb(255 255 255 / 0.3),
+    inset 0 2px 3px rgb(0 0 0 / 0.6);
+}
+:root:not([data-lights="off"]) .wall-switch__button--on::after,
+[data-lights="off"] .wall-switch__button--off::after,
+.wall-switch__button:active::after { transform: translateY(1px) scale(0.93); }
+/* ... and its symbol shows the accent, so the state reads at a glance */
+:root:not([data-lights="off"]) .wall-switch__button--on::after { background: var(--c-accent); opacity: 1; }
+[data-lights="off"] .wall-switch__button--off::after { box-shadow: inset 0 0 0 2px var(--c-accent); opacity: 1; }
+
+[data-lights="off"] .wall-switch {
+  --plate-hi: color-mix(in srgb, var(--c-plate-hi), var(--c-shade) 47%);
+  --plate-lo: color-mix(in srgb, var(--c-plate-lo), var(--c-shade) 47%);
+  --knob: color-mix(in srgb, var(--c-knob), var(--c-shade) 40%);
+}
+[data-lights="off"] .wall-switch__button::after { filter: drop-shadow(0 0 2px rgb(var(--c-light) / 0.9)); }
 
 /* ---- UI corner -------------------------------------------------------------------------- */
 .scene__title {

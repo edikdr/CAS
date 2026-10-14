@@ -2,9 +2,11 @@
  * core/guitar/guitar-stage.js - GuitarStage (CONTRACT section 7): one guitar, two renderers.
  *
  * Public API:
- *   await GuitarStage.mount(el)        picks the mode: saved choice (storage "guitarMode") or capability
+ *   await GuitarStage.mount(el)        picks the mode from the device: 3D on desktops that can run it
+ *                                      (capability.js), the photo guitar on phones and as fallback
  *   GuitarStage.pluck(strength, direction)   strength 0..1, direction 'down' | 'up'
- *   await GuitarStage.setMode('dom' | 'gl')  manual "3D / flat" toggle; persisted
+ *   await GuitarStage.setMode('dom' | 'gl')  switch renderer (tests, fallback); not persisted - there is
+ *                                      no visible toggle, desktops always get 3D (owner's call)
  *   GuitarStage.flip(), GuitarStage.destroy(), GuitarStage.mode, GuitarStage.enableTilt()
  *   GuitarStage.on('mode', fn)
  *
@@ -15,7 +17,6 @@
 
 import { createEmitter } from '../emitter.js';
 import { RightsGate } from '../rights.js';
-import { storage } from '../storage.js';
 import { preferredGuitarMode } from '../capability.js';
 import { createDomGuitar } from './dom-guitar.js';
 
@@ -45,14 +46,12 @@ async function build(want) {
 export const GuitarStage = {
   mount(el) {
     slot = el;
-    const saved = storage.get('guitarMode');
-    return this.setMode(saved === 'gl' || saved === 'dom' ? saved : preferredGuitarMode(), false);
+    return this.setMode(preferredGuitarMode());
   },
 
-  setMode(want, persist = true) {
+  setMode(want) {
     pending = pending.then(async () => {
       mode = await build(want);
-      if (persist) storage.set('guitarMode', want);
       events.emit('mode', mode);
       return mode;
     });

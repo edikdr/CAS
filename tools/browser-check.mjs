@@ -11,11 +11,14 @@
  * Sections:
  *  load   mobile: no third-party request, no lyrics engine / Three.js / GLB on load, idle CPU,
  *         DOM guitar mode, transfer size
+ *  lights wall switch: Off dims the room to 25% of the light (shade, bloom, stars), state is
+ *         announced (aria-pressed) and survives a reload (set before first paint); idle CPU dimmed;
+ *         the click sounds load after ready and decode
  *  modal  dialog semantics: focus inside, Tab stays inside, Esc closes and restores focus, Back
  *         closes the top modal only, stacked modals, audio stops on close, no layout shift
  *  lyrics permission none / missing -> no text and no engine; fixture line timing vs audio;
  *         dissolve; word-by-word wipe; reduced motion = no transforms
- *  gl     desktop: WebGL guitar loads the GLB; mobile never requests Three.js or the GLB
+ *  gl     desktop: WebGL guitar loads the GLB, no 3D toggle; mobile never requests Three.js or the GLB
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -98,6 +101,59 @@ try {
     const busy = ((b.TaskDuration - a.TaskDuration) / 5) * 100;
     check('load: idle main thread < 1 %', busy < 1, `${busy.toFixed(2)} % over 5 s`);
     console.log(`     transferred ${(bytes / 1024).toFixed(1)} KB in ${reqs.length} requests (uncompressed dev server)`);
+    await ctx.close();
+  }
+
+  if (want('lights')) {
+    const ctx = await browser.newContext(devices['Pixel 7']);
+    const page = await ctx.newPage();
+    const reqs = [];
+    page.on('request', (r) => reqs.push(r.url()));
+    await page.goto(`${DIST}?debug`);
+    await ready(page);
+    const early = reqs.filter((u) => u.endsWith('.mp3')).length;
+    await sleep(4500);
+    const sfx = reqs.filter((u) => /\/sfx\/switch-(on|off)\.\w+\.mp3$/.test(u));
+    check('lights: switch clicks load after the page is ready and decode', early === 0 && sfx.length === 2 && await page.evaluate(async (urls) => {
+      const audio = new OfflineAudioContext(1, 44100, 44100);
+      for (const u of urls) {
+        const b = await audio.decodeAudioData(await (await fetch(u)).arrayBuffer());
+        if (b.duration < 0.2 || b.duration > 0.5) return false;
+      }
+      return true;
+    }, sfx), `${sfx.length} files, ${early} before ready`);
+    const look = () => page.evaluate(() => {
+      const op = (sel, pseudo) => Number(getComputedStyle(document.querySelector(sel), pseudo).opacity);
+      return {
+        lights: document.documentElement.dataset.lights || 'on',
+        level: window.sunniva.LightRig.level,
+        pressed: [...document.querySelectorAll('#light-switch button')].map((b) => b.getAttribute('aria-pressed')).join(),
+        shade: op('#glow', '::before'), bloom: op('.glow__bloom'), stars: op('.glow__stars'),
+      };
+    });
+    const on = await look();
+    check('lights: on at load, the On button is pressed, no shade', on.lights === 'on' && on.level === 1 && on.pressed === 'true,false' && on.shade === 0 && on.bloom === 1, JSON.stringify(on));
+    await page.click('#light-switch .wall-switch__button--off');
+    await sleep(700);
+    const off = await look();
+    check('lights: Off keeps 25% of the light (sRGB 0.53), Off is pressed', off.lights === 'off' && off.level === 0.25 && off.pressed === 'false,true' && Math.abs(off.shade - 0.47) < 0.01 && Math.abs(off.bloom - 0.53) < 0.01 && off.stars > off.bloom, JSON.stringify(off));
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Performance.enable');
+    const task = async () => (await cdp.send('Performance.getMetrics')).metrics.find((x) => x.name === 'TaskDuration').value;
+    const t0 = await task();
+    await sleep(3000);
+    const busy = ((await task()) - t0) / 3 * 100;
+    check('lights: idle main thread with the lights down < 1 %', busy < 1, `${busy.toFixed(2)} % over 3 s`);
+    await page.reload();
+    await ready(page);
+    const kept = await look();
+    check('lights: Off survives a reload', kept.lights === 'off' && kept.pressed === 'false,true' && Math.abs(kept.shade - 0.47) < 0.01, JSON.stringify(kept));
+    await page.keyboard.press('Tab');
+    await page.focus('#light-switch .wall-switch__button--on');
+    await page.keyboard.press('Enter');
+    await sleep(500);
+    const back = await look();
+    check('lights: the On button works from the keyboard', back.lights === 'on' && back.pressed === 'true,false' && back.shade === 0, JSON.stringify(back));
     await ctx.close();
   }
 
@@ -253,7 +309,7 @@ try {
     const busy = ((b.TaskDuration - a.TaskDuration) / 4) * 100;
     check('gl: renders on demand (idle main thread < 2 %)', busy < 2, `${busy.toFixed(2)} % over 4 s`);
     await page.evaluate(() => window.sunniva.GuitarStage.setMode('dom'));
-    check('gl: the 3D/flat toggle switches to the DOM guitar and back', await page.evaluate(async () => {
+    check('gl: no 3D toggle; setMode switches to the DOM guitar and back', !(await page.$('#toggle-guitar')) && await page.evaluate(async () => {
       const flat = !!document.querySelector('.guitar:not(.guitar-gl)') && !document.querySelector('.guitar-gl');
       await window.sunniva.GuitarStage.setMode('gl');
       return flat && !!document.querySelector('.guitar-gl canvas');

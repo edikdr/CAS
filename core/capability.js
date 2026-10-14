@@ -2,8 +2,7 @@
  * core/capability.js - device checks that choose the guitar renderer (CONTRACT section 7).
  *
  * Public API:
- *   canUseGl()            a fine pointer, >= 900 px wide and a hardware WebGL2 context: the "3D"
- *                         toggle is offered
+ *   canUseGl()            a fine pointer, >= 900 px wide and a hardware WebGL2 context
  *   preferredGuitarMode() -> 'gl' | 'dom'   'gl' when canUseGl() and >= 4 GB (when reported) and
  *                                           no Save-Data
  *   forceGl               ?gl=force (testing): accept software WebGL, e.g. headless browsers

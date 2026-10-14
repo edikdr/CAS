@@ -66,7 +66,7 @@ tools/       scripts (Node/Python). Never shipped to the site.
 - `PreviewPlayer`: `play(trackId)`, `pause()`, `seek(sec)`, `currentTime()`, `isPlaying()`, events `play|pause|ended|timeupdate|error`. Single `<audio>`.
 - `BeatClock`: subscribes to PreviewPlayer, emits `beat(index)` and `onset({t, s})` from `data/beats/<id>.json`; handles seek, pause, loop, tab hidden. Setting `latencyOffsetMs` (default 0).
 - `GuitarStage`: `mount(el)`, `pluck(strength, direction)`, `setMode('dom'|'gl')`, `flip()`, `destroy()`. Implementations: `DomGuitar`, `GlGuitar`. Chosen by capability check (pointer coarse, width, deviceMemory, saveData, WebGL ok) + manual toggle; GL failure falls back to DOM.
-- `LightRig`: `setEnabled(bool)`, `pulse(strength)`, positions of the lights in scene coordinates.
+- `LightRig`: `setEnabled(bool)` (off = the lights keep 25% of their light, `level`), `pulse(strength)`, positions of the lights in scene coordinates.
 - `LyricRenderer` (interface): `mount(el)`, `setLine({text, startSec, endSec})`, `clear()`, `destroy()`. Implementations: `FontWipeRenderer` (Opus), `MagazineRenderer` (Sonnet). Selected by theme with a manual override.
 - `ModalManager`: `open(kind, payload)`, `close()`; kinds: `about`, `quiz`, `receipt`, `track`, `merch`.
 - `RightsGate`: `allows(className)`; every feature calls it before using a gated asset.
@@ -87,7 +87,7 @@ tools/       scripts (Node/Python). Never shipped to the site.
 
 ## 10. Forbidden
 - Editing `vendor/*` or `core/*` (Sonnet), rewriting architecture (Sonnet).
-- Pulling any lyric text from the web into the repo. Publishing or committing audio files.
+- Pulling any lyric text from the web into the repo. Publishing or committing music audio (previews, songs, stems). Exception, added at the owner's request: short interface sounds made for the site (`assets/sfx/`, rights class `uiSounds`, played with Web Audio).
 - Using Instagram/Pinterest images as production assets without a register entry.
 - Adding dependencies without asking (a tiny devDependency for tooling is fine if you say so).
 - Anything that makes a network request on page load to a third party.

@@ -1,6 +1,6 @@
 # HANDOFF
 
-Status: **Stage 1, M5 done** (scaffold, data layer, safety rails, scene + light rig, DOM guitar + strings + BeatClock, player + modals + lyrics, WebGL guitar). M6 (hardening + final HANDOFF) pending. This file grows every milestone; at M6 it is the full guide for Stage 2. Rules: `docs/CONTRACT.md`. Plan: `docs/TZ_01_OPUS_foundation.md`.
+Status: **Stage 1, M5 done** (scaffold, data layer, safety rails, scene + light rig, DOM guitar + strings + BeatClock, player + modals + lyrics, WebGL guitar), plus the owner's requests after M5 (horizontal guitar, touchable strings, wall switch with 25 % lights, switch sounds, regenerated 3D model). M6 (hardening + final HANDOFF) pending. This file grows every milestone; at M6 it is the full guide for Stage 2. Rules: `docs/CONTRACT.md`. Plan: `docs/TZ_01_OPUS_foundation.md`.
 
 ## Run
 ```
@@ -11,7 +11,7 @@ npm run check:budgets    # builds into .tmp/budgets and checks CONTRACT section 
 npm run build            # private preview -> dist/
 npm run build:public     # PUBLIC_BUILD -> dist/ (also: PUBLIC_BUILD=1 npm run build)
 npm test                 # node:test, no dependencies
-node tools/browser-check.mjs [--only load,modal,lyrics,gl]   # real-browser checks; needs playwright + ffmpeg
+node tools/browser-check.mjs [--only load,lights,modal,lyrics,gl]   # real-browser checks; needs playwright + ffmpeg
 sh tools/subset_fonts.sh # OFL TTF -> subset woff2 (pip install fonttools brotli)
 node tools/lyrics-from-words.mjs words.json <trackId>   # ElevenLabs word timings -> data/lyrics/<id>.json
 node tools/make-lyric-fixture.mjs <trackId>             # "la la la" test lyrics on the beat grid
@@ -30,12 +30,13 @@ core/boot.js        classic sync script in <head>: saved theme / motion / lights
 core/app.js         composition root: mounts the scene, then RightsGate.load() + DataStore.load(); <html data-state>
 core/loop.js        the single rAF loop (Loop.add(task) -> remove)
 core/motion.js      Motion.reduced (OS setting OR visitor's "motion off"), mirrored on <html data-motion="off">
-core/light-rig.js   LightRig: garlands (below the guitar) + glow halos (above it)
+core/light-rig.js   LightRig: garlands (below the guitar) + bloom, lit stars, room shade (above it)
+core/sfx.js         Sfx: interface sounds through Web Audio (the wall switch clicks)
 core/film-slot.js   FilmSlot: canvas overlay; Stage 2 registers the drawing
 core/emitter.js     createEmitter() used by core services
 core/preview-player.js  PreviewPlayer: the single <audio>
 core/beat-clock.js  createBeatClock (pure, unit-tested); core/clock.js = the site's BeatClock instance
-core/capability.js  preferredGuitarMode(), orientation checks
+core/capability.js  preferredGuitarMode() (3D on capable desktops, always; no toggle), orientation checks
 core/guitar/        guitar-stage.js (GuitarStage), dom-guitar.js (layers, flip), strings.js (canvas strings),
                     string-physics.js (damped springs, shared, unit-tested), tilt.js (shared
                     drag/tap/orientation input), gl-guitar.js (WebGL, dynamic import only)
@@ -64,17 +65,18 @@ vercel.json         build command, output dir, headers (CSP, noindex, cache)
   ```
 - `storage.get(key, fallback)`, `storage.set(key, value)`, `storage.remove(key)`; keys: `theme, lyricMode, lights, guitarMode, motion, quizBest, volume` (anything else throws). Never throws on blocked storage.
 
-- `LightRig.setEnabled(bool)`, `.enabled`, `.pulse(strength 0..1)`, `.lights` -> `[{x, y, garland, index}]` (px, viewport box), `.maskImage(radiusPx)` -> CSS `mask-image` with a soft disc per light, `.on('layout' | 'toggle', fn)`.
+- `LightRig.setEnabled(bool)`, `.enabled`, `.level` (1, or 0.25 when switched off: the lights keep 25 % of their light), `.pulse(strength 0..1)` (also while dimmed, at the dimmed level), `.lights` -> `[{x, y, garland, index}]` (px, viewport box), `.maskImage(radiusPx)` -> CSS `mask-image` with a soft disc per light, `.on('layout' | 'toggle', fn)`. The wall switch (`#light-switch`, two push buttons, bound in `core/app.js`) is the only control; Stage 2 papers/dust can scale their own light by `LightRig.level` or style `[data-lights="off"]`.
   ```js
   dust.style.maskImage = dust.style.webkitMaskImage = LightRig.maskImage(180);
   LightRig.on('layout', () => { dust.style.maskImage = LightRig.maskImage(180); });
   ```
+- `Sfx.play('switch-on' | 'switch-off', { gain })` from a user gesture, `Sfx.preload()` (core calls it after the rights gate loads). Files in `assets/sfx/` (rights class `uiSounds`, not cleared: the public build strips them and `Sfx` stays silent). Add a sound = add the file + a literal `new URL(...)` entry in `FILES` + a register row.
 - `FilmSlot.setRenderer((ctx, { width, height, dpr }) => { ... })` - draw the whole texture once; core redraws only after a resize (debounced), DPR <= 2.
 - `Motion.reduced`, `Motion.setUserOff(bool)`, `Motion.on('change', fn)`. CSS tests only `[data-motion="off"]`.
 - `Loop.add((now, dtMs) => keepGoing)` -> `remove()`. Prefer CSS / Web Animations for fire-and-forget motion.
 - `PreviewPlayer.play(trackId)` (from a click/tap), `pause()`, `seek(sec)`, `currentTime()`, `isPlaying()`, `trackId`, `audio`, `setVolume(0..1)` / `volume` (remembered), `setMuted(bool)` / `muted`, `canSetVolume` (false on iOS, where only mute works), events `play | pause | ended | timeupdate | seeked | track | error | volume` (`error` detail `{trackId, appleUrl}` -> show an "Open in Apple Music" link). Dev only: `http://127.0.0.1:8000/?local` plays the files in `assets/previews-local/`.
 - `BeatClock.on('beat', i => ...)`, `BeatClock.on('onset', ({t, s}) => ...)`, `BeatClock.latencyOffsetMs`, `BeatClock.time()`. `core/app.js` already wires onsets (s >= 0.22) to `GuitarStage.pluck` with alternating down/up strums and beats to `LightRig.pulse(0.45)`; the beats file of the playing track is loaded on the player's `track` event.
-- `GuitarStage.pluck(strength, 'down' | 'up')`, `.flip()`, `.setMode('dom' | 'gl')`, `.mode`, `.on('mode', fn)`, `.enableTilt()` (iOS permission; the "Tilt" control calls it). Nothing mounts when `RightsGate.allows('guitarPhotos')` is false. Mode: saved choice, else `preferredGuitarMode()` (fine pointer, >= 900 px, hardware WebGL2, >= 4 GB, no Save-Data -> 'gl'). The "3D" control appears only where `canUseGl()`. GL falls back to DOM on load errors, context loss, or when most of its first 60 animated frames exceed 50 ms. `?gl=force` accepts software WebGL (testing only).
+- `GuitarStage.pluck(strength, 'down' | 'up')`, `.flip()`, `.setMode('dom' | 'gl')` (not persisted), `.mode`, `.on('mode', fn)`, `.enableTilt()` (iOS permission; the "Tilt" control calls it). Nothing mounts when `RightsGate.allows('guitarPhotos')` is false. Mode: always `preferredGuitarMode()` (fine pointer, >= 900 px, hardware WebGL2, >= 4 GB, no Save-Data -> 'gl'). Owner's call: desktops always get 3D, there is no 3D/flat button (storage key `guitarMode` is no longer used). GL falls back to DOM on load errors, context loss, or when most of its first 60 animated frames exceed 50 ms. `?gl=force` accepts software WebGL (testing only).
 - `ModalManager.register(kind, { render(body, payload, api) -> cleanup, className? })`, `.open(kind, payload)`, `.close()`, `.current`, `.on('open' | 'close', fn)`. Kinds for Stage 2: `about`, `quiz`, `receipt`, `merch` (core registered `track`). `api = { close(), setTitle(text), dialog }`. Esc, close button, tap on the empty area and phone Back close the top modal; focus returns to the opener; audio stops on every close; modals stack.
   ```js
   ModalManager.register('about', {
@@ -90,6 +92,11 @@ vercel.json         build command, output dir, headers (CSP, noindex, cache)
 ## Look (owner request, after M4)
 Base tokens follow the Fantasy Prologue artwork and CD booklet: plum-black room (`--c-wall`, `--c-room`), the cover's pink script (`--c-accent`, outline `--c-accent-deep`), lavender booklet paper for every modal (`--c-paper`, `--c-paper-ink`, `--c-paper-dim`), silver star stickers and a rhinestone row (CSS only, `styles/modal.css`), Luxurious Script for titles and lyrics (`--font-display`, `--font-lyric`), bold caps labels (`.caps`, `--font-caps`). String lights are warm rose (`--c-light`): a static, blurred wash on the wall (SVG filter, drawn once) + a soft near-Gaussian bloom per bulb that breathes. The three theme slots still override these values.
 
+## Lights and the wall switch (owner request, after M5)
+- Stars are larger (`--star-size: clamp(29px, 7.2vmin, 34px)`, bloom `--glow-size` scaled with them) and look like the frosted stars in `string-lights.jpg`: below the guitar the unlit plastic star (always drawn), above it the lit star (radial gradient from the LED out to rose tips + a hot LED point) and a two-scale bloom (tight core in a wide halo). On the wall: a wide blurred spill along the wires, a pool under every star and a bright patch right behind it.
+- Off = 25 % of the light, not dark. Opacity blends in sRGB, so 25 % of the light is 0.25^(1/2.2) = 0.53 on screen (`--light-dim`): a solid-colour room shade (`.layer--glow::before`) dims everything the lights fall on (wall, wires, guitar in both modes) to 0.53, the bloom goes to 0.53, the lit stars to 0.62 (`--light-dim-star`, a dimmed LED still looks bright up close). Switching changes three opacities on composited layers: nothing is repainted, no JS per frame. On: 140 ms with a short flicker (one Web Animation, skipped with reduced motion); off: 320 ms.
+- The switch: an old push-button plate on the wall (bottom right, above the controls), On (|) and Off (O), the pressed one sits in and shows the accent; the plate darkens with the room, its symbols glow faintly. Buttons are 44 px, `aria-pressed`, keyboard operable. A click sound plays when the state changes (`Sfx`, at the player's volume, silent when muted).
+
 ## Guitar and strings (owner request, after M5)
 - The guitar lies horizontally, headstock right, low E on top (DOM: `.guitar__lay` turns the upright photo frame 90 deg; GL: the model group is rotated). Size: `--guitar-len` in `styles/tokens.css` (length on screen); the guitar sets `--ratio` inline. A tap turns it over its long axis.
 - Strings ring with the music (BeatClock onsets -> `GuitarStage.pluck`) and can be touched: press near a string and drag - it follows a little, resists (soft limit), and swings back through rest when released; pull it past twice the limit and it slips off and rings; dragging across the strings plucks them in turn. Both guitars share `core/guitar/string-physics.js` (damped springs at a few Hz, rings 1-1.6 s; profile = triangle at the finger relaxing into a sine). Reduced motion: still.
@@ -97,9 +104,9 @@ Base tokens follow the Fantasy Prologue artwork and CD booklet: plum-black room 
 - `tilt.js` takes `grab = { down(e) -> bool, move, up }`: a press that starts on a string goes to the strings, anywhere else tilts (drag) or flips (tap).
 
 ## Scene layers and extension points
-Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspots) -> `#garland` (wires, stars) -> `#guitar-slot` -> `#glow` (halos) -> `#film-slot` (canvas) -> `#ui` (title, controls). `#garland`, `#glow`, `#film-slot` ignore pointer events.
+Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspots) -> `#garland` (wall light, wires, plastic stars) -> `#guitar-slot` -> `#glow` (room shade, bloom, lit stars) -> `#film-slot` (canvas) -> `#ui` (title, wall switch, controls). The room shade covers the collage too, so Stage 2 papers dim with the lights for free. `#garland`, `#glow`, `#film-slot` ignore pointer events.
 - Themes: fill the three `:root[data-theme=...]` blocks in `styles/tokens.css` with token values; `core/boot.js` applies the saved theme (storage key `theme`) before first paint; a switcher only has to set `document.documentElement.dataset.theme` and `storage.set('theme', name)`.
-- Lights off: `<html data-lights="off">`; style anything light-dependent with that selector.
+- Lights down (25 %): `<html data-lights="off">`; style anything light-dependent with that selector (layers above `#glow`, e.g. the film, are not covered by the room shade).
 
 ## Build and rights rails (what the tools enforce)
 - Only whitelisted files ship (`RULES` in `tools/build.mjs`): `index.html`, `core/**.js`, `features/**.{js,css,json}`, `styles/**.css`, `content/**.json`, runtime data, `vendor/lyrics-engine/lyrics-engine.{js,mjs}`, `assets/**` except `reference/`, `previews-local/`, `.ttf/.otf/.md`. A binary file inside `core/ features/ styles/ content/` fails the build.
@@ -149,15 +156,20 @@ Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspo
 - Pixel 7 emulation with The Shallow End playing (strings redrawn while they ring): 60 fps, also at CPU 4x (worst frame 17-33 ms). Onset -> event p90 15 ms.
 - 1440x900 DOM fallback in headless (software compositing): 31 fps; desktop normally uses the GL guitar. No real-device numbers yet.
 
+## Measured (lights, switch sounds, regenerated 3D model)
+- Browser checks 33/33 (new `lights` section: on/off levels 1 -> shade 0.47, bloom 0.53, stars 0.62; state survives a reload; keyboard; idle main thread with the lights down 0.14 %; click files load only after ready and decode).
+- Idle main thread on load 0.13 % (Pixel 7 emulation); GL idle 0.09 %.
+- Switch sounds: ElevenLabs Sound Effects, 1 run x 4 takes, 200 credits; 2 takes kept, 3 KB each.
+- Meshy re-generation: same photos with the strings painted out (`cutout_guitar.paint_out_strings`), white background, upscaled 2x; `geometry_resolution: 2k`, `texture_resolution: 4k`, remesh to 30k, 35 credits (balance 1910 before), 88 s. Shipped after `tools/optimize_glb.mjs --ratio 1`: 1.46 MB, 29,589 triangles, 2048 px WebP (552 KB). Smooth outline, no baked strings, no lumps on the top (the M5 model had all three). The raw export and the pre-remesh mesh (319k triangles, untextured) stay in `.tmp/meshy2/`.
+
 ## Known issues and notes for later milestones
-- `extract/receipt/js/receipt.js` creates two extra `new Audio()` for paper sounds (CONTRACT: one `<audio>`), loads them from `assets/sfx/` (files sit in `extract/receipt/sfx/`, 480 KB WAV, provenance unknown). Stage 2: play them through Web Audio buffers or drop them; register them first.
+- `extract/receipt/js/receipt.js` creates two extra `new Audio()` for paper sounds (CONTRACT: one `<audio>`), loads them from `assets/sfx/` (files sit in `extract/receipt/sfx/`, 480 KB WAV, provenance unknown). Stage 2: play them through `Sfx` (Web Audio buffers) or drop them. `assets/sfx/` is rights class `uiSounds` (the switch clicks): give the paper sounds a register row first, and their own class if their provenance differs.
 - `data/lyrics/` is gitignored, so a Vercel deploy built from git has no lyrics. To show lyrics privately, build locally and deploy `dist/` (decided in M6).
 - Lyrics engine keeps its own rAF loop while a track modal with lyrics is open and playing: accepted exception to "one rAF loop" (owner, M0). Its scene is rendered off-screen and hidden; only its line/gap events are used. LRCLIB is never used (only our source is passed, and CSP `connect-src 'self'` blocks it anyway).
 - `data/lyrics/` stays out of git, so private deploys with lyrics must be built and deployed from a machine that has the files (M6 note).
 - Headless Chromium lacks AAC: real-browser checks transcode the previews; Safari/Chrome play the m4a.
 - If a future GLB uses Meshopt/Draco (WASM), CSP `script-src` needs `'wasm-unsafe-eval'`.
-- 3D only: the Meshy texture also contains the photo's strings; the shader strings are placed from the photo landmarks and sit up to a few px off the baked ones, so at close range some strings look doubled. Fix: paint the strings out of the GLB texture (or regenerate from a photo without visible strings).
-- The Meshy texture has artefacts: the soundhole is painted as a brown surface (no real hole) and the lower bout has a few dark patches; a side photo and a re-generation would improve it (and on own photos, for the public build).
+- 3D model (regenerated): the dark binding line along the top's edge is painted by Meshy and wavers by a pixel or two at full size; the soundhole is a painted surface, not a real hole. A side photo of the guitar would improve the sides further; for the public build re-generate from own photos.
 - Three.js 0.186 ships no minified build; vendored files are unminified (457 KB gzip). A minifying vendor step would roughly halve it - only if desktop load time matters.
 - Beat data is unverified (`docs/BEATS_REVIEW.md`); 5 tracks may be at half/double tempo. Strings pluck on onsets (tempo-independent), lights pulse on beats: a half/double-tempo track only changes the light rhythm.
 - `tools/cutout_guitar.py` holds nut/saddle/soundhole landmarks measured on `front.jpg`; new photos need new measurements.

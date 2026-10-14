@@ -2,20 +2,29 @@
  * core/light-rig.js - the two string-light garlands (CONTRACT section 7: LightRig).
  *
  * Public API:
- *   LightRig.mount({ garland, glow })  garland: element below the guitar (wires + stars);
- *                                      glow: element above the guitar (halo sprites)
- *   LightRig.setEnabled(bool), .enabled   persisted (storage "lights"), mirrored on <html data-lights>
- *   LightRig.pulse(strength)           short brightening, strength 0..1; no-op when off or reduced motion
+ *   LightRig.mount({ garland, glow })  garland: element below the guitar (wall light, wires, stars);
+ *                                      glow: element above the guitar (bloom, lit stars, room shade)
+ *   LightRig.setEnabled(bool), .enabled   persisted (storage "lights"), mirrored on <html data-lights>.
+ *                                      Off is not dark: the lights keep 25% of their light (.level)
+ *   LightRig.level                     1 when on, 0.25 when switched off (share of the light output)
+ *   LightRig.pulse(strength)           short brightening, strength 0..1; no-op under reduced motion
  *   LightRig.lights                    [{ x, y, garland, index }] - px in scene coordinates (the viewport box)
  *   LightRig.maskImage(radiusPx)       CSS mask-image with a soft disc around every light; Stage 2 uses it
  *                                      to reveal dust/texture only near the lights (re-read it on 'layout')
  *   LightRig.on('layout' | 'toggle', fn)
  *
- * Look: light on the wall is a static wash (wide strokes along the wires + a pool under each bulb,
- * blurred once by an SVG filter); above the guitar each bulb has a soft bloom with a near-Gaussian
- * falloff. Cost: everything is laid out once and again only on resize. "Breathing" is a CSS
- * opacity animation on three bloom groups (compositor only, zero JS per frame); pulse() is one
- * Web Animation on opacity. Nothing here uses the rAF loop.
+ * Look (assets/reference/room/string-lights.jpg): frosted plastic stars, each with an LED inside.
+ *   - below the guitar: light on the wall (wide strokes along the wires + a pool around every star,
+ *     blurred once by an SVG filter), wires, stems and the unlit plastic stars;
+ *   - above the guitar: a room shade (the glow element's ::before in styles/scene.css), the bloom
+ *     around every star (near-Gaussian, three breathing groups + a pulse group) and the lit stars
+ *     (gradient from the LED out to the tips, a hot LED point).
+ * Switching changes three opacities (shade, bloom, lit stars; styles/scene.css), so the whole
+ * room dims the same way, the guitar included, in either guitar mode.
+ *
+ * Cost: everything is laid out once and again only on resize; nothing uses the rAF loop. Breathing
+ * is a CSS opacity animation (compositor only); pulse() and the switch-on flicker are one-shot Web
+ * Animations on opacity. The blurred wall light is never repainted after layout.
  *
  * Must not change: the API above and the element classes used by styles/scene.css.
  */
@@ -32,6 +41,7 @@ const GARLANDS = [
 const PHOTO_TOP = 0.2;     // photo rows 0.2..0.8 map onto the garland band
 const PHOTO_SPAN = 0.6;
 const GROUPS = 3;          // breathing groups, out of phase (styles/scene.css)
+const DIM = 0.25;          // share of the light left when switched off (opacities: styles/scene.css)
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const html = document.documentElement;
@@ -40,6 +50,8 @@ let enabled = storage.get('lights', true) !== false;
 let lights = [];
 let garlandEl = null;
 let svg = null;
+let litEl = null;          // <g> with the lit stars, above the guitar
+let glowEl = null;
 let pulseEl = null;
 let pulseAnim = null;
 let halos = [];
@@ -81,25 +93,38 @@ function svgEl(name, attrs) {
   return el;
 }
 
+/** A length token (e.g. --star-size: clamp(...)) resolved to px: custom properties compute to
+ *  their source text, so measure it on a probe. */
+function tokenPx(el, name, fallback) {
+  const probe = document.createElement('div');
+  probe.style.cssText = `position:absolute;visibility:hidden;width:var(${name})`;
+  el.append(probe);
+  const px = probe.getBoundingClientRect().width;
+  probe.remove();
+  return px || fallback;
+}
+
 function layout() {
   const width = garlandEl.clientWidth;
   const height = garlandEl.clientHeight;
   if (!width || !height) return;
   const band = Math.min(width * 0.55, height * 0.42);
-  const star = parseFloat(getComputedStyle(garlandEl).getPropertyValue('--star-size')) || 20;
-  const stem = star * 0.95;
+  const star = tokenPx(garlandEl, '--star-size', 30);
+  const stem = star * 0.62;   // the stars hang close under the wire, as in the photo
 
   lights = [];
   svg.replaceChildren();
-  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
-  // light on the wall: wide blurred strokes along each garland + a soft pool under every bulb,
-  // blurred once by an SVG filter (static; only its opacity changes when the lights switch)
+  // light on the wall: wide strokes along each garland + a pool around every star, blurred once
+  // by an SVG filter (static: dimming is the room shade above, so this is never repainted)
   const blur = svgEl('filter', { id: 'garland-soften', x: '-30%', y: '-80%', width: '160%', height: '260%' });
-  blur.append(svgEl('feGaussianBlur', { stdDeviation: (band * 0.11).toFixed(1) }));
+  blur.append(svgEl('feGaussianBlur', { stdDeviation: (band * 0.1).toFixed(1) }));
+  const near = svgEl('filter', { id: 'garland-near', x: '-50%', y: '-50%', width: '200%', height: '200%' });
+  near.append(svgEl('feGaussianBlur', { stdDeviation: (star * 0.55).toFixed(1) }));
   const defs = svgEl('defs', {});
-  defs.append(blur);
+  defs.append(blur, near);
   const wash = svgEl('g', { class: 'garland__wash', filter: 'url(#garland-soften)' });
+  const close = svgEl('g', { class: 'garland__wash', filter: 'url(#garland-near)' });
   const wires = [];
   GARLANDS.forEach((g, gi) => {
     const attach = g.lights.map(([nx, ny], i) => {
@@ -108,21 +133,31 @@ function layout() {
       lights.push({ x, y, garland: gi, index: i });
       return { x, y: y - stem };
     });
-    wash.append(svgEl('path', { class: 'garland__spill', d: curve(attach.map((p) => ({ x: p.x, y: p.y + band * 0.08 }))), 'stroke-width': (band * 0.22).toFixed(1) }));
+    wash.append(svgEl('path', { class: 'garland__spill', d: curve(attach.map((p) => ({ x: p.x, y: p.y + band * 0.06 }))), 'stroke-width': (band * 0.2).toFixed(1) }));
     for (let w = 0; w < g.wires; w++) {
       const shifted = attach.map((pt) => ({ x: pt.x + w * 3, y: pt.y - w * 2.5 }));
       wires.push(svgEl('path', { class: 'garland__wire', d: curve(shifted) }));
     }
   });
   for (const l of lights) {
-    wash.append(svgEl('ellipse', { class: 'garland__pool', cx: l.x.toFixed(1), cy: (l.y + band * 0.05).toFixed(1), rx: (band * 0.13).toFixed(1), ry: (band * 0.17).toFixed(1) }));
+    // wide pool, a little below the star (it hangs off the wall and shines down onto it)
+    wash.append(svgEl('ellipse', { class: 'garland__pool', cx: l.x.toFixed(1), cy: (l.y + band * 0.04).toFixed(1), rx: (band * 0.12).toFixed(1), ry: (band * 0.15).toFixed(1) }));
+    // and the bright patch right behind it
+    close.append(svgEl('circle', { class: 'garland__hot', cx: l.x.toFixed(1), cy: (l.y + star * 0.2).toFixed(1), r: (star * 0.9).toFixed(1) }));
   }
-  svg.append(defs, wash, ...wires);
+  svg.append(defs, wash, close, ...wires);
+
+  const lit = [];
   lights.forEach((l, i) => {
-    svg.append(svgEl('line', { class: 'garland__stem', x1: l.x, y1: l.y - stem, x2: l.x, y2: l.y - star * 0.45 }));
-    const tilt = ((i * 37) % 30) - 15;
-    svg.append(svgEl('path', { class: 'garland__star', d: STAR, transform: `translate(${l.x.toFixed(1)} ${l.y.toFixed(1)}) rotate(${tilt}) scale(${(star / 2).toFixed(2)})` }));
+    svg.append(svgEl('line', { class: 'garland__stem', x1: l.x, y1: l.y - stem, x2: l.x, y2: l.y - star * 0.42 }));
+    const tilt = ((i * 37) % 44) - 22;
+    const place = `translate(${l.x.toFixed(1)} ${l.y.toFixed(1)}) rotate(${tilt}) scale(${(star / 2).toFixed(2)})`;
+    svg.append(svgEl('path', { class: 'garland__star', d: STAR, transform: place }));
+    const g = svgEl('g', { transform: place });
+    g.append(svgEl('path', { class: 'glow__star', d: STAR }), svgEl('circle', { class: 'glow__led', cy: '-0.08', r: '0.5' }));
+    lit.push(g);
   });
+  litEl.replaceChildren(...lit);
   halos.forEach((h, i) => {
     const l = lights[i % lights.length];
     h.style.transform = `translate(${l.x.toFixed(1)}px, ${l.y.toFixed(1)}px)`;
@@ -142,8 +177,8 @@ export const LightRig = {
     garland.replaceChildren(svg);
 
     const count = GARLANDS.reduce((n, g) => n + g.lights.length, 0);
-    const wrap = document.createElement('div');
-    wrap.className = 'glow';
+    glowEl = Object.assign(document.createElement('div'), { className: 'glow' });
+    const bloom = Object.assign(document.createElement('div'), { className: 'glow__bloom' });
     const groups = Array.from({ length: GROUPS }, () => Object.assign(document.createElement('div'), { className: 'glow__group' }));
     pulseEl = Object.assign(document.createElement('div'), { className: 'glow__pulse' });
     halos = [];
@@ -157,8 +192,22 @@ export const LightRig = {
       pulseEl.append(h);
       halos.push(h);
     }
-    wrap.append(...groups, pulseEl);
-    glow.replaceChildren(wrap);
+    bloom.append(...groups, pulseEl);
+
+    // lit stars: one gradient from the LED (a little above the centre) out to the tips
+    const stars = svgEl('svg', { class: 'glow__stars', 'aria-hidden': 'true' });
+    const body = svgEl('radialGradient', { id: 'star-lit', cx: '0.5', cy: '0.45', r: '0.62' });
+    [['0', 'core'], ['0.2', 'core'], ['0.55', 'body'], ['1', 'edge']].forEach(([offset, tone]) => {
+      body.append(svgEl('stop', { offset, class: `glow__stop--${tone}` }));
+    });
+    const led = svgEl('radialGradient', { id: 'star-led' });
+    led.append(svgEl('stop', { offset: '0', class: 'glow__stop--core' }), svgEl('stop', { offset: '1', class: 'glow__stop--clear' }));
+    const defs = svgEl('defs', {});
+    defs.append(body, led);
+    litEl = svgEl('g', {});
+    stars.append(defs, litEl);
+    glowEl.append(bloom, stars);
+    glow.replaceChildren(glowEl);
 
     apply();
     observer?.disconnect();
@@ -170,15 +219,23 @@ export const LightRig = {
 
   get enabled() { return enabled; },
 
+  get level() { return enabled ? 1 : DIM; },
+
   setEnabled(on) {
+    const was = enabled;
     enabled = !!on;
     storage.set('lights', enabled);
     apply();
+    // LEDs come up at once, with a short unsteady flicker as the contact settles
+    if (enabled && !was && glowEl && !Motion.reduced) {
+      glowEl.animate([{ opacity: 0.45 }, { opacity: 1, offset: 0.2 }, { opacity: 0.72, offset: 0.38 }, { opacity: 1, offset: 0.6 }, { opacity: 0.9, offset: 0.78 }, { opacity: 1 }], { duration: 300, easing: 'linear' });
+    }
     events.emit('toggle', enabled);
   },
 
+  /** Beat flash; when switched off it flashes at the lights' 25% too (the bloom layer is dimmed). */
   pulse(strength = 1) {
-    if (!enabled || !pulseEl || Motion.reduced) return;
+    if (!pulseEl || Motion.reduced) return;
     const s = Math.max(0, Math.min(1, strength));
     pulseAnim?.cancel();
     pulseAnim = pulseEl.animate([{ opacity: s }, { opacity: 0 }], { duration: 420, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });

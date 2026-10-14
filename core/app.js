@@ -1,7 +1,7 @@
 /*
  * core/app.js - entry module (the only module <script> in index.html) and composition root.
  *
- * Boot order: scene (lights, film slot, controls) paints first without waiting for data;
+ * Boot order: scene (lights, wall switch, film slot, controls) paints first without waiting for data;
  * then rights gate + data store load in parallel; then the guitar (it needs the rights gate).
  * Music wiring: PreviewPlayer -> BeatClock -> onsets pluck the guitar (alternating down/up
  * strums, amplitude = onset strength), beats pulse the lights. Sets <html data-state>.
@@ -20,14 +20,34 @@ import { Motion } from './motion.js';
 import { PreviewPlayer } from './preview-player.js';
 import { BeatClock } from './clock.js';
 import { GuitarStage } from './guitar/guitar-stage.js';
-import { canUseGl, needsOrientationPermission } from './capability.js';
+import { needsOrientationPermission } from './capability.js';
 import { ModalManager } from './modal-manager.js';
 import { TrackModal } from './track-modal.js';
+import { Sfx } from './sfx.js';
 
 const ONSET_MIN = 0.22; // weaker onsets do not pluck (they are mostly noise in the analysis)
 const root = document.documentElement;
 const params = new URLSearchParams(location.search);
 const $ = (sel) => document.querySelector(sel);
+
+/** The wall switch: two push buttons, On and Off (off keeps the lights at 25%). A click sounds
+ *  when the state changes, at the player's volume (silent when muted). */
+function bindLightSwitch(group) {
+  const [on, off] = group.querySelectorAll('button');
+  const paint = () => {
+    on.setAttribute('aria-pressed', String(LightRig.enabled));
+    off.setAttribute('aria-pressed', String(!LightRig.enabled));
+  };
+  const press = (want) => {
+    if (LightRig.enabled === want) return;
+    Sfx.play(want ? 'switch-on' : 'switch-off', { gain: PreviewPlayer.muted ? 0 : 0.8 * PreviewPlayer.volume });
+    LightRig.setEnabled(want);
+  };
+  on.addEventListener('click', () => press(true));
+  off.addEventListener('click', () => press(false));
+  LightRig.on('toggle', paint);
+  paint();
+}
 
 /** A pressed/unpressed pill button bound to some state. */
 function bindToggle(button, read, write) {
@@ -39,7 +59,7 @@ function bindToggle(button, read, write) {
 
 LightRig.mount({ garland: $('#garland'), glow: $('#glow') });
 FilmSlot.mount($('#film-slot'));
-bindToggle($('#toggle-lights'), () => LightRig.enabled, (on) => LightRig.setEnabled(on));
+bindLightSwitch($('#light-switch'));
 const paintMotion = bindToggle($('#toggle-motion'), () => !Motion.reduced, (on) => Motion.setUserOff(!on));
 Motion.on('change', paintMotion);
 
@@ -57,20 +77,13 @@ BeatClock.on('onset', ({ s }) => {
 BeatClock.on('beat', () => LightRig.pulse(0.45));
 
 if (params.has('debug')) {
-  window.sunniva = { RightsGate, DataStore, LightRig, Motion, PreviewPlayer, BeatClock, GuitarStage, ModalManager, TrackModal };
+  window.sunniva = { RightsGate, DataStore, LightRig, Motion, PreviewPlayer, BeatClock, GuitarStage, ModalManager, TrackModal, Sfx };
 }
 
 try {
   await Promise.all([RightsGate.load(), DataStore.load()]);
+  Sfx.preload();
   await GuitarStage.mount($('#guitar-slot'));
-  const modeButton = $('#toggle-guitar');
-  if (canUseGl()) {
-    modeButton.hidden = false;
-    const paintMode = () => modeButton.setAttribute('aria-pressed', String(GuitarStage.mode === 'gl'));
-    modeButton.addEventListener('click', () => GuitarStage.setMode(GuitarStage.mode === 'gl' ? 'dom' : 'gl'));
-    GuitarStage.on('mode', paintMode);
-    paintMode();
-  }
   const tilt = $('#enable-tilt');
   if (needsOrientationPermission()) {
     tilt.hidden = false;

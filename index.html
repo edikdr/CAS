@@ -27,11 +27,13 @@
     <canvas class="layer layer--film" id="film-slot" aria-hidden="true" hidden></canvas>
     <div class="layer layer--ui" id="ui">
       <h1 class="scene__title">sunniva</h1>
+      <div class="wall-switch" id="light-switch" role="group" aria-label="String lights">
+        <button class="wall-switch__button wall-switch__button--on" type="button" aria-label="On" aria-pressed="true"></button>
+        <button class="wall-switch__button wall-switch__button--off" type="button" aria-label="Off (25%)" aria-pressed="false"></button>
+      </div>
       <div class="scene__controls" id="scene-controls">
-        <button class="control" id="toggle-lights" type="button" aria-pressed="true">Lights</button>
         <button class="control" id="toggle-motion" type="button" aria-pressed="true">Motion</button>
         <button class="control" id="enable-tilt" type="button" hidden>Tilt</button>
-        <button class="control" id="toggle-guitar" type="button" aria-pressed="false" hidden>3D</button>
       </div>
     </div>
   </main>

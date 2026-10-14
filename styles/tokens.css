@@ -23,9 +23,16 @@
   --c-paper-line: #cdbcd6;           /* rules and tracks on paper */
   --c-silver: #c9c7d6;               /* star stickers, rhinestones */
   --c-light: 255 214 222;            /* bulb glow, RGB triplet: rgb(var(--c-light) / a) */
-  --c-bulb: #fff4f6;                 /* lit star */
-  --c-bulb-off: #6c6270;             /* unlit plastic star */
+  --c-bulb: #ffe9ef;                 /* lit frosted star, away from the LED */
+  --c-bulb-core: #ffffff;            /* the LED inside it */
+  --c-bulb-edge: #f7b7cb;            /* lit star at its tips */
+  --c-bulb-off: #6c6270;             /* frosted plastic, unlit */
+  --c-bulb-rim: rgb(226 214 232 / 0.55); /* edge of the plastic star */
   --c-wire: rgb(228 222 236 / 0.34);
+  --c-shade: #040206;                /* the room losing light (lights switched down) */
+  --c-plate-hi: #cdc3d6;             /* wall switch plate: pearl lavender, lit from above */
+  --c-plate-lo: #6f6680;
+  --c-knob: #2d1f2c;                 /* switch buttons: plum bakelite */
 
   /* type */
   --font-body: Georgia, "Times New Roman", serif;
@@ -59,12 +66,19 @@
   --m-breath-a: 4.4s;                /* string light "breathing", three groups out of phase */
   --m-breath-b: 5.2s;
   --m-breath-c: 5.9s;
+  --m-switch-on: 140ms;              /* string lights come up fast (LEDs), with a short flicker */
+  --m-switch-off: 320ms;
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 
   /* scene */
-  --glow-size: clamp(90px, 22vmin, 220px);  /* bloom around each bulb */
-  --star-size: clamp(14px, 3.4vmin, 26px);
+  --glow-size: clamp(120px, 28vmin, 280px); /* bloom around each bulb */
+  --star-size: clamp(29px, 7.2vmin, 34px);
+  /* lights switched off keep 25% of their light. Opacity blends in sRGB, so 25% of the light is
+     0.25^(1/2.2) = 0.53 on screen: everything they light (wall, wires, guitar) and the bloom go to
+     0.53; the stars themselves stay brighter, as a dimmed LED still looks bright up close */
+  --light-dim: 0.53;
+  --light-dim-star: 0.62;
   --guitar-len: min(94vw, 1080px, 150svh);   /* length of the (horizontal) guitar on screen */
   --track-guitar: translateY(-22dvh) scale(0.92);            /* while the track sheet is open (phones) */
   --track-guitar-wide: translate(-17vw, -7dvh) scale(0.72);  /* ... next to the side panel (>= 900 px) */

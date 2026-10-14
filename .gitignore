@@ -3,6 +3,8 @@ node_modules/
 dist/
 *.m4a
 *.mp3
+# exception: short interface sounds made for the site (rights class uiSounds, docs/ASSET_REGISTER.md)
+!assets/sfx/*.mp3
 assets/audio-samples/
 assets/reference/
 reference/

@@ -1,6 +1,6 @@
 # HANDOFF
 
-Status: **Stage 1, M3 done** (scaffold, data layer, safety rails, scene + light rig, DOM guitar + strings + BeatClock). M4-M6 pending. This file grows every milestone; at M6 it is the full guide for Stage 2. Rules: `docs/CONTRACT.md`. Plan: `docs/TZ_01_OPUS_foundation.md`.
+Status: **Stage 1, M4 done** (scaffold, data layer, safety rails, scene + light rig, DOM guitar + strings + BeatClock, player + modals + lyrics). M5-M6 pending. This file grows every milestone; at M6 it is the full guide for Stage 2. Rules: `docs/CONTRACT.md`. Plan: `docs/TZ_01_OPUS_foundation.md`.
 
 ## Run
 ```
@@ -11,6 +11,10 @@ npm run check:budgets    # builds into .tmp/budgets and checks CONTRACT section 
 npm run build            # private preview -> dist/
 npm run build:public     # PUBLIC_BUILD -> dist/ (also: PUBLIC_BUILD=1 npm run build)
 npm test                 # node:test, no dependencies
+node tools/browser-check.mjs [--only load,modal,lyrics,gl]   # real-browser checks; needs playwright + ffmpeg
+sh tools/subset_fonts.sh # OFL TTF -> subset woff2 (pip install fonttools brotli)
+node tools/lyrics-from-words.mjs words.json <trackId>   # ElevenLabs word timings -> data/lyrics/<id>.json
+node tools/make-lyric-fixture.mjs <trackId>             # "la la la" test lyrics on the beat grid
 ```
 Node >= 22, no npm dependencies so far.
 
@@ -28,13 +32,17 @@ core/preview-player.js  PreviewPlayer: the single <audio>
 core/beat-clock.js  createBeatClock (pure, unit-tested); core/clock.js = the site's BeatClock instance
 core/capability.js  preferredGuitarMode(), orientation checks
 core/guitar/        guitar-stage.js (GuitarStage), dom-guitar.js (layers, tilt, flip), strings.js
+core/modal-manager.js  ModalManager on native <dialog>
+core/track-modal.js the 'track' modal shell (TrackModal.setContent for Stage 2)
+core/lyrics/        lyric-renderer.js (contract + registry), font-wipe-renderer.js, engine-adapter.js, word-times.js
 core/rights.js      RightsGate + createRightsGate (shared with tools/build.mjs)
 core/data-store.js  DataStore + createDataStore
 core/storage.js     storage wrapper (the only localStorage user)
 core/fetch-json.js  fetchJson(url): JSON, null on 404
 styles/tokens.css   design tokens + three theme slots (prologue, link3, plain) for Stage 2
 styles/base.css     reset, typography, .control pill buttons, .visually-hidden
-styles/scene.css    layer stack, string lights, UI corner
+styles/scene.css    layer stack, string lights, UI corner, DOM guitar
+styles/modal.css    dialogs, track window, lyric region, @font-face Luxurious Script
 tools/              build, validate, check-budgets, dev-server, lib (never shipped)
 test/               node:test suites
 vercel.json         build command, output dir, headers (CSP, noindex, cache)
@@ -60,7 +68,17 @@ vercel.json         build command, output dir, headers (CSP, noindex, cache)
 - `PreviewPlayer.play(trackId)` (from a click/tap), `pause()`, `seek(sec)`, `currentTime()`, `isPlaying()`, `trackId`, `audio`, events `play | pause | ended | timeupdate | seeked | track | error` (`error` detail `{trackId, appleUrl}` -> show an "Open in Apple Music" link). Dev only: `http://127.0.0.1:8000/?local` plays the files in `assets/previews-local/`.
 - `BeatClock.on('beat', i => ...)`, `BeatClock.on('onset', ({t, s}) => ...)`, `BeatClock.latencyOffsetMs`, `BeatClock.time()`. `core/app.js` already wires onsets (s >= 0.22) to `GuitarStage.pluck` with alternating down/up strums and beats to `LightRig.pulse(0.45)`; the beats file of the playing track is loaded on the player's `track` event.
 - `GuitarStage.pluck(strength, 'down' | 'up')`, `.flip()`, `.setMode('dom' | 'gl')`, `.mode`, `.on('mode', fn)`, `.enableTilt()` (iOS permission; the "Tilt" control calls it). Nothing mounts when `RightsGate.allows('guitarPhotos')` is false.
-- `?debug` exposes `window.sunniva = { RightsGate, DataStore, LightRig, Motion, PreviewPlayer, BeatClock, GuitarStage }`.
+- `ModalManager.register(kind, { render(body, payload, api) -> cleanup, className? })`, `.open(kind, payload)`, `.close()`, `.current`, `.on('open' | 'close', fn)`. Kinds for Stage 2: `about`, `quiz`, `receipt`, `merch` (core registered `track`). `api = { close(), setTitle(text), dialog }`. Esc, close button, tap on the empty area and phone Back close the top modal; focus returns to the opener; audio stops on every close; modals stack.
+  ```js
+  ModalManager.register('about', {
+    render(body, payload, api) { api.setTitle('About'); body.append(buildAbout()); return () => {/* cleanup */}; },
+  });
+  paper.addEventListener('click', () => ModalManager.open('about'));
+  row.addEventListener('click', () => ModalManager.open('track', { id: row.dataset.trackId }));
+  ```
+- `TrackModal.setContent((slots, track, api) => cleanup)` - Stage 2 fills `slots.kicker` (default: release + year), `slots.content` (credits, links, prev/next, cover art behind `RightsGate.allows('coverArt')` and a user action) and may restyle `slots.note` ("Lyrics are not shown in this preview."). `api.setTrack(id)` switches track in the same window (prev/next), `api.play()`, `api.close()`. The shell owns title, player (play/pause, seek, time, "Open in Apple Music" on error) and the lyric region.
+- Lyrics: `LyricRenderer` = `{ mount(el, { time, onResume }), setLine({ text, startSec, endSec, words? }), clear(), destroy() }` (`core/lyrics/lyric-renderer.js`). Register the magazine renderer once: `registerRenderer('magazine', createMagazineRenderer)`; it is then picked for `data-theme="link3"` or `storage.set('lyricMode', 'magazine')`. Use `wordTimes(line)` for per-word timing and drive animation from `time()` (pause/seek then just work); wake on `onResume`. Lines arrive from the engine adapter; you never touch the engine.
+- `?track=<trackId>` opens a track window on load (also handy for testing on a phone); `?debug` exposes `window.sunniva = { RightsGate, DataStore, LightRig, Motion, PreviewPlayer, BeatClock, GuitarStage, ModalManager, TrackModal }`.
 
 ## Scene layers and extension points
 Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspots) -> `#garland` (wires, stars) -> `#guitar-slot` -> `#glow` (halos) -> `#film-slot` (canvas) -> `#ui` (title, controls). `#garland`, `#glow`, `#film-slot` ignore pointer events.
@@ -94,10 +112,20 @@ Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspo
   - Not measured on a real phone (no device here) - owner check.
 - Unit tests: `test/beat-clock.test.mjs` (order, seek both ways, loop restart, hidden tab, pause/resume, latency, coarse currentTime, no data).
 
+## Measured (M4)
+`node tools/browser-check.mjs` (headless Chromium 1.56, Opus copies of the clips): 18/18 passed.
+- Load (Pixel 7, private build): 35 requests, 122.7 KB uncompressed, 0 third-party, no lyrics engine / Three.js / GLB, idle main thread 0.12 %. `check:budgets`: critical path 28.2 KB gzip, initial JS 22.2 KB gzip.
+- Modals: focus inside on open, Tab never reaches the page, Esc closes and restores focus to the opener, Back closes and stays on the page, stacked modals close top-first, audio stops on close, CLS 0.0004 over open/close.
+- Lyrics: permission "none" and missing file -> note shown, no lyric text in the DOM, engine never downloaded. Fixture lines (track 20) appear within 22 ms of their start time (17 ms with reduced motion), words wipe in one by one, each line dissolves when the next starts; reduced motion uses fades only (no transforms).
+- The Shallow End: a private-preview draft transcript (ElevenLabs Scribe, 33 words, 10 lines) was made with `tools/lyrics-from-words.mjs` into the gitignored `data/lyrics/6808001979.json`; it shows word-timed in the track window. It is unreviewed and is not in git or in any archive.
+- Luxurious Script subset woff2: 27 KB (all features: 82 KB).
+
 ## Known issues and notes for later milestones
 - `extract/receipt/js/receipt.js` creates two extra `new Audio()` for paper sounds (CONTRACT: one `<audio>`), loads them from `assets/sfx/` (files sit in `extract/receipt/sfx/`, 480 KB WAV, provenance unknown). Stage 2: play them through Web Audio buffers or drop them; register them first.
 - `data/lyrics/` is gitignored, so a Vercel deploy built from git has no lyrics. To show lyrics privately, build locally and deploy `dist/` (decided in M6).
-- Lyrics engine keeps its own rAF loop while a track modal is open and playing: accepted exception to "one rAF loop" (owner, M0). LRCLIB is never used: lyrics come from ElevenLabs word timings converted into `data/lyrics/<id>.json` (M4).
+- Lyrics engine keeps its own rAF loop while a track modal with lyrics is open and playing: accepted exception to "one rAF loop" (owner, M0). Its scene is rendered off-screen and hidden; only its line/gap events are used. LRCLIB is never used (only our source is passed, and CSP `connect-src 'self'` blocks it anyway).
+- `data/lyrics/` stays out of git, so private deploys with lyrics must be built and deployed from a machine that has the files (M6 note).
+- Headless Chromium lacks AAC: real-browser checks transcode the previews; Safari/Chrome play the m4a.
 - M5: if the GLB uses Meshopt/Draco (WASM), CSP `script-src` needs `'wasm-unsafe-eval'`; GLB triangle/material checks are added to `check:budgets` then.
 - Beat data is unverified (`docs/BEATS_REVIEW.md`); 5 tracks may be at half/double tempo. Strings pluck on onsets (tempo-independent), lights pulse on beats: a half/double-tempo track only changes the light rhythm.
 - `tools/cutout_guitar.py` holds nut/saddle/soundhole landmarks measured on `front.jpg`; new photos need new measurements.

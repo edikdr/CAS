@@ -57,10 +57,11 @@ Row = track: number, title, duration. Nothing else on the receipt face.
 `data/lyrics/<trackId>.json` - **absent by default; folder is gitignored**.
 ```json
 { "trackId": 6808001979, "permission": "none|private-preview|granted",
-  "source": "owner-supplied|elevenlabs-scribe-draft", "reviewedByHuman": false,
+  "source": "owner-supplied|elevenlabs-scribe-draft|fixture", "reviewedByHuman": false,
   "lines": [ {"t": 0.4, "end": 3.1, "text": "..."} ] }
 ```
 - Times are relative to the preview clip. Built from the speech-to-text word timings: group words into lines by pause (>= 0.45 s) or punctuation; keep word timings too if the renderer wants word-level wipe: `"words":[{"t":..,"end":..,"text":..}]`.
+- Make one from an ElevenLabs word-timing file: `node tools/lyrics-from-words.mjs words.json <trackId>` (pause >= 0.45 s or `.!?` ends a line; `permission: "private-preview"`, `source: "elevenlabs-scribe-draft"`). Test data without real lyrics: `node tools/make-lyric-fixture.mjs <trackId>` ("la la la" lines on the track's beats, `source: "fixture"`).
 - Draft transcripts are unreliable (never publish unreviewed). `permission` decides visibility per build mode (see CONTRACT section 3).
 
 ## Facts and quiz

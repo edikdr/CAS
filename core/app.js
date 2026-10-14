@@ -5,6 +5,7 @@
  * then rights gate + data store load in parallel; then the guitar (it needs the rights gate).
  * Music wiring: PreviewPlayer -> BeatClock -> onsets pluck the guitar (alternating down/up
  * strums, amplitude = onset strength), beats pulse the lights. Sets <html data-state>.
+ * Links: ?track=<trackId> opens that track's window on load (Back closes it).
  * Debugging: ?debug exposes the core services as window.sunniva.
  *
  * Must not change: it is the single entry point; keep its static import graph small
@@ -20,9 +21,12 @@ import { PreviewPlayer } from './preview-player.js';
 import { BeatClock } from './clock.js';
 import { GuitarStage } from './guitar/guitar-stage.js';
 import { needsOrientationPermission } from './capability.js';
+import { ModalManager } from './modal-manager.js';
+import { TrackModal } from './track-modal.js';
 
 const ONSET_MIN = 0.22; // weaker onsets do not pluck (they are mostly noise in the analysis)
 const root = document.documentElement;
+const params = new URLSearchParams(location.search);
 const $ = (sel) => document.querySelector(sel);
 
 /** A pressed/unpressed pill button bound to some state. */
@@ -52,8 +56,8 @@ BeatClock.on('onset', ({ s }) => {
 });
 BeatClock.on('beat', () => LightRig.pulse(0.45));
 
-if (new URLSearchParams(location.search).has('debug')) {
-  window.sunniva = { RightsGate, DataStore, LightRig, Motion, PreviewPlayer, BeatClock, GuitarStage };
+if (params.has('debug')) {
+  window.sunniva = { RightsGate, DataStore, LightRig, Motion, PreviewPlayer, BeatClock, GuitarStage, ModalManager, TrackModal };
 }
 
 try {
@@ -65,6 +69,7 @@ try {
     tilt.addEventListener('click', async () => { tilt.hidden = await GuitarStage.enableTilt(); });
   }
   root.dataset.state = 'ready';
+  if (DataStore.track(params.get('track'))) ModalManager.open('track', { id: params.get('track') });
 } catch (err) {
   root.dataset.state = 'error';
   console.error(err);

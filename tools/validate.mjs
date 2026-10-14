@@ -20,7 +20,7 @@ export const EXPECTED = { trackRows: 33, uniqueSongs: 29, receipts: { album: 17,
 const RELEASE_TYPES = ['album', 'demos', 'single', 'appearance'];
 const RECEIPT_FOR_TYPE = { album: 'album', demos: 'demos', single: 'singles', appearance: 'appearances' };
 const BEAT_STATUS = ['auto-unverified', 'verified'];
-const LYRIC_SOURCES = ['owner-supplied', 'elevenlabs-scribe-draft'];
+const LYRIC_SOURCES = ['owner-supplied', 'elevenlabs-scribe-draft', 'fixture'];
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const isInt = (v) => Number.isInteger(v) && v > 0;

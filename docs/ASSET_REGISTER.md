@@ -4,7 +4,7 @@ Every asset in the project has a row. "Private OK" = may appear on the private p
 
 | Asset | Path | Source | Rights status | Use now | Plan for public |
 |---|---|---|---|---|---|
-| Luxurious Script font | `assets/fonts/luxurious-script/` | Google Fonts download | SIL OFL 1.1, no Reserved Font Name in the copyright line -> may be modified; keep `OFL.txt`; do not sell the font alone | Yes | Same; convert to subset woff2 (`pip install fonttools brotli`, `pyftsubset`) |
+| Luxurious Script font | `assets/fonts/luxurious-script/` (TTF source, not shipped) -> `luxurious-script-latin.woff2` (27 KB, shipped) | Google Fonts download | SIL OFL 1.1, no Reserved Font Name in the copyright line -> may be modified; keep `OFL.txt`; do not sell the font alone | Yes | Same; subset with `sh tools/subset_fonts.sh` (Latin + Latin-1, default features) |
 | Lyrics engine | `vendor/lyrics-engine/` | Owner's own project | Owner's code | Yes, never edit | - |
 | Arctic Monkeys archive (reference code) | `reference/arctic-monkeys-archive/` | Owner's own project | Code is the owner's. **Do not copy Arctic Monkeys-specific content** (names, data, quizzes text). Reuse patterns: receipt, crumple, quiz, track modal, magazine letters | Patterns only | - |
 | Magazine letter scans (130, 5 alphabets a-z) | `reference/.../assets/letters/` | Owner's archive; provenance not documented | Unknown | Private OK | Confirm own scans or replace. **No digits or punctuation exist** -> need fallback glyphs |

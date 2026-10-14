@@ -57,6 +57,8 @@
   --glow-size: clamp(110px, 26vmin, 260px);
   --star-size: clamp(14px, 3.4vmin, 26px);
   --guitar-h: min(60svh, 118vw);    /* guitar height in the room */
+  --track-guitar: translateY(-34dvh) scale(0.66);  /* guitar while the track sheet is open (phones) */
+  --track-guitar-wide: translateX(-18vw);          /* ... next to the side panel (>= 900 px) */
 
   /* layer order (CONTRACT: wall -> collage -> guitar -> light glow -> film -> UI) */
   --z-wall: 0;

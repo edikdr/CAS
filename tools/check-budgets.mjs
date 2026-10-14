@@ -123,7 +123,7 @@ export async function checkBudgets(dir) {
     for (const u of externalUrls((await read(f)).toString('utf8'), 'css')) errors.push(`${f}: third-party URL in CSS: ${u}`);
   }
 
-  const layers = files.filter((f) => f.startsWith('assets/guitar/dom/'));
+  const layers = files.filter((f) => f.startsWith('assets/guitar/dom/') && !f.endsWith('.json')); // + manifest.json
   row('DOM guitar layers (count)', layers.length, BUDGETS.domLayers, String);
   row('DOM guitar layers (total)', layers.reduce((s, f) => s + sizes.get(f), 0), BUDGETS.domTotal);
   for (const f of layers) {

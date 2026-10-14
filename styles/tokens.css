@@ -56,7 +56,7 @@
   /* scene */
   --glow-size: clamp(110px, 26vmin, 260px);
   --star-size: clamp(14px, 3.4vmin, 26px);
-  --guitar-h: min(64svh, 118vw);    /* guitar height in the room */
+  --guitar-h: min(60svh, 118vw);    /* guitar height in the room */
 
   /* layer order (CONTRACT: wall -> collage -> guitar -> light glow -> film -> UI) */
   --z-wall: 0;

@@ -26,6 +26,7 @@ Every asset in the project has a row. "Private OK" = may appear on the private p
 | Beat data | `data/beats/` | Computed by us from previews | Numbers only | Yes | Yes |
 | Lyrics | `data/lyrics/` (does not exist) | Her booklet / her email | Hers | **Not shipped** | Only with permission |
 | Three.js | `vendor/three/` (to add) | npm | MIT (keep the notice) | Yes | Yes |
+| DOM guitar layers (5 WebP + manifest.json, 93 KB) | `assets/guitar/dom/` | Built by `tools/cutout_guitar.py` from the guitar photos (background removed, photo strings painted out) | Not cleared (derived from the guitar photos; class `guitarPhotos`) | Private OK | Re-run the script on own photos (re-measure the nut/saddle landmarks) |
 | Meshy guitar model | `assets/models/guitar.glb` (to generate) | Meshy from the guitar photos | Depends on Meshy plan terms (free plan may require attribution) + photo origin | Private OK | Re-generate from own photos on a paid plan or credit per terms |
 | Extra OFL fonts (Anton / Bebas Neue / Permanent Marker / Caveat / Ballet / Oswald / Barlow Condensed...) | `assets/fonts/` (to add) | Google Fonts | OFL | Yes | Yes, keep OFL files |
 

@@ -44,7 +44,14 @@
 .garland__star { fill: var(--c-bulb); transition: fill var(--m-slow) var(--ease-out); }
 [data-lights="off"] .garland__star { fill: var(--c-bulb-off); }
 
-.glow { position: absolute; inset: 0; transition: opacity var(--m-slow) var(--ease-out); }
+/* glow layers only cover the garland band (core/light-rig.js: band = min(55vw, 42vh)) + a halo:
+   four smaller composited layers instead of four full-screen ones */
+.glow {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: calc(min(55vw, 42dvh) + var(--glow-size));
+  transition: opacity var(--m-slow) var(--ease-out);
+}
 [data-lights="off"] .glow { opacity: 0; }
 .glow__group, .glow__pulse { position: absolute; inset: 0; }
 .glow__group { opacity: 0.85; animation: breathe var(--m-breath-a) var(--ease-in-out) infinite alternate; }
@@ -95,3 +102,92 @@
   gap: var(--s-2);
   max-width: 60vw;
 }
+
+/* ---- guitar (built by core/guitar/dom-guitar.js) ------------------------------------------- */
+.layer--guitar {
+  display: grid;
+  place-items: end center;
+  padding-bottom: calc(var(--tap) + 2 * var(--s-4) + env(safe-area-inset-bottom));
+  perspective: 1600px;
+}
+
+.guitar {
+  position: relative;
+  height: var(--guitar-h);
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline-offset: 10px;
+}
+
+.guitar__shadow {
+  position: absolute;
+  left: 6%; right: 6%; bottom: -3%;
+  height: 7%;
+  background: radial-gradient(50% 50% at 50% 50%, rgb(0 0 0 / 0.7), transparent 72%);
+}
+
+.guitar__sway, .guitar__tilt, .guitar__flip, .guitar__front {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.guitar__sway { transform-origin: 50% 100%; animation: sway 7s var(--ease-in-out) infinite alternate; }
+.guitar__flip { transition: transform 900ms var(--ease-in-out); }
+.guitar.is-flipped .guitar__flip { transform: rotateY(180deg); }
+
+@keyframes sway {
+  from { transform: rotate(-0.7deg); }
+  to { transform: rotate(0.7deg); }
+}
+
+.guitar__layer {
+  position: absolute;
+  height: auto;
+  transform: translateZ(calc(var(--z) * 1px));
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  pointer-events: none;
+}
+.guitar__layer--back { transform: translateZ(-14px) rotateY(180deg); }
+
+.guitar__strings {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  transform: translateZ(6px);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  pointer-events: none;
+}
+.string { position: absolute; width: 0; transform-origin: 0 0; }
+.string__line {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: calc(var(--w) / -2);
+  width: var(--w);
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.3), rgb(214 214 214 / 0.92), rgb(120 120 120 / 0.55));
+}
+.string--wound .string__line {
+  background: linear-gradient(90deg, rgb(255 228 186 / 0.3), rgb(206 170 118 / 0.95), rgb(110 84 52 / 0.55));
+}
+.string__band {
+  position: absolute;
+  top: 6%; bottom: 6%;
+  left: -4px;
+  width: 8px;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, rgb(255 244 225 / 0.6), rgb(255 244 225 / 0));
+  opacity: 0;
+}
+
+[data-motion="off"] .guitar__sway { animation: none; }
+[data-motion="off"] .guitar__flip,
+[data-motion="off"] .guitar.is-flipped .guitar__flip { transition: none; transform: none; }
+[data-motion="off"] .guitar__front,
+[data-motion="off"] .guitar__layer--back { transition: opacity var(--m-base) linear; }
+[data-motion="off"] .guitar__layer--back { transform: none; opacity: 0; }
+[data-motion="off"] .guitar.is-flipped .guitar__layer--back { opacity: 1; }
+[data-motion="off"] .guitar.is-flipped .guitar__front { opacity: 0; }

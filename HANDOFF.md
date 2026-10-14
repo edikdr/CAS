@@ -1,6 +1,6 @@
 # HANDOFF
 
-Status: **Stage 1, M2 done** (scaffold, data layer, safety rails, scene + light rig). M3-M6 pending. This file grows every milestone; at M6 it is the full guide for Stage 2. Rules: `docs/CONTRACT.md`. Plan: `docs/TZ_01_OPUS_foundation.md`.
+Status: **Stage 1, M3 done** (scaffold, data layer, safety rails, scene + light rig, DOM guitar + strings + BeatClock). M4-M6 pending. This file grows every milestone; at M6 it is the full guide for Stage 2. Rules: `docs/CONTRACT.md`. Plan: `docs/TZ_01_OPUS_foundation.md`.
 
 ## Run
 ```
@@ -24,6 +24,10 @@ core/motion.js      Motion.reduced (OS setting OR visitor's "motion off"), mirro
 core/light-rig.js   LightRig: garlands (below the guitar) + glow halos (above it)
 core/film-slot.js   FilmSlot: canvas overlay; Stage 2 registers the drawing
 core/emitter.js     createEmitter() used by core services
+core/preview-player.js  PreviewPlayer: the single <audio>
+core/beat-clock.js  createBeatClock (pure, unit-tested); core/clock.js = the site's BeatClock instance
+core/capability.js  preferredGuitarMode(), orientation checks
+core/guitar/        guitar-stage.js (GuitarStage), dom-guitar.js (layers, tilt, flip), strings.js
 core/rights.js      RightsGate + createRightsGate (shared with tools/build.mjs)
 core/data-store.js  DataStore + createDataStore
 core/storage.js     storage wrapper (the only localStorage user)
@@ -53,6 +57,10 @@ vercel.json         build command, output dir, headers (CSP, noindex, cache)
 - `FilmSlot.setRenderer((ctx, { width, height, dpr }) => { ... })` - draw the whole texture once; core redraws only after a resize (debounced), DPR <= 2.
 - `Motion.reduced`, `Motion.setUserOff(bool)`, `Motion.on('change', fn)`. CSS tests only `[data-motion="off"]`.
 - `Loop.add((now, dtMs) => keepGoing)` -> `remove()`. Prefer CSS / Web Animations for fire-and-forget motion.
+- `PreviewPlayer.play(trackId)` (from a click/tap), `pause()`, `seek(sec)`, `currentTime()`, `isPlaying()`, `trackId`, `audio`, events `play | pause | ended | timeupdate | seeked | track | error` (`error` detail `{trackId, appleUrl}` -> show an "Open in Apple Music" link). Dev only: `http://127.0.0.1:8000/?local` plays the files in `assets/previews-local/`.
+- `BeatClock.on('beat', i => ...)`, `BeatClock.on('onset', ({t, s}) => ...)`, `BeatClock.latencyOffsetMs`, `BeatClock.time()`. `core/app.js` already wires onsets (s >= 0.22) to `GuitarStage.pluck` with alternating down/up strums and beats to `LightRig.pulse(0.45)`; the beats file of the playing track is loaded on the player's `track` event.
+- `GuitarStage.pluck(strength, 'down' | 'up')`, `.flip()`, `.setMode('dom' | 'gl')`, `.mode`, `.on('mode', fn)`, `.enableTilt()` (iOS permission; the "Tilt" control calls it). Nothing mounts when `RightsGate.allows('guitarPhotos')` is false.
+- `?debug` exposes `window.sunniva = { RightsGate, DataStore, LightRig, Motion, PreviewPlayer, BeatClock, GuitarStage }`.
 
 ## Scene layers and extension points
 Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspots) -> `#garland` (wires, stars) -> `#guitar-slot` -> `#glow` (halos) -> `#film-slot` (canvas) -> `#ui` (title, controls). `#garland`, `#glow`, `#film-slot` ignore pointer events.
@@ -77,12 +85,22 @@ Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspo
 - Lights toggle sets `data-lights="off"` and `sunniva:lights=false`; reduced motion (at load, switched live, or the Motion button) removes the breathing animation.
 - `check:budgets`: critical path 12.9 KB gzip (14 files), initial JS 9.2 KB gzip.
 
+## Measured (M3)
+- DOM guitar: 5 WebP layers, 93.3 KB total (back 44, body 31, neck 12, hole 4, bridge 3).
+- The Shallow End (6808001979), local preview, headless Chromium, 8 s of playback. Playwright's Chromium has no AAC decoder, so the test serves an Opus transcode of the same clip (`page.route`); real Chrome/Safari play the m4a directly.
+  - Onset -> event delay (audio time at emit minus onset time): median 9-11 ms, p90 15 ms, max 16 ms (<= 1 frame). Seek to 20 s: no burst (4 onsets in the next 1.4 s, the normal rate).
+  - Pixel 7 emulation: 60 fps (rAF count), also with CPU throttled 4x (worst frame 16.8-33 ms).
+  - 1440x900 DOM fallback: 37-47 fps in headless Chromium, which composites in software (no GPU): sway + breathing together cost the frames, each alone stays at 58-60 fps. Not measured on a real GPU; desktop normally gets the WebGL guitar (M5).
+  - Not measured on a real phone (no device here) - owner check.
+- Unit tests: `test/beat-clock.test.mjs` (order, seek both ways, loop restart, hidden tab, pause/resume, latency, coarse currentTime, no data).
+
 ## Known issues and notes for later milestones
 - `extract/receipt/js/receipt.js` creates two extra `new Audio()` for paper sounds (CONTRACT: one `<audio>`), loads them from `assets/sfx/` (files sit in `extract/receipt/sfx/`, 480 KB WAV, provenance unknown). Stage 2: play them through Web Audio buffers or drop them; register them first.
 - `data/lyrics/` is gitignored, so a Vercel deploy built from git has no lyrics. To show lyrics privately, build locally and deploy `dist/` (decided in M6).
 - Lyrics engine keeps its own rAF loop while a track modal is open and playing: accepted exception to "one rAF loop" (owner, M0). LRCLIB is never used: lyrics come from ElevenLabs word timings converted into `data/lyrics/<id>.json` (M4).
 - M5: if the GLB uses Meshopt/Draco (WASM), CSP `script-src` needs `'wasm-unsafe-eval'`; GLB triangle/material checks are added to `check:budgets` then.
-- Beat data is unverified (`docs/BEATS_REVIEW.md`); 5 tracks may be at half/double tempo.
+- Beat data is unverified (`docs/BEATS_REVIEW.md`); 5 tracks may be at half/double tempo. Strings pluck on onsets (tempo-independent), lights pulse on beats: a half/double-tempo track only changes the light rhythm.
+- `tools/cutout_guitar.py` holds nut/saddle/soundhole landmarks measured on `front.jpg`; new photos need new measurements.
 
 ## Stage 1 milestones left
 M2 scene shell + LightRig + tokens/theme slots - M3 DomGuitar, strings, BeatClock - M4 PreviewPlayer, ModalManager, track modal shell, lyric adapter + FontWipeRenderer - M5 GlGuitar (Meshy) - M6 hardening, full HANDOFF.

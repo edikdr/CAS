@@ -1,0 +1,120 @@
+{
+ "canvas": {
+  "w": 506,
+  "h": 1295
+ },
+ "layers": [
+  {
+   "name": "back",
+   "src": "assets/guitar/dom/back.webp",
+   "x": 10,
+   "y": 0,
+   "w": 487,
+   "h": 1295,
+   "z": 0
+  },
+  {
+   "name": "hole",
+   "src": "assets/guitar/dom/hole.webp",
+   "x": 180,
+   "y": 738,
+   "w": 150,
+   "h": 150,
+   "z": -10
+  },
+  {
+   "name": "body",
+   "src": "assets/guitar/dom/body.webp",
+   "x": 0,
+   "y": 616,
+   "w": 506,
+   "h": 679,
+   "z": 0
+  },
+  {
+   "name": "neck",
+   "src": "assets/guitar/dom/neck.webp",
+   "x": 174,
+   "y": 0,
+   "w": 191,
+   "h": 733,
+   "z": 3
+  },
+  {
+   "name": "bridge",
+   "src": "assets/guitar/dom/bridge.webp",
+   "x": 151,
+   "y": 995,
+   "w": 205,
+   "h": 60,
+   "z": 4
+  }
+ ],
+ "strings": [
+  {
+   "nut": [
+    230.5,
+    174.0
+   ],
+   "saddle": [
+    215.5,
+    1010.0
+   ]
+  },
+  {
+   "nut": [
+    239.8,
+    174.0
+   ],
+   "saddle": [
+    230.5,
+    1010.0
+   ]
+  },
+  {
+   "nut": [
+    249.5,
+    174.0
+   ],
+   "saddle": [
+    245.5,
+    1010.0
+   ]
+  },
+  {
+   "nut": [
+    259.5,
+    174.0
+   ],
+   "saddle": [
+    260.5,
+    1010.0
+   ]
+  },
+  {
+   "nut": [
+    269.3,
+    174.0
+   ],
+   "saddle": [
+    275.0,
+    1010.0
+   ]
+  },
+  {
+   "nut": [
+    279.0,
+    174.0
+   ],
+   "saddle": [
+    290.2,
+    1010.0
+   ]
+  }
+ ],
+ "soundhole": {
+  "cx": 254.9,
+  "cy": 812.9,
+  "r": 72.9
+ }
+}

@@ -13,7 +13,8 @@
  *     their `permission` allows it in this build mode, facts ship only when verified.
  *  3. Content-hashes files under assets/ (name.<hash>.ext, licences keep their name) and rewrites
  *     every literal reference in shipped HTML/CSS/JS/JSON. Asset paths must therefore be literal
- *     strings or come from a JSON manifest; building them with `${}` or `+` is an error.
+ *     strings or come from a JSON manifest; building them with `${}` or `+` is an error (except the
+ *     dev-only assets/previews-local/, which never ships).
  *  4. Public build only: fails if HTML/CSS/JS still reference a stripped file (static import, url())
  *     or if any shipped text contains a host of a class that is not cleared (e.g. mzstatic.com).
  *
@@ -119,7 +120,7 @@ export async function build({ root = ROOT, out = path.join(root, 'dist'), isPubl
   for (const [rel, body] of files) {
     let data = body;
     if (typeof body === 'string') {
-      if (/\.m?js$/.test(rel) && (/`[^`]*assets\/[^`]*\$\{/.test(body) || /['"`][^'"`\n]*assets\/[^'"`\n]*['"`]\s*\+/.test(body))) {
+      if (/\.m?js$/.test(rel) && (/`[^`]*assets\/(?!previews-local\/)[^`]*\$\{/.test(body) || /['"`][^'"`\n]*assets\/(?!previews-local\/)[^'"`\n]*['"`]\s*\+/.test(body))) {
         errors.push(`${rel}: builds an assets/ path dynamically; use a literal path or a JSON manifest (hashing would break it)`);
       }
       if (refRe) data = body.replace(refRe, (m) => renames.get(m));

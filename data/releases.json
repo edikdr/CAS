@@ -1,0 +1,202 @@
+{
+ "artist": {
+  "name": "sunniva",
+  "appleArtistId": 1790564840,
+  "genre": "Singer/Songwriter"
+ },
+ "releases": [
+  {
+   "id": 6808001977,
+   "title": "Fantasy Prologue",
+   "appleTitle": "Fantasy Prologue",
+   "artistCredit": "sunniva",
+   "releaseDate": "2026-09-25",
+   "trackCount": 17,
+   "genre": "Singer/Songwriter",
+   "copyright": "℗ 2026 sunniva",
+   "appleUrl": "https://music.apple.com/us/album/fantasy-prologue/6808001977",
+   "artworkTemplate": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/31/38/e3/3138e3c1-5cf4-42ef-242e-29708b4433d5/artwork.jpg/{size}x{size}bb.jpg",
+   "trackIds": [
+    6808001979,
+    6808001984,
+    6808001985,
+    6808001986,
+    6808001987,
+    6808001989,
+    6808001991,
+    6808001992,
+    6808001993,
+    6808001994,
+    6808002175,
+    6808002176,
+    6808002177,
+    6808002178,
+    6808002179,
+    6808002180,
+    6808002181
+   ],
+   "type": "album",
+   "isCollab": false
+  },
+  {
+   "id": 1791030997,
+   "title": "Durocher Demos",
+   "appleTitle": "Durocher Demos",
+   "artistCredit": "sunniva",
+   "releaseDate": "2025-02-05",
+   "trackCount": 8,
+   "genre": "Singer/Songwriter",
+   "copyright": "℗ 2025 #twodeep records",
+   "appleUrl": "https://music.apple.com/us/album/durocher-demos/1791030997",
+   "artworkTemplate": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/80/f4/5c/80f45c02-a6d1-ebb3-749f-49f23907b110/artwork.jpg/{size}x{size}bb.jpg",
+   "trackIds": [
+    1791030998,
+    1791030999,
+    1791031000,
+    1791031001,
+    1791031002,
+    1791031003,
+    1791031004,
+    1791031005
+   ],
+   "type": "demos",
+   "isCollab": false
+  },
+  {
+   "id": 1839580536,
+   "title": "Im coming down",
+   "appleTitle": "Im coming down - Single",
+   "artistCredit": "how r u, link3 & sunniva",
+   "releaseDate": "2025-10-03",
+   "trackCount": 1,
+   "genre": "Indie Rock",
+   "copyright": "℗ 2025 Mighty Good Leader",
+   "appleUrl": "https://music.apple.com/us/album/im-coming-down-single/1839580536",
+   "artworkTemplate": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/30/44/68/3044689a-908a-d5a1-e918-872d59c10708/199502475628_cover.jpg/{size}x{size}bb.jpg",
+   "trackIds": [
+    1839580537
+   ],
+   "type": "single",
+   "isCollab": true
+  },
+  {
+   "id": 1844673261,
+   "title": "Like a kid",
+   "appleTitle": "Like a kid - Single",
+   "artistCredit": "vhs ghost & sunniva",
+   "releaseDate": "2025-10-31",
+   "trackCount": 1,
+   "genre": "Indie Pop",
+   "copyright": "℗ 2025 nothing special.",
+   "appleUrl": "https://music.apple.com/us/album/like-a-kid-single/1844673261",
+   "artworkTemplate": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/c6/2e/edc62eec-cf08-e0db-b4e9-8bde53ff4f80/199502600853_cover.jpg/{size}x{size}bb.jpg",
+   "trackIds": [
+    1844673262
+   ],
+   "type": "single",
+   "isCollab": true
+  },
+  {
+   "id": 1884640580,
+   "title": "closest i could get",
+   "appleTitle": "closest i could get - Single",
+   "artistCredit": "Orchid Mantis & sunniva",
+   "releaseDate": "2026-03-06",
+   "trackCount": 1,
+   "genre": "Rock",
+   "copyright": "℗ 2026 Orchid Mantis, under excl. license to Kurate Music Ltd.",
+   "appleUrl": "https://music.apple.com/us/album/closest-i-could-get-single/1884640580",
+   "artworkTemplate": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/2c/b6/f4/2cb6f40a-2c42-0cde-2e13-bbc84f505eec/996638.jpg/{size}x{size}bb.jpg",
+   "trackIds": [
+    1884640582
+   ],
+   "type": "single",
+   "isCollab": true
+  },
+  {
+   "id": 1895346533,
+   "title": "Surface Tension",
+   "appleTitle": "Surface Tension - Single",
+   "artistCredit": "sunniva",
+   "releaseDate": "2026-05-15",
+   "trackCount": 1,
+   "genre": "Singer/Songwriter",
+   "copyright": "℗ 2026 sunniva",
+   "appleUrl": "https://music.apple.com/us/album/surface-tension-single/1895346533",
+   "artworkTemplate": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/5b/89/31/5b89314a-142b-dcf3-2a90-ea773e582900/artwork.jpg/{size}x{size}bb.jpg",
+   "trackIds": [
+    6763504593
+   ],
+   "type": "single",
+   "isCollab": false
+  },
+  {
+   "id": 6783925647,
+   "title": "Prom Queen",
+   "appleTitle": "Prom Queen - Single",
+   "artistCredit": "sunniva",
+   "releaseDate": "2026-07-10",
+   "trackCount": 1,
+   "genre": "Alternative",
+   "copyright": "℗ 2026 sunniva",
+   "appleUrl": "https://music.apple.com/us/album/prom-queen-single/6783925647",
+   "artworkTemplate": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/a5/34/b0/a534b019-a924-853d-70ac-96341b56e571/artwork.jpg/{size}x{size}bb.jpg",
+   "trackIds": [
+    6783925648
+   ],
+   "type": "single",
+   "isCollab": false
+  },
+  {
+   "id": 6788976694,
+   "title": "Exit",
+   "appleTitle": "Exit - Single",
+   "artistCredit": "sunniva",
+   "releaseDate": "2026-07-24",
+   "trackCount": 1,
+   "genre": "Folk",
+   "copyright": "℗ 2026 sunniva",
+   "appleUrl": "https://music.apple.com/us/album/exit-single/6788976694",
+   "artworkTemplate": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/95/62/69/95626911-dde0-de69-b2a0-cf578f943826/artwork.jpg/{size}x{size}bb.jpg",
+   "trackIds": [
+    6788976695
+   ],
+   "type": "single",
+   "isCollab": false
+  },
+  {
+   "id": 6799012616,
+   "title": "It's Obvious",
+   "appleTitle": "It's Obvious - Single",
+   "artistCredit": "sunniva & link3",
+   "releaseDate": "2026-08-21",
+   "trackCount": 1,
+   "genre": "Singer/Songwriter",
+   "copyright": "℗ 2026 sunniva",
+   "appleUrl": "https://music.apple.com/us/album/its-obvious-single/6799012616",
+   "artworkTemplate": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/22/90/f9/2290f91a-e8f2-ab57-8f06-9479416db47d/artwork.jpg/{size}x{size}bb.jpg",
+   "trackIds": [
+    6799012857
+   ],
+   "type": "single",
+   "isCollab": true
+  },
+  {
+   "id": 6778004855,
+   "title": "Around The Smoke (feat. sunniva)",
+   "appleTitle": "Around The Smoke (feat. sunniva) - Single",
+   "artistCredit": "We Cults",
+   "releaseDate": "2026-06-19",
+   "trackCount": 1,
+   "genre": "Electronic",
+   "copyright": "℗ 2026 Hallwood",
+   "appleUrl": "https://music.apple.com/us/album/around-the-smoke-feat-sunniva-single/6778004855",
+   "artworkTemplate": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/54/eb/a1/54eba1da-e636-e940-5472-a4faa4b663cd/8721555298316.png/{size}x{size}bb.jpg",
+   "trackIds": [
+    6778004861
+   ],
+   "type": "appearance",
+   "isCollab": false
+  }
+ ]
+}

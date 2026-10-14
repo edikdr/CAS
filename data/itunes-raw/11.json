@@ -1,0 +1,12 @@
+
+
+
+{
+ "resultCount":2,
+ "results": [
+{"wrapperType":"collection", "collectionType":"Album", "artistId":1741416457, "collectionId":1839580536, "artistName":"how r u, link3 & sunniva", "collectionName":"Im coming down - Single", "collectionCensoredName":"Im coming down - Single", "artistViewUrl":"https://music.apple.com/us/artist/how-r-u/1741416457?uo=4", "collectionViewUrl":"https://music.apple.com/us/album/im-coming-down-single/1839580536?uo=4", "artworkUrl60":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/30/44/68/3044689a-908a-d5a1-e918-872d59c10708/199502475628_cover.jpg/60x60bb.jpg", "artworkUrl100":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/30/44/68/3044689a-908a-d5a1-e918-872d59c10708/199502475628_cover.jpg/100x100bb.jpg", "collectionPrice":1.29, "collectionExplicitness":"notExplicit", "trackCount":1, "copyright":"℗ 2025 Mighty Good Leader", "country":"USA", "currency":"USD", "releaseDate":"2025-10-03T07:00:00Z", "primaryGenreName":"Indie Rock"}, 
+{"wrapperType":"track", "kind":"song", "artistId":1741416457, "collectionId":1839580536, "trackId":1839580537, "artistName":"how r u, link3 & sunniva", "collectionName":"Im coming down - Single", "trackName":"Im coming down", "collectionCensoredName":"Im coming down - Single", "trackCensoredName":"Im coming down", "artistViewUrl":"https://music.apple.com/us/artist/how-r-u/1741416457?uo=4", "collectionViewUrl":"https://music.apple.com/us/album/im-coming-down/1839580536?i=1839580537&uo=4", "trackViewUrl":"https://music.apple.com/us/album/im-coming-down/1839580536?i=1839580537&uo=4", 
+"previewUrl":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/7c/d3/bb/7cd3bbb1-400d-afc9-f4b8-ebf45f5b2637/mzaf_16101769328498884741.plus.aac.p.m4a", "artworkUrl30":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/30/44/68/3044689a-908a-d5a1-e918-872d59c10708/199502475628_cover.jpg/30x30bb.jpg", "artworkUrl60":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/30/44/68/3044689a-908a-d5a1-e918-872d59c10708/199502475628_cover.jpg/60x60bb.jpg", "artworkUrl100":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/30/44/68/3044689a-908a-d5a1-e918-872d59c10708/199502475628_cover.jpg/100x100bb.jpg", "collectionPrice":1.29, "trackPrice":1.29, "releaseDate":"2025-10-03T12:00:00Z", "collectionExplicitness":"notExplicit", "trackExplicitness":"notExplicit", "discCount":1, "discNumber":1, "trackCount":1, "trackNumber":1, "trackTimeMillis":110500, "country":"USA", "currency":"USD", "primaryGenreName":"Indie Rock", "isStreamable":true}]
+}
+
+

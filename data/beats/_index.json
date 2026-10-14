@@ -1,0 +1,440 @@
+{
+ "count": 29,
+ "tracks": [
+  {
+   "trackId": 6808001979,
+   "title": "The Shallow End",
+   "release": "Fantasy Prologue",
+   "bpm": 99.4,
+   "bpmCandidates": [
+    99.4,
+    198.8,
+    67.1,
+    191.4
+   ],
+   "firstBeatSec": 0.383,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808001984,
+   "title": "Can't Focus These Days",
+   "release": "Fantasy Prologue",
+   "bpm": 86.1,
+   "bpmCandidates": [
+    86.1,
+    82.0,
+    172.3,
+    166.7
+   ],
+   "firstBeatSec": 0.511,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808001985,
+   "title": "Surface Tension",
+   "release": "Fantasy Prologue",
+   "bpm": 152.0,
+   "bpmCandidates": [
+    152.0,
+    74.9,
+    156.6,
+    147.7
+   ],
+   "firstBeatSec": 0.372,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808001986,
+   "title": "Combat",
+   "release": "Fantasy Prologue",
+   "bpm": 63.0,
+   "bpmCandidates": [
+    63.0,
+    97.5,
+    184.6,
+    191.4
+   ],
+   "firstBeatSec": 0.929,
+   "octaveWarning": "bpm near the search-range edge: probably half/double tempo, confirm by ear",
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808001987,
+   "title": "20",
+   "release": "Fantasy Prologue",
+   "bpm": 156.6,
+   "bpmCandidates": [
+    156.6,
+    161.5,
+    166.7,
+    152.0
+   ],
+   "firstBeatSec": 0.372,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808001989,
+   "title": "It's Obvious",
+   "release": "Fantasy Prologue",
+   "bpm": 73.8,
+   "bpmCandidates": [
+    73.8,
+    112.3,
+    107.7,
+    117.5
+   ],
+   "firstBeatSec": 0.081,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808001991,
+   "title": "You Don't Know Me Anymore",
+   "release": "Fantasy Prologue",
+   "bpm": 79.5,
+   "bpmCandidates": [
+    79.5,
+    161.5,
+    156.6,
+    166.7
+   ],
+   "firstBeatSec": 0.209,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808001992,
+   "title": "Guardrails",
+   "release": "Fantasy Prologue",
+   "bpm": 95.7,
+   "bpmCandidates": [
+    95.7,
+    143.6,
+    152.0,
+    147.7
+   ],
+   "firstBeatSec": 0.023,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808001993,
+   "title": "Sleepless Interlude",
+   "release": "Fantasy Prologue",
+   "bpm": 90.7,
+   "bpmCandidates": [
+    90.7,
+    86.1,
+    95.7,
+    178.2
+   ],
+   "firstBeatSec": 0.36,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808001994,
+   "title": "Exit",
+   "release": "Fantasy Prologue",
+   "bpm": 92.3,
+   "bpmCandidates": [
+    92.3,
+    87.6,
+    97.5,
+    184.6
+   ],
+   "firstBeatSec": 0.383,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808002175,
+   "title": "Prom Queen",
+   "release": "Fantasy Prologue",
+   "bpm": 114.8,
+   "bpmCandidates": [
+    114.8,
+    57.4,
+    120.2,
+    110.0
+   ],
+   "firstBeatSec": 0.372,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808002176,
+   "title": "It Does the Trick",
+   "release": "Fantasy Prologue",
+   "bpm": 99.4,
+   "bpmCandidates": [
+    99.4,
+    66.3,
+    94.0,
+    198.8
+   ],
+   "firstBeatSec": 0.313,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808002177,
+   "title": "Odd Years",
+   "release": "Fantasy Prologue",
+   "bpm": 136.0,
+   "bpmCandidates": [
+    136.0,
+    143.6,
+    129.2,
+    147.7
+   ],
+   "firstBeatSec": 0.418,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808002178,
+   "title": "Decasia",
+   "release": "Fantasy Prologue",
+   "bpm": 161.5,
+   "bpmCandidates": [
+    161.5,
+    80.7,
+    156.6,
+    166.7
+   ],
+   "firstBeatSec": 0.313,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808002179,
+   "title": "Do You Dream About It Too?",
+   "release": "Fantasy Prologue",
+   "bpm": 92.3,
+   "bpmCandidates": [
+    92.3,
+    97.5,
+    87.6,
+    184.6
+   ],
+   "firstBeatSec": 0.0,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808002180,
+   "title": "Thanks for the Dance",
+   "release": "Fantasy Prologue",
+   "bpm": 90.7,
+   "bpmCandidates": [
+    90.7,
+    184.6,
+    178.2,
+    86.1
+   ],
+   "firstBeatSec": 0.197,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6808002181,
+   "title": "This Time I Promise",
+   "release": "Fantasy Prologue",
+   "bpm": 95.7,
+   "bpmCandidates": [
+    95.7,
+    103.4,
+    112.3,
+    89.1
+   ],
+   "firstBeatSec": 0.604,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 1791030998,
+   "title": "You Look Nice (feat. link3)",
+   "release": "Durocher Demos",
+   "bpm": 166.7,
+   "bpmCandidates": [
+    166.7,
+    172.3,
+    114.8,
+    161.5
+   ],
+   "firstBeatSec": 0.174,
+   "octaveWarning": "bpm near the search-range edge: probably half/double tempo, confirm by ear",
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 1791030999,
+   "title": "A Letter to My Mother's Daughter",
+   "release": "Durocher Demos",
+   "bpm": 178.2,
+   "bpmCandidates": [
+    178.2,
+    95.7,
+    184.6,
+    172.3
+   ],
+   "firstBeatSec": 0.093,
+   "octaveWarning": "bpm near the search-range edge: probably half/double tempo, confirm by ear",
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 1791031000,
+   "title": "How to Hold the Rain",
+   "release": "Durocher Demos",
+   "bpm": 143.6,
+   "bpmCandidates": [
+    143.6,
+    112.3,
+    117.5,
+    69.8
+   ],
+   "firstBeatSec": 0.36,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 1791031001,
+   "title": "Half Words (feat. parallel)",
+   "release": "Durocher Demos",
+   "bpm": 103.4,
+   "bpmCandidates": [
+    103.4,
+    68.0,
+    63.0,
+    107.7
+   ],
+   "firstBeatSec": 0.174,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 1791031002,
+   "title": "Laundromat (feat. link3)",
+   "release": "Durocher Demos",
+   "bpm": 64.6,
+   "bpmCandidates": [
+    64.6,
+    97.5,
+    191.4,
+    198.8
+   ],
+   "firstBeatSec": 0.789,
+   "octaveWarning": "bpm near the search-range edge: probably half/double tempo, confirm by ear",
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 1791031003,
+   "title": "I Don't Believe in Anything but You",
+   "release": "Durocher Demos",
+   "bpm": 67.1,
+   "bpmCandidates": [
+    67.1,
+    136.0,
+    129.2,
+    63.0
+   ],
+   "firstBeatSec": 0.093,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 1791031004,
+   "title": "Morning Lullaby",
+   "release": "Durocher Demos",
+   "bpm": 103.4,
+   "bpmCandidates": [
+    103.4,
+    67.1,
+    107.7,
+    97.5
+   ],
+   "firstBeatSec": 0.07,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 1791031005,
+   "title": "Silent in a Dream (feat. Total)",
+   "release": "Durocher Demos",
+   "bpm": 120.2,
+   "bpmCandidates": [
+    120.2,
+    126.0,
+    114.8,
+    80.7
+   ],
+   "firstBeatSec": 0.046,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 1839580537,
+   "title": "Im coming down",
+   "release": "Im coming down",
+   "bpm": 74.9,
+   "bpmCandidates": [
+    74.9,
+    152.0,
+    147.7,
+    156.6
+   ],
+   "firstBeatSec": 0.348,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 1844673262,
+   "title": "Like a kid",
+   "release": "Like a kid",
+   "bpm": 143.6,
+   "bpmCandidates": [
+    143.6,
+    147.7,
+    73.8,
+    152.0
+   ],
+   "firstBeatSec": 0.081,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 1884640582,
+   "title": "closest i could get",
+   "release": "closest i could get",
+   "bpm": 63.0,
+   "bpmCandidates": [
+    63.0,
+    126.0,
+    117.5,
+    132.5
+   ],
+   "firstBeatSec": 0.348,
+   "octaveWarning": "bpm near the search-range edge: probably half/double tempo, confirm by ear",
+   "status": "auto-unverified"
+  },
+  {
+   "trackId": 6778004861,
+   "title": "Around The Smoke (feat. sunniva)",
+   "release": "Around The Smoke (feat. sunniva)",
+   "bpm": 139.7,
+   "bpmCandidates": [
+    139.7,
+    94.0,
+    69.8,
+    56.2
+   ],
+   "firstBeatSec": 0.07,
+   "octaveWarning": null,
+   "status": "auto-unverified"
+  }
+ ]
+}

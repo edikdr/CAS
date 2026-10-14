@@ -1,0 +1,18 @@
+/* ALL :root blocks of the original, because the receipt rules use these variables. Keep only what the receipt needs. */
+:root{
+  --ink: #0b0b0a;              /* the page */
+  --ink-2: #141413;
+  --paper: #f4f2ec;            /* receipt stock */
+  --paper-2: #e6e3da;
+  --chalk: #e8e5de;            /* type on black */
+  --chalk-dim: #9c988e;
+  --line: rgba(232, 229, 222, 0.16);
+  --hot: #d8d4cc;
+
+  --mono: 'Courier Prime', 'Courier New', monospace;
+  --fat: 'Archivo Black', 'Arial Black', Impact, sans-serif;
+  --hand: 'Caveat', 'Segoe Script', cursive;
+
+  --wrap: 1180px;
+  --r: 2px;
+}

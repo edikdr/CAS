@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LyricsEngine demo</title>
+<style>
+  /* This page stands in for "your site": its own colours, its own font. */
+  :root {
+    --bg: #f4efe9; --fg: #221d1a; --muted: #6f665f; --card: #fffdf9; --line: #e2d9cf; --accent: #b8455b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15110f; --fg: #efe6de; --muted: #a2978e; --card: #1f1a17; --line: #322a25; --accent: #e2677d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 Georgia, "Times New Roman", serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 28px 16px 56px; }
+  h1 { font-size: 30px; font-weight: 400; margin: 0 0 6px; letter-spacing: -0.01em; }
+  p.lead { color: var(--muted); margin: 0 0 22px; max-width: 68ch; }
+  form { display: grid; grid-template-columns: 1fr 1fr 110px 150px auto; gap: 8px; align-items: end; margin-bottom: 18px;
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+  input, select, button { font: 14px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--fg); background: var(--card);
+         border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-height: 40px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .stage { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: stretch; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: grid; gap: 12px; align-content: start; }
+  .card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: var(--line); }
+  .card .meta strong { display: block; font-weight: 400; font-size: 18px; }
+  .card .meta span { color: var(--muted); font-size: 14px; }
+  audio { width: 100%; }
+  /* the engine's container: no background of its own, the words sit on the page */
+  #scene { min-height: 440px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  #status { font: 13px system-ui, sans-serif; color: var(--muted); min-height: 1.5em; }
+  .article { margin-top: 28px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .article div { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .article h3 { margin: 0 0 6px; font-weight: 400; }
+  .article p { margin: 0; color: var(--muted); font-size: 14px; }
+  #log { margin-top: 20px; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); background: var(--card);
+         border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; height: 140px; overflow: auto; white-space: pre-wrap; }
+  @media (max-width: 760px) {
+    form { grid-template-columns: 1fr 1fr; }
+    form .wide { grid-column: 1 / -1; }
+    .stage, .article { grid-template-columns: 1fr; }
+    #scene { min-height: 360px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ваш сайт</h1>
+  <p class="lead">
+    Так движок выглядит на обычной странице: строки и частицы появляются прямо поверх сайта, без фона.
+    Справа — сцена в контейнере рядом с плеером. «Поверх всего сайта» пускает текст по всей странице,
+    при этом страница остаётся кликабельной. Поле «Сдвиг» можно оставить пустым и откалибровать на сцене.
+  </p>
+
+  <form id="f">
+    <label>Исполнитель<input id="artist" value="Cigarettes After Sex" required></label>
+    <label>Песня<input id="title" value="Apocalypse" required></label>
+    <label>Сдвиг, с<input id="offset" inputmode="decimal" placeholder="авто"></label>
+    <label>Тема
+      <select id="theme">
+        <option value="clean">clean — без фона</option>
+        <option value="minimal">minimal — цвет сайта</option>
+        <option value="custom">своя — под этот сайт</option>
+        <option value="dark-grain">dark-grain — как в видео</option>
+      </select>
+    </label>
+    <button class="primary wide" type="submit">Найти превью</button>
+  </form>
+
+  <div class="stage">
+    <div class="card">
+      <img id="art" alt="">
+      <div class="meta"><strong id="name">—</strong><span id="sub">Нажмите «Найти превью»</span></div>
+      <audio id="audio" controls preload="none"></audio>
+      <div class="row">
+        <button id="full" type="button">Поверх всего сайта</button>
+        <button id="toggle" type="button">Скрыть текст</button>
+      </div>
+      <div id="status" role="status"></div>
+    </div>
+    <div id="scene"></div>
+  </div>
+
+  <section class="article" aria-label="Пример контента сайта">
+    <div><h3>Дискография</h3><p>Обычный контент страницы. Он остаётся кликабельным под текстом песни.</p></div>
+    <div><h3>Участники</h3><p>Цвета и шрифт этой страницы движок может взять себе — см. тему «своя».</p></div>
+    <div><h3>Квиз</h3><p>Сцена не трогает ничего вне своего контейнера.</p></div>
+  </section>
+
+  <div id="log" aria-label="События движка"></div>
+</main>
+
+<script src="lyrics-engine.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var audio = $('audio');
+  var inline = null, overlay = null, current = null;
+  var css = getComputedStyle(document.documentElement);
+
+  var THEMES = {
+    clean: 'clean',
+    minimal: 'minimal',
+    'dark-grain': 'dark-grain',
+    // "Adapted to the site": colours and font taken from this page's own CSS variables.
+    custom: {
+      extends: 'clean',
+      text: css.getPropertyValue('--accent').trim(),
+      wave: css.getPropertyValue('--accent').trim(),
+      particle: css.getPropertyValue('--muted').trim(),
+      particles: 18,
+      shadow: 'none',
+      font: 'Georgia, "Times New Roman", serif',
+      weight: 400,
+      size: 1.05,
+      ui: css.getPropertyValue('--fg').trim(),
+      uiBackground: css.getPropertyValue('--card').trim()
+    }
+  };
+
+  function log(msg) {
+    var box = $('log');
+    box.textContent += new Date().toLocaleTimeString() + '  ' + msg + '\n';
+    box.scrollTop = box.scrollHeight;
+  }
+  function status(msg) { $('status').textContent = msg; }
+  function offsetValue() {
+    var v = $('offset').value.trim().replace(',', '.');
+    return v === '' || !isFinite(Number(v)) ? undefined : Number(v);
+  }
+
+  function make(container, name) {
+    var e = LyricsEngine.create({
+      audio: audio,
+      container: container || undefined,
+      track: current,
+      offset: offsetValue(),
+      theme: THEMES[$('theme').value],
+      onState: function (s) { log(name + ' state: ' + s); }
+    });
+    e.on('ready', function (d) { log(name + ' ready: ' + d.lines + ' строк, сдвиг ' + d.offset + ' (' + d.offsetSource + ')'); });
+    e.on('line', function (d) { log(name + ' line #' + d.index + ' @' + d.t.toFixed(2)); });
+    e.on('gap', function (d) { log(name + ' gap ' + (d.active ? 'on (' + d.reason + ')' : 'off')); });
+    e.on('offsetchange', function (d) { log(name + ' offset ' + d.offset + ' (' + d.source + ')'); });
+    e.on('error', function (d) { log(name + ' error: ' + d.code + ' — ' + d.message); });
+    return e;
+  }
+
+  function rebuild() {
+    if (!current) return;
+    if (inline) inline.destroy();
+    if (overlay) { overlay.destroy(); overlay = null; }
+    inline = make('#scene', 'inline');
+    inline.open();
+    $('toggle').textContent = 'Скрыть текст';
+  }
+
+  // A preview server without CORS cannot be read by Web Audio. Retry once without
+  // crossOrigin: the sound plays and the engine draws its animated wave instead.
+  audio.addEventListener('error', function () {
+    if (audio.crossOrigin && audio.src && !LyricsEngine.isRouted(audio)) {
+      var src = audio.src;
+      audio.removeAttribute('crossorigin');
+      audio.src = src;
+      log('превью без CORS: волна будет анимированной, без привязки к звуку');
+    }
+  });
+
+  $('f').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var artist = $('artist').value.trim(), title = $('title').value.trim();
+    if (!artist || !title) return;
+    status('Ищу превью…');
+    LyricsEngine.itunesPreview(artist, title).catch(function (e) {
+      log('iTunes: ' + e.message);
+      return null;
+    }).then(function (p) {
+      if (p) {
+        if (!LyricsEngine.isRouted(audio)) audio.crossOrigin = 'anonymous';
+        audio.src = p.url;
+        if (p.artwork) $('art').src = p.artwork; else $('art').removeAttribute('src');
+        $('name').textContent = p.title;
+        $('sub').textContent = p.artist + (p.album ? ' — ' + p.album : '');
+        status('Превью найдено. Нажмите ▶');
+      } else {
+        audio.removeAttribute('src');
+        audio.load();
+        $('art').removeAttribute('src');
+        $('name').textContent = title;
+        $('sub').textContent = artist;
+        status('Превью не найдено — сцена покажет это, но ничего не сломается');
+      }
+      current = { artist: artist, title: title, album: p && p.album, duration: p && p.duration, offset: offsetValue() };
+      if (!inline) rebuild();
+      else {
+        inline.setTrack(current);
+        if (overlay) overlay.setTrack(current);
+      }
+    });
+  });
+
+  $('offset').addEventListener('change', function () {
+    var v = offsetValue();
+    if (v == null) return;
+    if (inline) inline.setOffset(v);
+    if (overlay) overlay.setOffset(v);
+  });
+  $('theme').addEventListener('change', rebuild);
+  $('full').addEventListener('click', function () {
+    if (!current) return;
+    if (!overlay) overlay = make(null, 'overlay');
+    overlay.open();
+  });
+  $('toggle').addEventListener('click', function () {
+    if (!inline) return;
+    if (inline.isOpen) { inline.close(); this.textContent = 'Показать текст'; }
+    else { inline.open(); this.textContent = 'Скрыть текст'; }
+  });
+})();
+</script>
+</body>
+</html>

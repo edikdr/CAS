@@ -1,0 +1,66 @@
+{
+ "receipts": [
+  {
+   "id": "album",
+   "title": "Fantasy Prologue",
+   "kind": "album",
+   "trackIds": [
+    6808001979,
+    6808001984,
+    6808001985,
+    6808001986,
+    6808001987,
+    6808001989,
+    6808001991,
+    6808001992,
+    6808001993,
+    6808001994,
+    6808002175,
+    6808002176,
+    6808002177,
+    6808002178,
+    6808002179,
+    6808002180,
+    6808002181
+   ]
+  },
+  {
+   "id": "singles",
+   "title": "Singles",
+   "kind": "singles",
+   "trackIds": [
+    1839580537,
+    1844673262,
+    1884640582,
+    6763504593,
+    6783925648,
+    6788976695,
+    6799012857
+   ]
+  },
+  {
+   "id": "demos",
+   "title": "Durocher Demos",
+   "kind": "demos",
+   "trackIds": [
+    1791030998,
+    1791030999,
+    1791031000,
+    1791031001,
+    1791031002,
+    1791031003,
+    1791031004,
+    1791031005
+   ]
+  },
+  {
+   "id": "appearances",
+   "title": "Appearances",
+   "kind": "appearances",
+   "trackIds": [
+    6778004861
+   ]
+  }
+ ],
+ "note": "Row = track. Singles listed even if the same song is on the album (see alsoOnAlbumTrackId). No cover art and no lyrics on receipts."
+}

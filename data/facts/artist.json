@@ -1,0 +1,51 @@
+{
+  "_note": "Compiled from public pages via web search / TinyFish snippets. NOTHING here is verified unless status says so. Verify against the live source before showing on the site.",
+  "name": "sunniva",
+  "alsoWrittenAs": ["sunnivvva (handle)"],
+  "links": {
+    "website": "https://sunnivvva.com/",
+    "bandcamp": "https://sunnivvva.bandcamp.com/",
+    "instagram": "https://www.instagram.com/sunnivvva/",
+    "youtube": "https://www.youtube.com/@sunnivassongs",
+    "appleMusicArtist": "https://music.apple.com/us/artist/sunniva/1790564840",
+    "spotifyArtist": "https://open.spotify.com/artist/4yRxs98NWc2ZkVBzSapuU2",
+    "link3Instagram": "https://www.instagram.com/link3city/",
+    "twitch": null,
+    "patreon": null,
+    "discord": null
+  },
+  "warning_namesake": "sunniva.bandcamp.com is a DIFFERENT artist (Finnish doom band). Her Bandcamp is sunnivvva.bandcamp.com. Many web results for 'sunniva' are other people (e.g. Sunniva Brynnel). Always check the Apple artist id 1790564840 / Spotify id above.",
+  "bio": {
+    "status": "unverified (search snippet of her own site)",
+    "summary": "Singer-songwriter and streamer. Described on her site as 21, from Bath (England), based in Montreal. Streams on Twitch/YouTube. Names indie, rock, shoegaze, slowcore, folk and EDM among influences.",
+    "source": "https://sunnivvva.com/"
+  },
+  "affiliations": [
+    {"name": "link3", "role": "vocalist (per her site / link3 page)", "status": "unverified", "source": "https://www.instagram.com/link3city/"}
+  ],
+  "contact": {
+    "email": "sunnivacontact@gmail.com",
+    "status": "unverified (listed as contact on her site per snippet)",
+    "use": "ONLY for the single pitch email. Never put on the site."
+  },
+  "release_facts": [
+    {"fact": "Fantasy Prologue release date", "apple": "2026-09-25", "bandcamp": "2026-09-28", "status": "CONFLICT - verify (28th may be the CD date)"},
+    {"fact": "Digital album price on Bandcamp", "value": "10 CAD", "status": "unverified"},
+    {"fact": "CD edition", "value": "hand-made, signed, limited to 75, with lyric booklet; sold out; next batch said to be in the works", "status": "unverified (Bandcamp page via TinyFish)"},
+    {"fact": "Lyrics exist in a printed booklet that ships with the CD", "value": true, "status": "seen in a photo (assets/reference/sunniva/fantasy-prologue-cd-and-lyric-booklet.jpg)"},
+    {"fact": "No lyrics and no credits on Bandcamp pages", "status": "unverified (TinyFish)"}
+  ],
+  "history": [
+    {
+      "what": "link3 'WORLD' tour announcement post (Instagram, 2025-07-24)",
+      "dates": [
+        {"date": "08-09", "city": "Brno, CZ", "note": "with Elsewhere @ Music Lab"},
+        {"date": "08-13", "city": "Bratislava, SK", "note": "with Mezokayn and Speechless @ Pink Whale (Outside Stage)"},
+        {"date": "08-23", "city": "Brooklyn, NYC", "note": "with Dead Shakers, Mia Peach and Heathmonger @ The Third Rail"}
+      ],
+      "status": "read from a screenshot; year inferred from the post date; verify",
+      "source": "assets/reference/sunniva/instagram-link3-tour-post-2025-07-24.jpg"
+    }
+  ],
+  "instagram_followers_snippet": "about 11-12K (search snippet; stale, never display)"
+}

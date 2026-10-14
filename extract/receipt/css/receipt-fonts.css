@@ -1,0 +1,6 @@
+/* @font-face for the receipt. All four are SIL OFL on Google Fonts (Archivo Black, Courier Prime, Caveat).
+   The woff2 files came from the AM archive: confirm the exact files and add each OFL.txt before shipping. */
+@font-face{font-family:'Archivo Black';src:url('../fonts/archivo-black.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Courier Prime';src:url('../fonts/courier-prime.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Courier Prime';src:url('../fonts/courier-prime-700.woff2') format('woff2');font-weight:700;font-display:swap}
+@font-face{font-family:'Caveat';src:url('../fonts/caveat.woff2') format('woff2');font-display:swap}

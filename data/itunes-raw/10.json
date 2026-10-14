@@ -1,0 +1,12 @@
+
+
+
+{
+ "resultCount":2,
+ "results": [
+{"wrapperType":"collection", "collectionType":"Album", "artistId":1551276585, "collectionId":1844673261, "artistName":"vhs ghost & sunniva", "collectionName":"Like a kid - Single", "collectionCensoredName":"Like a kid - Single", "artistViewUrl":"https://music.apple.com/us/artist/vhs-ghost/1551276585?uo=4", "collectionViewUrl":"https://music.apple.com/us/album/like-a-kid-single/1844673261?uo=4", "artworkUrl60":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/c6/2e/edc62eec-cf08-e0db-b4e9-8bde53ff4f80/199502600853_cover.jpg/60x60bb.jpg", "artworkUrl100":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/c6/2e/edc62eec-cf08-e0db-b4e9-8bde53ff4f80/199502600853_cover.jpg/100x100bb.jpg", "collectionPrice":1.29, "collectionExplicitness":"notExplicit", "trackCount":1, "copyright":"℗ 2025 nothing special.", "country":"USA", "currency":"USD", "releaseDate":"2025-10-31T07:00:00Z", "primaryGenreName":"Indie Pop"}, 
+{"wrapperType":"track", "kind":"song", "artistId":1551276585, "collectionId":1844673261, "trackId":1844673262, "artistName":"vhs ghost & sunniva", "collectionName":"Like a kid - Single", "trackName":"Like a kid", "collectionCensoredName":"Like a kid - Single", "trackCensoredName":"Like a kid", "artistViewUrl":"https://music.apple.com/us/artist/vhs-ghost/1551276585?uo=4", "collectionViewUrl":"https://music.apple.com/us/album/like-a-kid/1844673261?i=1844673262&uo=4", "trackViewUrl":"https://music.apple.com/us/album/like-a-kid/1844673261?i=1844673262&uo=4", 
+"previewUrl":"https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f7/09/74/f70974fa-97e6-dc8e-06da-90be6c1fa869/mzaf_18422046277074607765.plus.aac.p.m4a", "artworkUrl30":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/c6/2e/edc62eec-cf08-e0db-b4e9-8bde53ff4f80/199502600853_cover.jpg/30x30bb.jpg", "artworkUrl60":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/c6/2e/edc62eec-cf08-e0db-b4e9-8bde53ff4f80/199502600853_cover.jpg/60x60bb.jpg", "artworkUrl100":"https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ed/c6/2e/edc62eec-cf08-e0db-b4e9-8bde53ff4f80/199502600853_cover.jpg/100x100bb.jpg", "collectionPrice":1.29, "trackPrice":1.29, "releaseDate":"2025-10-31T12:00:00Z", "collectionExplicitness":"notExplicit", "trackExplicitness":"notExplicit", "discCount":1, "discNumber":1, "trackCount":1, "trackNumber":1, "trackTimeMillis":124064, "country":"USA", "currency":"USD", "primaryGenreName":"Indie Pop", "isStreamable":true}]
+}
+
+

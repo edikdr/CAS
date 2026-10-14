@@ -1,0 +1,30 @@
+<!doctype html>
+<!-- DRAFT demo, NOT rendered in a browser by the author (no browser in the packaging environment).
+     Serve the kit root:  python3 -m http.server 8765   then open
+     http://localhost:8765/extract/receipt/demo/receipt-demo.html
+     Shows the 4 sunniva receipts in FLAT mode (no crumple frames yet: receipt.js falls back to a flat receipt). -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>receipt demo</title>
+<link rel="stylesheet" href="../css/receipt-fonts.css">
+<link rel="stylesheet" href="../css/receipt-root-vars.css">
+<link rel="stylesheet" href="../css/receipt.css">
+<style>body{margin:0;background:var(--ink);color:var(--chalk);font-family:var(--mono)} #albumList{display:grid;gap:48px;padding:24px;max-width:560px;margin:0 auto}</style>
+</head><body>
+<div id="albumList" class="album-list"></div>
+<script src="../js/receipt-deps.js"></script>
+<script src="../js/receipt.js"></script>
+<script src="../js/sunniva-receipts.js"></script>
+<script>
+(async () => {
+  const j = p => fetch('../../../data/' + p).then(r => r.json());
+  const [t, r, rc] = await Promise.all([j('tracks.json'), j('releases.json'), j('receipts.json')]);
+  const host = document.getElementById('albumList');
+  buildSunnivaReceipts(t, r, rc).forEach(a => {
+    const card = buildAlbumCard(a);
+    host.appendChild(card);
+    card.querySelectorAll('.rc-row').forEach(row =>
+      row.addEventListener('click', () => console.log('open track', row.dataset.trackId, row.dataset.track)));
+    measureReceipt(card);
+  });
+})();
+</script></body></html>

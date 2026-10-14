@@ -5,26 +5,30 @@
  *   LightRig.mount({ garland, glow })  garland: element below the guitar (wall light, wires, stars);
  *                                      glow: element above the guitar (bloom, lit stars, room shade)
  *   LightRig.setEnabled(bool), .enabled   persisted (storage "lights"), mirrored on <html data-lights>.
- *                                      Off is not dark: the lights keep 25% of their light (.level)
- *   LightRig.level                     1 when on, 0.25 when switched off (share of the light output)
- *   LightRig.pulse(strength)           short brightening, strength 0..1; no-op under reduced motion
+ *                                      Off: the garland is dark (no star, bloom or light on the wall
+ *                                      glows) and the room keeps 25% of its light
+ *   LightRig.level                     light in the room: 1 when on, 0.25 when switched off
+ *   LightRig.pulse(strength)           short brightening, strength 0..1; no-op when off or under
+ *                                      reduced motion
  *   LightRig.lights                    [{ x, y, garland, index }] - px in scene coordinates (the viewport box)
  *   LightRig.maskImage(radiusPx)       CSS mask-image with a soft disc around every light; Stage 2 uses it
  *                                      to reveal dust/texture only near the lights (re-read it on 'layout')
  *   LightRig.on('layout' | 'toggle', fn)
  *
  * Look (assets/reference/room/string-lights.jpg): frosted plastic stars, each with an LED inside.
- *   - below the guitar: light on the wall (wide strokes along the wires + a pool around every star,
- *     blurred once by an SVG filter), wires, stems and the unlit plastic stars;
+ *   - below the guitar: light on the wall (its own <svg>: wide strokes along the wires + a pool
+ *     around every star, blurred once by an SVG filter), wires, stems and the unlit plastic stars;
  *   - above the guitar: a room shade (the glow element's ::before in styles/scene.css), the bloom
  *     around every star (near-Gaussian, three breathing groups + a pulse group) and the lit stars
  *     (gradient from the LED out to the tips, a hot LED point).
- * Switching changes three opacities (shade, bloom, lit stars; styles/scene.css), so the whole
- * room dims the same way, the guitar included, in either guitar mode.
+ * Switching changes opacities only (styles/scene.css): off, the garland's light (wall light, bloom,
+ * lit stars) fades out and the room shade takes the room to 25%, the guitar included, in either
+ * guitar mode.
  *
  * Cost: everything is laid out once and again only on resize; nothing uses the rAF loop. Breathing
  * is a CSS opacity animation (compositor only); pulse() and the switch-on flicker are one-shot Web
- * Animations on opacity. The blurred wall light is never repainted after layout.
+ * Animations on opacity. The blurred wall light is a separate <svg> so its fade is composited
+ * instead of re-running the blur every frame.
  *
  * Must not change: the API above and the element classes used by styles/scene.css.
  */
@@ -41,7 +45,7 @@ const GARLANDS = [
 const PHOTO_TOP = 0.2;     // photo rows 0.2..0.8 map onto the garland band
 const PHOTO_SPAN = 0.6;
 const GROUPS = 3;          // breathing groups, out of phase (styles/scene.css)
-const DIM = 0.25;          // share of the light left when switched off (opacities: styles/scene.css)
+const ROOM_OFF = 0.25;     // light left in the room when the garland is off (styles/scene.css: --room-dim)
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const html = document.documentElement;
@@ -50,6 +54,7 @@ let enabled = storage.get('lights', true) !== false;
 let lights = [];
 let garlandEl = null;
 let svg = null;
+let lightSvg = null;       // light falling on the wall, below the wires
 let litEl = null;          // <g> with the lit stars, above the guitar
 let glowEl = null;
 let pulseEl = null;
@@ -116,7 +121,7 @@ function layout() {
   svg.replaceChildren();
 
   // light on the wall: wide strokes along each garland + a pool around every star, blurred once
-  // by an SVG filter (static: dimming is the room shade above, so this is never repainted)
+  // by an SVG filter; switching only fades its <svg>
   const blur = svgEl('filter', { id: 'garland-soften', x: '-30%', y: '-80%', width: '160%', height: '260%' });
   blur.append(svgEl('feGaussianBlur', { stdDeviation: (band * 0.1).toFixed(1) }));
   const near = svgEl('filter', { id: 'garland-near', x: '-50%', y: '-50%', width: '200%', height: '200%' });
@@ -145,7 +150,8 @@ function layout() {
     // and the bright patch right behind it
     close.append(svgEl('circle', { class: 'garland__hot', cx: l.x.toFixed(1), cy: (l.y + star * 0.2).toFixed(1), r: (star * 0.9).toFixed(1) }));
   }
-  svg.append(defs, wash, close, ...wires);
+  lightSvg.replaceChildren(defs, wash, close);
+  svg.append(...wires);
 
   const lit = [];
   lights.forEach((l, i) => {
@@ -173,8 +179,9 @@ function apply() {
 export const LightRig = {
   mount({ garland, glow }) {
     garlandEl = garland;
+    lightSvg = svgEl('svg', { class: 'garland__light', 'aria-hidden': 'true' });
     svg = svgEl('svg', { class: 'garland', 'aria-hidden': 'true' });
-    garland.replaceChildren(svg);
+    garland.replaceChildren(lightSvg, svg);
 
     const count = GARLANDS.reduce((n, g) => n + g.lights.length, 0);
     glowEl = Object.assign(document.createElement('div'), { className: 'glow' });
@@ -219,7 +226,7 @@ export const LightRig = {
 
   get enabled() { return enabled; },
 
-  get level() { return enabled ? 1 : DIM; },
+  get level() { return enabled ? 1 : ROOM_OFF; },
 
   setEnabled(on) {
     const was = enabled;
@@ -233,9 +240,8 @@ export const LightRig = {
     events.emit('toggle', enabled);
   },
 
-  /** Beat flash; when switched off it flashes at the lights' 25% too (the bloom layer is dimmed). */
   pulse(strength = 1) {
-    if (!pulseEl || Motion.reduced) return;
+    if (!enabled || !pulseEl || Motion.reduced) return;
     const s = Math.max(0, Math.min(1, strength));
     pulseAnim?.cancel();
     pulseAnim = pulseEl.animate([{ opacity: s }, { opacity: 0 }], { duration: 420, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });

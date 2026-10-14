@@ -66,7 +66,7 @@ tools/       scripts (Node/Python). Never shipped to the site.
 - `PreviewPlayer`: `play(trackId)`, `pause()`, `seek(sec)`, `currentTime()`, `isPlaying()`, events `play|pause|ended|timeupdate|error`. Single `<audio>`.
 - `BeatClock`: subscribes to PreviewPlayer, emits `beat(index)` and `onset({t, s})` from `data/beats/<id>.json`; handles seek, pause, loop, tab hidden. Setting `latencyOffsetMs` (default 0).
 - `GuitarStage`: `mount(el)`, `pluck(strength, direction)`, `setMode('dom'|'gl')`, `flip()`, `destroy()`. Implementations: `DomGuitar`, `GlGuitar`. Chosen by capability check (pointer coarse, width, deviceMemory, saveData, WebGL ok) + manual toggle; GL failure falls back to DOM.
-- `LightRig`: `setEnabled(bool)` (off = the lights keep 25% of their light, `level`), `pulse(strength)`, positions of the lights in scene coordinates.
+- `LightRig`: `setEnabled(bool)` (off = the garland is dark and the room keeps 25% of its light, `level`), `pulse(strength)`, positions of the lights in scene coordinates.
 - `LyricRenderer` (interface): `mount(el)`, `setLine({text, startSec, endSec})`, `clear()`, `destroy()`. Implementations: `FontWipeRenderer` (Opus), `MagazineRenderer` (Sonnet). Selected by theme with a manual override.
 - `ModalManager`: `open(kind, payload)`, `close()`; kinds: `about`, `quiz`, `receipt`, `track`, `merch`.
 - `RightsGate`: `allows(className)`; every feature calls it before using a gated asset.

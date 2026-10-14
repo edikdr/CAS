@@ -14,7 +14,8 @@
  *  3. Content-hashes files under assets/ (name.<hash>.ext, licences keep their name) and rewrites
  *     every literal reference in shipped HTML/CSS/JS/JSON. Asset paths must therefore be literal
  *     strings or come from a JSON manifest; building them with `${}` or `+` is an error (except the
- *     dev-only assets/previews-local/, which never ships).
+ *     dev-only assets/previews-local/, which never ships). JSON/SVG assets get their own
+ *     references rewritten first and are hashed on the result (a changed layer renames its manifest).
  *  4. Every inline <script> in index.html (the import map) must have its sha256 in the CSP of
  *     vercel.json, or the browser would refuse it.
  *  5. Public build only: fails if HTML/CSS/JS still reference a stripped file (static import, url())
@@ -51,6 +52,7 @@ const STRICT = /^(core|features|styles|content)\//;
 const NOT_SHIPPED = /\.(md|ttf|otf)$/; // docs and font sources (fonts ship as woff2)
 const TEXT = /\.(html|css|js|mjs|json|svg)$/;
 const KEEP_NAME = /\.txt$|(^|\/)LICENSE[^/]*$/; // licences stay next to their files, unhashed
+const ASSET_TEXT = /\.(json|svg)$/; // assets that may reference other assets (e.g. a layer manifest)
 
 function kindOf(rel) {
   if (NOT_SHIPPED.test(rel)) return null;
@@ -95,7 +97,7 @@ export async function build({ root = ROOT, out = path.join(root, 'dist'), isPubl
     if (cls && !gate.allows(cls)) { stripped.push(rel); continue; }
 
     const raw = await readFile(path.join(root, rel));
-    if (kind === 'asset') { files.set(rel, raw); continue; }
+    if (kind === 'asset') { files.set(rel, ASSET_TEXT.test(rel) ? raw.toString('utf8') : raw); continue; }
     if (kind === 'text') { files.set(rel, raw.toString('utf8')); continue; }
 
     const doc = JSON.parse(raw.toString('utf8'));
@@ -109,17 +111,29 @@ export async function build({ root = ROOT, out = path.join(root, 'dist'), isPubl
     files.set(rel, JSON.stringify(stripFields(data, deniedFields)));
   }
 
-  // 3. hash assets and rewrite literal references
+  // 3. hash assets and rewrite literal references. Binary assets first; then text assets (JSON
+  // manifests, SVG) get their references rewritten and are hashed on the rewritten content, so a
+  // changed layer also changes its manifest's name (both are cached immutable). A text asset
+  // referencing another text asset is not supported.
   const renames = new Map();
-  for (const [rel, buf] of files) {
-    if (!rel.startsWith('assets/') || KEEP_NAME.test(rel)) continue;
-    const hash = createHash('sha256').update(buf).digest('hex').slice(0, 10);
+  const hashName = (rel, content) => {
     const ext = path.posix.extname(rel);
-    renames.set(rel, `${rel.slice(0, -ext.length)}.${hash}${ext}`);
+    return `${rel.slice(0, -ext.length)}.${createHash('sha256').update(content).digest('hex').slice(0, 10)}${ext}`;
+  };
+  const refsTo = (map) => (map.size
+    ? new RegExp(`(?<![\\w.-])(${[...map.keys()].sort((a, b) => b.length - a.length).map(escapeRe).join('|')})(?![\\w.-])`, 'g')
+    : null);
+  for (const [rel, buf] of files) {
+    if (rel.startsWith('assets/') && !KEEP_NAME.test(rel) && typeof buf !== 'string') renames.set(rel, hashName(rel, buf));
   }
-  const refRe = renames.size
-    ? new RegExp(`(?<![\\w.-])(${[...renames.keys()].sort((a, b) => b.length - a.length).map(escapeRe).join('|')})(?![\\w.-])`, 'g')
-    : null;
+  const binaryRe = refsTo(renames);
+  for (const [rel, body] of files) {
+    if (!rel.startsWith('assets/') || KEEP_NAME.test(rel) || typeof body !== 'string') continue;
+    const rewritten = binaryRe ? body.replace(binaryRe, (m) => renames.get(m)) : body;
+    files.set(rel, rewritten);
+    renames.set(rel, hashName(rel, rewritten));
+  }
+  const refRe = refsTo(renames);
   const output = new Map();
   for (const [rel, body] of files) {
     let data = body;

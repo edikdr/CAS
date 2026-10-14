@@ -90,19 +90,23 @@ function render(body, payload, api) {
     detachLyrics = null;
     lyricsHost.replaceChildren();
     slots.note.hidden = true;
-    if (!(await DataStore.lyrics(trackId))) {
+    const noLyrics = () => {
       if (my !== token) return;
       slots.note.textContent = NO_LYRICS;
       slots.note.hidden = false;
       lyricsHost.hidden = true;
-      return;
+    };
+    try {
+      if (!(await DataStore.lyrics(trackId))) { noLyrics(); return; }
+      const [{ attachLyrics }, { createRenderer }] = await Promise.all([import('./lyrics/engine-adapter.js'), import('./lyrics/lyric-renderer.js')]);
+      if (my !== token) return;
+      lyricsHost.hidden = false;
+      const detach = await attachLyrics({ host: lyricsHost, trackId, renderer: createRenderer() });
+      if (my !== token) detach?.();
+      else detachLyrics = detach;
+    } catch {
+      noLyrics(); // offline or a broken file: same as no lyrics, never half a text
     }
-    const [{ attachLyrics }, { createRenderer }] = await Promise.all([import('./lyrics/engine-adapter.js'), import('./lyrics/lyric-renderer.js')]);
-    if (my !== token) return;
-    lyricsHost.hidden = false;
-    const detach = await attachLyrics({ host: lyricsHost, trackId, renderer: createRenderer() });
-    if (my !== token) detach?.();
-    else detachLyrics = detach;
   }
 
   function setTrack(trackId) {

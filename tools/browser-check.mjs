@@ -1,7 +1,7 @@
 /*
  * tools/browser-check.mjs - end-to-end checks in a real browser (Chromium via Playwright).
  *
- *   node tools/browser-check.mjs [--only load,modal,lyrics,gl]
+ *   node tools/browser-check.mjs [--only load,lights,modal,lyrics,gl,resilience]
  *
  * Needs `playwright` (not a project dependency: `npm i -D playwright` or link a global install
  * into node_modules/) and ffmpeg. Playwright's Chromium has no AAC decoder, so local previews are
@@ -9,9 +9,9 @@
  * Starts its own dev servers (source tree and a fresh private build). Never prints lyric text.
  *
  * Sections:
- *  load   mobile: no third-party request, no lyrics engine / Three.js / GLB on load, idle CPU,
- *         DOM guitar mode, transfer size
- *  lights wall switch: Off dims the room to 25% of the light (shade, bloom, stars), state is
+ *  load   mobile: no third-party request, no failed request, no lyrics engine / Three.js / GLB on
+ *         load, idle CPU, DOM guitar mode and all its layer images, transfer size
+ *  lights wall switch: Off turns the garland dark and leaves the room 25% of its light, state is
  *         announced (aria-pressed) and survives a reload (set before first paint); idle CPU dimmed;
  *         the click sounds load after ready and decode
  *  modal  dialog semantics: focus inside, Tab stays inside, Esc closes and restores focus, Back
@@ -19,6 +19,9 @@
  *  lyrics permission none / missing -> no text and no engine; fixture line timing vs audio;
  *         dissolve; word-by-word wipe; reduced motion = no transforms
  *  gl     desktop: WebGL guitar loads the GLB, no 3D toggle; mobile never requests Three.js or the GLB
+ *  resilience  a throwing Stage 2 entry, reduced motion (no breathing/sway/flicker), blocked localStorage, no WebGL on a
+ *         desktop, network lost after load (switch works, preview fails gracefully), slow 3G first
+ *         load (scene paints before data; numbers printed)
  */
 
 import { spawn, spawnSync } from 'node:child_process';
@@ -82,6 +85,8 @@ try {
     const page = await ctx.newPage();
     const reqs = [];
     page.on('request', (r) => reqs.push(r.url()));
+    const failed = [];
+    page.on('response', (r) => { if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`); });
     let bytes = 0;
     page.on('requestfinished', async (r) => { const s = await r.sizes(); bytes += s.responseBodySize + s.responseHeadersSize; });
     await page.goto(DIST, { waitUntil: 'networkidle' });
@@ -91,6 +96,10 @@ try {
     check('load: no third-party request', third.length === 0, third.join(', '));
     check('load: no lyrics engine, Three.js or GLB requested', !reqs.some((u) => /lyrics-engine|vendor\/three|\.glb/.test(u)));
     check('load: phone gets the DOM guitar', await page.evaluate(() => !!document.querySelector('.guitar')));
+    const layers = await page.evaluate(() => Promise.all([...document.querySelectorAll('.guitar__layer')].map((img) => img.decode().then(() => img.naturalWidth > 0, () => false))));
+    check('load: every guitar layer image loads (built names resolve)', layers.length === 5 && layers.every(Boolean), `${layers.filter(Boolean).length}/${layers.length}`);
+    check('load: no failed request (4xx/5xx)', failed.length === 0, failed.join(', '));
+    check('load: the Stage 2 entry (features/main.js) is loaded', reqs.some((u) => u.endsWith('/features/main.js')));
     const cdp = await ctx.newCDPSession(page);
     await cdp.send('Performance.enable');
     const m = async () => Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map((x) => [x.name, x.value]));
@@ -106,37 +115,43 @@ try {
 
   if (want('lights')) {
     const ctx = await browser.newContext(devices['Pixel 7']);
+    await ctx.addInitScript(() => {
+      new MutationObserver(() => {
+        if (document.documentElement.dataset.state === 'ready') window.__readyAt ??= performance.now();
+      }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-state'] });
+    });
     const page = await ctx.newPage();
-    const reqs = [];
-    page.on('request', (r) => reqs.push(r.url()));
     await page.goto(`${DIST}?debug`);
     await ready(page);
-    const early = reqs.filter((u) => u.endsWith('.mp3')).length;
     await sleep(4500);
-    const sfx = reqs.filter((u) => /\/sfx\/switch-(on|off)\.\w+\.mp3$/.test(u));
-    check('lights: switch clicks load after the page is ready and decode', early === 0 && sfx.length === 2 && await page.evaluate(async (urls) => {
+    const timing = await page.evaluate(() => ({
+      readyAt: window.__readyAt,
+      sfx: performance.getEntriesByType('resource').filter((e) => /\/sfx\/switch-(on|off)\.\w+\.mp3$/.test(e.name)).map((e) => ({ url: e.name, at: e.startTime })),
+    }));
+    const early = timing.sfx.filter((e) => e.at < timing.readyAt).length;
+    check('lights: switch clicks load after the page is ready and decode', timing.sfx.length === 2 && early === 0 && await page.evaluate(async (urls) => {
       const audio = new OfflineAudioContext(1, 44100, 44100);
       for (const u of urls) {
         const b = await audio.decodeAudioData(await (await fetch(u)).arrayBuffer());
         if (b.duration < 0.2 || b.duration > 0.5) return false;
       }
       return true;
-    }, sfx), `${sfx.length} files, ${early} before ready`);
+    }, timing.sfx.map((e) => e.url)), `${timing.sfx.length} files, ${early} before ready`);
     const look = () => page.evaluate(() => {
       const op = (sel, pseudo) => Number(getComputedStyle(document.querySelector(sel), pseudo).opacity);
       return {
         lights: document.documentElement.dataset.lights || 'on',
         level: window.sunniva.LightRig.level,
         pressed: [...document.querySelectorAll('#light-switch button')].map((b) => b.getAttribute('aria-pressed')).join(),
-        shade: op('#glow', '::before'), bloom: op('.glow__bloom'), stars: op('.glow__stars'),
+        shade: op('#glow', '::before'), bloom: op('.glow__bloom'), stars: op('.glow__stars'), wall: op('.garland__light'),
       };
     });
     const on = await look();
-    check('lights: on at load, the On button is pressed, no shade', on.lights === 'on' && on.level === 1 && on.pressed === 'true,false' && on.shade === 0 && on.bloom === 1, JSON.stringify(on));
+    check('lights: on at load, the On button is pressed, no shade', on.lights === 'on' && on.level === 1 && on.pressed === 'true,false' && on.shade === 0 && on.bloom === 1 && on.stars === 1 && on.wall === 1, JSON.stringify(on));
     await page.click('#light-switch .wall-switch__button--off');
     await sleep(700);
     const off = await look();
-    check('lights: Off keeps 25% of the light (sRGB 0.53), Off is pressed', off.lights === 'off' && off.level === 0.25 && off.pressed === 'false,true' && Math.abs(off.shade - 0.47) < 0.01 && Math.abs(off.bloom - 0.53) < 0.01 && off.stars > off.bloom, JSON.stringify(off));
+    check('lights: Off = garland dark, room at 25% of its light (sRGB 0.53), Off is pressed', off.lights === 'off' && off.level === 0.25 && off.pressed === 'false,true' && Math.abs(off.shade - 0.47) < 0.01 && off.bloom === 0 && off.stars === 0 && off.wall === 0, JSON.stringify(off));
     const cdp = await ctx.newCDPSession(page);
     await cdp.send('Performance.enable');
     const task = async () => (await cdp.send('Performance.getMetrics')).metrics.find((x) => x.name === 'TaskDuration').value;
@@ -324,6 +339,91 @@ try {
     await sleep(1500);
     check('gl: phone never requests Three.js, the GL module or the GLB', !r2.some((u) => /vendor\/three|\.glb|gl-guitar/.test(u)));
     await phone.close();
+  }
+  if (want('resilience')) {
+    const open = async (opts, url, init) => {
+      const ctx = await browser.newContext(opts);
+      if (init) await ctx.addInitScript(init);
+      const page = await ctx.newPage();
+      const errors = [];
+      page.on('pageerror', (e) => errors.push(e.message));
+      const reqs = [];
+      page.on('request', (r) => reqs.push(r.url()));
+      await page.goto(url);
+      await ready(page);
+      return { ctx, page, errors, reqs };
+    };
+
+    {
+      const ctx = await browser.newContext(devices['Pixel 7']);
+      const page = await ctx.newPage();
+      await page.route(/\/features\/main\.js$/, (r) => r.fulfill({ contentType: 'text/javascript', body: 'export async function start() { throw new Error("stage 2 bug"); }' }));
+      await page.goto(`${DIST}?debug&track=6808001979`);
+      await ready(page);
+      const ok = await page.waitForSelector('dialog[open] .track__play', { timeout: 8000 }).then(() => true, () => false);
+      check('resilience: a throwing Stage 2 entry -> room and ?track= still work', ok && (await page.evaluate(() => !!document.querySelector('.guitar'))));
+      await ctx.close();
+    }
+    {
+      const { ctx, page, errors } = await open({ ...devices['Pixel 7'], reducedMotion: 'reduce' }, `${DIST}?debug`);
+      const r = await page.evaluate(() => {
+        const name = (sel) => getComputedStyle(document.querySelector(sel)).animationName;
+        window.sunniva.LightRig.setEnabled(false);
+        window.sunniva.LightRig.setEnabled(true);
+        return { breathe: name('.glow__group'), sway: name('.guitar__sway'), flicker: document.querySelector('.glow').getAnimations().length };
+      });
+      check('resilience: reduced motion -> no breathing, sway or switch flicker', r.breathe === 'none' && r.sway === 'none' && r.flicker === 0 && !errors.length, JSON.stringify(r));
+      await ctx.close();
+    }
+    {
+      const blockStorage = () => Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('blocked', 'SecurityError'); } });
+      const { ctx, page, errors } = await open(devices['Pixel 7'], `${DIST}?debug`, blockStorage);
+      await page.click('#light-switch .wall-switch__button--off');
+      const r = await page.evaluate(() => ({ state: document.documentElement.dataset.state, lights: document.documentElement.dataset.lights, guitar: !!document.querySelector('.guitar') }));
+      check('resilience: blocked localStorage -> boots, guitar and switch work', r.state === 'ready' && r.lights === 'off' && r.guitar && !errors.length, `${JSON.stringify(r)} ${errors.join(' | ')}`);
+      await ctx.close();
+    }
+    {
+      const noWebGl = () => {
+        const get = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (type, ...rest) { return /webgl/i.test(type) ? null : get.call(this, type, ...rest); };
+      };
+      const { ctx, page, errors, reqs } = await open({ viewport: { width: 1440, height: 900 } }, `${DIST}?gl=force&debug`, noWebGl);
+      await sleep(800);
+      const mode = await page.evaluate(() => window.sunniva.GuitarStage.mode);
+      check('resilience: desktop without WebGL -> photo guitar, no Three.js or GLB', mode === 'dom' && !reqs.some((u) => /vendor\/three|\.glb/.test(u)) && !errors.length, `mode ${mode}`);
+      await ctx.close();
+    }
+    {
+      const { ctx, page, errors } = await open(devices['Pixel 7'], `${DIST}?debug`);
+      await sleep(4500); // let the switch sounds preload
+      await ctx.setOffline(true);
+      await page.click('#light-switch .wall-switch__button--off');
+      await page.evaluate(() => window.sunniva.ModalManager.open('track', { id: 6808001979 }));
+      await page.click('.track__play');
+      const shown = await page.waitForSelector('.track__error:not([hidden])', { timeout: 10000 }).then(() => true, () => false);
+      const lights = await page.evaluate(() => document.documentElement.dataset.lights);
+      check('resilience: network lost after load -> switch works, preview shows "Open in Apple Music"', shown && lights === 'off' && !errors.length, errors.join(' | '));
+      await ctx.close();
+    }
+    {
+      const ctx = await browser.newContext(devices['Pixel 7']);
+      const page = await ctx.newPage();
+      const cdp = await ctx.newCDPSession(page);
+      await cdp.send('Network.enable');
+      await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 400, downloadThroughput: (400 * 1024) / 8, uploadThroughput: (400 * 1024) / 8 });
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+      const t0 = Date.now();
+      await page.goto(DIST);
+      await ready(page);
+      const readyMs = Date.now() - t0;
+      const paint = await page.evaluate(() => ({
+        fcp: Math.round(performance.getEntriesByName('first-contentful-paint')[0]?.startTime ?? -1),
+        stars: document.querySelectorAll('.garland__star').length,
+      }));
+      check('resilience: slow 3G + 4x CPU -> room paints before the data, ready < 20 s', paint.fcp > 0 && paint.fcp < readyMs && paint.stars === 14 && readyMs < 20000, `FCP ${paint.fcp} ms, ready ${readyMs} ms`);
+      await ctx.close();
+    }
   }
 } finally {
   await browser.close();

@@ -2,9 +2,11 @@
  * core/app.js - entry module (the only module <script> in index.html) and composition root.
  *
  * Boot order: scene (lights, wall switch, film slot, controls) paints first without waiting for data;
- * then rights gate + data store load in parallel; then the guitar (it needs the rights gate).
+ * rights gate + data store load in parallel; the guitar mounts as soon as the rights gate is in.
  * Music wiring: PreviewPlayer -> BeatClock -> onsets pluck the guitar (alternating down/up
  * strums, amplitude = onset strength), beats pulse the lights. Sets <html data-state>.
+ * Stage 2: once ready, imports features/main.js and awaits its start() (Stage 2 registers its
+ * modals, renderers and collage there), then handles ?track=.
  * Links: ?track=<trackId> opens that track's window on load (Back closes it).
  * Debugging: ?debug exposes the core services as window.sunniva.
  *
@@ -30,7 +32,7 @@ const root = document.documentElement;
 const params = new URLSearchParams(location.search);
 const $ = (sel) => document.querySelector(sel);
 
-/** The wall switch: two push buttons, On and Off (off keeps the lights at 25%). A click sounds
+/** The wall switch: two push buttons, On and Off (off: garland dark, room at 25%). A click sounds
  *  when the state changes, at the player's volume (silent when muted). */
 function bindLightSwitch(group) {
   const [on, off] = group.querySelectorAll('button');
@@ -66,7 +68,9 @@ Motion.on('change', paintMotion);
 PreviewPlayer.mount($('#preview'));
 PreviewPlayer.on('track', (id) => {
   BeatClock.setBeats(null);
-  DataStore.beats(id).then((b) => { if (PreviewPlayer.trackId === id) BeatClock.setBeats(b); });
+  DataStore.beats(id)
+    .then((b) => { if (PreviewPlayer.trackId === id) BeatClock.setBeats(b); })
+    .catch(() => { /* offline or broken file: no beats, the guitar just sways */ });
 });
 let strumDown = true;
 BeatClock.on('onset', ({ s }) => {
@@ -81,15 +85,22 @@ if (params.has('debug')) {
 }
 
 try {
-  await Promise.all([RightsGate.load(), DataStore.load()]);
-  Sfx.preload();
-  await GuitarStage.mount($('#guitar-slot'));
+  // the guitar only needs the rights gate: it starts loading while the catalogue data still loads
+  const data = DataStore.load();
+  await RightsGate.load();
+  await Promise.all([GuitarStage.mount($('#guitar-slot')), data]);
   const tilt = $('#enable-tilt');
   if (needsOrientationPermission()) {
     tilt.hidden = false;
     tilt.addEventListener('click', async () => { tilt.hidden = await GuitarStage.enableTilt(); });
   }
   root.dataset.state = 'ready';
+  Sfx.preload();
+  try {
+    await (await import('../features/main.js')).start?.();
+  } catch (err) {
+    console.error('features/main.js failed; the room works without Stage 2 features', err);
+  }
   if (DataStore.track(params.get('track'))) ModalManager.open('track', { id: params.get('track') });
 } catch (err) {
   root.dataset.state = 'error';

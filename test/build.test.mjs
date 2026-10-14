@@ -89,6 +89,28 @@ test('public build of the real repo has no cover URLs, lyrics, photos or raw fac
   assert.ok(!files.some((f) => /^data\/(lyrics|itunes-raw)\/|^data\/facts\/artist|^assets\/(photos|covers|guitar|models|letters|collage)\//.test(f)));
 });
 
+test('JSON asset manifests: references to layers are rewritten and the manifest hash follows them', async () => {
+  const manifest = (v) => ({
+    'core/app.js': "export const m = new URL('../assets/guitar/dom/manifest.json', import.meta.url);\n",
+    'assets/guitar/dom/manifest.json': { layers: [{ src: 'assets/guitar/dom/body.webp' }] },
+    'assets/guitar/dom/body.webp': Buffer.from(`SENTINEL_GUITAR_${v}`),
+  });
+  const built = async (v) => {
+    const dir = await out();
+    await build({ root: await project(manifest(v)), out: dir });
+    const { files } = await allText(dir);
+    const name = files.find((f) => /^assets\/guitar\/dom\/manifest\.[0-9a-f]{10}\.json$/.test(f));
+    const src = JSON.parse(await readFile(path.join(dir, name), 'utf8')).layers[0].src;
+    return { files, name, src, app: await readFile(path.join(dir, 'core/app.js'), 'utf8') };
+  };
+  const a = await built(1);
+  assert.match(a.src, /^assets\/guitar\/dom\/body\.[0-9a-f]{10}\.webp$/);
+  assert.ok(a.files.includes(a.src), 'the manifest points at a shipped file');
+  assert.ok(a.app.includes(a.name), 'the code points at the hashed manifest');
+  const b = await built(2);
+  assert.notEqual(a.name, b.name, 'a changed layer renames its manifest (immutable caching)');
+});
+
 const rejects = (extra, isPublic, re) => async () => {
   await assert.rejects(build({ root: await project(extra), out: await out(), isPublic }), (e) => re.test(e.message));
 };

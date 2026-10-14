@@ -74,11 +74,9 @@
   /* scene */
   --glow-size: clamp(120px, 28vmin, 280px); /* bloom around each bulb */
   --star-size: clamp(29px, 7.2vmin, 34px);
-  /* lights switched off keep 25% of their light. Opacity blends in sRGB, so 25% of the light is
-     0.25^(1/2.2) = 0.53 on screen: everything they light (wall, wires, guitar) and the bloom go to
-     0.53; the stars themselves stay brighter, as a dimmed LED still looks bright up close */
-  --light-dim: 0.53;
-  --light-dim-star: 0.62;
+  /* lights switched off: the garland is dark and the room keeps 25% of its light. Opacity blends
+     in sRGB, so 25% of the light is 0.25^(1/2.2) = 0.53 on screen */
+  --room-dim: 0.53;
   --guitar-len: min(94vw, 1080px, 150svh);   /* length of the (horizontal) guitar on screen */
   --track-guitar: translateY(-22dvh) scale(0.92);            /* while the track sheet is open (phones) */
   --track-guitar-wide: translate(-17vw, -7dvh) scale(0.72);  /* ... next to the side panel (>= 900 px) */

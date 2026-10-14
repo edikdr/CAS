@@ -34,16 +34,28 @@ export async function createDomGuitar(slot) {
   const flipper = root.querySelector('.guitar__flip');
   const front = root.querySelector('.guitar__front');
 
+  // the front layers load first (the body is the page's largest paint); the back waits for an
+  // idle moment or the first flip
+  let loadBack = () => {};
   for (const l of m.layers) {
     const img = new Image(l.w, l.h);
-    img.src = new URL(l.src, SITE).href;
+    const src = new URL(l.src, SITE).href;
     img.alt = '';
     img.decoding = 'async';
     img.draggable = false;
     img.className = `guitar__layer guitar__layer--${l.name}`;
     img.style.cssText = `left:${(l.x / m.canvas.w) * 100}%;top:${(l.y / m.canvas.h) * 100}%;width:${(l.w / m.canvas.w) * 100}%;--z:${l.z}`;
-    (l.name === 'back' ? flipper : front).append(img);
+    if (l.name === 'back') {
+      loadBack = () => { if (!img.src) img.src = src; };
+      flipper.append(img);
+    } else {
+      if (l.name === 'body') img.fetchPriority = 'high';
+      img.src = src;
+      front.append(img);
+    }
   }
+  if ('requestIdleCallback' in window) requestIdleCallback(() => loadBack(), { timeout: 3000 });
+  else setTimeout(() => loadBack(), 2000);
 
   let flipped = false;
   /** Screen point -> the upright frame of .guitar__lay (inverse of its 90 deg turn; tilt ignored). */
@@ -58,6 +70,7 @@ export async function createDomGuitar(slot) {
   slot.append(root);
 
   const flip = () => {
+    loadBack();
     flipped = !flipped;
     root.classList.toggle('is-flipped', flipped);
   };

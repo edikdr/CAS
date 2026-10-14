@@ -27,7 +27,9 @@
   background:
     radial-gradient(140% 48% at 50% 0%, rgb(var(--c-light) / 0.09), transparent 70%),
     radial-gradient(70% 30% at 50% 22%, rgb(var(--c-light) / 0.06), transparent 75%);
+  transition: opacity var(--m-switch-on) linear;
 }
+[data-lights="off"] .layer--wall::after { opacity: 0; transition-duration: var(--m-switch-off); }
 
 .layer--collage { z-index: var(--z-collage); }
 .layer--garland { z-index: var(--z-garland); pointer-events: none; }
@@ -38,9 +40,19 @@
 .layer--ui > * { pointer-events: auto; }
 
 /* ---- string lights (built by core/light-rig.js) ---------------------------------------- */
-/* Below the guitar: light on the wall, wires, unlit plastic stars. All static: switching the
-   lights never repaints this (the room shade above does the dimming). */
+/* Below the guitar: light on the wall (its own svg, only the garland band: a small layer when
+   it fades), wires, unlit plastic stars (always drawn; the lit ones sit above the guitar). */
 .garland { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.garland__light {
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%;
+  height: calc(min(55vw, 42dvh) * 1.6);
+  overflow: hidden;
+  transition: opacity var(--m-switch-on) linear;
+  will-change: opacity;   /* own layer: the blur is painted once, never during a switch */
+}
+[data-lights="off"] .garland__light { opacity: 0; transition-duration: var(--m-switch-off); }
 .garland__wire { fill: none; stroke: var(--c-wire); stroke-width: 1.2; }
 .garland__stem { stroke: var(--c-wire); stroke-width: 1.4; }
 .garland__star {
@@ -53,9 +65,9 @@
 .garland__pool { fill: rgb(var(--c-light) / 0.24); }
 .garland__hot { fill: rgb(var(--c-light) / 0.3); }
 
-/* Above the guitar. Switched off, the lights keep 25% of their light (tokens: --light-dim):
-   the shade dims everything they light, the bloom and the lit stars dim with it. Three opacity
-   changes on composited layers; the shade is a solid colour (no texture to paint). */
+/* Above the guitar. Switched off, the garland goes dark (bloom and lit stars fade out) and the
+   shade takes the room to 25% of its light (tokens: --room-dim). Opacity changes on composited
+   layers; the shade is a solid colour (no texture to paint). */
 .layer--glow::before {
   content: "";
   position: absolute;
@@ -65,7 +77,7 @@
   transition: opacity var(--m-switch-on) linear;
 }
 [data-lights="off"] .layer--glow::before {
-  opacity: calc(1 - var(--light-dim));
+  opacity: calc(1 - var(--room-dim));
   transition-duration: var(--m-switch-off);
 }
 
@@ -78,8 +90,8 @@
 }
 .glow__bloom, .glow__group, .glow__pulse { position: absolute; inset: 0; }
 .glow__bloom, .glow__stars { transition: opacity var(--m-switch-on) linear; }
-[data-lights="off"] .glow__bloom { opacity: var(--light-dim); transition-duration: var(--m-switch-off); }
-[data-lights="off"] .glow__stars { opacity: var(--light-dim-star); transition-duration: var(--m-switch-off); }
+[data-lights="off"] .glow__bloom,
+[data-lights="off"] .glow__stars { opacity: 0; transition-duration: var(--m-switch-off); }
 .glow__group { opacity: 0.9; animation: breathe var(--m-breath-a) var(--ease-in-out) infinite alternate; }
 .glow__group:nth-child(2) { animation-duration: var(--m-breath-b); animation-delay: -1.7s; }
 .glow__group:nth-child(3) { animation-duration: var(--m-breath-c); animation-delay: -3.1s; }
@@ -318,7 +330,14 @@
   -webkit-backface-visibility: hidden;
   pointer-events: none;
 }
-.guitar__layer--back { transform: translateZ(-14px) rotateY(180deg); }
+/* the back is also visibility: hidden until the turn passes 90 deg (half the flip): it never
+   counts as painted while it faces away (it is not the page's largest paint) */
+.guitar__layer--back {
+  transform: translateZ(-14px) rotateY(180deg);
+  visibility: hidden;
+  transition: visibility 0s linear 450ms;
+}
+.guitar.is-flipped .guitar__layer--back { visibility: visible; }
 
 /* strings canvas (core/guitar/strings.js), in the guitar's upright frame; JS sets its box */
 .guitar__strings {
@@ -334,7 +353,7 @@
 [data-motion="off"] .guitar.is-flipped .guitar__flip { transition: none; transform: none; }
 [data-motion="off"] .guitar__front,
 [data-motion="off"] .guitar__layer--back { transition: opacity var(--m-base) linear; }
-[data-motion="off"] .guitar__layer--back { transform: none; opacity: 0; }
+[data-motion="off"] .guitar__layer--back { transform: none; opacity: 0; transition: opacity var(--m-base) linear, visibility 0s; }
 [data-motion="off"] .guitar.is-flipped .guitar__layer--back { opacity: 1; }
 [data-motion="off"] .guitar.is-flipped .guitar__front { opacity: 0; }
 

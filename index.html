@@ -9,13 +9,27 @@
   <meta name="theme-color" content="#0c0a0b">
   <title>sunniva - a room (private preview)</title>
   <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles/tokens.css">
   <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/scene.css">
+  <script src="core/boot.js"></script>
   <script type="module" src="core/app.js"></script>
 </head>
 <body>
-  <main id="room" class="room">
-    <h1 class="room__title">sunniva</h1>
-    <p class="room__note">private preview - the room is being built</p>
+  <main id="scene" class="scene" aria-label="sunniva's room">
+    <div class="layer layer--wall" aria-hidden="true"></div>
+    <div class="layer layer--collage" id="collage-slot"></div>
+    <div class="layer layer--garland" id="garland" aria-hidden="true"></div>
+    <div class="layer layer--guitar" id="guitar-slot"></div>
+    <div class="layer layer--glow" id="glow" aria-hidden="true"></div>
+    <canvas class="layer layer--film" id="film-slot" aria-hidden="true" hidden></canvas>
+    <div class="layer layer--ui" id="ui">
+      <h1 class="scene__title">sunniva</h1>
+      <div class="scene__controls" id="scene-controls">
+        <button class="control" id="toggle-lights" type="button" aria-pressed="true">Lights</button>
+        <button class="control" id="toggle-motion" type="button" aria-pressed="true">Motion</button>
+      </div>
+    </div>
   </main>
 </body>
 </html>

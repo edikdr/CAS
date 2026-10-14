@@ -1,0 +1,97 @@
+/*
+ * styles/scene.css - the room: layer stack, string lights, UI corner. Core-owned.
+ * Stage 2 styles its own slots (#collage-slot, #film-slot drawing) and themes via tokens.
+ * Only transform and opacity are animated here.
+ */
+
+.scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--c-room);
+}
+
+.layer { position: absolute; inset: 0; }
+
+/* wall: dark base + warm spill from the garlands (dims with the lights) */
+.layer--wall {
+  z-index: var(--z-wall);
+  background:
+    radial-gradient(90% 75% at 50% 115%, rgb(0 0 0 / 0.7), transparent 70%),
+    var(--c-wall);
+}
+.layer--wall::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(130% 55% at 50% 4%, rgb(var(--c-light) / 0.16), transparent 72%);
+  transition: opacity var(--m-slow) var(--ease-out);
+}
+[data-lights="off"] .layer--wall::after { opacity: 0.12; }
+
+.layer--collage { z-index: var(--z-collage); }
+.layer--garland { z-index: var(--z-garland); pointer-events: none; }
+.layer--guitar { z-index: var(--z-guitar); }
+.layer--glow { z-index: var(--z-glow); pointer-events: none; }
+.layer--film { z-index: var(--z-film); pointer-events: none; width: 100%; height: 100%; }
+.layer--ui { z-index: var(--z-ui); pointer-events: none; }
+.layer--ui > * { pointer-events: auto; }
+
+/* ---- string lights (built by core/light-rig.js) ---------------------------------------- */
+.garland { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.garland__wire { fill: none; stroke: var(--c-wire); stroke-width: 1.2; }
+.garland__stem { stroke: var(--c-wire); stroke-width: 1.2; }
+.garland__star { fill: var(--c-bulb); transition: fill var(--m-slow) var(--ease-out); }
+[data-lights="off"] .garland__star { fill: var(--c-bulb-off); }
+
+.glow { position: absolute; inset: 0; transition: opacity var(--m-slow) var(--ease-out); }
+[data-lights="off"] .glow { opacity: 0; }
+.glow__group, .glow__pulse { position: absolute; inset: 0; }
+.glow__group { opacity: 0.85; animation: breathe var(--m-breath-a) var(--ease-in-out) infinite alternate; }
+.glow__group:nth-child(2) { animation-duration: var(--m-breath-b); animation-delay: -1.7s; }
+.glow__group:nth-child(3) { animation-duration: var(--m-breath-c); animation-delay: -3.1s; }
+.glow__pulse { opacity: 0; }
+
+.glow__halo {
+  position: absolute;
+  left: 0; top: 0;
+  width: var(--glow-size);
+  height: var(--glow-size);
+  margin: calc(var(--glow-size) / -2) 0 0 calc(var(--glow-size) / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(var(--c-light) / 0.5) 0%, rgb(var(--c-light) / 0.16) 32%, rgb(var(--c-light) / 0) 70%);
+}
+.glow__pulse .glow__halo {
+  background: radial-gradient(circle, rgb(var(--c-light) / 0.55) 0%, rgb(var(--c-light) / 0) 45%);
+}
+
+@keyframes breathe {
+  from { opacity: 0.62; }
+  to { opacity: 1; }
+}
+
+[data-motion="off"] .glow__group { animation: none; opacity: 0.85; }
+
+/* ---- UI corner -------------------------------------------------------------------------- */
+.scene__title {
+  position: absolute;
+  left: max(var(--s-4), env(safe-area-inset-left));
+  bottom: max(var(--s-4), env(safe-area-inset-bottom));
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--t-xl);
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.scene__controls {
+  position: absolute;
+  right: max(var(--s-4), env(safe-area-inset-right));
+  bottom: max(var(--s-4), env(safe-area-inset-bottom));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  max-width: 60vw;
+}

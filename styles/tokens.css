@@ -1,0 +1,82 @@
+/*
+ * styles/tokens.css - design tokens (owned by core) + three theme slots (filled by Stage 2).
+ *
+ * Every colour, size and duration used by core CSS comes from here. A theme overrides token
+ * VALUES only (plus small, local overrides in its own file); it never renames tokens.
+ * Contrast: --c-ink and --c-ink-dim stay >= 4.5:1 on --c-room and --c-surface in every theme.
+ */
+
+:root {
+  /* colour */
+  --c-room: #0c0a0b;                 /* page, darkest corners */
+  --c-wall: #17110f;                 /* the wall behind everything */
+  --c-ink: #ece4de;                  /* text */
+  --c-ink-dim: #b8ada6;              /* secondary text */
+  --c-accent: #f2c38b;               /* focus rings, active controls */
+  --c-surface: rgb(22 17 16 / 0.9);  /* panels, modals, controls */
+  --c-line: rgb(236 228 222 / 0.18); /* hairlines, borders */
+  --c-light: 255 208 140;            /* bulb glow, RGB triplet: rgb(var(--c-light) / a) */
+  --c-bulb: #fff2d2;                 /* lit star */
+  --c-bulb-off: #6f675f;             /* unlit plastic star */
+  --c-wire: rgb(232 226 214 / 0.34);
+
+  /* type */
+  --font-body: Georgia, "Times New Roman", serif;
+  --font-display: var(--font-body);
+  --font-lyric: "Luxurious Script", var(--font-display);
+  --t-xs: 0.78rem;
+  --t-sm: 0.9rem;
+  --t-md: 1rem;
+  --t-lg: 1.3rem;
+  --t-xl: 1.9rem;
+  --t-xxl: clamp(2.4rem, 11vw, 4.5rem);
+  --t-lyric: clamp(1.9rem, 7.5vw, 3.4rem);
+
+  /* space and shape */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2.5rem;
+  --tap: 44px;                       /* minimum touch target */
+  --r-pill: 999px;
+  --r-panel: 14px;
+
+  /* motion (reduced motion: core CSS ignores these and fades only) */
+  --m-fast: 150ms;
+  --m-base: 300ms;
+  --m-slow: 700ms;
+  --m-breath-a: 4.4s;                /* string light "breathing", three groups out of phase */
+  --m-breath-b: 5.2s;
+  --m-breath-c: 5.9s;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* scene */
+  --glow-size: clamp(110px, 26vmin, 260px);
+  --star-size: clamp(14px, 3.4vmin, 26px);
+  --guitar-h: min(64svh, 118vw);    /* guitar height in the room */
+
+  /* layer order (CONTRACT: wall -> collage -> guitar -> light glow -> film -> UI) */
+  --z-wall: 0;
+  --z-collage: 1;
+  --z-garland: 2;
+  --z-guitar: 3;
+  --z-glow: 4;
+  --z-film: 5;
+  --z-ui: 6;
+}
+
+/* ---- theme slots: Stage 2 fills these (token values only) ---------------------------- */
+:root[data-theme="prologue"] {
+  /* soft pink, dreamy; headings in Luxurious Script; default lyric mode: font wipe */
+}
+
+:root[data-theme="link3"] {
+  /* cold teal/blue film look; headings in cut-out letters; default lyric mode: magazine */
+}
+
+:root[data-theme="plain"] {
+  /* calm and readable, one condensed sans; default lyric mode: font wipe */
+}

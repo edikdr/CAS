@@ -65,9 +65,9 @@
   /* scene */
   --glow-size: clamp(90px, 22vmin, 220px);  /* bloom around each bulb */
   --star-size: clamp(14px, 3.4vmin, 26px);
-  --guitar-h: min(60svh, 118vw);    /* guitar height in the room */
-  --track-guitar: translateY(-34dvh) scale(0.66);  /* guitar while the track sheet is open (phones) */
-  --track-guitar-wide: translateX(-18vw);          /* ... next to the side panel (>= 900 px) */
+  --guitar-len: min(94vw, 1080px, 150svh);   /* length of the (horizontal) guitar on screen */
+  --track-guitar: translateY(-22dvh) scale(0.92);            /* while the track sheet is open (phones) */
+  --track-guitar-wide: translate(-17vw, -7dvh) scale(0.72);  /* ... next to the side panel (>= 900 px) */
 
   /* layer order (CONTRACT: wall -> collage -> guitar -> light glow -> film -> UI) */
   --z-wall: 0;

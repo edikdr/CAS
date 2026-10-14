@@ -36,7 +36,8 @@ core/emitter.js     createEmitter() used by core services
 core/preview-player.js  PreviewPlayer: the single <audio>
 core/beat-clock.js  createBeatClock (pure, unit-tested); core/clock.js = the site's BeatClock instance
 core/capability.js  preferredGuitarMode(), orientation checks
-core/guitar/        guitar-stage.js (GuitarStage), dom-guitar.js (layers, flip), strings.js, tilt.js (shared
+core/guitar/        guitar-stage.js (GuitarStage), dom-guitar.js (layers, flip), strings.js (canvas strings),
+                    string-physics.js (damped springs, shared, unit-tested), tilt.js (shared
                     drag/tap/orientation input), gl-guitar.js (WebGL, dynamic import only)
 core/modal-manager.js  ModalManager on native <dialog>
 core/track-modal.js the 'track' modal shell (TrackModal.setContent for Stage 2)
@@ -89,6 +90,12 @@ vercel.json         build command, output dir, headers (CSP, noindex, cache)
 ## Look (owner request, after M4)
 Base tokens follow the Fantasy Prologue artwork and CD booklet: plum-black room (`--c-wall`, `--c-room`), the cover's pink script (`--c-accent`, outline `--c-accent-deep`), lavender booklet paper for every modal (`--c-paper`, `--c-paper-ink`, `--c-paper-dim`), silver star stickers and a rhinestone row (CSS only, `styles/modal.css`), Luxurious Script for titles and lyrics (`--font-display`, `--font-lyric`), bold caps labels (`.caps`, `--font-caps`). String lights are warm rose (`--c-light`): a static, blurred wash on the wall (SVG filter, drawn once) + a soft near-Gaussian bloom per bulb that breathes. The three theme slots still override these values.
 
+## Guitar and strings (owner request, after M5)
+- The guitar lies horizontally, headstock right, low E on top (DOM: `.guitar__lay` turns the upright photo frame 90 deg; GL: the model group is rotated). Size: `--guitar-len` in `styles/tokens.css` (length on screen); the guitar sets `--ratio` inline. A tap turns it over its long axis.
+- Strings ring with the music (BeatClock onsets -> `GuitarStage.pluck`) and can be touched: press near a string and drag - it follows a little, resists (soft limit), and swings back through rest when released; pull it past twice the limit and it slips off and rings; dragging across the strings plucks them in turn. Both guitars share `core/guitar/string-physics.js` (damped springs at a few Hz, rings 1-1.6 s; profile = triangle at the finger relaxing into a sine). Reduced motion: still.
+- DOM strings are drawn on a small canvas over the strings band (shadow, dark edge, body, highlight, dashed winding on the 4 bass strings, blur while fast), redrawn only while something moves. This is canvas paint, not a CSS transform/opacity animation: a bend at the finger cannot be expressed with transforms (CONTRACT section 4 note). GL strings are round-shaded ribbons with a soft shadow on the top, bent in the vertex shader.
+- `tilt.js` takes `grab = { down(e) -> bool, move, up }`: a press that starts on a string goes to the strings, anywhere else tilts (drag) or flips (tap).
+
 ## Scene layers and extension points
 Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspots) -> `#garland` (wires, stars) -> `#guitar-slot` -> `#glow` (halos) -> `#film-slot` (canvas) -> `#ui` (title, controls). `#garland`, `#glow`, `#film-slot` ignore pointer events.
 - Themes: fill the three `:root[data-theme=...]` blocks in `styles/tokens.css` with token values; `core/boot.js` applies the saved theme (storage key `theme`) before first paint; a switcher only has to set `document.documentElement.dataset.theme` and `storage.set('theme', name)`.
@@ -137,6 +144,11 @@ Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspo
 - Browser checks: 27/27 (`node tools/browser-check.mjs`), incl. GL idle main thread 0.11-0.18 % (render on demand) and the 3D/flat toggle.
 - Frame rate: headless Chromium only has software WebGL (SwiftShader): GL guitar ready ~1.2 s on a local server, 11 fps while plucking every 330 ms at 1440x900. That is CPU rasterization, not a GPU number; real desktop GPUs were not measured (owner check). The watchdog above protects slow real GPUs.
 
+## Measured (horizontal guitar + interactive strings)
+- `test/string-physics.test.mjs`: 5 tests (shape, swing and settle, strength, strum order, grab/resist/release with overshoot). All unit tests: 51/51. Browser checks: 27/27.
+- Pixel 7 emulation with The Shallow End playing (strings redrawn while they ring): 60 fps, also at CPU 4x (worst frame 17-33 ms). Onset -> event p90 15 ms.
+- 1440x900 DOM fallback in headless (software compositing): 31 fps; desktop normally uses the GL guitar. No real-device numbers yet.
+
 ## Known issues and notes for later milestones
 - `extract/receipt/js/receipt.js` creates two extra `new Audio()` for paper sounds (CONTRACT: one `<audio>`), loads them from `assets/sfx/` (files sit in `extract/receipt/sfx/`, 480 KB WAV, provenance unknown). Stage 2: play them through Web Audio buffers or drop them; register them first.
 - `data/lyrics/` is gitignored, so a Vercel deploy built from git has no lyrics. To show lyrics privately, build locally and deploy `dist/` (decided in M6).
@@ -144,6 +156,7 @@ Order (z, `styles/tokens.css`): wall -> `#collage-slot` (Stage 2 papers + hotspo
 - `data/lyrics/` stays out of git, so private deploys with lyrics must be built and deployed from a machine that has the files (M6 note).
 - Headless Chromium lacks AAC: real-browser checks transcode the previews; Safari/Chrome play the m4a.
 - If a future GLB uses Meshopt/Draco (WASM), CSP `script-src` needs `'wasm-unsafe-eval'`.
+- 3D only: the Meshy texture also contains the photo's strings; the shader strings are placed from the photo landmarks and sit up to a few px off the baked ones, so at close range some strings look doubled. Fix: paint the strings out of the GLB texture (or regenerate from a photo without visible strings).
 - The Meshy texture has artefacts: the soundhole is painted as a brown surface (no real hole) and the lower bout has a few dark patches; a side photo and a re-generation would improve it (and on own photos, for the public build).
 - Three.js 0.186 ships no minified build; vendored files are unminified (457 KB gzip). A minifying vendor step would roughly halve it - only if desktop load time matters.
 - Beat data is unverified (`docs/BEATS_REVIEW.md`); 5 tracks may be at half/double tempo. Strings pluck on onsets (tempo-independent), lights pulse on beats: a half/double-tempo track only changes the light rhythm.

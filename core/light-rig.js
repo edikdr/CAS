@@ -11,8 +11,10 @@
  *                                      to reveal dust/texture only near the lights (re-read it on 'layout')
  *   LightRig.on('layout' | 'toggle', fn)
  *
- * Cost: wires, stars and halos are laid out once and again only on resize. "Breathing" is a CSS
- * opacity animation on three halo groups (compositor only, zero JS per frame); pulse() is one
+ * Look: light on the wall is a static wash (wide strokes along the wires + a pool under each bulb,
+ * blurred once by an SVG filter); above the guitar each bulb has a soft bloom with a near-Gaussian
+ * falloff. Cost: everything is laid out once and again only on resize. "Breathing" is a CSS
+ * opacity animation on three bloom groups (compositor only, zero JS per frame); pulse() is one
  * Web Animation on opacity. Nothing here uses the rAF loop.
  *
  * Must not change: the API above and the element classes used by styles/scene.css.
@@ -90,6 +92,15 @@ function layout() {
   lights = [];
   svg.replaceChildren();
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+  // light on the wall: wide blurred strokes along each garland + a soft pool under every bulb,
+  // blurred once by an SVG filter (static; only its opacity changes when the lights switch)
+  const blur = svgEl('filter', { id: 'garland-soften', x: '-30%', y: '-80%', width: '160%', height: '260%' });
+  blur.append(svgEl('feGaussianBlur', { stdDeviation: (band * 0.11).toFixed(1) }));
+  const defs = svgEl('defs', {});
+  defs.append(blur);
+  const wash = svgEl('g', { class: 'garland__wash', filter: 'url(#garland-soften)' });
+  const wires = [];
   GARLANDS.forEach((g, gi) => {
     const attach = g.lights.map(([nx, ny], i) => {
       const x = nx * width;
@@ -97,11 +108,16 @@ function layout() {
       lights.push({ x, y, garland: gi, index: i });
       return { x, y: y - stem };
     });
+    wash.append(svgEl('path', { class: 'garland__spill', d: curve(attach.map((p) => ({ x: p.x, y: p.y + band * 0.08 }))), 'stroke-width': (band * 0.22).toFixed(1) }));
     for (let w = 0; w < g.wires; w++) {
       const shifted = attach.map((pt) => ({ x: pt.x + w * 3, y: pt.y - w * 2.5 }));
-      svg.append(svgEl('path', { class: 'garland__wire', d: curve(shifted) }));
+      wires.push(svgEl('path', { class: 'garland__wire', d: curve(shifted) }));
     }
   });
+  for (const l of lights) {
+    wash.append(svgEl('ellipse', { class: 'garland__pool', cx: l.x.toFixed(1), cy: (l.y + band * 0.05).toFixed(1), rx: (band * 0.13).toFixed(1), ry: (band * 0.17).toFixed(1) }));
+  }
+  svg.append(defs, wash, ...wires);
   lights.forEach((l, i) => {
     svg.append(svgEl('line', { class: 'garland__stem', x1: l.x, y1: l.y - stem, x2: l.x, y2: l.y - star * 0.45 }));
     const tilt = ((i * 37) % 30) - 15;

@@ -1,6 +1,12 @@
 /*
- * styles/base.css - reset, typography and shared controls. Uses styles/tokens.css only.
+ * styles/base.css - reset, fonts, typography and shared controls. Uses styles/tokens.css only.
  */
+
+@font-face {
+  font-family: "Luxurious Script";
+  src: url(../assets/fonts/luxurious-script/luxurious-script-latin.woff2) format("woff2");
+  font-display: swap;
+}
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -28,7 +34,15 @@ button { font: inherit; color: inherit; }
   white-space: nowrap;
 }
 
-/* pill control: lights, motion, guitar mode, player buttons */
+/* bold caps label, like the type on the album post */
+.caps {
+  font-family: var(--font-caps);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* pill control on the dark room: lights, motion, guitar mode */
 .control {
   display: inline-flex;
   align-items: center;
@@ -39,16 +53,41 @@ button { font: inherit; color: inherit; }
   border: 1px solid var(--c-line);
   border-radius: var(--r-pill);
   background: var(--c-surface);
-  font-size: var(--t-sm);
+  font: 700 var(--t-xs)/1 var(--font-caps);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
   touch-action: manipulation;
 }
 
 .control[aria-pressed]::before {
   content: "";
-  width: 0.55em; height: 0.55em;
+  width: 0.7em; height: 0.7em;
   border-radius: 50%;
   border: 1px solid var(--c-ink-dim);
 }
 
-.control[aria-pressed="true"]::before { background: var(--c-accent); border-color: var(--c-accent); }
+.control[aria-pressed="true"]::before {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  box-shadow: 0 0 6px rgb(var(--c-light) / 0.8);
+}
+
+/* round icon button (close, play): 44 px target, centred SVG icon drawn with currentColor */
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--m-fast) linear, color var(--m-fast) linear;
+}
+.icon-button svg { width: 40%; height: 40%; display: block; }
+.icon-button--solid { border-color: transparent; }

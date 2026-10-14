@@ -11,7 +11,7 @@ Nothing goes public until she says yes. Build for a private link first, public l
 - **Stack:** vanilla HTML, CSS and ES modules. No framework. No runtime bundler. Static output, deployed on Vercel. Node is allowed for tooling only (validators, asset scripts, budget checks), as devDependencies.
 - **Three.js:** vendored in the repo at a pinned version (no CDN), loaded with dynamic `import()` **only** on the desktop WebGL path. Mobile never downloads it.
 - **No third-party requests on page load.** Fonts and libraries are self-hosted. These load **only after an explicit user action** (click/tap): Apple preview audio, Apple artwork, the Bandcamp iframe. (Reason: GDPR - the owner is in Germany - and speed.)
-- **No analytics, no cookies.** `localStorage` only through one safe wrapper (try/catch, works when blocked) for: theme, lyric mode, lights on/off, guitar mode, quiz bests.
+- **No analytics, no cookies.** `localStorage` only through one safe wrapper (try/catch, works when blocked) for: theme, lyric mode, lights on/off, motion on/off, guitar mode, preview volume, quiz bests.
 - **Language:** code, comments, commit messages and docs in English. Talk to the human in **Russian**, short and direct.
 - **Fonts:** only SIL OFL fonts, with `OFL.txt` next to each font file, served as subset `.woff2`.
 

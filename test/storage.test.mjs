@@ -21,8 +21,8 @@ test('round-trips JSON under a namespaced key', () => {
 
 test('unknown keys are a programming error', () => {
   const s = createStorage(mapBackend());
-  assert.throws(() => s.set('volume', 1), TypeError);
-  assert.throws(() => s.get('volume'), TypeError);
+  assert.throws(() => s.set('speed', 1), TypeError);
+  assert.throws(() => s.get('speed'), TypeError);
   assert.ok(KEYS.includes('lights') && KEYS.includes('guitarMode') && KEYS.includes('lyricMode'));
 });
 

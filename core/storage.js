@@ -15,7 +15,7 @@
  * Must not change: method names, the key names (they are users' saved settings).
  */
 
-export const KEYS = Object.freeze(['theme', 'lyricMode', 'lights', 'guitarMode', 'motion', 'quizBest']);
+export const KEYS = Object.freeze(['theme', 'lyricMode', 'lights', 'guitarMode', 'motion', 'quizBest', 'volume']);
 const PREFIX = 'sunniva:';
 
 function probe() {

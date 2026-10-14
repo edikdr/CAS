@@ -13,21 +13,23 @@
 
 .layer { position: absolute; inset: 0; }
 
-/* wall: dark base + warm spill from the garlands (dims with the lights) */
+/* wall: plum-black base, darker floor, and a soft rose spill from the garlands (dims with them) */
 .layer--wall {
   z-index: var(--z-wall);
   background:
-    radial-gradient(90% 75% at 50% 115%, rgb(0 0 0 / 0.7), transparent 70%),
-    var(--c-wall);
+    radial-gradient(95% 70% at 50% 118%, rgb(0 0 0 / 0.72), transparent 70%),
+    linear-gradient(to bottom, #241722 0%, var(--c-wall) 45%, var(--c-room) 100%);
 }
 .layer--wall::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(130% 55% at 50% 4%, rgb(var(--c-light) / 0.16), transparent 72%);
+  background:
+    radial-gradient(140% 48% at 50% 0%, rgb(var(--c-light) / 0.09), transparent 70%),
+    radial-gradient(70% 30% at 50% 22%, rgb(var(--c-light) / 0.06), transparent 75%);
   transition: opacity var(--m-slow) var(--ease-out);
 }
-[data-lights="off"] .layer--wall::after { opacity: 0.12; }
+[data-lights="off"] .layer--wall::after { opacity: 0.1; }
 
 .layer--collage { z-index: var(--z-collage); }
 .layer--garland { z-index: var(--z-garland); pointer-events: none; }
@@ -44,8 +46,14 @@
 .garland__star { fill: var(--c-bulb); transition: fill var(--m-slow) var(--ease-out); }
 [data-lights="off"] .garland__star { fill: var(--c-bulb-off); }
 
-/* glow layers only cover the garland band (core/light-rig.js: band = min(55vw, 42vh)) + a halo:
-   four smaller composited layers instead of four full-screen ones */
+/* light falling on the wall: blurred once (static SVG filter), never animated */
+.garland__wash { transition: opacity var(--m-slow) var(--ease-out); }
+.garland__spill { fill: none; stroke: rgb(var(--c-light) / 0.1); stroke-linecap: round; }
+.garland__pool { fill: rgb(var(--c-light) / 0.2); }
+[data-lights="off"] .garland__wash { opacity: 0; }
+
+/* bloom around each bulb, above the guitar. The glow layers only cover the garland band
+   (core/light-rig.js: band = min(55vw, 42vh)) + a halo: small composited layers. */
 .glow {
   position: absolute;
   inset: 0 0 auto 0;
@@ -54,7 +62,7 @@
 }
 [data-lights="off"] .glow { opacity: 0; }
 .glow__group, .glow__pulse { position: absolute; inset: 0; }
-.glow__group { opacity: 0.85; animation: breathe var(--m-breath-a) var(--ease-in-out) infinite alternate; }
+.glow__group { opacity: 0.9; animation: breathe var(--m-breath-a) var(--ease-in-out) infinite alternate; }
 .glow__group:nth-child(2) { animation-duration: var(--m-breath-b); animation-delay: -1.7s; }
 .glow__group:nth-child(3) { animation-duration: var(--m-breath-c); animation-delay: -3.1s; }
 .glow__pulse { opacity: 0; }
@@ -66,30 +74,36 @@
   height: var(--glow-size);
   margin: calc(var(--glow-size) / -2) 0 0 calc(var(--glow-size) / -2);
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(var(--c-light) / 0.5) 0%, rgb(var(--c-light) / 0.16) 32%, rgb(var(--c-light) / 0) 70%);
+  /* close to a Gaussian falloff: no visible disc edge */
+  background: radial-gradient(closest-side,
+    rgb(var(--c-light) / 0.6) 0%, rgb(var(--c-light) / 0.4) 6%, rgb(var(--c-light) / 0.22) 16%,
+    rgb(var(--c-light) / 0.11) 30%, rgb(var(--c-light) / 0.045) 50%, rgb(var(--c-light) / 0.012) 72%,
+    rgb(var(--c-light) / 0) 100%);
 }
 .glow__pulse .glow__halo {
-  background: radial-gradient(circle, rgb(var(--c-light) / 0.55) 0%, rgb(var(--c-light) / 0) 45%);
+  background: radial-gradient(closest-side, rgb(var(--c-light) / 0.65) 0%, rgb(var(--c-light) / 0.22) 22%, rgb(var(--c-light) / 0) 62%);
 }
 
 @keyframes breathe {
-  from { opacity: 0.62; }
+  from { opacity: 0.7; }
   to { opacity: 1; }
 }
 
-[data-motion="off"] .glow__group { animation: none; opacity: 0.85; }
+[data-motion="off"] .glow__group { animation: none; opacity: 0.9; }
 
 /* ---- UI corner -------------------------------------------------------------------------- */
 .scene__title {
   position: absolute;
   left: max(var(--s-4), env(safe-area-inset-left));
-  bottom: max(var(--s-4), env(safe-area-inset-bottom));
+  bottom: max(var(--s-3), env(safe-area-inset-bottom));
   margin: 0;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: var(--t-xl);
-  letter-spacing: 0.04em;
+  font-size: var(--t-title);
   line-height: 1;
+  color: var(--c-accent);
+  -webkit-text-stroke: 0.6px var(--c-accent-deep);
+  text-shadow: 0 0 22px rgb(var(--c-light) / 0.35);
 }
 
 .scene__controls {

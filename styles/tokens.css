@@ -7,29 +7,38 @@
  */
 
 :root {
-  /* colour */
-  --c-room: #0c0a0b;                 /* page, darkest corners */
-  --c-wall: #17110f;                 /* the wall behind everything */
-  --c-ink: #ece4de;                  /* text */
-  --c-ink-dim: #b8ada6;              /* secondary text */
-  --c-accent: #f2c38b;               /* focus rings, active controls */
-  --c-surface: rgb(22 17 16 / 0.9);  /* panels, modals, controls */
-  --c-line: rgb(236 228 222 / 0.18); /* hairlines, borders */
-  --c-light: 255 208 140;            /* bulb glow, RGB triplet: rgb(var(--c-light) / a) */
-  --c-bulb: #fff2d2;                 /* lit star */
-  --c-bulb-off: #6f675f;             /* unlit plastic star */
-  --c-wire: rgb(232 226 214 / 0.34);
+  /* colour - taken from the Fantasy Prologue artwork and CD booklet: plum-black room, pink script,
+     lavender paper, silver stars, warm-rose string lights */
+  --c-room: #0e0a0e;                 /* page, darkest corners */
+  --c-wall: #1b1219;                 /* the wall behind everything (plum black) */
+  --c-ink: #f6eaf2;                  /* text on the dark room */
+  --c-ink-dim: #c9b5c4;              /* secondary text on the dark room */
+  --c-accent: #f0a6cf;               /* the cover's pink script: focus rings, active controls, title */
+  --c-accent-deep: #6e3c63;          /* outline of the pink script */
+  --c-surface: rgb(30 20 28 / 0.88); /* controls on the dark room */
+  --c-line: rgb(246 234 242 / 0.2);  /* hairlines on the dark room */
+  --c-paper: #efe5f1;                /* lavender booklet paper: modal panels */
+  --c-paper-ink: #24162a;            /* ink on paper */
+  --c-paper-dim: #6b5672;            /* secondary ink on paper (>= 4.5:1) */
+  --c-paper-line: #cdbcd6;           /* rules and tracks on paper */
+  --c-silver: #c9c7d6;               /* star stickers, rhinestones */
+  --c-light: 255 214 222;            /* bulb glow, RGB triplet: rgb(var(--c-light) / a) */
+  --c-bulb: #fff4f6;                 /* lit star */
+  --c-bulb-off: #6c6270;             /* unlit plastic star */
+  --c-wire: rgb(228 222 236 / 0.34);
 
   /* type */
   --font-body: Georgia, "Times New Roman", serif;
-  --font-display: var(--font-body);
-  --font-lyric: "Luxurious Script", var(--font-display);
+  --font-display: "Luxurious Script", var(--font-body);   /* script headings, like the cover */
+  --font-caps: "Helvetica Neue", Helvetica, Arial, sans-serif; /* bold caps labels, like the CD post */
+  --font-lyric: "Luxurious Script", var(--font-body);
   --t-xs: 0.78rem;
   --t-sm: 0.9rem;
   --t-md: 1rem;
   --t-lg: 1.3rem;
   --t-xl: 1.9rem;
   --t-xxl: clamp(2.4rem, 11vw, 4.5rem);
+  --t-title: clamp(2.8rem, 11vw, 4.2rem);  /* script titles (script faces need a larger size) */
   --t-lyric: clamp(1.9rem, 7.5vw, 3.4rem);
 
   /* space and shape */
@@ -54,7 +63,7 @@
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 
   /* scene */
-  --glow-size: clamp(110px, 26vmin, 260px);
+  --glow-size: clamp(90px, 22vmin, 220px);  /* bloom around each bulb */
   --star-size: clamp(14px, 3.4vmin, 26px);
   --guitar-h: min(60svh, 118vw);    /* guitar height in the room */
   --track-guitar: translateY(-34dvh) scale(0.66);  /* guitar while the track sheet is open (phones) */

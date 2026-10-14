@@ -5,7 +5,11 @@
  *   PreviewPlayer.mount(audioEl)     the <audio preload="none"> in index.html
  *   play(trackId) -> Promise         call from a click/tap handler; same id resumes, another id switches
  *   pause(), seek(sec), currentTime(), isPlaying(), trackId, audio
- *   on('play'|'pause'|'ended'|'timeupdate'|'seeked'|'track'|'error', fn)
+ *   setVolume(0..1), volume, setMuted(bool), muted, canSetVolume
+ *     volume is remembered (storage "volume"); iOS ignores <audio>.volume, so canSetVolume is
+ *     false there and only mute works (the hardware buttons set the level)
+ *   on('play'|'pause'|'ended'|'timeupdate'|'seeked'|'track'|'error'|'volume', fn)
+ *     'volume' detail: { volume, muted }
  *     'track' detail: trackId (fired when the source changes)
  *     'error' detail: { trackId, appleUrl } -> offer "Open in Apple Music"
  *
@@ -18,11 +22,14 @@
 
 import { createEmitter } from './emitter.js';
 import { DataStore } from './data-store.js';
+import { storage } from './storage.js';
 
 const events = createEmitter();
 const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).has('local');
 let audio = null;
 let current = null;
+let canSetVolume = false;
+const clamp01 = (v) => Math.max(0, Math.min(1, Number(v) || 0));
 
 export const PreviewPlayer = {
   mount(el) {
@@ -31,6 +38,11 @@ export const PreviewPlayer = {
     for (const type of ['play', 'pause', 'ended', 'timeupdate', 'seeked']) {
       audio.addEventListener(type, () => events.emit(type, current));
     }
+    audio.volume = 0.5;
+    canSetVolume = audio.volume === 0.5;
+    const saved = storage.get('volume');
+    audio.volume = canSetVolume && typeof saved === 'number' ? clamp01(saved) : 1;
+    audio.addEventListener('volumechange', () => events.emit('volume', { volume: audio.volume, muted: audio.muted }));
     audio.addEventListener('error', () => {
       if (current == null || !audio.getAttribute('src')) return;
       events.emit('error', { trackId: current, appleUrl: DataStore.track(current)?.appleUrl ?? null });
@@ -57,6 +69,16 @@ export const PreviewPlayer = {
   },
 
   pause() { audio?.pause(); },
+  setVolume(v) {
+    if (!audio || !canSetVolume) return;
+    audio.volume = clamp01(v);
+    audio.muted = audio.volume === 0;
+    storage.set('volume', audio.volume);
+  },
+  get volume() { return audio?.volume ?? 1; },
+  setMuted(on) { if (audio) audio.muted = !!on; },
+  get muted() { return !!audio?.muted; },
+  get canSetVolume() { return canSetVolume; },
   seek(sec) { if (audio) audio.currentTime = Math.max(0, Number(sec) || 0); },
   currentTime: () => audio?.currentTime ?? 0,
   isPlaying: () => !!audio && !audio.paused && !audio.ended,

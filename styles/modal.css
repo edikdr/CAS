@@ -1,13 +1,9 @@
 /*
  * styles/modal.css - dialogs (core/modal-manager.js), the track window and the font lyric renderer.
  * Core-owned; Stage 2 styles its own modal bodies (.modal--about, .modal--quiz, ...).
+ * Look: a sheet of the lavender CD-booklet paper - script title, bold caps label, silver star
+ * stickers, a row of rhinestones like the jewel-case spine.
  */
-
-@font-face {
-  font-family: "Luxurious Script";
-  src: url(../assets/fonts/luxurious-script/luxurious-script-latin.woff2) format("woff2");
-  font-display: swap;
-}
 
 .modal {
   border: 0;
@@ -17,11 +13,11 @@
   height: 100dvh;
   max-width: none;
   max-height: none;
-  color: var(--c-ink);
+  color: var(--c-paper-ink);
   background: transparent;
 }
 .modal[open] { display: grid; place-items: center; }
-.modal::backdrop { background: rgb(8 6 6 / 0.62); }
+.modal::backdrop { background: rgb(14 8 14 / 0.6); }
 
 .modal__panel {
   position: relative;
@@ -29,37 +25,67 @@
   max-height: 86dvh;
   overflow: auto;
   overscroll-behavior: contain;
-  padding: var(--s-5);
-  border: 1px solid var(--c-line);
-  border-radius: var(--r-panel);
-  background: var(--c-surface);
+  padding: var(--s-6) var(--s-5) var(--s-5);
+  border-radius: 6px;
+  color: var(--c-paper-ink);
+  background:
+    radial-gradient(120% 80% at 15% 0%, rgb(255 255 255 / 0.55), transparent 60%),
+    var(--c-paper);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.35) inset;
+}
+.modal__panel :focus-visible { outline-color: var(--c-accent-deep); }
+
+/* rhinestone row along the top edge, like the jewel-case spine */
+.modal__panel::before {
+  content: "";
+  position: absolute;
+  left: var(--s-4);
+  right: var(--s-4);
+  top: 10px;
+  height: 7px;
+  background: radial-gradient(circle at 3.5px 3.5px, #fbfaff 0 1.2px, var(--c-silver) 1.7px 2.7px, #8f8aa2 3px, transparent 3.4px) 0 0 / 10px 7px repeat-x;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* silver star stickers in the corner, like the booklet */
+.modal__panel::after {
+  content: "";
+  position: absolute;
+  right: var(--s-4);
+  bottom: var(--s-3);
+  width: 64px;
+  height: 52px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 52'%3E%3Cg fill='%23dcdae6' stroke='%23a7a3b8' stroke-width='.8'%3E%3Cpath d='M22 6l3.1 7.6 8.2.6-6.3 5.3 2 8-7-4.4-7 4.4 2-8-6.3-5.3 8.2-.6z'/%3E%3Cpath d='M47 22l2.3 5.5 5.9.5-4.5 3.8 1.4 5.7-5.1-3.1-5.1 3.1 1.4-5.7-4.5-3.8 5.9-.5z'/%3E%3Cpath d='M15 34l1.6 3.9 4.2.3-3.2 2.7 1 4.1-3.6-2.2-3.6 2.2 1-4.1-3.2-2.7 4.2-.3z'/%3E%3C/g%3E%3C/svg%3E") no-repeat center / contain;
+  opacity: 0.9;
+  pointer-events: none;
 }
 
 .modal__close {
   position: absolute;
-  top: var(--s-2);
-  right: var(--s-2);
-  padding: 0;
-  font-size: var(--t-lg);
-  line-height: 1;
+  top: var(--s-5);
+  right: var(--s-4);
+  color: var(--c-paper-ink);
 }
+.modal__close:hover { background: rgb(36 22 42 / 0.08); }
 
 .modal__title {
-  margin: 0 calc(var(--tap) + var(--s-2)) var(--s-3) 0;
+  margin: 0 calc(var(--tap) + var(--s-2)) 0 0;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: var(--t-xl);
-  line-height: 1.15;
+  font-size: var(--t-title);
+  line-height: 1.05;
+  color: var(--c-paper-ink);
 }
 
 /* ---- track window: bottom sheet on phones, side panel on wide screens ------------------- */
-.modal--track::backdrop { background: linear-gradient(to top, rgb(8 6 6 / 0.55), rgb(8 6 6 / 0) 70%); }
+.modal--track::backdrop { background: linear-gradient(to top, rgb(14 8 14 / 0.6), rgb(14 8 14 / 0) 70%); }
 .modal--track[open] { place-items: end center; }
 .modal--track .modal__panel {
   width: 100%;
   max-width: 640px;
-  max-height: 54dvh;
-  border-radius: var(--r-panel) var(--r-panel) 0 0;
+  max-height: 58dvh;
+  border-radius: 10px 10px 0 0;
   padding-bottom: calc(var(--s-5) + env(safe-area-inset-bottom));
 }
 
@@ -68,28 +94,91 @@
 
 @media (min-width: 900px) {
   .modal--track[open] { place-items: center end; padding-right: 4vw; }
-  .modal--track::backdrop { background: linear-gradient(to left, rgb(8 6 6 / 0.55), rgb(8 6 6 / 0) 60%); }
-  .modal--track .modal__panel { width: min(440px, 38vw); max-height: 84dvh; border-radius: var(--r-panel); }
+  .modal--track::backdrop { background: linear-gradient(to left, rgb(14 8 14 / 0.6), rgb(14 8 14 / 0) 60%); }
+  .modal--track .modal__panel { width: min(460px, 38vw); max-height: 86dvh; border-radius: 8px; }
   .track-open .layer--guitar { transform: var(--track-guitar-wide); }
 }
 
 [data-motion="off"] .layer--guitar { transition: none; }
 
-.track__kicker { margin: 0 0 var(--s-1); color: var(--c-ink-dim); font-size: var(--t-sm); }
-.track__note { margin: var(--s-3) 0; color: var(--c-ink-dim); font-style: italic; }
-.track__error { margin: var(--s-3) 0 0; color: var(--c-ink-dim); font-size: var(--t-sm); }
-.track__error a { color: var(--c-accent); }
+.track__kicker { margin: var(--s-1) 0 0; color: var(--c-paper-dim); font-size: var(--t-xs); }
+.track__note { margin: var(--s-4) 0; color: var(--c-paper-dim); font-style: italic; }
+.track__error { margin: var(--s-3) 0 0; color: var(--c-paper-dim); font-size: var(--t-sm); }
+.track__error a { color: var(--c-accent-deep); font-weight: 700; }
 
+/* player: [play] [seek + times] / [mute] [volume] */
 .track__player {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  gap: var(--s-3);
+  column-gap: var(--s-3);
   margin-top: var(--s-3);
 }
-.track__play { min-width: 9.5em; justify-content: center; }
-.track__seek { width: 100%; min-height: var(--tap); accent-color: var(--c-accent); }
-.track__time { font-size: var(--t-xs); color: var(--c-ink-dim); font-variant-numeric: tabular-nums; }
+.track__play {
+  width: 56px;
+  height: 56px;
+  color: var(--c-paper);
+  background: var(--c-paper-ink);
+}
+.track__play:hover { background: var(--c-accent-deep); }
+.track__play svg { width: 34%; height: 34%; }
+.track__times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -6px;
+  color: var(--c-paper-dim);
+  font: 700 var(--t-xs)/1 var(--font-caps);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+.track__sound {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+  max-width: 260px;
+}
+.track__mute { width: 36px; height: 36px; border-color: transparent; color: var(--c-paper-dim); }
+.track__mute svg { width: 62%; height: 62%; }
+/* 36 px visual, 44 px touch target */
+.track__mute::after { content: ""; position: absolute; inset: -4px; }
+.track__mute { position: relative; }
+
+/* range inputs on paper: thin rule, pink fill up to --p, ink thumb */
+.range {
+  --p: 0%;
+  width: 100%;
+  height: var(--tap);
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--c-accent) var(--p), var(--c-paper-line) var(--p));
+}
+.range::-moz-range-track { height: 4px; border-radius: 2px; background: var(--c-paper-line); }
+.range::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--c-accent); }
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--c-paper);
+  background: var(--c-paper-ink);
+  box-shadow: 0 0 0 1px var(--c-paper-ink);
+}
+.range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--c-paper);
+  background: var(--c-paper-ink);
+}
 
 /* ---- lyric region (core/lyrics/font-wipe-renderer.js) ------------------------------------ */
 .track__lyrics { position: relative; min-height: calc(var(--t-lyric) * 2.7); margin: var(--s-2) 0; }
@@ -105,7 +194,7 @@
   font-family: var(--font-lyric);
   font-size: var(--t-lyric);
   line-height: 1.15;
-  color: var(--c-ink);
+  color: var(--c-paper-ink);
 }
 .lyric__words { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; }
 .lyric__word { display: inline-block; margin: 0 0.12em; }

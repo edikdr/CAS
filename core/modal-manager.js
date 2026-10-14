@@ -24,6 +24,7 @@
 import { createEmitter } from './emitter.js';
 import { PreviewPlayer } from './preview-player.js';
 
+const CLOSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const kinds = new Map();
 const stack = [];
 const events = createEmitter();
@@ -70,7 +71,7 @@ export const ModalManager = {
     const dialog = document.createElement('dialog');
     dialog.className = `modal modal--${kind}${def.className ? ` ${def.className}` : ''}`;
     dialog.setAttribute('aria-labelledby', `modal-title-${id}`);
-    dialog.innerHTML = `<div class="modal__panel"><button class="modal__close control" type="button" aria-label="Close">×</button><h2 class="modal__title" id="modal-title-${id}"></h2><div class="modal__body"></div></div>`;
+    dialog.innerHTML = `<div class="modal__panel"><button class="modal__close icon-button" type="button" aria-label="Close">${CLOSE_ICON}</button><h2 class="modal__title" id="modal-title-${id}"></h2><div class="modal__body"></div></div>`;
     const entry = { id, kind, payload, dialog, opener: document.activeElement, cleanup: null };
     const api = {
       close: requestClose,

@@ -22,23 +22,37 @@ import { PreviewPlayer } from './preview-player.js';
 const NO_LYRICS = 'Lyrics are not shown in this preview.';
 let contentRenderer = null;
 const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const ICON = {
+  play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h4v15H6zM14 4.5h4v15h-4z" fill="currentColor"/></svg>',
+  sound: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.2h3.8L12 5v14l-4.7-4.2H3.5z" fill="currentColor"/><path d="M15.3 8.6a4.8 4.8 0 0 1 0 6.8M17.9 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  muted: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 9.2h3.8L12 5v14l-4.7-4.2H3.5z" fill="currentColor"/><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+};
 
 function render(body, payload, api) {
   body.innerHTML = `
-    <p class="track__kicker"></p>
+    <p class="track__kicker caps"></p>
     <div class="track__lyrics"></div>
     <p class="track__note" hidden></p>
     <div class="track__player">
-      <button class="control track__play" type="button">Play preview</button>
-      <input class="track__seek" type="range" min="0" max="30" step="0.1" value="0" aria-label="Position in the preview">
-      <span class="track__time" aria-hidden="true">0:00 / 0:30</span>
+      <button class="icon-button icon-button--solid track__play" type="button" aria-label="Play preview">${ICON.play}</button>
+      <div class="track__bar">
+        <input class="range track__seek" type="range" min="0" max="30" step="0.1" value="0" aria-label="Position in the preview">
+        <div class="track__times" aria-hidden="true"><span class="track__now">0:00</span><span>0:30</span></div>
+      </div>
+    </div>
+    <div class="track__sound">
+      <button class="icon-button track__mute" type="button" aria-label="Mute" aria-pressed="false">${ICON.sound}</button>
+      <input class="range track__volume" type="range" min="0" max="1" step="0.05" aria-label="Volume">
     </div>
     <p class="track__error" role="status" hidden>The preview could not be played. <a target="_blank" rel="noopener noreferrer">Open in Apple Music</a></p>
     <div class="track__content"></div>`;
   const $ = (sel) => body.querySelector(sel);
   const playBtn = $('.track__play');
   const seek = $('.track__seek');
-  const timeEl = $('.track__time');
+  const nowEl = $('.track__now');
+  const muteBtn = $('.track__mute');
+  const volume = $('.track__volume');
   const lyricsHost = $('.track__lyrics');
   const slots = { kicker: $('.track__kicker'), note: $('.track__note'), content: $('.track__content') };
   const off = [];
@@ -46,14 +60,29 @@ function render(body, payload, api) {
   let detachLyrics = null;
   let detachContent = null;
   let token = 0;
+  let wasPlaying = null;
 
   const mine = () => PreviewPlayer.trackId === id;
   const paintPlayer = () => {
     const playing = mine() && PreviewPlayer.isPlaying();
-    playBtn.textContent = playing ? 'Pause preview' : 'Play preview';
+    if (playing !== wasPlaying) {
+      wasPlaying = playing;
+      playBtn.innerHTML = playing ? ICON.pause : ICON.play;
+      playBtn.setAttribute('aria-label', playing ? 'Pause preview' : 'Play preview');
+    }
     const t = mine() ? PreviewPlayer.currentTime() : 0;
     seek.value = String(t);
-    timeEl.textContent = `${fmt(t)} / 0:30`;
+    seek.style.setProperty('--p', `${(t / 30) * 100}%`);
+    nowEl.textContent = fmt(t);
+  };
+  const paintSound = () => {
+    const muted = PreviewPlayer.muted;
+    muteBtn.innerHTML = muted ? ICON.muted : ICON.sound;
+    muteBtn.setAttribute('aria-pressed', String(muted));
+    muteBtn.setAttribute('aria-label', muted ? 'Unmute' : 'Mute');
+    const v = muted ? 0 : PreviewPlayer.volume;
+    volume.value = String(v);
+    volume.style.setProperty('--p', `${v * 100}%`);
   };
 
   async function showLyrics(trackId, my) {
@@ -100,6 +129,11 @@ function render(body, payload, api) {
 
   playBtn.addEventListener('click', play);
   seek.addEventListener('input', () => { if (mine()) PreviewPlayer.seek(Number(seek.value)); });
+  muteBtn.addEventListener('click', () => PreviewPlayer.setMuted(!PreviewPlayer.muted));
+  volume.addEventListener('input', () => PreviewPlayer.setVolume(Number(volume.value)));
+  volume.hidden = !PreviewPlayer.canSetVolume; // iOS: hardware buttons set the level, mute still works
+  off.push(PreviewPlayer.on('volume', paintSound));
+  paintSound();
   for (const type of ['play', 'pause', 'ended', 'timeupdate', 'seeked', 'track']) off.push(PreviewPlayer.on(type, paintPlayer));
   off.push(PreviewPlayer.on('error', (e) => { if (e.trackId === id) $('.track__error').hidden = false; }));
 

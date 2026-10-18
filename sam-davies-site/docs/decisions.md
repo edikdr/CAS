@@ -153,3 +153,14 @@ UI did not, re-adds it if removed).
 of the previews (tracks.json patched in the test only). Real `.m4a` playback is therefore **not covered
 by e2e**; the player refuses an `.m4a` source when `canPlayType('audio/mp4')` is empty and announces
 the error instead of failing silently.
+
+## Owner feedback during the run
+
+**D-033 · Lyrics modal has NO opaque panel (owner, 2026-10-18).** "On a PC, without these blue blocks,
+there should be the entire background and the rest of the video." The modal panel is transparent and
+full-viewport; the backdrop is a light vignette (max alpha 0.72 at the far edges, 0.18 in the centre);
+`#main`/`#footer` fade out (`visibility:hidden`, layout kept, scroll untouched) so only the scroll-story
+stage — the video frame, or the end frame after the video — sits behind the lyrics. Lyric text gets a
+dark halo for legibility on light frames. Desktop: the content column is ≤ 960 px and the empty sides
+are backdrop (click = close). Asserted in e2e (transparent panel, page hidden, stage visible). The UI
+layer must keep this (docs/contracts.md).

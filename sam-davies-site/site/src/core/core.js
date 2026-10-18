@@ -58,9 +58,9 @@ function bindSkeleton() {
 
 /** The "unofficial fan concept" notice must always be there; UI may render its own
  *  element carrying [data-sd-notice] — core only adds one when it is missing. */
-function ensureNotice() {
+function ensureNotice(config) {
   const footer = $('#footer');
-  if (!footer) return;
+  if (!footer || config.features?.conceptLabel === false) return; // the label stays until the artist signs off
   const add = () => {
     if (footer.querySelector('[data-sd-notice]')) return;
     const p = document.createElement('p');
@@ -98,7 +98,7 @@ async function boot() {
   lyrics.init({ data: SD.data, config, build });
   island.init();
   sfx.init({ config, build });
-  ensureNotice();
+  ensureNotice(config);
   i18n.apply();
   root.dataset.core = 'ready';
 }

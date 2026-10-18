@@ -1,0 +1,2 @@
+# Never upload raw Scribe output (word JSON); the site only needs the .lrc files.
+data/private-lyrics/*.json

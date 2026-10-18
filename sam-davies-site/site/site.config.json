@@ -24,7 +24,7 @@
       "smallMaxWidth": 820
     }
   },
-  "features": { "lyrics": true, "sfx": false, "quiz": true, "indexable": false, "frameSequenceFallback": false },
+  "features": { "lyrics": true, "sfx": false, "quiz": true, "indexable": false, "conceptLabel": true, "frameSequenceFallback": false },
   "lyrics": { "lrclibFallback": false, "dir": "data/private-lyrics", "engine": "vendor/lyrics-engine/lyrics-engine.js" },
   "player": { "autoAdvance": false },
   "sfx": { "src": "media/sfx/ride-loop.mp3", "baseline": 0, "k": 0.0009, "max": 0.55, "decayMs": 250, "rateSpan": 0.12 },

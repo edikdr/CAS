@@ -147,6 +147,12 @@ module after core), `site/i18n/ui.{en,es,ca}.json` (start as `{}`), and the inne
 Use real `<button type="button">` elements for these hooks. Icons are yours to draw from
 `html[data-player]`; the baseline draws plain CSS icons you may override.
 
+### Owner requirement — lyrics modal over the video (do not undo)
+The lyrics modal must **not** be an opaque block. Keep `.modal__panel` transparent and the backdrop light
+so the scroll-story stage (video frame / end frame) stays visible behind the lyrics on every screen size;
+`html[data-modal="open"]` already hides `#main`/`#footer`. Style the words, bar and progress on top of the
+video (halo/shadow for legibility), not on a coloured card. See docs/decisions.md D-033.
+
 ### Modal / island behaviour you can design against
 - Open: `hidden` removed → two frames later `.is-open` is added (animate on `.modal.is-open`). Close: `.is-open`
   removed → `hidden` set after your transition ends (core waits for `transitionend`, max 600 ms).

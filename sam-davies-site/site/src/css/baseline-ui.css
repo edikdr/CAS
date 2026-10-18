@@ -65,6 +65,13 @@ html.sd-scroll-lock body {
   cursor: pointer;
 }
 #lang-switch button[aria-pressed="true"] { background: var(--c-cream); color: var(--c-night); }
+/* Narrow screens: the top-centre island would run under the switch, so the switch steps down
+   below the island while a preview is active (keeps every island button reachable). */
+@media (max-width: 720px) {
+  #lang-switch { transition: top var(--dur-2) var(--ease-out); }
+  html:not([data-player="idle"]) #lang-switch,
+  html[data-modal="open"] #lang-switch { top: calc(env(safe-area-inset-top, 0px) + 76px); }
+}
 
 /* Buttons wired by core: plain, CSS-drawn icons from html[data-player] */
 [data-player-toggle], [data-player-stop], .modal__close {
@@ -122,8 +129,11 @@ html[data-player="playing"] [data-player-toggle]::before { /* pause bars */
 .island {
   position: fixed;
   top: calc(env(safe-area-inset-top, 0px) + 10px);
-  left: 50%;
+  left: 0;
+  right: 0;
   z-index: var(--z-island);
+  width: max-content;
+  margin-inline: auto; /* top-centre without left:50%, which would halve the shrink-to-fit width */
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -134,11 +144,12 @@ html[data-player="playing"] [data-player-toggle]::before { /* pause bars */
   border: 1px solid rgb(242 230 201 / 0.25);
   border-radius: var(--radius-pill);
   opacity: 0;
-  transform: translate(-50%, -12px);
+  transform: translateY(-12px);
   transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
 }
-.island.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.island.is-visible { opacity: 1; transform: none; }
 .island__open {
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -167,42 +178,71 @@ html[data-player="playing"] [data-player-toggle]::before { /* pause bars */
   transform: scaleX(var(--prog, 0));
 }
 
-/* Modal root (behaviour-critical: fixed, full-viewport, own layer, no scroll chaining) */
+/* Modal root (behaviour-critical: fixed, full-viewport, own layer, no scroll chaining).
+   Owner requirement: NO opaque panel. The lyrics float over the scroll-story stage (video /
+   end frame stays visible); page content fades out underneath so only the background remains. */
 .modal {
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  display: grid;
-  place-items: center;
   opacity: 0;
   transition: opacity var(--dur-2) var(--ease-out);
 }
 .modal.is-open { opacity: 1; }
-.modal__backdrop { position: absolute; inset: 0; background: rgb(5 11 26 / 0.86); }
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  /* light vignette: keeps the stage visible, darkens the edges for the controls */
+  background: radial-gradient(120% 90% at 50% 50%, rgb(5 11 26 / 0.18) 0%, rgb(5 11 26 / 0.42) 60%, rgb(5 11 26 / 0.72) 100%);
+}
 .modal__panel {
   position: relative;
   display: flex;
   flex-direction: column;
-  width: min(100vw, 960px);
+  width: 100%;
   height: 100svh;
   max-height: 100svh;
   overflow: auto;
   overscroll-behavior: contain;
-  background: var(--c-night);
+  background: transparent;
   outline: none;
+  pointer-events: none; /* empty areas fall through to the backdrop (click = close) */
 }
-@media (min-width: 821px) { .modal__panel { height: min(90svh, 820px); border-radius: var(--radius-3); } }
+.modal__panel > * {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+}
+/* While a modal is open the page content is hidden (inert already); only the stage shows.
+   visibility keeps layout, so the scroll position is untouched. */
+#main, #footer { transition: opacity var(--dur-2) var(--ease-out), visibility 0s linear 0s; }
+html[data-modal="open"] #main,
+html[data-modal="open"] #footer {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--dur-2) var(--ease-out), visibility 0s linear var(--dur-2);
+}
 .modal__bar {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
   padding: calc(env(safe-area-inset-top, 0px) + var(--sp-3)) var(--sp-4) var(--sp-3);
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.6);
 }
+.modal__bar button { background: rgb(5 11 26 / 0.55); }
 .modal__cover { width: 48px; height: 48px; border-radius: var(--radius-1); object-fit: cover; }
 .modal__meta { flex: 1; min-width: 0; }
 .modal__meta h2 { margin: 0; font: 400 var(--fs-2) / 1 var(--font-display); text-transform: uppercase; }
 .modal__meta p { margin: 0; font-size: var(--fs-0); opacity: 0.8; }
-.modal__progress { height: 4px; margin: 0 var(--sp-4) calc(env(safe-area-inset-bottom, 0px) + var(--sp-4)); background: rgb(242 230 201 / 0.15); }
+.modal__panel > .modal__progress {
+  flex: none;
+  width: calc(100% - 2 * var(--sp-4));
+  max-width: calc(960px - 2 * var(--sp-4));
+  height: 4px;
+  margin: 0 auto calc(env(safe-area-inset-bottom, 0px) + var(--sp-4));
+  background: rgb(242 230 201 / 0.2);
+}
 .modal__progress span { display: block; height: 100%; background: var(--c-red); transform-origin: left; transform: scaleX(var(--prog, 0)); }
 
 /* Lyrics stage. .le-word is the engine's word hook (TZ §6); the core fallback renderer reuses it. */
@@ -221,13 +261,14 @@ html[data-player="playing"] [data-player-toggle]::before { /* pause bars */
   display: none;
   font: 400 var(--fs-5) / var(--lh-tight) var(--font-display);
   color: var(--c-red);
-  text-shadow: 0 0 16px rgb(0 0 0 / 0.45);
+  /* over live video: soft dark halo keeps the red legible on light frames */
+  text-shadow: 0 0 16px rgb(0 0 0 / 0.45), 0 2px 28px rgb(5 11 26 / 0.85);
   overflow-wrap: anywhere;
 }
 .sd-lyr__line.is-current { display: block; }
 .sd-lyr__line .le-word { display: inline-block; margin: 0 0.12em; opacity: 0.35; }
 .sd-lyr__line .le-word.is-sung { opacity: 1; }
-.sd-lyr__msg { font-size: var(--fs-1); color: var(--c-cream); text-align: center; }
+.sd-lyr__msg { font-size: var(--fs-1); color: var(--c-cream); text-align: center; text-shadow: 0 1px 8px rgb(0 0 0 / 0.7); }
 
 /* Sound toggle (P2, injected by core only when the loop file exists) */
 .sfx-toggle {
@@ -250,5 +291,5 @@ html[data-player="playing"] [data-player-toggle]::before { /* pause bars */
 .sd-notice { margin: 0; padding: var(--sp-4); font-size: var(--fs-0); color: var(--c-cream-dim); text-align: center; }
 
 @media (prefers-reduced-motion: reduce) {
-  .island, .modal, .story__stage video, .story__end { transition: none !important; }
+  .island, .modal, .story__stage video, .story__end, #main, #footer { transition: none !important; }
 }

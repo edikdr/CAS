@@ -1,14 +1,20 @@
 // Dev/test static server for site/ with HTTP Range support (video seeking needs it) and
-// the same Content-Types as vercel.json. Usage: node tools/serve.mjs [--port 4173] [--dir site]
+// the same Content-Types as vercel.json. Usage: node tools/serve.mjs [--port 4173] [--dir site] [--fixtures tests/fixtures]
+// --fixtures mounts a folder at /__fixture__/ (e2e only; never part of the deployed site).
 import http from 'node:http';
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { stat, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { args, ROOT } from './lib.mjs';
 
 const a = args();
 const dir = path.resolve(a.dir || path.join(ROOT, 'site'));
 const port = Number(a.port || process.env.PORT || 4173);
+const fixtures = a.fixtures ? path.resolve(a.fixtures) : null;
+// Apply vercel.json headers (CSP, nosniff, …) so local runs and e2e enforce production policy.
+const vercel = JSON.parse(await readFile(path.join(dir, 'vercel.json'), 'utf8').catch(() => '{"headers":[]}'));
+const rules = (vercel.headers || []).map((r) => ({ re: new RegExp(`^${r.source}$`), headers: r.headers }));
+const prodHeaders = (pathname) => Object.fromEntries(rules.filter((r) => r.re.test(pathname)).flatMap((r) => r.headers.map((h) => [h.key, h.value])));
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.lrc': 'text/plain; charset=utf-8',
@@ -20,13 +26,15 @@ const TYPES = {
 http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
-    let file = path.join(dir, decodeURIComponent(url.pathname));
-    if (!file.startsWith(dir)) { res.writeHead(403).end(); return; }
+    const pathname = decodeURIComponent(url.pathname);
+    const base = fixtures && pathname.startsWith('/__fixture__/') ? fixtures : dir;
+    let file = path.join(base, base === dir ? pathname : pathname.slice('/__fixture__'.length));
+    if (!file.startsWith(base)) { res.writeHead(403).end(); return; }
     let st = await stat(file).catch(() => null);
     if (st?.isDirectory()) { file = path.join(file, 'index.html'); st = await stat(file).catch(() => null); }
     if (!st) { res.writeHead(404, { 'Content-Type': 'text/plain' }).end('not found'); return; }
     const type = TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream';
-    const headers = { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-cache', 'X-Robots-Tag': 'noindex' };
+    const headers = { 'Content-Type': type, ...prodHeaders(pathname), 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-cache' };
     const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
     if (range) {
       let start = range[1] === '' ? st.size - Number(range[2]) : Number(range[1]);

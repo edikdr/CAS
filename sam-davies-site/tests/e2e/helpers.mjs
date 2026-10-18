@@ -1,5 +1,5 @@
-// Shared e2e setup. The test Chromium has no AAC/H.264 decoders, so previews are routed to an
-// Opus tone fixture (tracks.json is patched in flight) and the story uses the VP9 WebM variant.
+// Shared e2e setup. The test Chromium has no AAC/H.264 decoders, so previews point at an Opus tone
+// fixture served by the dev server (tracks.json is patched in flight) and the story uses the VP9 WebM variant.
 // Lyrics come from tests/fixtures/lyrics (neutral placeholder words), never from real lyrics.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -24,12 +24,11 @@ export async function setup(page, { lyrics = true } = {}) {
     const res = await route.fetch();
     const tracks = await res.json();
     for (const t of tracks) {
-      t.audio = `__fixture__/audio/${t.id}.webm`;
+      t.audio = `__fixture__/tone.webm?id=${t.id}`; // served with Range support by tools/serve.mjs --fixtures
       t.hasLyrics = Boolean(lyrics && FIX.lyr.includes(t.id));
     }
     await route.fulfill({ response: res, json: tracks });
   });
-  await page.route('**/__fixture__/audio/*', (route) => route.fulfill({ path: path.join(ROOT, 'tests/fixtures/tone.webm'), contentType: 'audio/webm' }));
   await page.route('**/data/private-lyrics/*.lrc', (route) => {
     const id = path.basename(new URL(route.request().url()).pathname, '.lrc');
     const f = path.join(ROOT, 'tests/fixtures/lyrics', `${id}.lrc`);

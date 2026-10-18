@@ -1,0 +1,254 @@
+/* Baseline UI — core-owned, FUNCTIONAL ONLY (TZ §6A): positioning, hidden, layers, scroll lock,
+   focus, reduced motion, and a plain readable look so the core is testable without the UI layer.
+   src/ui CSS (modal.css, island.css, lang.css) loads after this and may restyle anything EXCEPT
+   the rules marked "behaviour-critical". */
+
+/* behaviour-critical */
+[hidden] { display: none !important; }
+[inert] { pointer-events: none; }
+
+.sd-visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+:focus-visible { outline: 3px solid var(--c-ochre); outline-offset: 2px; }
+
+/* Skip link */
+.skip {
+  position: fixed;
+  top: var(--sp-2);
+  left: var(--sp-2);
+  z-index: var(--z-skip);
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--c-cream);
+  color: var(--c-night);
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+.skip:focus, .skip:focus-visible { transform: none; }
+
+/* Scroll lock (behaviour-critical). Body is fixed at -scrollY so iOS cannot scroll behind; the
+   exact position is restored on close. --sbw compensates the vanished scrollbar. */
+html.sd-scroll-lock { overflow: hidden; }
+html.sd-scroll-lock body {
+  position: fixed;
+  top: var(--sd-lock-top, 0);
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  padding-right: var(--sbw, 0);
+}
+
+/* Language switch */
+#lang-switch {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + var(--sp-2));
+  right: calc(env(safe-area-inset-right, 0px) + var(--sp-2) + var(--sbw, 0px));
+  z-index: var(--z-lang);
+  display: flex;
+  gap: var(--sp-1);
+}
+#lang-switch button {
+  min-width: 44px;
+  min-height: 44px;
+  font: 700 var(--fs-0) / 1 var(--font-body);
+  color: var(--c-cream);
+  background: rgb(10 22 51 / 0.8);
+  border: 1px solid rgb(242 230 201 / 0.4);
+  border-radius: var(--radius-1);
+  cursor: pointer;
+}
+#lang-switch button[aria-pressed="true"] { background: var(--c-cream); color: var(--c-night); }
+
+/* Buttons wired by core: plain, CSS-drawn icons from html[data-player] */
+[data-player-toggle], [data-player-stop], .modal__close {
+  position: relative;
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--c-cream);
+  background: transparent;
+  border: 1px solid rgb(242 230 201 / 0.4);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+[data-player-toggle]::before { /* play triangle */
+  content: "";
+  position: absolute; left: 50%; top: 50%;
+  border-style: solid;
+  border-width: 7px 0 7px 12px;
+  border-color: transparent transparent transparent currentColor;
+  transform: translate(-35%, -50%);
+}
+html[data-player="playing"] [data-player-toggle]::before { /* pause bars */
+  width: 12px; height: 14px;
+  border: 0;
+  border-left: 4px solid currentColor;
+  border-right: 4px solid currentColor;
+  transform: translate(-50%, -50%);
+}
+[data-player-stop]::before { /* × */
+  content: "";
+  position: absolute; left: 50%; top: 50%;
+  width: 16px; height: 2px;
+  background: currentColor;
+  box-shadow: none;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+[data-player-stop]::after {
+  content: "";
+  position: absolute; left: 50%; top: 50%;
+  width: 16px; height: 2px;
+  background: currentColor;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+.modal__close::before { /* chevron down: "close, music keeps playing" */
+  content: "";
+  position: absolute; left: 50%; top: 45%;
+  width: 12px; height: 12px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+.is-playing { outline: 2px solid var(--c-red); outline-offset: 2px; }
+
+/* Island (behaviour-critical: fixed top-centre, never takes focus on appear) */
+.island {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: 50%;
+  z-index: var(--z-island);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  max-width: min(92vw, 420px);
+  padding: var(--sp-1) var(--sp-2);
+  color: var(--c-cream);
+  background: rgb(5 11 26 / 0.92);
+  border: 1px solid rgb(242 230 201 / 0.25);
+  border-radius: var(--radius-pill);
+  opacity: 0;
+  transform: translate(-50%, -12px);
+  transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
+}
+.island.is-visible { opacity: 1; transform: translate(-50%, 0); }
+.island__open {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--sp-2) 0 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.island__cover { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none; }
+.island__text { display: grid; min-width: 0; line-height: 1.2; }
+.island__title, .island__artist { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.island__title { font-weight: 700; font-size: var(--fs-0); }
+.island__artist { font-size: 0.75rem; opacity: 0.8; }
+.island__eq { display: none; }
+.island::after { /* progress hairline */
+  content: "";
+  position: absolute; left: 12px; right: 12px; bottom: 2px;
+  height: 2px;
+  background: var(--c-red);
+  transform-origin: left;
+  transform: scaleX(var(--prog, 0));
+}
+
+/* Modal root (behaviour-critical: fixed, full-viewport, own layer, no scroll chaining) */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+.modal.is-open { opacity: 1; }
+.modal__backdrop { position: absolute; inset: 0; background: rgb(5 11 26 / 0.86); }
+.modal__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(100vw, 960px);
+  height: 100svh;
+  max-height: 100svh;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--c-night);
+  outline: none;
+}
+@media (min-width: 821px) { .modal__panel { height: min(90svh, 820px); border-radius: var(--radius-3); } }
+.modal__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: calc(env(safe-area-inset-top, 0px) + var(--sp-3)) var(--sp-4) var(--sp-3);
+}
+.modal__cover { width: 48px; height: 48px; border-radius: var(--radius-1); object-fit: cover; }
+.modal__meta { flex: 1; min-width: 0; }
+.modal__meta h2 { margin: 0; font: 400 var(--fs-2) / 1 var(--font-display); text-transform: uppercase; }
+.modal__meta p { margin: 0; font-size: var(--fs-0); opacity: 0.8; }
+.modal__progress { height: 4px; margin: 0 var(--sp-4) calc(env(safe-area-inset-bottom, 0px) + var(--sp-4)); background: rgb(242 230 201 / 0.15); }
+.modal__progress span { display: block; height: 100%; background: var(--c-red); transform-origin: left; transform: scaleX(var(--prog, 0)); }
+
+/* Lyrics stage. .le-word is the engine's word hook (TZ §6); the core fallback renderer reuses it. */
+.lyrics-stage {
+  position: relative;
+  flex: 1;
+  min-height: 50svh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+}
+.le-word { text-transform: uppercase; letter-spacing: -0.02em; line-height: 0.9; }
+.sd-lyr { width: 100%; margin: 0; padding: 0; list-style: none; text-align: center; }
+.sd-lyr__line {
+  display: none;
+  font: 400 var(--fs-5) / var(--lh-tight) var(--font-display);
+  color: var(--c-red);
+  text-shadow: 0 0 16px rgb(0 0 0 / 0.45);
+  overflow-wrap: anywhere;
+}
+.sd-lyr__line.is-current { display: block; }
+.sd-lyr__line .le-word { display: inline-block; margin: 0 0.12em; opacity: 0.35; }
+.sd-lyr__line .le-word.is-sung { opacity: 1; }
+.sd-lyr__msg { font-size: var(--fs-1); color: var(--c-cream); text-align: center; }
+
+/* Sound toggle (P2, injected by core only when the loop file exists) */
+.sfx-toggle {
+  position: fixed;
+  left: calc(env(safe-area-inset-left, 0px) + var(--sp-2));
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--sp-2));
+  z-index: var(--z-island);
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  color: var(--c-cream);
+  font: 700 var(--fs-0) / 1 var(--font-body);
+  background: rgb(10 22 51 / 0.85);
+  border: 1px solid rgb(242 230 201 / 0.4);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.sfx-toggle[aria-pressed="true"] { background: var(--c-cream); color: var(--c-night); }
+
+/* Unofficial notice (injected by core into #footer if the UI did not render one) */
+.sd-notice { margin: 0; padding: var(--sp-4); font-size: var(--fs-0); color: var(--c-cream-dim); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .island, .modal, .story__stage video, .story__end { transition: none !important; }
+}

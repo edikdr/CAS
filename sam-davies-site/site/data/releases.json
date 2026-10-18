@@ -1,0 +1,347 @@
+[
+  {
+    "id": "gliese-581-c",
+    "title": "Gliese 581 C (feat. LEÏTI & Sam Davies)",
+    "type": "ep",
+    "date": "2018-12-21",
+    "year": 2018,
+    "trackIds": [
+      "6802785024",
+      "6802785027",
+      "6802785031",
+      "6802785034",
+      "6802785036",
+      "6802785128"
+    ],
+    "cover": "media/covers/gliese-581-c-400.webp",
+    "cover800": "media/covers/gliese-581-c-800.webp",
+    "artistLine": "samxsen"
+  },
+  {
+    "id": "vuitres",
+    "title": "Vuitres",
+    "type": "single",
+    "date": "2018-12-21",
+    "year": 2018,
+    "trackIds": [
+      "1720829047"
+    ],
+    "cover": "media/covers/vuitres-400.webp",
+    "cover800": "media/covers/vuitres-800.webp",
+    "artistLine": "Sam Davies & LEÏTI"
+  },
+  {
+    "id": "wmp-wheres-my-payment",
+    "title": "WMP? (where's my payment) [feat. LEÏTI, Sam Davies & Bexnil]",
+    "type": "single",
+    "date": "2019-04-26",
+    "year": 2019,
+    "trackIds": [
+      "6802879909"
+    ],
+    "cover": "media/covers/wmp-wheres-my-payment-400.webp",
+    "cover800": "media/covers/wmp-wheres-my-payment-800.webp",
+    "artistLine": "samxsen"
+  },
+  {
+    "id": "clear-my-mind",
+    "title": "Clear My Mind",
+    "type": "single",
+    "date": "2020-07-24",
+    "year": 2020,
+    "trackIds": [
+      "1725562595"
+    ],
+    "cover": "media/covers/clear-my-mind-400.webp",
+    "cover800": "media/covers/clear-my-mind-800.webp",
+    "artistLine": "Sam Davies & iseekarlo"
+  },
+  {
+    "id": "feelings",
+    "title": "Feelings (feat. iseekarlo)",
+    "type": "single",
+    "date": "2020-10-23",
+    "year": 2020,
+    "trackIds": [
+      "6802478208"
+    ],
+    "cover": "media/covers/feelings-400.webp",
+    "cover800": "media/covers/feelings-800.webp",
+    "artistLine": "Cutemobb, LEÏTI & Sam Davies"
+  },
+  {
+    "id": "funprint",
+    "title": "Funprint",
+    "type": "album",
+    "date": "2020-12-18",
+    "year": 2020,
+    "trackIds": [
+      "1721006049",
+      "1721006050",
+      "1721006054",
+      "1721006055",
+      "1721006056",
+      "1721006148",
+      "1721006149"
+    ],
+    "cover": "media/covers/funprint-400.webp",
+    "cover800": "media/covers/funprint-800.webp",
+    "artistLine": "Sam Davies"
+  },
+  {
+    "id": "cruise-control",
+    "title": "Cruise Control",
+    "type": "ep",
+    "date": "2021-10-29",
+    "year": 2021,
+    "trackIds": [
+      "1590535782",
+      "1590535783",
+      "1590535784",
+      "1590535785",
+      "1590535786"
+    ],
+    "cover": "media/covers/cruise-control-400.webp",
+    "cover800": "media/covers/cruise-control-800.webp",
+    "artistLine": "Sam Davies"
+  },
+  {
+    "id": "cuenta-a-0",
+    "title": "Cuenta a 0",
+    "type": "single",
+    "date": "2022-08-04",
+    "year": 2022,
+    "trackIds": [
+      "1725562641"
+    ],
+    "cover": "media/covers/cuenta-a-0-400.webp",
+    "cover800": "media/covers/cuenta-a-0-800.webp",
+    "artistLine": "Sam Davies, LEÏTI & iseekarlo"
+  },
+  {
+    "id": "flor-de-loto",
+    "title": "Flor de Loto",
+    "type": "single",
+    "date": "2022-09-22",
+    "year": 2022,
+    "trackIds": [
+      "1725562685"
+    ],
+    "cover": "media/covers/flor-de-loto-400.webp",
+    "cover800": "media/covers/flor-de-loto-800.webp",
+    "artistLine": "Sam Davies, Young Wolf Beatz & Dave Crag"
+  },
+  {
+    "id": "me-faltas",
+    "title": "Me Faltas",
+    "type": "single",
+    "date": "2022-12-22",
+    "year": 2022,
+    "trackIds": [
+      "1725562656"
+    ],
+    "cover": "media/covers/me-faltas-400.webp",
+    "cover800": "media/covers/me-faltas-800.webp",
+    "artistLine": "Sam Davies, Kill Miami & FelixThe1st"
+  },
+  {
+    "id": "atzilut",
+    "title": "Atzilut",
+    "type": "album",
+    "date": "2023-03-09",
+    "year": 2023,
+    "trackIds": [
+      "1720998388",
+      "1720998694",
+      "1720998701",
+      "1720998705",
+      "1720998829"
+    ],
+    "cover": "media/covers/atzilut-400.webp",
+    "cover800": "media/covers/atzilut-800.webp",
+    "artistLine": "Sam Davies"
+  },
+  {
+    "id": "to-el-dia",
+    "title": "To el Día",
+    "type": "single",
+    "date": "2023-06-02",
+    "year": 2023,
+    "trackIds": [
+      "1687513867"
+    ],
+    "cover": "media/covers/to-el-dia-400.webp",
+    "cover800": "media/covers/to-el-dia-800.webp",
+    "artistLine": "Bon Calso & Sam Davies"
+  },
+  {
+    "id": "veo-veo",
+    "title": "Veo Veo",
+    "type": "single",
+    "date": "2023-06-22",
+    "year": 2023,
+    "trackIds": [
+      "1720982833"
+    ],
+    "cover": "media/covers/veo-veo-400.webp",
+    "cover800": "media/covers/veo-veo-800.webp",
+    "artistLine": "Sam Davies, iseekarlo & Young Wolf Beatz"
+  },
+  {
+    "id": "claro",
+    "title": "CLARO",
+    "type": "single",
+    "date": "2023-07-27",
+    "year": 2023,
+    "trackIds": [
+      "1697044580"
+    ],
+    "cover": "media/covers/claro-400.webp",
+    "cover800": "media/covers/claro-800.webp",
+    "artistLine": "Sam Davies, Aleesha & Gio"
+  },
+  {
+    "id": "perdiendo-el-norte",
+    "title": "Perdiendo El Norte",
+    "type": "single",
+    "date": "2023-09-28",
+    "year": 2023,
+    "trackIds": [
+      "1707158790"
+    ],
+    "cover": "media/covers/perdiendo-el-norte-400.webp",
+    "cover800": "media/covers/perdiendo-el-norte-800.webp",
+    "artistLine": "Sam Davies & Rakeem"
+  },
+  {
+    "id": "esstrellao",
+    "title": "EsStrellao°☆⭑*",
+    "type": "single",
+    "date": "2023-10-19",
+    "year": 2023,
+    "trackIds": [
+      "1711313539"
+    ],
+    "cover": "media/covers/esstrellao-400.webp",
+    "cover800": "media/covers/esstrellao-800.webp",
+    "artistLine": "Sam Davies & Rakeem"
+  },
+  {
+    "id": "debil",
+    "title": "Débil",
+    "type": "single",
+    "date": "2024-10-30",
+    "year": 2024,
+    "trackIds": [
+      "1774287409"
+    ],
+    "cover": "media/covers/debil-400.webp",
+    "cover800": "media/covers/debil-800.webp",
+    "artistLine": "Sam Davies"
+  },
+  {
+    "id": "duende",
+    "title": "Duende",
+    "type": "single",
+    "date": "2024-12-12",
+    "year": 2024,
+    "trackIds": [
+      "1782014194"
+    ],
+    "cover": "media/covers/duende-400.webp",
+    "cover800": "media/covers/duende-800.webp",
+    "artistLine": "Sam Davies"
+  },
+  {
+    "id": "day-in-the-life",
+    "title": "Day In The Life",
+    "type": "single",
+    "date": "2025-01-23",
+    "year": 2025,
+    "trackIds": [
+      "1789358104"
+    ],
+    "cover": "media/covers/day-in-the-life-400.webp",
+    "cover800": "media/covers/day-in-the-life-800.webp",
+    "artistLine": "Sam Davies & iseekarlo"
+  },
+  {
+    "id": "woman-like-you",
+    "title": "Woman Like You",
+    "type": "single",
+    "date": "2025-03-27",
+    "year": 2025,
+    "trackIds": [
+      "1801830915"
+    ],
+    "cover": "media/covers/woman-like-you-400.webp",
+    "cover800": "media/covers/woman-like-you-800.webp",
+    "artistLine": "Sam Davies"
+  },
+  {
+    "id": "la-epifania",
+    "title": "La Epifanía",
+    "type": "album",
+    "date": "2025-12-16",
+    "year": 2025,
+    "trackIds": [
+      "1861846169",
+      "1861846295"
+    ],
+    "cover": "media/covers/la-epifania-400.webp",
+    "cover800": "media/covers/la-epifania-800.webp",
+    "artistLine": "Cutemobb, Sam Davies & iseekarlo"
+  },
+  {
+    "id": "un-huequito-en-el-cielo",
+    "title": "Un Huequito en el Cielo",
+    "type": "single",
+    "date": "2026-02-19",
+    "year": 2026,
+    "trackIds": [
+      "1876938143"
+    ],
+    "cover": "media/covers/un-huequito-en-el-cielo-400.webp",
+    "cover800": "media/covers/un-huequito-en-el-cielo-800.webp",
+    "artistLine": "Sam Davies & iseekarlo"
+  },
+  {
+    "id": "gasolina",
+    "title": "Gasolina",
+    "type": "single",
+    "date": "2026-04-16",
+    "year": 2026,
+    "trackIds": [
+      "1891738062"
+    ],
+    "cover": "media/covers/gasolina-400.webp",
+    "cover800": "media/covers/gasolina-800.webp",
+    "artistLine": "Sam Davies, iseekarlo & Young Wolf Beatz"
+  },
+  {
+    "id": "sambando",
+    "title": "SAMBando",
+    "type": "single",
+    "date": "2026-05-21",
+    "year": 2026,
+    "trackIds": [
+      "6768437892"
+    ],
+    "cover": "media/covers/sambando-400.webp",
+    "cover800": "media/covers/sambando-800.webp",
+    "artistLine": "Sam Davies, iseekarlo & Young Wolf Beatz"
+  },
+  {
+    "id": "tanguita-de-colores",
+    "title": "Tanguita de Colores",
+    "type": "single",
+    "date": "2026-08-06",
+    "year": 2026,
+    "trackIds": [
+      "6795285384"
+    ],
+    "cover": "media/covers/tanguita-de-colores-400.webp",
+    "cover800": "media/covers/tanguita-de-colores-800.webp",
+    "artistLine": "Sam Davies, iseekarlo & Young Wolf Beatz"
+  }
+]

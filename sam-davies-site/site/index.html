@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en" data-lang="en" data-player="idle" data-modal="closed" data-act="0">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sam Davies — unofficial fan concept</title>
+<meta name="description" content="Unofficial fan concept: a scroll story through Barcelona's Gothic Quarter, with Sam Davies' discography, 30-second previews and a quiz.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0a1633">
+<link rel="icon" href="data:,">
+<link rel="preload" as="image" href="media/poster.webp" fetchpriority="high">
+<link rel="preload" as="font" type="font/woff2" href="fonts/anton-sd.woff2" crossorigin>
+<!-- core (do not reorder) -->
+<link rel="stylesheet" href="src/css/tokens.css">
+<link rel="stylesheet" href="src/css/stage.css">
+<link rel="stylesheet" href="src/css/baseline-ui.css">
+<!-- UI layer (Sonnet) — loads after baseline and may override it -->
+<link rel="stylesheet" href="src/css/sections.css">
+<link rel="stylesheet" href="src/css/modal.css">
+<link rel="stylesheet" href="src/css/island.css">
+<link rel="stylesheet" href="src/css/lang.css">
+<script type="module" src="src/core/core.js"></script>
+<script type="module" src="src/ui/main.js"></script>
+</head>
+<body>
+<a class="skip" href="#main" data-i18n="core.skip">Skip to content</a>
+<nav id="lang-switch" class="lang" aria-label="Language" data-i18n-attr="aria-label:core.lang.label">
+  <button type="button" data-lang-set="en" lang="en" aria-pressed="true">EN</button>
+  <button type="button" data-lang-set="es" lang="es" aria-pressed="false">ES</button>
+  <button type="button" data-lang-set="ca" lang="ca" aria-pressed="false">CA</button>
+</nav>
+<div id="story" data-story>
+  <div class="story__stage" data-story-stage>
+    <video id="story-video" muted playsinline preload="none" disablepictureinpicture aria-hidden="true"></video>
+    <div class="story__scrim" data-story-scrim></div>
+  </div>
+</div>
+<main id="main">
+  <section id="intro" data-act="0"></section>
+  <section id="chronology" data-act="1"></section>
+  <section id="plaza" data-act="2"></section>
+  <section id="discography"></section>
+  <section id="links"></section>
+  <section id="quiz"></section>
+</main>
+<footer id="footer"></footer>
+
+<aside id="island" class="island" role="region" aria-label="Now playing" hidden>
+  <button class="island__open" data-island-open type="button" aria-label="Open lyrics">
+    <img class="island__cover" id="island-cover" alt="" width="32" height="32">
+    <span class="island__text"><span class="island__title" id="island-title"></span><span class="island__artist" id="island-artist"></span></span>
+    <span class="island__eq" aria-hidden="true"><i></i><i></i><i></i></span>
+  </button>
+  <button class="island__toggle" data-player-toggle type="button" aria-label="Pause"></button>
+  <button class="island__stop" data-player-stop type="button" aria-label="Stop and close player"></button>
+</aside>
+
+<div id="lyrics-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="lm-title" hidden>
+  <div class="modal__backdrop" data-modal-close></div>
+  <div class="modal__panel" tabindex="-1">
+    <header class="modal__bar">
+      <button class="modal__close" data-modal-close type="button" aria-label="Close lyrics, music keeps playing"></button>
+      <img class="modal__cover" id="lm-cover" alt="" width="48" height="48">
+      <div class="modal__meta"><h2 id="lm-title"></h2><p id="lm-artist"></p></div>
+      <button class="modal__toggle" data-player-toggle type="button" aria-label="Pause"></button>
+    </header>
+    <div id="lyrics-stage" class="lyrics-stage"></div>
+    <div class="modal__progress" role="progressbar" aria-label="Preview progress" aria-valuemin="0" aria-valuemax="30"><span id="lm-progress"></span></div>
+  </div>
+</div>
+</body>
+</html>

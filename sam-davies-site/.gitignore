@@ -1,0 +1,11 @@
+node_modules/
+inputs/
+.cache/
+test-results/
+playwright-report/
+# Lyrics transcripts are song lyrics: data only, never committed (see README-HANDOFF.md)
+site/data/private-lyrics/*
+!site/data/private-lyrics/.gitkeep
+.env
+.env.*
+.vercel

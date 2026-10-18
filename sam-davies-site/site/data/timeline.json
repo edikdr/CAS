@@ -1,0 +1,210 @@
+[
+  {
+    "id": "fact-born",
+    "date": "2000",
+    "year": 2000,
+    "kind": "fact",
+    "title": {
+      "en": "Born in Barcelona",
+      "es": "Nace en Barcelona",
+      "ca": "Neix a Barcelona"
+    },
+    "verified": false
+  },
+  {
+    "id": "fact-samxsen",
+    "date": "2018",
+    "year": 2018,
+    "kind": "fact",
+    "title": "SamxSen",
+    "text": {
+      "en": "Duo with LEÏTI. First credit in this catalogue: “Gliese 581 C (feat. LEÏTI & Sam Davies)”",
+      "es": "Dúo con LEÏTI. Primer crédito en este catálogo: «Gliese 581 C (feat. LEÏTI & Sam Davies)»",
+      "ca": "Duo amb LEÏTI. Primer crèdit en aquest catàleg: «Gliese 581 C (feat. LEÏTI & Sam Davies)»"
+    },
+    "releaseId": "gliese-581-c",
+    "verified": false
+  },
+  {
+    "id": "rel-gliese-581-c",
+    "date": "2018-12-21",
+    "year": 2018,
+    "kind": "ep",
+    "title": "Gliese 581 C (feat. LEÏTI & Sam Davies)",
+    "text": {
+      "en": "EP — 6 tracks with previews here",
+      "es": "EP — 6 pistas con fragmento aquí",
+      "ca": "EP — 6 pistes amb fragment aquí"
+    },
+    "releaseId": "gliese-581-c",
+    "verified": true
+  },
+  {
+    "id": "rel-wmp-wheres-my-payment",
+    "date": "2019-04-26",
+    "year": 2019,
+    "kind": "single",
+    "title": "WMP? (where's my payment) [feat. LEÏTI, Sam Davies & Bexnil]",
+    "text": {
+      "en": "First release of 2019 in this catalogue",
+      "es": "Primer lanzamiento de 2019 en este catálogo",
+      "ca": "Primer llançament de 2019 en aquest catàleg"
+    },
+    "releaseId": "wmp-wheres-my-payment",
+    "verified": true
+  },
+  {
+    "id": "fact-cutemobb",
+    "date": "2020",
+    "year": 2020,
+    "kind": "fact",
+    "title": "CuteMobb",
+    "text": {
+      "en": "Part of the CuteMobb collective. First credit in this catalogue: “Feelings (feat. iseekarlo)”",
+      "es": "Parte del colectivo CuteMobb. Primer crédito en este catálogo: «Feelings (feat. iseekarlo)»",
+      "ca": "Part del col·lectiu CuteMobb. Primer crèdit en aquest catàleg: «Feelings (feat. iseekarlo)»"
+    },
+    "releaseId": "feelings",
+    "verified": false
+  },
+  {
+    "id": "rel-clear-my-mind",
+    "date": "2020-07-24",
+    "year": 2020,
+    "kind": "single",
+    "title": "Clear My Mind",
+    "text": {
+      "en": "First release of 2020 in this catalogue",
+      "es": "Primer lanzamiento de 2020 en este catálogo",
+      "ca": "Primer llançament de 2020 en aquest catàleg"
+    },
+    "releaseId": "clear-my-mind",
+    "verified": true
+  },
+  {
+    "id": "rel-funprint",
+    "date": "2020-12-18",
+    "year": 2020,
+    "kind": "album",
+    "title": "Funprint",
+    "text": {
+      "en": "Album — 7 tracks with previews here, not the full tracklist",
+      "es": "Álbum — 7 pistas con fragmento aquí, no el disco completo",
+      "ca": "Àlbum — 7 pistes amb fragment aquí, no el disc complet"
+    },
+    "releaseId": "funprint",
+    "verified": true
+  },
+  {
+    "id": "rel-cruise-control",
+    "date": "2021-10-29",
+    "year": 2021,
+    "kind": "ep",
+    "title": "Cruise Control",
+    "text": {
+      "en": "EP — 5 tracks with previews here",
+      "es": "EP — 5 pistas con fragmento aquí",
+      "ca": "EP — 5 pistes amb fragment aquí"
+    },
+    "releaseId": "cruise-control",
+    "verified": true
+  },
+  {
+    "id": "rel-cuenta-a-0",
+    "date": "2022-08-04",
+    "year": 2022,
+    "kind": "single",
+    "title": "Cuenta a 0",
+    "text": {
+      "en": "First release of 2022 in this catalogue",
+      "es": "Primer lanzamiento de 2022 en este catálogo",
+      "ca": "Primer llançament de 2022 en aquest catàleg"
+    },
+    "releaseId": "cuenta-a-0",
+    "verified": true
+  },
+  {
+    "id": "rel-atzilut",
+    "date": "2023-03-09",
+    "year": 2023,
+    "kind": "album",
+    "title": "Atzilut",
+    "text": {
+      "en": "Album — 5 tracks with previews here, not the full tracklist",
+      "es": "Álbum — 5 pistas con fragmento aquí, no el disco completo",
+      "ca": "Àlbum — 5 pistes amb fragment aquí, no el disc complet"
+    },
+    "releaseId": "atzilut",
+    "verified": true
+  },
+  {
+    "id": "rel-debil",
+    "date": "2024-10-30",
+    "year": 2024,
+    "kind": "single",
+    "title": "Débil",
+    "text": {
+      "en": "First release of 2024 in this catalogue",
+      "es": "Primer lanzamiento de 2024 en este catálogo",
+      "ca": "Primer llançament de 2024 en aquest catàleg"
+    },
+    "releaseId": "debil",
+    "verified": true
+  },
+  {
+    "id": "rel-day-in-the-life",
+    "date": "2025-01-23",
+    "year": 2025,
+    "kind": "single",
+    "title": "Day In The Life",
+    "text": {
+      "en": "First release of 2025 in this catalogue",
+      "es": "Primer lanzamiento de 2025 en este catálogo",
+      "ca": "Primer llançament de 2025 en aquest catàleg"
+    },
+    "releaseId": "day-in-the-life",
+    "verified": true
+  },
+  {
+    "id": "rel-la-epifania",
+    "date": "2025-12-16",
+    "year": 2025,
+    "kind": "album",
+    "title": "La Epifanía",
+    "text": {
+      "en": "Album — 2 tracks with previews here, not the full tracklist",
+      "es": "Álbum — 2 pistas con fragmento aquí, no el disco completo",
+      "ca": "Àlbum — 2 pistes amb fragment aquí, no el disc complet"
+    },
+    "releaseId": "la-epifania",
+    "verified": true
+  },
+  {
+    "id": "rel-un-huequito-en-el-cielo",
+    "date": "2026-02-19",
+    "year": 2026,
+    "kind": "single",
+    "title": "Un Huequito en el Cielo",
+    "text": {
+      "en": "First release of 2026 in this catalogue",
+      "es": "Primer lanzamiento de 2026 en este catálogo",
+      "ca": "Primer llançament de 2026 en aquest catàleg"
+    },
+    "releaseId": "un-huequito-en-el-cielo",
+    "verified": true
+  },
+  {
+    "id": "rel-tanguita-de-colores",
+    "date": "2026-08-06",
+    "year": 2026,
+    "kind": "single",
+    "title": "Tanguita de Colores",
+    "text": {
+      "en": "Most recent release in this catalogue",
+      "es": "Lanzamiento más reciente de este catálogo",
+      "ca": "Llançament més recent d’aquest catàleg"
+    },
+    "releaseId": "tanguita-de-colores",
+    "verified": true
+  }
+]

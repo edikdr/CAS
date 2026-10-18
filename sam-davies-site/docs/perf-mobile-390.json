@@ -1,0 +1,17 @@
+{
+  "pageFrames": 302,
+  "pageWorstFrameMs": 16.8,
+  "frames": 298,
+  "avgFrameMs": 16.66,
+  "worstFrameMs": 27.7,
+  "longFrames": 0,
+  "seeks": 154,
+  "seeksPerSec": 30.7,
+  "avgSeekMs": 23.9,
+  "worstSeekMs": 51.5,
+  "heldBackWrites": 140,
+  "seconds": 5.02,
+  "project": "mobile-390",
+  "source": "media/scroll-720.webm",
+  "note": "Headless Chromium in a CI container (software rendering, no GPU, VP9 path). Indicative only — not a real-device measurement."
+}

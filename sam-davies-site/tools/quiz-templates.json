@@ -1,0 +1,75 @@
+{
+  "_note": "Templates filled by make-data.mjs with real catalogue data. Placeholders: {release} {track} {name} {year} {date} {n}. Plural entries are {one, other} keyed on {n}. Titles and names are never translated. ES = neutral Peninsular, tú. CA = standard (Barcelona), tu. reviewed:false until a native/artist pass (docs/i18n-review.md).",
+  "releaseYear": {
+    "question": {
+      "en": "In which year did “{release}” come out?",
+      "es": "¿En qué año salió «{release}»?",
+      "ca": "En quin any va sortir «{release}»?"
+    },
+    "explain": {
+      "en": "“{release}” came out on {date}.",
+      "es": "«{release}» salió el {date}.",
+      "ca": "«{release}» va sortir el {date}."
+    }
+  },
+  "trackRelease": {
+    "question": {
+      "en": "Which release includes the track “{track}”?",
+      "es": "¿En qué lanzamiento está la canción «{track}»?",
+      "ca": "En quin llançament hi ha la cançó «{track}»?"
+    },
+    "explain": {
+      "en": "“{track}” is track {n} of “{release}”.",
+      "es": "«{track}» es la pista {n} de «{release}».",
+      "ca": "«{track}» és la pista {n} de «{release}»."
+    }
+  },
+  "credited": {
+    "question": {
+      "en": "Who is credited alongside Sam Davies on “{track}”?",
+      "es": "¿Quién aparece en los créditos con Sam Davies en «{track}»?",
+      "ca": "Qui surt als crèdits amb Sam Davies a «{track}»?"
+    },
+    "explain": {
+      "en": "“{track}” is credited to {name}.",
+      "es": "«{track}» está acreditada a {name}.",
+      "ca": "«{track}» està acreditada a {name}."
+    }
+  },
+  "whichFirst": {
+    "question": {
+      "en": "Which of these came out first?",
+      "es": "¿Cuál de estos salió primero?",
+      "ca": "Quin d’aquests va sortir primer?"
+    },
+    "explain": {
+      "en": "“{release}” came out on {date}, before the others.",
+      "es": "«{release}» salió el {date}, antes que los demás.",
+      "ca": "«{release}» va sortir el {date}, abans que els altres."
+    }
+  },
+  "whichLatest": {
+    "question": {
+      "en": "Which of these is the most recent release?",
+      "es": "¿Cuál de estos es el lanzamiento más reciente?",
+      "ca": "Quin d’aquests és el llançament més recent?"
+    },
+    "explain": {
+      "en": "“{release}” came out on {date}, after the others.",
+      "es": "«{release}» salió el {date}, después que los demás.",
+      "ca": "«{release}» va sortir el {date}, després dels altres."
+    }
+  },
+  "topCollaborator": {
+    "question": {
+      "en": "Which collaborator is credited on the most tracks in this catalogue?",
+      "es": "¿Qué colaborador aparece en más canciones de este catálogo?",
+      "ca": "Quin col·laborador apareix en més cançons d’aquest catàleg?"
+    },
+    "explain": {
+      "en": { "one": "{name} is credited on {n} track here.", "other": "{name} is credited on {n} tracks here." },
+      "es": { "one": "{name} aparece en {n} canción de aquí.", "other": "{name} aparece en {n} canciones de aquí." },
+      "ca": { "one": "{name} apareix en {n} cançó d’aquí.", "other": "{name} apareix en {n} cançons d’aquí." }
+    }
+  }
+}

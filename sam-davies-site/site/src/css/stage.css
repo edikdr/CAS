@@ -1,0 +1,85 @@
+/* Pinned scroll stage — core-owned. Behaviour-critical: do not override position/size rules from src/ui. */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--c-night); }
+body {
+  margin: 0;
+  position: relative;
+  min-height: 100vh;
+  background: var(--c-night);
+  color: var(--c-cream);
+  font-family: var(--font-body);
+  line-height: var(--lh-body);
+}
+img, video { max-width: 100%; }
+
+/* The wrapper only provides scroll length (config story.scrollLengthVh); it is out of flow so the
+   act sections in <main> scroll over it. p = (scrollY − top) / (height − viewport). */
+#story {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--story-length);
+  pointer-events: none;
+}
+
+/* Fixed (not sticky): after p = 1 the same layer becomes the fixed, dimmed end-frame background
+   the rest of the page scrolls over (docs/decisions.md D-007). lvh = no resize when mobile
+   toolbars collapse, so the video never re-layouts mid-scrub. */
+.story__stage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100lvh;
+  overflow: hidden;
+  z-index: var(--z-stage);
+  pointer-events: none;
+  contain: strict;
+  /* Poster is the LCP element (preloaded in index.html) and the no-JS / pre-video view. */
+  background: var(--c-night) url("../../media/poster.webp") center / cover no-repeat;
+}
+.story__stage > * { position: absolute; inset: 0; width: 100%; height: 100%; }
+.story__stage video {
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--dur-3) linear;
+}
+.story__stage video.is-ready { opacity: 1; }
+
+/* Warm grade for the flat daylight third: one cheap blended layer, no per-frame filter on video. */
+.story__grade {
+  background: var(--c-ochre);
+  mix-blend-mode: soft-light;
+  opacity: var(--grade);
+}
+.story__scrim {
+  background:
+    linear-gradient(180deg, rgb(10 22 51 / 0.55) 0%, rgb(10 22 51 / 0) 35%, rgb(10 22 51 / 0) 60%, rgb(10 22 51 / 0.7) 100%),
+    var(--c-night);
+  background-blend-mode: normal;
+  opacity: var(--scrim);
+}
+.story__end {
+  background: var(--c-night) url("../../media/end.webp") center / cover no-repeat;
+  opacity: 0;
+  transition: opacity var(--dur-3) linear;
+}
+html[data-act="3"] .story__end { opacity: 1; }
+html[data-act="3"] .story__scrim { z-index: 1; }
+
+/* Reduced motion / reduced data / no playable video: one still per act, swapped, no scrubbing. */
+.story__stills { opacity: 1; }
+.story__stills img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+html[data-act="0"] .story__stills [data-still="0"],
+html[data-act="1"] .story__stills [data-still="1"],
+html[data-act="2"] .story__stills [data-still="2"],
+html[data-act="3"] .story__stills [data-still="3"] { opacity: 1; }
+html:not([data-motion="reduced"]) .story__stills { display: none; }
+html[data-motion="reduced"] .story__stage video { display: none; }
+
+/* Content scrolls over the stage. Act sections together span the wrapper length so the
+   discography starts right as p reaches 1. Spans come from config story.acts (set by core). */
+#main, #footer { position: relative; z-index: var(--z-content); }
+#intro { min-height: calc(var(--story-length) * var(--act-span-0, 0.25)); }
+#chronology { min-height: calc(var(--story-length) * var(--act-span-1, 0.37)); }
+#plaza { min-height: calc(var(--story-length) * var(--act-span-2, 0.38)); }

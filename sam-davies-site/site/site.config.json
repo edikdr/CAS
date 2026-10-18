@@ -1,0 +1,33 @@
+{
+  "artist": { "name": "Sam Davies", "location": "Barcelona", "born": 2000 },
+  "links": { "spotify": "https://open.spotify.com/artist/5IwsimGimVvw3Xb1YKGs0r", "appleMusic": "", "instagram": "", "youtube": "" },
+  "contact": { "email": "", "note": "concept by EdU — open to collaboration" },
+  "audioSource": "local",
+  "story": {
+    "scrollLengthVh": 600,
+    "acts": [0, 0.25, 0.62, 1],
+    "scrim": [[0, 0.62], [0.2, 0.5], [0.35, 0.36], [0.6, 0.18], [0.85, 0.22], [1, 0.45]],
+    "warmGrade": { "to": 0.38, "opacity": 0.22 },
+    "follower": { "stiffness": 140, "damping": 2 },
+    "video": {
+      "small": [
+        { "src": "media/scroll-720.mp4", "type": "video/mp4; codecs=\"avc1.64001f\"" },
+        { "src": "media/scroll-720.webm", "type": "video/webm; codecs=\"vp9\"" }
+      ],
+      "large": [
+        { "src": "media/scroll-1080.mp4", "type": "video/mp4; codecs=\"avc1.640028\"" },
+        { "src": "media/scroll-1080.webm", "type": "video/webm; codecs=\"vp9\"" }
+      ],
+      "poster": "media/poster.webp",
+      "end": "media/end.webp",
+      "stills": ["media/stills/act0.webp", "media/stills/act1.webp", "media/stills/act2.webp", "media/stills/act3.webp"],
+      "smallMaxWidth": 820
+    }
+  },
+  "features": { "lyrics": true, "sfx": false, "quiz": true, "indexable": false, "frameSequenceFallback": false },
+  "lyrics": { "lrclibFallback": false, "dir": "data/private-lyrics", "engine": "vendor/lyrics-engine/lyrics-engine.js" },
+  "player": { "autoAdvance": false },
+  "sfx": { "src": "media/sfx/ride-loop.mp3", "baseline": 0, "k": 0.0009, "max": 0.55, "decayMs": 250, "rateSpan": 0.12 },
+  "i18n": { "languages": ["en", "es", "ca"], "default": "en", "detect": true },
+  "lyricLanguages": {}
+}

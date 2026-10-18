@@ -1,0 +1,282 @@
+[
+  {
+    "id": "q01-trackRelease",
+    "question": {
+      "en": "Which release includes the track “Telarañas”?",
+      "es": "¿En qué lanzamiento está la canción «Telarañas»?",
+      "ca": "En quin llançament hi ha la cançó «Telarañas»?"
+    },
+    "options": [
+      "La Epifanía",
+      "Cruise Control",
+      "Funprint",
+      "Gliese 581 C (feat. LEÏTI & Sam Davies)"
+    ],
+    "answerIndex": 1,
+    "explain": {
+      "en": "“Telarañas” is track 2 of “Cruise Control”.",
+      "es": "«Telarañas» es la pista 2 de «Cruise Control».",
+      "ca": "«Telarañas» és la pista 2 de «Cruise Control»."
+    }
+  },
+  {
+    "id": "q02-whichFirst",
+    "question": {
+      "en": "Which of these came out first?",
+      "es": "¿Cuál de estos salió primero?",
+      "ca": "Quin d’aquests va sortir primer?"
+    },
+    "options": [
+      "Feelings (feat. iseekarlo)",
+      "WMP? (where's my payment) [feat. LEÏTI, Sam Davies & Bexnil]",
+      "Vuitres",
+      "La Epifanía"
+    ],
+    "answerIndex": 2,
+    "explain": {
+      "en": "“Vuitres” came out on December 21, 2018, before the others.",
+      "es": "«Vuitres» salió el 21 de diciembre de 2018, antes que los demás.",
+      "ca": "«Vuitres» va sortir el 21 de desembre del 2018, abans que els altres."
+    }
+  },
+  {
+    "id": "q03-whichFirst",
+    "question": {
+      "en": "Which of these came out first?",
+      "es": "¿Cuál de estos salió primero?",
+      "ca": "Quin d’aquests va sortir primer?"
+    },
+    "options": [
+      "Duende",
+      "CLARO",
+      "WMP? (where's my payment) [feat. LEÏTI, Sam Davies & Bexnil]",
+      "La Epifanía"
+    ],
+    "answerIndex": 2,
+    "explain": {
+      "en": "“WMP? (where's my payment) [feat. LEÏTI, Sam Davies & Bexnil]” came out on April 26, 2019, before the others.",
+      "es": "«WMP? (where's my payment) [feat. LEÏTI, Sam Davies & Bexnil]» salió el 26 de abril de 2019, antes que los demás.",
+      "ca": "«WMP? (where's my payment) [feat. LEÏTI, Sam Davies & Bexnil]» va sortir el 26 d’abril del 2019, abans que els altres."
+    }
+  },
+  {
+    "id": "q04-credited",
+    "question": {
+      "en": "Who is credited alongside Sam Davies on “Gasolina”?",
+      "es": "¿Quién aparece en los créditos con Sam Davies en «Gasolina»?",
+      "ca": "Qui surt als crèdits amb Sam Davies a «Gasolina»?"
+    },
+    "options": [
+      "Gio",
+      "Dave Crag",
+      "iseekarlo",
+      "Bexnil"
+    ],
+    "answerIndex": 2,
+    "explain": {
+      "en": "“Gasolina” is credited to Sam Davies, iseekarlo & Young Wolf Beatz.",
+      "es": "«Gasolina» está acreditada a Sam Davies, iseekarlo & Young Wolf Beatz.",
+      "ca": "«Gasolina» està acreditada a Sam Davies, iseekarlo & Young Wolf Beatz."
+    }
+  },
+  {
+    "id": "q05-releaseYear",
+    "question": {
+      "en": "In which year did “Funprint” come out?",
+      "es": "¿En qué año salió «Funprint»?",
+      "ca": "En quin any va sortir «Funprint»?"
+    },
+    "options": [
+      "2019",
+      "2018",
+      "2020",
+      "2022"
+    ],
+    "answerIndex": 2,
+    "explain": {
+      "en": "“Funprint” came out on December 18, 2020.",
+      "es": "«Funprint» salió el 18 de diciembre de 2020.",
+      "ca": "«Funprint» va sortir el 18 de desembre del 2020."
+    }
+  },
+  {
+    "id": "q06-releaseYear",
+    "question": {
+      "en": "In which year did “Cruise Control” come out?",
+      "es": "¿En qué año salió «Cruise Control»?",
+      "ca": "En quin any va sortir «Cruise Control»?"
+    },
+    "options": [
+      "2018",
+      "2026",
+      "2021",
+      "2020"
+    ],
+    "answerIndex": 2,
+    "explain": {
+      "en": "“Cruise Control” came out on October 29, 2021.",
+      "es": "«Cruise Control» salió el 29 de octubre de 2021.",
+      "ca": "«Cruise Control» va sortir el 29 d’octubre del 2021."
+    }
+  },
+  {
+    "id": "q07-topCollaborator",
+    "question": {
+      "en": "Which collaborator is credited on the most tracks in this catalogue?",
+      "es": "¿Qué colaborador aparece en más canciones de este catálogo?",
+      "ca": "Quin col·laborador apareix en més cançons d’aquest catàleg?"
+    },
+    "options": [
+      "Jesse James",
+      "iseekarlo",
+      "Young Wolf Beatz",
+      "Chineseguy2021"
+    ],
+    "answerIndex": 1,
+    "explain": {
+      "en": "iseekarlo is credited on 24 tracks here.",
+      "es": "iseekarlo aparece en 24 canciones de aquí.",
+      "ca": "iseekarlo apareix en 24 cançons d’aquí."
+    }
+  },
+  {
+    "id": "q08-credited",
+    "question": {
+      "en": "Who is credited alongside Sam Davies on “Telarañas”?",
+      "es": "¿Quién aparece en los créditos con Sam Davies en «Telarañas»?",
+      "ca": "Qui surt als crèdits amb Sam Davies a «Telarañas»?"
+    },
+    "options": [
+      "Young Wolf Beatz",
+      "Gio",
+      "Kill Miami",
+      "LEÏTI"
+    ],
+    "answerIndex": 0,
+    "explain": {
+      "en": "“Telarañas” is credited to Sam Davies & Young Wolf Beatz.",
+      "es": "«Telarañas» está acreditada a Sam Davies & Young Wolf Beatz.",
+      "ca": "«Telarañas» està acreditada a Sam Davies & Young Wolf Beatz."
+    }
+  },
+  {
+    "id": "q09-releaseYear",
+    "question": {
+      "en": "In which year did “Atzilut” come out?",
+      "es": "¿En qué año salió «Atzilut»?",
+      "ca": "En quin any va sortir «Atzilut»?"
+    },
+    "options": [
+      "2024",
+      "2023",
+      "2019",
+      "2018"
+    ],
+    "answerIndex": 1,
+    "explain": {
+      "en": "“Atzilut” came out on March 9, 2023.",
+      "es": "«Atzilut» salió el 9 de marzo de 2023.",
+      "ca": "«Atzilut» va sortir el 9 de març del 2023."
+    }
+  },
+  {
+    "id": "q10-whichLatest",
+    "question": {
+      "en": "Which of these is the most recent release?",
+      "es": "¿Cuál de estos es el lanzamiento más reciente?",
+      "ca": "Quin d’aquests és el llançament més recent?"
+    },
+    "options": [
+      "Duende",
+      "Cuenta a 0",
+      "To el Día",
+      "Woman Like You"
+    ],
+    "answerIndex": 3,
+    "explain": {
+      "en": "“Woman Like You” came out on March 27, 2025, after the others.",
+      "es": "«Woman Like You» salió el 27 de marzo de 2025, después que los demás.",
+      "ca": "«Woman Like You» va sortir el 27 de març del 2025, després dels altres."
+    }
+  },
+  {
+    "id": "q11-trackRelease",
+    "question": {
+      "en": "Which release includes the track “Atzilut Interlude”?",
+      "es": "¿En qué lanzamiento está la canción «Atzilut Interlude»?",
+      "ca": "En quin llançament hi ha la cançó «Atzilut Interlude»?"
+    },
+    "options": [
+      "Atzilut",
+      "Cruise Control",
+      "La Epifanía",
+      "Funprint"
+    ],
+    "answerIndex": 0,
+    "explain": {
+      "en": "“Atzilut Interlude” is track 5 of “Atzilut”.",
+      "es": "«Atzilut Interlude» es la pista 5 de «Atzilut».",
+      "ca": "«Atzilut Interlude» és la pista 5 de «Atzilut»."
+    }
+  },
+  {
+    "id": "q12-releaseYear",
+    "question": {
+      "en": "In which year did “Gliese 581 C (feat. LEÏTI & Sam Davies)” come out?",
+      "es": "¿En qué año salió «Gliese 581 C (feat. LEÏTI & Sam Davies)»?",
+      "ca": "En quin any va sortir «Gliese 581 C (feat. LEÏTI & Sam Davies)»?"
+    },
+    "options": [
+      "2026",
+      "2018",
+      "2022",
+      "2023"
+    ],
+    "answerIndex": 1,
+    "explain": {
+      "en": "“Gliese 581 C (feat. LEÏTI & Sam Davies)” came out on December 21, 2018.",
+      "es": "«Gliese 581 C (feat. LEÏTI & Sam Davies)» salió el 21 de diciembre de 2018.",
+      "ca": "«Gliese 581 C (feat. LEÏTI & Sam Davies)» va sortir el 21 de desembre del 2018."
+    }
+  },
+  {
+    "id": "q13-trackRelease",
+    "question": {
+      "en": "Which release includes the track “724 (feat. LEÏTI, Sam Davies & iseekarlo)”?",
+      "es": "¿En qué lanzamiento está la canción «724 (feat. LEÏTI, Sam Davies & iseekarlo)»?",
+      "ca": "En quin llançament hi ha la cançó «724 (feat. LEÏTI, Sam Davies & iseekarlo)»?"
+    },
+    "options": [
+      "Funprint",
+      "La Epifanía",
+      "Cruise Control",
+      "Gliese 581 C (feat. LEÏTI & Sam Davies)"
+    ],
+    "answerIndex": 3,
+    "explain": {
+      "en": "“724 (feat. LEÏTI, Sam Davies & iseekarlo)” is track 5 of “Gliese 581 C (feat. LEÏTI & Sam Davies)”.",
+      "es": "«724 (feat. LEÏTI, Sam Davies & iseekarlo)» es la pista 5 de «Gliese 581 C (feat. LEÏTI & Sam Davies)».",
+      "ca": "«724 (feat. LEÏTI, Sam Davies & iseekarlo)» és la pista 5 de «Gliese 581 C (feat. LEÏTI & Sam Davies)»."
+    }
+  },
+  {
+    "id": "q14-credited",
+    "question": {
+      "en": "Who is credited alongside Sam Davies on “Oumuamua”?",
+      "es": "¿Quién aparece en los créditos con Sam Davies en «Oumuamua»?",
+      "ca": "Qui surt als crèdits amb Sam Davies a «Oumuamua»?"
+    },
+    "options": [
+      "LEÏTI",
+      "Enry-K",
+      "Rakeem",
+      "Dave Crag"
+    ],
+    "answerIndex": 0,
+    "explain": {
+      "en": "“Oumuamua” is credited to Sam Davies, LEÏTI & iseekarlo.",
+      "es": "«Oumuamua» está acreditada a Sam Davies, LEÏTI & iseekarlo.",
+      "ca": "«Oumuamua» està acreditada a Sam Davies, LEÏTI & iseekarlo."
+    }
+  }
+]

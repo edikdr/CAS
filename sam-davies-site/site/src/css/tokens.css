@@ -1,0 +1,78 @@
+/* Design tokens — core-owned (contract A.5). UI layers read these; do not edit from src/ui. */
+@font-face {
+  font-family: Anton;
+  src: url("../../fonts/anton-sd.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  /* Latin + Latin Ext-A + punctuation: covers EN/ES/CA incl. ŀ Ŀ · « » ¿ ¡ — … ’ “ ” (tools/check-fonts.mjs) */
+  unicode-range: U+0020-007E, U+00A0-017F, U+2013-2014, U+2018-201E, U+2022, U+2026, U+2039-203A, U+20AC;
+}
+
+:root {
+  /* palette */
+  --c-night: #0a1633;
+  --c-navy: #10285a;
+  --c-cobalt: #17397d;
+  --c-cream: #f2e6c9;
+  --c-ochre: #f2a33a;
+  /* Artist red. The reference screenshots (19970/19972.jpg) were NOT supplied, so this is the
+     TZ's starting value, not an eyedropped one — see docs/decisions.md D-004. */
+  --c-red: #e30613;
+  --c-ink: #050b1a;
+  --c-cream-dim: rgb(242 230 201 / 0.72);
+
+  /* type */
+  --font-display: Anton, Impact, "Arial Narrow Bold", sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fs-0: clamp(0.875rem, 0.84rem + 0.15vw, 0.95rem);
+  --fs-1: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --fs-2: clamp(1.25rem, 1.1rem + 0.6vw, 1.6rem);
+  --fs-3: clamp(1.75rem, 1.4rem + 1.6vw, 2.75rem);
+  --fs-4: clamp(2.5rem, 1.8rem + 3.4vw, 5rem);
+  --fs-5: clamp(3.5rem, 2.2rem + 6.5vw, 9rem);
+  --lh-tight: 0.9;
+  --lh-body: 1.55;
+
+  /* spacing / radius */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4.5rem;
+  --sp-9: 7rem;
+  --radius-1: 4px;
+  --radius-2: 10px;
+  --radius-3: 18px;
+  --radius-pill: 999px;
+
+  /* motion */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-1: 160ms;
+  --dur-2: 280ms;
+  --dur-3: 480ms;
+
+  /* layers (contract A.1) */
+  --z-stage: 0;
+  --z-content: 10;
+  --z-island: 60;
+  --z-modal: 80;
+  --z-lang: 90;
+  --z-skip: 100;
+
+  /* state published by core (contract A.1) — defaults before JS runs */
+  --p: 0;
+  --act: 0;
+  --scrim: 0.62;
+  --grade: 0;
+  --story-length: 600vh;
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; }
+}

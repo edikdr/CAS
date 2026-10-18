@@ -1,0 +1,16 @@
+{
+  "name": "sam-davies-scroll-story",
+  "private": true,
+  "type": "module",
+  "description": "Unofficial fan concept site — dev tooling only; site/ has zero runtime deps",
+  "scripts": {
+    "build:data": "node tools/build-assets.mjs",
+    "check": "node tools/check-i18n.mjs && node tools/check-fonts.mjs",
+    "test": "node tools/check-i18n.mjs && node tools/check-fonts.mjs && playwright test",
+    "serve": "node tools/serve.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "sharp": "^0.34.5"
+  }
+}

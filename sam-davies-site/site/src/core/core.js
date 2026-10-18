@@ -35,7 +35,7 @@ const SD = {
   config: null,
   data: {},
   player, lyrics, modal, story, i18n,
-  perf,
+  sfx, perf,
 };
 Object.defineProperty(window, 'SD', { value: SD, writable: false, configurable: false });
 

@@ -49,13 +49,16 @@ export function createSfx({ story, player, i18n }) {
     const ducked = player.state === 'playing';
     const target = ducked ? 0 : Math.min(cfg.max, cfg.baseline + cfg.k * speed);
     const rising = target > gain.gain.value;
-    // Fast attack, ~decayMs release (time constant ≈ decay/3 → ~95 % gone by decayMs).
-    gain.gain.setTargetAtTime(target, ctx.currentTime, rising ? 0.04 : cfg.decayMs / 3000);
+    // Fast attack; release time constant = decayMs/5, so the bed is ~99 % gone decayMs after the
+    // scroll stops (measured in e2e: tests/e2e/p2-sfx.spec.mjs).
+    gain.gain.setTargetAtTime(target, ctx.currentTime, rising ? 0.04 : cfg.decayMs / 5000);
     if (src) src.playbackRate.setTargetAtTime(1 + cfg.rateSpan * Math.min(1, speed / 3000), ctx.currentTime, 0.1);
   }
 
   return {
     get enabled() { return on; },
+    get available() { return Boolean(btn); },
+    get level() { return gain ? gain.gain.value : 0; },
     init({ config, build }) {
       cfg = { baseline: 0, k: 0.0009, max: 0.55, decayMs: 250, rateSpan: 0.12, src: 'media/sfx/ride-loop.mp3', ...(config.sfx || {}) };
       if (!config.features?.sfx || !build?.sfx) return;

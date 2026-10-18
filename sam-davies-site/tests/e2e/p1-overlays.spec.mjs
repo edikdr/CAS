@@ -209,3 +209,27 @@ test('island never overlaps the language switch or other fixed controls', async 
   }
   noErrors(ctx);
 });
+
+test('closing a modal never moves the story, even after a resize/rotation while it was open', async ({ page }, info) => {
+  const ctx = await setup(page);
+  await boot(page);
+  await injectRows(page);
+  await scrollStory(page, 0.45);
+  const p0 = await page.evaluate(() => SD.story.p);
+  await page.evaluate((id) => SD.lyrics.open(id), A);
+  await expect.poll(() => state(page)).toMatchObject({ modal: 'open' });
+  const vp = info.project.use.viewport;
+  await page.setViewportSize({ width: vp.height, height: vp.width }); // rotate…
+  await page.waitForTimeout(200);
+  await page.setViewportSize(vp); // …and back, all while the modal holds the scroll lock
+  await page.waitForTimeout(400);
+  // record p on every story frame right after closing
+  const ps = await page.evaluate(() => new Promise((done) => {
+    const seen = [];
+    document.addEventListener('story:progress', (e) => seen.push(e.detail.p));
+    SD.lyrics.close();
+    setTimeout(() => done(seen), 600);
+  }));
+  for (const p of ps) expect(Math.abs(p - p0)).toBeLessThan(1e-4);
+  noErrors(ctx);
+});

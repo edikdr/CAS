@@ -74,9 +74,10 @@ build a seek queue. The last 1/24 s is never targeted (some
 decoders show a black final frame).
 
 **D-010 · Frame-sequence fallback NOT implemented.** The flag `features.frameSequenceFallback` exists
-(false). Headless measurement passed (no freezes; 720: 30 seeks/s ≈ every video frame; 1080 VP9 in a
-CPU-only container: 10.7 seeks/s, avg seek 74 ms — software-decode bound, as forcing 720 at the same
-viewport gives 23 seeks/s / 32 ms). That is not evidence of failure on real hardware with H.264 decode.
+(false). Headless measurement passed (no freezes). Across runs: 720 VP9 at 390 px: 28–31 seeks/s
+(≈ every video frame), avg seek 24–28 ms, 0 long frames; 1080 VP9 at 1440 px in a CPU-only container:
+10.7–13.2 seeks/s, avg seek 62–74 ms, 13–33 long frames per 5 s — software-decode bound, as forcing 720
+at the same viewport gives 23 seeks/s / 32 ms. That is not evidence of failure on real hardware with H.264 decode.
 Real devices were **not** measured; if a real iOS/Android test shows freezes, implement it then.
 
 **D-011 · Device variant.** 720 when `min(innerWidth, screen.width) ≤ 820`, `saveData`,
@@ -164,3 +165,25 @@ stage — the video frame, or the end frame after the video — sits behind the 
 dark halo for legibility on light frames. Desktop: the content column is ≤ 960 px and the empty sides
 are backdrop (click = close). Asserted in e2e (transparent panel, page hidden, stage visible). The UI
 layer must keep this (docs/contracts.md).
+
+## P2 and measurements
+
+**D-034 · Scroll sound release.** First measurement (time constant decay/3, velocity tail ×0.5/frame)
+left the bed at 0.02–0.04 (of 0.55) 600 ms after a stop — slower than the TZ's ~250 ms. Now: release time
+constant = `decayMs/5` and velocity tail ×0.3/frame; e2e samples 300 ms after the last scroll step and
+requires < 0.03 (passes 8/8 repeats). Ducked to 0 while a preview plays. iOS silent switch: **not
+tested** (no device). Web Audio graph is separate from `#sd-audio`.
+**D-035 · LCP vs poster.** Chromium excludes full-viewport images from LCP (it treats them as background),
+so the poster can never be the *reported* LCP element. The budget test therefore asserts both: LCP
+< 2.5 s and the poster's `responseEnd` < 2.5 s under Slow 4G (150 ms RTT, 1.6 Mbps; mobile also 4× CPU).
+Measured: LCP 676–748 ms, poster loaded 845–985 ms, CLS 0. Numbers: `docs/budgets-*.json`. Sonnet's
+hero text will become the LCP element; keep it light.
+**D-036 · `prefers-reduced-data`** is honoured in code (same stills path as reduced motion), but Chromium
+does not match it even under CDP emulation, so it is **not tested**. `saveData` → 720 variant is tested
+(navigator.connection stubbed).
+**D-037 · 9:16 variant:** not supplied by the owner → not built (TZ P2 marks it optional).
+**D-038 · Story measure under the scroll lock.** Found by review: a resize/rotation while a modal was
+open re-measured the story with the body fixed at `-scrollY`, so the first frame after closing used a wrong
+offset. `measure()` now skips while locked and runs synchronously on `modal:close`; an e2e test resizes the
+viewport during an open modal and asserts p is identical on every frame after closing (fails on the old
+code, passes now).

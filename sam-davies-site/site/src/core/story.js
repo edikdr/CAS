@@ -13,6 +13,9 @@ export function createStory() {
   const listeners = new Set();
 
   function measure() {
+    // While a modal holds the scroll lock the body is position:fixed at -scrollY, so any reading
+    // now would be wrong (and the ResizeObserver fires exactly then). Re-measured on modal:close.
+    if (frozen || root.classList.contains('sd-scroll-lock')) return;
     const r = wrapper.getBoundingClientRect();
     top = r.top + scrollY;
     dist = Math.max(1, wrapper.offsetHeight - innerHeight);
@@ -54,7 +57,7 @@ export function createStory() {
     if (moved) {
       api.velocity = lastY < 0 ? 0 : (y - lastY) / Math.max(dt, 1 / 240);
       lastY = y;
-    } else api.velocity *= 0.5;
+    } else api.velocity *= 0.3; // short tail: scroll input can skip a frame, a stop should read as a stop
     const p = clamp((y - top) / dist);
     publish(p);
     let busy = moved || Math.abs(api.velocity) > 1;
@@ -124,7 +127,7 @@ export function createStory() {
     // A modal freezes the story (body is position:fixed, scrollY reads 0); it resumes with the
     // same p because modal.js restores the exact scroll position before `modal:close`.
     document.addEventListener('modal:open', () => { frozen = true; if (raf) cancelAnimationFrame(raf); raf = 0; last = 0; perf.sleep(); });
-    document.addEventListener('modal:close', () => { frozen = false; lastY = scrollY; wake(); });
+    document.addEventListener('modal:close', () => { frozen = false; measure(); lastY = scrollY; wake(); });
     publish(clamp((scrollY - top) / dist));
     wake();
     return api;

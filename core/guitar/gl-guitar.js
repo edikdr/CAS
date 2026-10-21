@@ -46,6 +46,10 @@ const WOUND = 4;
 const PULL = 0.011;         // x guitar length: the most a finger moves a string before it resists
 const SLIP = 2;             // pulled beyond SLIP x PULL, the string slips off and rings
 const REACH = 9;            // screen px to catch a string
+// measured on assets/models/guitar.glb: its saddle sits a little further towards the tail than the
+// photo landmarks map to, and the pins further still (x the nut -> saddle length)
+const SADDLE_FIX = 0.016;   // the ringing part ends on the model's saddle
+const TAIL = 0.022;         // a still piece from the saddle down into the bridge pins
 const ROOM = 0.85;          // hemisphere: the room's own light ...
 const ROOM_OFF = 2.4;       // ... with the garland off: the room keeps 25% overall (the CSS shade
                             // does that), so the guitar matches the photo guitar's off state
@@ -163,7 +167,10 @@ export async function createGlGuitar(slot, { onFail } = {}) {
   const lit = { value: 1 };   // garland light on the strings, shared by all six
   const strings = manifest.strings.map((s, i) => {
     const a = surface(toModel(s.nut), size.z * 0.03);
-    const b = surface(toModel(s.saddle), size.z * 0.05);
+    const nut = toModel(s.nut);
+    const span = toModel(s.saddle).sub(nut);
+    const b = surface(nut.clone().addScaledVector(span, 1 + SADDLE_FIX), size.z * 0.05);
+    const pin = surface(nut.clone().addScaledVector(span, 1 + SADDLE_FIX + TAIL), size.z * 0.012);
     const dir = new THREE.Vector3().subVectors(b, a);
     const width = WIDTH[i] * size.y;
     const geometry = new THREE.PlaneGeometry(width, dir.length(), 1, 40);
@@ -184,7 +191,15 @@ export async function createGlGuitar(slot, { onFail } = {}) {
     shadow.position.z -= size.z * 0.03;
     shadow.quaternion.copy(mesh.quaternion);
     shadow.translateX(width * 1.4);
-    flipper.add(shadow, mesh);
+    // over the saddle and down into its pin: does not ring
+    const down = new THREE.Vector3().subVectors(pin, b);
+    const tail = new THREE.Mesh(
+      new THREE.PlaneGeometry(width, down.length(), 1, 1),
+      new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms: { ...uniforms, uOffset: { value: 0 }, uSpeed: { value: 0 } } }),
+    );
+    tail.position.copy(b).addScaledVector(down, 0.5);
+    tail.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), down.clone().normalize());
+    flipper.add(shadow, mesh, tail);
     return { mesh, uniforms, shadowUniforms };
   });
 

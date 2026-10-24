@@ -1,7 +1,7 @@
 /* ==========================================================================
    CONFIG: site name, screens, relic cartridges and system buttons.
-   Cartridges are pure data: add, remove or reorder them here. Icons are keys
-   of js/icons.js. Screens are rendered by PL.sections.mount(id) (js/sections.js).
+   Relics are pure data: add, remove or reorder them here. Icons are keys of
+   js/icons.js. Screens are rendered by PL.sections.mount(id) (js/sections.js).
    ========================================================================== */
 window.PL = window.PL || {};
 
@@ -9,44 +9,44 @@ PL.config = {
   siteName: 'NORI-DEX',
   tagline: _('Bestiary of the Land of Noris'),
 
-  /* Plane themes: device glow and relic crystal colours. Purely visual; the
-     plane names and lore live in PL.sky.planes (with their Placeholder status). */
-  planes: {
-    p1: { c1: '#7FD6DF', c2: '#2E7F95' },   // sky cyan
-    p2: { c1: '#7BC46A', c2: '#3E7A33' },   // leaf green
-    p3: { c1: '#F07A3E', c2: '#A8401A' },   // ember orange
-    p4: { c1: '#A98BE0', c2: '#5A3E99' },   // abyssal violet
-  },
-
-  /* Screens (one per relic). title / subtitle show on the altar and in the tab bar. */
+  /* Screens a relic can open. 'spirit' has no relic of its own: the bestiary
+     opens it with a button (ctx.go('spirit')). */
   sections: [
-    { id: 'dex',    title: _('Nori-Dex'),    subtitle: _('The bestiary: every Nori we can show you'), icon: 'dex',    plane: 'p1' },
-    { id: 'worlds', title: _('Worlds'),      subtitle: _('The four planes joined by the stream of mana'), icon: 'map', plane: 'p2' },
-    { id: 'spirit', title: _('Spirit Quiz'), subtitle: _('Which Nori is your spirit guardian?'),        icon: 'star',   plane: 'p4' },
-    { id: 'join',   title: _('Join'),        subtitle: _('Kickstarter, Steam and the studio'),          icon: 'flag',   plane: 'p3' },
+    { id: 'dex',    title: _('Nori-Dex'),    icon: 'dex' },
+    { id: 'worlds', title: _('Worlds'),      icon: 'map' },
+    { id: 'spirit', title: _('Spirit Quiz'), icon: 'star' },
   ],
 
   /* Relic cartridges. Drag one into the slot and its screen boots.
-     title / cap: label on the relic; name / sub / blurb: the info card;
-     opens: section id (see sections above); tab: optional sub-view passed to the screen;
-     plane: crystal colour (key of planes); art: image on the relic face (official art only);
-     facts: numbers on the info card (keys of FACTS in js/carts.js). */
+     Body style follows the studio's reference renders: stone, brass, vines and glowing runes,
+     with a different tint per relic. The label art is official art only.
+       title       engraved on the brass plaque (never drawn over the art)
+       sub         small line under the plaque; placeholder:true draws it as a Placeholder tag
+       name / blurb  info card next to the rack
+       opens / tab   screen id and the sub-view it opens at (Worlds: plane id)
+       art           label image (null = intentional "art pending" state)
+       crop          [x, y, w, h] region of the art in source pixels, artSize = [w, h] of that file
+       tint          stone colours (light, mid, dark), runes (left, right), vine colour, thorns
+       crystal       colour of the pommel crystal and the device glow when seated */
   carts: [
-    { id: 'dex', title: 'NORI-DEX', cap: 'BESTIARY', name: _('Nori-Dex'), sub: _('Bestiary'),
-      blurb: _('Every Nori the studio has shown so far, with playtest readings.'),
-      opens: 'dex', plane: 'p1', facts: ['noris'], art: 'assets/nori/hud-zer.webp' },
-    { id: 'worlds', title: 'WORLDS', cap: 'THE FOUR PLANES', name: _('Worlds'), sub: _('The four planes'),
-      blurb: _('Four planes joined by the eternal stream of mana.'),
-      opens: 'worlds', plane: 'p2', facts: ['planes'], art: 'assets/shots/overgrown-ruins-960.webp' },
-    { id: 'spirit', title: 'SPIRIT', cap: 'SPIRIT QUIZ', name: _('Spirit Quiz'), sub: _('Three questions'),
-      blurb: _('Answer three questions and meet your spirit guardian.'),
-      opens: 'spirit', plane: 'p4', facts: ['questions'], art: 'assets/nori/hud-garnia.webp' },
-    { id: 'join', title: 'JOIN', cap: 'KICKSTARTER', name: _('Join'), sub: _('Back the campaign'),
-      blurb: _('Kickstarter, Steam, Discord and the studio channels.'),
-      opens: 'join', plane: 'p3', facts: ['days'], art: 'assets/logo/enthariel-games-logo.webp' },
+    { id: 'sky', title: 'THE SKY PROJECT', sub: 'NORI-DEX · BESTIARY',
+      name: _('The Sky Project'), blurb: _('The Nori-Dex bestiary: every Nori the studio has shown, plus the Spirit Quiz.'),
+      opens: 'dex', art: 'assets/art/splash-with-logo-960.webp', artSize: [960, 540], crop: [24, 30, 560, 500],
+      tint: { stone: ['#a3a39f', '#74746f', '#45454a'], runes: ['#ffd36b', '#ffd36b'], vine: '#6f9a3e', thorns: false },
+      crystal: '#ffcf4a', facts: ['noris'] },
+    { id: 'celestia', title: 'CELESTIA', sub: 'WORKING TITLE', placeholder: true,
+      name: _('Celestia'), blurb: _('One of the four planes joined by the stream of mana. Its name is a working title.'),
+      opens: 'worlds', tab: 'p1', art: 'assets/shots/celestial-observatory-960.webp', artSize: [960, 538], crop: [230, 16, 540, 490],
+      tint: { stone: ['#9aa9bb', '#64758c', '#38475d'], runes: ['#6fd2ff', '#7dffb0'], vine: '#6f9a3e', thorns: false },
+      crystal: '#6fe4ff', facts: ['planes'] },
+    { id: 'abyssal', title: 'ABYSSAL PLANE', sub: 'THE DEEPEST PLANE',
+      name: _('Abyssal Plane'), blurb: _('The deepest and darkest of the four planes: caves and depths, alien vegetation.'),
+      opens: 'worlds', tab: 'p4', art: null,
+      tint: { stone: ['#a0705a', '#6e3f2b', '#3a1f17'], runes: ['#ff5a3c', '#ffa040'], vine: '#4a2e1e', thorns: true },
+      crystal: '#ff7a3a', facts: ['planes'] },
   ],
 
-  /* Round system buttons under the altar tiles */
+  /* Round system buttons on the altar */
   dock: [
     { id: 'controls', label: _('Controls'), icon: 'gamepad', color: '#7FD6DF' },
     { id: 'retro',    label: _('Glass effect'), icon: 'tv',  color: '#A98BE0' },

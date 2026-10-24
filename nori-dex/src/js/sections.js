@@ -12,9 +12,12 @@
        controller.hints()      -> [[['a'], 'Open'], [['b'], 'Back'], ...]
        controller.scrollBy({x, y})   (wheel / scroll keys)
        controller.destroy()
-     PL.sections.setContext(ctx)  ctx = { audio(name), toast(msg), ambient(color),
-                                          hints(), eject(), swap(relicId) }
-     ids: 'dex' | 'worlds' | 'spirit' | 'join'  (PL.config.sections / carts.opens)
+       opts = { tab, relic }   tab: sub-view to open at (Worlds: plane id 'p1'..'p4')
+     PL.sections.setContext(ctx)  ctx = { audio(name), toast(msg), ambient(color|null), hints(),
+                                          eject(), swap(relicId), go(screenId, tab), back() }
+     ids: 'dex' | 'worlds' | 'spirit'   (PL.config.sections; relics open 'dex' and 'worlds',
+          the bestiary opens 'spirit' with ctx.go('spirit'); B returns via the app)
+     The campaign links and countdown live on the altar (app.js), not in a screen.
    ========================================================================== */
 window.PL = window.PL || {};
 
@@ -136,7 +139,8 @@ PL.sections = (function () {
   Section.prototype.scrollBy = function (d) { (this.sheetOpen ? this.sheetIn : this.scroll).scrollTop += d.y * 16; };
   Section.prototype.hints = function () {
     if (this.sheetOpen) return [[['b'], _('Back')]];
-    return [[['l', 'r'], _('Relics')], [['b'], _('Eject')], [['a'], _('Open')]];
+    if (this.opts.sub) return [[['b'], _('Back')], [['a'], _('Select')]];
+    return [[['l', 'r'], _('Relics')], [['b'], _('Draw out')], [['a'], _('Open')]];
   };
 
   /* ---------- STUB builders (Sonnet replaces) ---------- */
@@ -145,6 +149,7 @@ PL.sections = (function () {
     var sec = new Section(root, {
       head: '<b class="sec-title">' + _('Nori-Dex') + '</b><span class="sec-count">' + noris.length + ' ' + _n(noris.length, 'Nori|Noris') + '</span>',
       onActivate: function (el) {
+        if (el.dataset.act === 'spirit') return ctx.go('spirit');
         var n = el.dataset.hero ? hero : noris.filter(function (x) { return x.id === el.dataset.id; })[0];
         if (!n) return;
         ctx.audio('open');
@@ -157,48 +162,40 @@ PL.sections = (function () {
           (el.dataset.hero ? '' : '<p>' + _('Type') + ': ' + tag(_('Unconfirmed')) + '</p>') + '</div></div>');
       },
     });
-    sec.scroll.innerHTML = '<div class="stub-grid">' +
+    sec.scroll.innerHTML =
+      '<button class="gi stub-quiz" data-act="spirit"><b>' + _('Spirit Quiz') + '</b><span>' + _('Which Nori is your spirit guardian? Three questions.') + '</span></button>' +
+      '<div class="stub-grid">' +
       (hero ? '<button class="gi stub-tile is-hero" data-hero="1"><img src="' + esc(hero.art) + '" alt="" width="64" height="64"><b>' + esc(hero.name) + '</b><i>' + _('Hero') + '</i></button>' : '') +
       noris.map(function (n) {
         return '<button class="gi stub-tile" data-id="' + esc(n.id) + '"><img src="' + esc(n.art.regular) + '" alt="" width="64" height="64" loading="lazy"><b>' + esc(n.name) + '</b></button>';
       }).join('') + '</div>';
-    sec.selectFirst();
+    sec.select(sec.scroll.querySelector('.stub-tile') || sec.scroll.querySelector('.gi'), true);
     return sec;
   }
 
-  function worlds(root) {
-    var sec = new Section(root, { head: '<b class="sec-title">' + _('Worlds') + '</b>' });
+  function worlds(root, opts) {
+    var sec = new Section(root, { head: '<b class="sec-title">' + _('Worlds') + '</b><span class="sec-count">' + (sky.planes || []).length + ' ' + _('planes') + '</span>' });
     sec.scroll.innerHTML = '<div class="stub-list">' + (sky.planes || []).map(function (p) {
-      return '<div class="gi stub-row" tabindex="-1"><b>' + esc(p.name) + '</b>' + (p.nameStatus === 'confirmed' ? '' : tag(_('Working title'))) +
+      return '<div class="gi stub-row" data-plane="' + esc(p.id) + '" tabindex="-1"><b>' + esc(p.name) + '</b>' + (p.nameStatus === 'confirmed' ? '' : tag(_('Working title'))) +
         '<p>' + (p.blurb ? esc(p.blurb) : tag(_('Description pending'))) + '</p></div>';
     }).join('') + '</div>';
-    sec.selectFirst();
+    var at = opts.tab && sec.scroll.querySelector('[data-plane="' + opts.tab + '"]');
+    if (at) { sec.select(at, false); } else sec.selectFirst();
     return sec;
   }
 
   function spirit(root) {
-    var sec = new Section(root, { head: '<b class="sec-title">' + _('Spirit Quiz') + '</b>' });
-    sec.scroll.innerHTML = '<div class="stub-list"><div class="gi stub-row" tabindex="-1"><b>' + _('Which Nori is your spirit guardian?') + '</b>' + tag() + '<p>' + _('Three questions. This screen arrives in the next pass.') + '</p></div></div>';
-    sec.selectFirst();
+    var sec = new Section(root, { sub: true, head: '<b class="sec-title">' + _('Spirit Quiz') + '</b>' + tag() });
+    var d = PL.quiz.dialog(root, { accent: '#E8B93A', onHints: function () { ctx.hints(); } });
+    d.say([_('Which Nori is your spirit guardian?'), _('The three questions arrive in the next pass. Press Back to return to the bestiary.')], 'Nori-Dex');
+    var press = sec.press, destroy = sec.destroy, hints = sec.hints;
+    sec.press = function (name) { return d.press(name) || (name !== 'b' && press.call(sec, name)); };
+    sec.hints = function () { return d.hints().concat(hints.call(sec)); };
+    sec.destroy = function () { d.destroy(); destroy.call(sec); };
     return sec;
   }
 
-  function join(root) {
-    var L = sky.links || {}, c = sky.campaign || {};
-    function link(label, url) {
-      return url ? '<a class="gi stub-link" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(label) + '</a>'
-        : '<span class="gi stub-link is-pending" aria-disabled="true">' + esc(label) + ' · ' + _('link pending') + '</span>';
-    }
-    var sec = new Section(root, { head: '<b class="sec-title">' + _('Join') + '</b>' });
-    sec.scroll.innerHTML = '<div class="stub-list">' +
-      '<p class="stub-note">' + _('Kickstarter runs until {d}. Goal: EUR {g}.', { d: esc(c.endsOn), g: (c.goalEUR || 0).toLocaleString('en-GB') }) + '</p>' +
-      link('Kickstarter', L.kickstarter) + link('Steam', L.steam) + link('Discord', L.discord) + link(_('Studio site'), L.studioSite) +
-      '<p class="stub-note">' + (sky.credits || []).map(function (x) { return esc(x.role) + ': ' + esc(x.name); }).join(' · ') + '</p></div>';
-    sec.selectFirst();
-    return sec;
-  }
-
-  var BUILDERS = { dex: dex, worlds: worlds, spirit: spirit, join: join };
+  var BUILDERS = { dex: dex, worlds: worlds, spirit: spirit };
 
   return {
     setContext: function (c) { ctx = c; },

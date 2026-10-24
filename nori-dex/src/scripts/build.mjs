@@ -45,7 +45,7 @@ const fail = (msg) => problems.push(msg);
 const CORE = [
   'js/i18n.js', 'data/sky.js',
   'js/motion.js', 'js/config.js', 'js/icons.js', 'js/audio.js', 'js/static.js', 'js/input.js',
-  'js/cable.js', 'js/carts.js', 'js/sections.js', 'js/quiz-data.js', 'js/quiz.js', 'js/shot.js',
+  'js/device.js', 'js/cable.js', 'js/carts.js', 'js/sections.js', 'js/quiz-data.js', 'js/quiz.js', 'js/shot.js',
   'js/app.js',
 ];
 const FONTS_PRELOAD = ['nunito-latin', 'tiny5'];
@@ -53,7 +53,7 @@ const FONTS_PRELOAD = ['nunito-latin', 'tiny5'];
 const LINK_HOSTS = ['www.kickstarter.com', 'kickstarter.com', 'www.entharielgames.com', 'entharielgames.com',
   'www.instagram.com', 'x.com', 'www.tiktok.com', 'www.youtube.com', 'store.steampowered.com', 'discord.gg', 'discord.com'];
 const NAMESPACES = ['http://www.w3.org/2000/svg', 'http://www.w3.org/1999/xhtml', 'http://www.w3.org/1999/xlink'];
-const BRAND = /pok[eé]|pikachu|arceus|tcg/i;
+const BRAND = /pok[eé]|pikachu|arceus|joy-?con|tcg/i;
 const CYRILLIC = /[\u0400-\u04FF]/;
 const BUDGET = { firstLoadGz: 250 * 1024, sky: 20 * 1024, image: 250 * 1024 };
 

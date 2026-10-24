@@ -151,6 +151,7 @@ PL.shot = (function () {
 
   /* DOM -> picture (canvas.toDataURL JPEG) */
   function render(node, onBuilt) {
+    W = node.offsetWidth || 768; H = node.offsetHeight || 432;   // the screen size depends on the layout
     sandbox();
     return loadFonts().then(function () {
       var pend = [];

@@ -13,153 +13,139 @@
   <link rel="stylesheet" href="css/quiz.css">
   <link rel="stylesheet" href="css/console3d.css">
 </head>
-<body class="is-intro jc-off">
+<body class="is-intro">
 
-  <!-- Page backdrop: official art + ambient light from the screen -->
+  <!-- Page backdrop: official key art (baked by scripts/bake-bg.py) + light from the screen -->
   <div class="bg" aria-hidden="true">
     <div class="bg-img"></div>
     <div class="bg-shade"></div>
   </div>
 
   <main class="stage" id="stage">
+    <h1 class="sr-only">Nori-Dex: interactive bestiary for The Sky Project: Land of Noris</h1>
     <div class="console-wrap" id="consoleWrap">
       <div class="floor-glow" aria-hidden="true"></div>
 
+      <!-- THE MANA COMMUNICATOR -->
       <div class="console" id="console">
+        <div class="body" id="deviceBody">
+          <div class="body-shell" aria-hidden="true"></div>
+          <!-- silhouette, brass rim, filigree, runes and mana veins (drawn by js/device.js per layout) -->
+          <svg class="body-art" id="bodyArt" aria-hidden="true"></svg>
 
-        <!-- LEFT CONTROLLER (replaced in O3) -->
-        <div class="joycon joycon--left">
-          <button class="jc-shoulder" data-btn="l" data-tip="Previous relic" data-key="Q" aria-label="L button">
-            <svg viewBox="0 0 170 120" aria-hidden="true">
-              <path class="gs" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /><path class="sh" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" />
-              <g class="cap"><path class="vis" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /><path class="rim" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /></g>
-              <path class="hit" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" />
-            </svg>
-          </button>
-          <div class="jc-shell"></div>
-
-          <button class="ctl jc-minus" style="--x:143px;--y:52px" data-btn="minus" data-tip="Sound on / off" data-key="M" aria-label="Minus: sound">
-            <b class="cap"><i></i></b>
-          </button>
-
-          <div class="ctl stick" style="--x:90px;--y:130px" data-stick="left" data-tip="Navigate (drag)" aria-label="Left stick">
-            <div class="stick-cap"><i class="st-sh"></i><i class="st-wall"></i><i class="st-top"><b></b></i></div>
+          <!-- crest: game logo + the device's mana crystal -->
+          <div class="crest" aria-hidden="true">
+            <i class="crest-halo"></i>
+            <i class="crest-crystal"><b></b></i>
+            <div class="crest-plate"><img class="crest-logo" src="assets/logo/sky-project-logo-432.webp" width="432" height="120" alt="" decoding="async"></div>
           </div>
 
-          <div class="dpad" style="--x:90px;--y:272px">
-            <button class="dbtn" style="--dx:0px;--dy:-45px" data-btn="up" data-tip="Up" data-key="↑" aria-label="Up"><b class="cap"><svg viewBox="0 0 10 10"><path d="M5 2.2 8.2 7.4H1.8z" /></svg></b></button>
-            <button class="dbtn" style="--dx:-45px;--dy:0px" data-btn="left" data-tip="Left" data-key="←" aria-label="Left"><b class="cap"><svg viewBox="0 0 10 10"><path d="M2.2 5 7.4 1.8v6.4z" /></svg></b></button>
-            <button class="dbtn" style="--dx:45px;--dy:0px" data-btn="right" data-tip="Right" data-key="→" aria-label="Right"><b class="cap"><svg viewBox="0 0 10 10"><path d="M7.8 5 2.6 8.2V1.8z" /></svg></b></button>
-            <button class="dbtn" style="--dx:0px;--dy:45px" data-btn="down" data-tip="Down" data-key="↓" aria-label="Down"><b class="cap"><svg viewBox="0 0 10 10"><path d="M5 7.8 1.8 2.6h6.4z" /></svg></b></button>
-          </div>
+          <!-- top edge: power, volume, relic levers -->
+          <button class="stud stud--top stud--power" data-btn="power" data-tip="Power" data-key="P" aria-label="Power"><span data-icon="power"></span></button>
+          <button class="stud stud--top stud--vdown" data-btn="voldown" data-tip="Volume down" data-key="[" aria-label="Volume down"><b>−</b></button>
+          <button class="stud stud--top stud--vup" data-btn="volup" data-tip="Volume up" data-key="]" aria-label="Volume up"><b>+</b></button>
+          <button class="lever lever--l" data-btn="l" data-tip="Previous relic" data-key="Q" aria-label="Previous relic"><i></i></button>
+          <button class="lever lever--r" data-btn="r" data-tip="Next relic" data-key="E" aria-label="Next relic"><i></i></button>
 
-          <button class="ctl jc-capture" style="--x:118px;--y:372px" data-btn="capture" data-tip="Save a photo" data-key="C" aria-label="Save a photo">
-            <b class="cap"><i></i></b>
-          </button>
-        </div>
-
-        <!-- BODY -->
-        <div class="body">
-          <button class="top-btn top-btn--power" data-btn="power" data-tip="Power" data-key="P" aria-label="Power"></button>
-          <button class="top-btn top-btn--vol" style="left:190px" data-btn="voldown" data-tip="Volume −" data-key="[" aria-label="Volume down"></button>
-          <button class="top-btn top-btn--vol" style="left:226px" data-btn="volup" data-tip="Volume +" data-key="]" aria-label="Volume up"></button>
-          <div class="top-slot" aria-hidden="true"></div>
-
-          <div class="body-shell">
-            <div class="vents" aria-hidden="true"></div>
-            <i class="rail rail--l" aria-hidden="true"></i><i class="rail rail--r" aria-hidden="true"></i>
-            <i class="spk spk--l" aria-hidden="true"></i><i class="spk spk--r" aria-hidden="true"></i>
-          </div>
-          <!-- socket on top: the cable plugs in here -->
+          <!-- socket on top: the conduit plugs in here -->
           <div class="port" id="port" aria-hidden="true"><i class="port-led" id="portLed"></i><i class="port-spark" id="portSpark"></i></div>
           <!-- relic slot at the bottom -->
           <div class="cart-slot" id="cartSlot" aria-hidden="true"><i class="slot-led" id="slotLed"></i></div>
 
-          <div class="glass">
-            <i class="sensor" aria-hidden="true"></i>
+          <!-- left panel: rune compass, help, photo, studio medallion -->
+          <div class="panel panel--l">
+            <div class="compass" role="group" aria-label="Navigate">
+              <button class="petal petal--up" data-btn="up" data-tip="Up" data-key="↑" aria-label="Up"><i></i></button>
+              <button class="petal petal--left" data-btn="left" data-tip="Left" data-key="←" aria-label="Left"><i></i></button>
+              <button class="petal petal--right" data-btn="right" data-tip="Right" data-key="→" aria-label="Right"><i></i></button>
+              <button class="petal petal--down" data-btn="down" data-tip="Down" data-key="↓" aria-label="Down"><i></i></button>
+              <span class="compass-hub" aria-hidden="true"></span>
+            </div>
+            <button class="stud stud--help" data-btn="plus" data-tip="Help" data-key="+" aria-label="Help"><b>?</b></button>
+            <button class="stud stud--photo" data-btn="capture" data-tip="Save a photo of the screen" data-key="C" aria-label="Save a photo of the screen"><span data-icon="camera"></span></button>
+            <img class="medallion" src="assets/logo/enthariel-games-logo.webp" width="256" height="256" alt="Enthariel Games" decoding="async">
+          </div>
 
+          <!-- right panel: crystal gems (select / back), altar, glass, sound -->
+          <div class="panel panel--r">
+            <button class="gem gem--a" data-btn="a" data-tip="Select" data-key="Enter" aria-label="Select"><i></i></button>
+            <button class="gem gem--b" data-btn="b" data-tip="Back, or draw the relic out" data-key="Esc" aria-label="Back"><i></i></button>
+            <button class="stud stud--home" data-btn="home" data-tip="Relic altar" data-key="H" aria-label="Relic altar"><span data-icon="home"></span></button>
+            <button class="stud stud--glass" data-btn="y" data-tip="Glass effect" data-key="Y" aria-label="Glass effect"><span data-icon="tv"></span></button>
+            <button class="stud stud--sound" data-btn="minus" data-tip="Sound on / off" data-key="M" aria-label="Sound on or off"><span data-icon="sound"></span></button>
+          </div>
+
+          <div class="glass">
             <div class="screen" id="screen">
               <div class="crt" id="crt">
                 <canvas id="static" width="384" height="216" aria-hidden="true"></canvas>
 
                 <!-- VIEW 1: idle mist + Awaken -->
-                <section class="view view-static" data-view="static">
+                <section class="view view-static" data-view="static" aria-label="Device idle">
                   <div class="osd osd-tl">NORI-DEX</div>
-                  <div class="osd osd-tr"><span class="blink">NO RELIC</span></div>
+                  <div class="osd osd-tr" id="osdRelic"><span class="blink">NO RELIC</span></div>
                   <div class="play-wrap">
                     <button class="play" id="playBtn" aria-label="Awaken the device">
-                      <span class="play-ring"></span>
-                      <span class="play-core">
-                        <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M14 9.5v21L31 20z" /></svg>
-                      </span>
+                      <span class="play-halo"></span>
+                      <span class="play-core"><i></i></span>
                     </button>
-                    <div class="glitch play-label" data-text="AWAKEN">AWAKEN</div>
-                    <div class="play-hint">click or press <b class="badge">Enter</b></div>
+                    <div class="play-label">AWAKEN</div>
+                    <div class="play-hint">Enter, or seat a relic</div>
                   </div>
                   <div class="osd osd-bl"><span id="osdClock">00:00</span></div>
                 </section>
 
-                <!-- VIEW 2: boot -->
-                <section class="view view-boot" data-view="boot">
-                  <svg class="boot-ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="br-ring" cx="60" cy="60" r="52" /><circle class="br-halo" cx="60" cy="60" r="30" /></svg>
-                  <div class="glitch boot-logo" data-text="NORI-DEX" id="bootLogo">NORI-DEX</div>
+                <!-- VIEW 2: boot (dawn) -->
+                <section class="view view-boot" data-view="boot" aria-label="Waking up">
+                  <svg class="boot-ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="br-ring" cx="60" cy="60" r="52" /><ellipse class="br-halo" cx="60" cy="60" rx="34" ry="12" /></svg>
+                  <img class="boot-logo-img" src="assets/logo/sky-project-logo.webp" width="865" height="240" alt="The Sky Project: Land of Noris" decoding="async">
+                  <div class="boot-logo" id="bootLogo">NORI-DEX</div>
                   <div class="boot-sub" id="bootSub"></div>
                   <div class="boot-bar"><i></i></div>
                 </section>
 
                 <!-- VIEW 3: relic altar -->
-                <section class="view view-home" data-view="home">
-                  <div class="home-bg" aria-hidden="true"></div>
+                <section class="view view-home" data-view="home" aria-label="Relic altar">
+                  <div class="home-bg" aria-hidden="true"><img src="assets/art/splash-clean-960.webp" width="960" height="540" alt="" loading="lazy" decoding="async"></div>
                   <header class="hud-top">
                     <div class="hud-left"><span class="avatar" data-icon="crystal"></span><span class="user-name">Relic altar</span></div>
-                    <div class="status">
-                      <span class="clock" id="clock">00:00</span>
-                                            <span class="battery"><i></i></span>
-                    </div>
+                    <div class="status"><span class="clock" id="clock">00:00</span></div>
                   </header>
-                  <div class="home-title" id="homeTitle">
-                    <b></b><span></span>
-                  </div>
-                  <div class="tiles-viewport">
-                    <div class="tiles" id="tiles"></div>
-                  </div>
-                  <nav class="dock" id="dock" aria-label="System menu"></nav>
+                  <div class="home-title" id="homeTitle"><b></b><span></span></div>
+                  <div class="tiles" id="tiles" role="list"></div>
+                  <nav class="dock" id="dock" aria-label="System"></nav>
                 </section>
 
                 <!-- VIEW 4: the seated relic's screen (js/sections.js) -->
-                <section class="view view-section" data-view="section">
+                <section class="view view-section" data-view="section" aria-label="Relic screen">
                   <div class="tabs">
-                    <span class="tab-key" data-btn-proxy="l">L</span>
+                    <button class="tab-key" data-btn-proxy="l" aria-label="Previous relic">‹</button>
                     <div class="tab-list" id="tabList"></div>
-                    <span class="tab-key" data-btn-proxy="r">R</span>
+                    <button class="tab-key" data-btn-proxy="r" aria-label="Next relic">›</button>
                   </div>
                   <div class="section-scroll" id="sectionScroll"></div>
                 </section>
 
+                <!-- attunement: the relic's art blooms through a halo when it seats -->
+                <div class="attune" id="attune" aria-hidden="true"><i class="at-ring"></i><i class="at-ring at-ring--2"></i><img class="at-art" alt=""><b class="at-name"></b></div>
+
                 <!-- Hint bar at the bottom of the screen -->
                 <footer class="hints" id="hints">
-                  <div class="hints-left">
-                    <span class="hints-ico" data-icon="gamepad"></span>
-                    <span id="hintsBrand">NORI-DEX</span>
-                  </div>
+                  <div class="hints-left"><span class="hints-ico" data-icon="crystal"></span><span id="hintsBrand">NORI-DEX</span></div>
                   <div class="hints-right" id="hintsRight"></div>
                 </footer>
 
                 <!-- Controls help -->
-                <div class="help" id="help" aria-hidden="true">
+                <div class="help" id="help" aria-hidden="true" role="dialog" aria-label="Controls">
                   <div class="help-panel">
-                    <div class="help-head">
-                      <b>Controls</b>
-                      <span>Device buttons · mouse · keyboard · gamepad</span>
-                    </div>
+                    <div class="help-head"><b>Controls</b><span>Device · keyboard · mouse · touch · gamepad</span></div>
                     <div class="help-grid" id="helpGrid"></div>
-                    <div class="help-foot"><b class="badge">B</b> or <b class="badge">+</b> to close</div>
+                    <div class="help-foot">Press <b class="badge badge--b">◆</b> or <b class="badge">?</b> to close</div>
                   </div>
                 </div>
 
                 <!-- Glass effects -->
                 <div class="fx fx-scan" aria-hidden="true"></div>
-                <div class="fx fx-roll" aria-hidden="true"></div>
                 <div class="fx fx-vignette" aria-hidden="true"></div>
                 <div class="fx fx-flash" id="flash" aria-hidden="true"></div>
 
@@ -171,41 +157,8 @@
                 </div>
               </div>
             </div>
-
           </div>
         </div>
-
-        <!-- RIGHT CONTROLLER (replaced in O3) -->
-        <div class="joycon joycon--right">
-          <button class="jc-shoulder" data-btn="r" data-tip="Next relic" data-key="E" aria-label="R button">
-            <svg viewBox="0 0 170 120" aria-hidden="true">
-              <path class="gs" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /><path class="sh" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" />
-              <g class="cap"><path class="vis" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /><path class="rim" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /></g>
-              <path class="hit" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" />
-            </svg>
-          </button>
-          <div class="jc-shell"></div>
-
-          <button class="ctl jc-plus" style="--x:28px;--y:52px" data-btn="plus" data-tip="Help" data-key="+" aria-label="Plus: help">
-            <b class="cap"><i></i><i></i></b>
-          </button>
-
-          <div class="abxy" style="--x:80px;--y:132px">
-            <button class="fbtn" style="--dx:0px;--dy:-45px" data-btn="x" data-tip="X" data-key="X" aria-label="X"><b class="cap">X</b></button>
-            <button class="fbtn" style="--dx:-45px;--dy:0px" data-btn="y" data-tip="Glass effect" data-key="Y" aria-label="Y"><b class="cap">Y</b></button>
-            <button class="fbtn" style="--dx:45px;--dy:0px" data-btn="a" data-tip="Select" data-key="Enter" aria-label="A"><b class="cap">A</b></button>
-            <button class="fbtn" style="--dx:0px;--dy:45px" data-btn="b" data-tip="Back" data-key="Esc" aria-label="B"><b class="cap">B</b></button>
-          </div>
-
-          <div class="ctl stick" style="--x:80px;--y:272px" data-stick="right" data-tip="Scroll (drag)" aria-label="Right stick">
-            <div class="stick-cap"><i class="st-sh"></i><i class="st-wall"></i><i class="st-top"><b></b></i></div>
-          </div>
-
-          <button class="ctl jc-home" style="--x:52px;--y:372px" data-btn="home" data-tip="Relic altar" data-key="H" aria-label="Home">
-            <b class="cap"><span data-icon="home"></span></b>
-          </button>
-        </div>
-
       </div>
 
       <!-- DOCK: relic rack and info card of the selected relic -->
@@ -219,11 +172,28 @@
     </div>
   </main>
 
-  <!-- power cable (drawn above the device) -->
+  <!-- power conduit (drawn above the device) -->
   <canvas id="cable" aria-hidden="true"></canvas>
 
-  
   <div class="tip" id="tip" role="tooltip"></div>
+
+  <!-- shared rune glyphs (used by the device, relics and screens) -->
+  <svg class="rune-defs" aria-hidden="true" width="0" height="0">
+    <defs>
+      <symbol id="rn0" viewBox="0 0 10 16"><path d="M2 2Q8 4 5 8T8 14"/></symbol>
+      <symbol id="rn1" viewBox="0 0 10 16"><path d="M5 1V15M1 5L5 8L9 5"/></symbol>
+      <symbol id="rn2" viewBox="0 0 10 16"><path d="M1 4Q5 0 9 4M5 4V15M2 15H8"/></symbol>
+      <symbol id="rn3" viewBox="0 0 10 16"><path d="M1 8L5 2L9 8L5 14Z"/></symbol>
+      <symbol id="rn4" viewBox="0 0 10 16"><path d="M2 1V9Q2 14 7 14M7 4V10"/></symbol>
+      <symbol id="rn5" viewBox="0 0 10 16"><path d="M2 15L8 1M2 6H6M4 11H8"/></symbol>
+      <symbol id="rn6" viewBox="0 0 10 16"><path d="M5 1L9 6L5 11L1 6ZM5 11V15"/></symbol>
+      <symbol id="rn7" viewBox="0 0 10 16"><path d="M1 3Q5 7 9 3M1 9Q5 13 9 9M5 12V15"/></symbol>
+      <symbol id="rn8" viewBox="0 0 10 16"><path d="M3 1V15M7 1V15M3 9L7 5"/></symbol>
+      <symbol id="rn9" viewBox="0 0 10 16"><path d="M8 2Q1 2 1 8T8 14M5 7V9"/></symbol>
+      <symbol id="rn10" viewBox="0 0 10 16"><path d="M1 1L5 6L9 1M5 6V15M2 11H8"/></symbol>
+      <symbol id="rn11" viewBox="0 0 10 16"><path d="M5 1A3 3 0 1 1 4.9 1M5 7V15M2 12L5 9L8 12"/></symbol>
+    </defs>
+  </svg>
 
   <!-- scripts: keep this list and CORE in scripts/build.mjs identical -->
   <script src="js/i18n.js"></script>
@@ -234,6 +204,7 @@
   <script src="js/audio.js"></script>
   <script src="js/static.js"></script>
   <script src="js/input.js"></script>
+  <script src="js/device.js"></script>
   <script src="js/cable.js"></script>
   <script src="js/carts.js"></script>
   <script src="js/sections.js"></script>

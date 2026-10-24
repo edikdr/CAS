@@ -1,0 +1,96 @@
+# HANDOFF: Opus to Sonnet
+
+Project root: `nori-dex/` (sources in `nori-dex/src/`). Build: `cd src && npm i && npm run build` writes `src/dist/`.
+English only: no Russian anywhere. The build fails on any Cyrillic in `src/` or `dist/`.
+
+## Change of plan (from the client, after the brief)
+
+- **Three relics, not four**, styled after the reference renders (body style only: stone, brass, vines, glowing runes, a different tint per relic). Cover art is never copied from the renders.
+  1. **The Sky Project**: label `assets/art/splash-with-logo-960.webp`; opens **Nori-Dex**; neutral stone, gold runes.
+  2. **Celestia**: label `assets/shots/celestial-observatory-960.webp`; opens **Worlds at plane `p1`**; grey-blue stone, blue/green runes. The name is a working title, so the relic shows a **Placeholder** tag.
+  3. **Abyssal Plane** (official name): no official art in the pack, so the label shows an intentional "Art pending" state. Opens **Worlds at plane `p4`**; rusty stone, red/orange runes.
+- **Spirit Quiz** has no relic. It is a button inside the bestiary that opens the `spirit` screen.
+- **Kickstarter, Steam, Discord and the countdown** live on the console home screen (the relic altar, `app.js`), not in a screen. There is no `join` screen any more.
+- The relic title sits on a brass plaque under the label window and never covers the art.
+
+## What Opus changed
+
+| Step | Result |
+|---|---|
+| O1 | `docs/AUDIT.md` |
+| O2 | Removed all Pokémon modules, data, scripts and third-party hosts. English became the source language (codemod). Studio art went in through `scripts/bake-images.py`. Added the build gates. `vercel.json` replaced `_headers`. Added stubs for your files. |
+| O3 | Built the Mana Communicator device (`index.html`, `css/console3d.css`, `js/device.js`). Built the three relics (`js/carts.js`, `css/stage.css`). Re-skinned the cable as the mana conduit (`js/cable.js`). Rebuilt the shell (`js/app.js`): attunement, altar and campaign, relic tabs, screen stack. Added the phone layout. Simplified input (no sticks; the gamepad is polled only while connected). |
+
+## The i18n rule
+
+- English is the source language. Wrap every user-visible string: `_('Seat a relic')`. The English text is the key.
+- Placeholders: `_('{n} days left', { n: 5 })`. Plurals: `_n(n, 'Nori|Noris')` returns the form without the number.
+- Spanish later = one file `js/i18n/es.js` containing `PL.i18n.add('es', { 'Seat a relic': '…' })`. Add it to `index.html` and to `CORE` in `scripts/build.mjs`, right after `js/i18n.js`.
+- Never build strings by concatenating translated fragments. Use placeholders instead.
+- Data text in `data/sky.js` (names, appearance) is not wrapped. A future Spanish build would need a translated `sky.js`.
+
+## How you plug in (you own these files)
+
+**`data/sky.js`** is currently a stub transcribed 1:1 from `docs/studio-pack/seed.json` in the contract shape. Rules:
+- Image paths must point to the WebP files in `assets/` (for example `assets/nori/hud-zer.webp`), not the `.png` in the seed. The build fails on a missing path.
+- Always write full literal asset paths. The build stamps and checks only literal `assets/...` strings.
+- `verified:false`, `nameStatus:'working'` and `artStatus:'unverified'|'pending'` must render a Placeholder tag (class `.ph-tag` exists in `css/sections.css`).
+- `snapshot` is a playtest HUD reading. Label it "Playtest snapshot", never "base stats".
+- Keep the file under 20 KB. The build fails above that.
+
+**`js/sections.js`** (+ `css/sections.css`) uses this contract, which `app.js` relies on:
+
+```
+PL.sections.mount(id, root, opts) -> controller      ids: 'dex' | 'worlds' | 'spirit'
+  opts.tab   : sub-view to open at. Worlds receives 'p1' (Celestia relic) or 'p4' (Abyssal relic)
+  opts.relic : id of the seated relic
+controller.press(name) -> true if handled            names: up down left right a b y l r home
+controller.hints()     -> [[['a'], 'Open'], ...]     keys: a b l r up down plus y home
+controller.scrollBy({x, y}), controller.destroy()
+PL.sections.setContext(ctx): ctx.audio(name), ctx.toast(msg), ctx.ambient(color|null), ctx.hints(),
+                             ctx.eject(), ctx.swap(relicId), ctx.go(screenId, tab), ctx.back()
+```
+
+- Return `false` from `press` for anything you do not handle. Then the app handles it: `l`/`r` swap relics, `b` goes back from a sub-screen or draws the relic out, `home` returns to the altar.
+- The bestiary must keep a **Spirit Quiz** button that calls `ctx.go('spirit')`. B returns to the bestiary automatically (the app keeps the stack).
+- The `Section` controller (geometric grid navigation, detail sheet, hints) is kept from the original. The three builders are deliberately plain stubs. Replace them.
+
+**Spirit Quiz**: use the dialog kit in `js/quiz.js` (brand-free typewriter and ▶ menu):
+
+```
+var d = PL.quiz.dialog(hostEl, { accent: '#E8B93A', onHints: ctx.hints });
+d.say(['Page one.', 'Page two.'], 'Speaker').then(() => d.ask(['A', 'B', 'C'])).then(i => …);
+d.press(name) / d.hints() / d.destroy()
+```
+
+`js/quiz-data.js` is yours (an empty stub now). The stub `spirit` screen shows how to wire the kit.
+
+**Screen sizes**: the screen is a CSS size container named `screen`.
+- Desktop: **768 × 432**. Phone (portrait): **368 × 404**.
+- Use `@container screen (max-width: 480px) { … }` for the phone.
+- On the phone, `44 CSS px ≈ 50 design px`. Make touch targets at least 50 px there.
+- The screen frame gives you `top: 44px` (48 on phone) to `bottom: 34px` (32 on phone) inside `#sectionScroll`.
+
+**Do not**: fetch anything, add dependencies, reference `assets/src/` (originals, not shipped) or anything from `reference/`, or state facts outside the ground-truth table.
+
+## Files Opus owns (ask, or make the smallest change and note it here)
+
+`index.html`, `css/style.css`, `css/console3d.css`, `css/stage.css`, `js/app.js`, `js/device.js`, `js/carts.js`, `js/cable.js`, `js/audio.js`, `js/input.js`, `js/static.js`, `js/config.js`, `scripts/*`, `vercel.json`.
+
+## What is stubbed
+
+- `data/sky.js`: seed values only.
+- `js/sections.js` / `css/sections.css`: plain bestiary (with the Spirit Quiz button and the Kael hero tile), Worlds list (opens at the relic's plane), Spirit Quiz placeholder.
+- `js/quiz-data.js`: empty.
+- Photo mode (`C` key or the camera stud) works but is basic: a JPEG download of the screen.
+
+## Placeholders and items still needed from the studio
+
+Steam URL, Discord invite (both render "link pending"), transparent vector logo (the crest sits on a pale plate to blend the logo crop), real Nori sprites, alternate-palette art, official plane names (Celestia, Noreth and Infernia are working titles), type names (Type I to VI are generic), and official art for the Abyssal Plane.
+
+## Notes and deliberate alternatives
+
+- The reference renders are notched rectangles. Per the brief, the relics keep an **arched relic-slab silhouette** and borrow only the materials (stone, brass, vines, glowing runes, tints), as the client asked.
+- All device ornament (filigree, runes, crystals) is procedural CSS/SVG UI chrome. No illustration or game imagery is generated; every picture of the game world is official art.
+- Landscape phones get the desktop layout at a small scale. The phone layout targets portrait (360 × 800 passes).
+- Credits (Soundtrack, Cinematics) are in the Controls help panel. The game and studio social links exist in `sky.links` but are not shown yet. Sonnet may surface them in a screen.

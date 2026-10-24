@@ -80,3 +80,6 @@
 @container screen (max-width: 480px) {
   .stub-card { grid-template-columns: 1fr; }
 }
+.stub-quiz { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 54px; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; background: linear-gradient(90deg, rgba(232, 185, 58, .22), rgba(232, 185, 58, .06)); box-shadow: inset 0 0 0 1px rgba(232, 185, 58, .55); text-align: left; }
+.stub-quiz b { font-size: 15px; color: #f8e19a; }
+.stub-quiz span { font-size: 12px; font-weight: 700; color: #c9d2e3; }

@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Power cable: it always dangles from the top, and to switch the device on it
-   has to be pulled to the socket on the body.
+   Mana conduit (the power cable): it always dangles from the top, and to wake the
+   device it has to be pulled to the socket on the body.
 
    • Physics: a 34-point rope (Verlet), so the cable is real: it hangs from the top edge
      of the window, sways in the breeze and under the hand, follows the plug, sags when plugged.
@@ -8,8 +8,11 @@
    • Control: grab the plug with mouse or finger and pull it to the socket. Near the socket
      the plug snaps into alignment; pull it home and it goes in and the screen powers on.
      To unplug, pull it away from the socket (or click it).
-   • Drawing: a canvas above the device; the cable is a shaded tube (shadow, dark edge, body,
-     highlight), the plug has a collar, body and tip. The tip disappears BEHIND the body edge.
+   • Drawing: a canvas above the device; the conduit is a shaded navy cord wound with gold
+     thread, the plug has a brass collar, an enamel body and a crystal tip. The tip disappears
+     BEHIND the body edge. On contact a pulse of mana runs down the cord into the socket.
+   • Idle: the breeze fades after a few seconds and the loop stops once the cord is still;
+     hovering or grabbing the plug wakes it again.
    All sizes inside the simulation are design pixels (screen pixels / device scale).
    API: dangle() drops the cable from the top, plugIn({fast}) plugs it in, unplug(), snap(),
         isPlugged(), busy(), on('contact' | 'pull' | 'push' | 'grab' | 'drop', fn)
@@ -52,6 +55,8 @@ PL.cable = (function () {
   var near = false;           // plug is in the socket zone
   var hot = false;            // pointer is over the plug
   var idleSince = 0;
+  var pulseAt = -1;           // time the mana pulse started (on contact)
+  var still = 0;              // consecutive frames without motion (the loop sleeps after a while)
 
   function emit(n, a) {
     var ok = true;
@@ -231,7 +236,10 @@ PL.cable = (function () {
   }
 
   /* ---------- frame ---------- */
-  function wind() { return hot ? 0 : Math.sin(clock * 0.9) * 15 + Math.sin(clock * 2.3 + 1) * 7; }
+  /* breeze: full for 6 s after the cable was dropped or released, then it fades out */
+  function calm() { return M.clamp(1 - (performance.now() - idleSince - 6000) / 3000, 0, 1); }
+  function wind() { return hot ? 0 : (Math.sin(clock * 0.9) * 15 + Math.sin(clock * 2.3 + 1) * 7) * calm(); }
+  function motion() { var m = 0; for (var i = 0; i < N; i++) m += Math.abs(P[i].x - Q[i].x) + Math.abs(P[i].y - Q[i].y); return m; }
 
   function frame(now) {
     raf = 0;
@@ -266,6 +274,7 @@ PL.cable = (function () {
           state = 'plugged'; plugged = true; rest = 0;
           place(); settle();
           for (var k = 3; k < N - 6; k++) P[k].y += 1.6 * Math.sin(k);       // small jolt from the impact when plugging in
+          pulseAt = performance.now();
           emit('contact');
         } else {
           // released: the plug falls and swings
@@ -288,9 +297,11 @@ PL.cable = (function () {
 
     draw();
     updateHint();
-    if (state === 'seq' || state === 'drag' || state === 'dangle' || (state === 'plugged' && rest < 140)) raf = requestAnimationFrame(frame);
+    if (state === 'dangle') still = (calm() === 0 && !hot && motion() < 0.05) ? still + 1 : 0;
+    var asleep = state === 'dangle' && still > 45 && performance.now() - idleSince > 1600;
+    if (state === 'seq' || state === 'drag' || (state === 'dangle' && !asleep) || (state === 'plugged' && rest < 140)) raf = requestAnimationFrame(frame);
   }
-  function wake() { if (!raf && state !== 'away') { lastT = performance.now(); raf = requestAnimationFrame(frame); } }
+  function wake() { if (!raf && state !== 'away') { still = 0; lastT = performance.now(); raf = requestAnimationFrame(frame); } }
 
   /* ---------- hand: dragging the plug ---------- */
   var pointer = { x: 0, y: 0 };      // in design coordinates
@@ -387,7 +398,7 @@ PL.cable = (function () {
       }
     }
     var over = (state === 'dangle' || state === 'plugged' || state === 'drag') && !grab && overPlug(e);
-    if (over !== hot) { hot = over; document.body.classList.toggle('over-plug', over); }
+    if (over !== hot) { hot = over; document.body.classList.toggle('over-plug', over); wake(); }
   });
   function release() {
     if (!grab) return;
@@ -463,26 +474,37 @@ PL.cable = (function () {
     }
     cx.restore();
 
-    // faint rim so a dark cable does not vanish against a dark background
-    cx.strokeStyle = 'rgba(165,170,190,.16)'; cx.lineWidth = CABLE_W + 1.8;
+    // faint brass rim so a dark cord does not vanish against a dark background
+    cx.strokeStyle = 'rgba(232,185,58,.26)'; cx.lineWidth = CABLE_W + 1.8;
     cx.beginPath(); cx.moveTo(pts[0].x, pts[0].y);
     for (i = 1; i < np; i++) cx.lineTo(pts[i].x, pts[i].y);
     cx.stroke();
 
     // matte sheath
-    cx.strokeStyle = '#0b0b0e'; cx.lineWidth = CABLE_W;
+    cx.strokeStyle = '#111c3c'; cx.lineWidth = CABLE_W;
     cx.stroke();
 
     // soft half tone and a broad highlight shifted towards the light (like on a cylinder)
-    cx.strokeStyle = '#16171b'; cx.lineWidth = CABLE_W * 0.66; pathOffset(pts, 0.13, 0, np); cx.stroke();
-    cx.strokeStyle = '#25272d'; cx.lineWidth = CABLE_W * 0.3; pathOffset(pts, 0.26, 0, np); cx.stroke();
-    // thin highlight along the cable (in long pieces, no ribbing)
-    var chunk = 11, alphas = [0.3, 0.24, 0.32, 0.26, 0.3];
-    for (var c0 = 0, ci = 0; c0 < np - 1; c0 += chunk, ci++) {
-      cx.strokeStyle = 'rgba(190,196,214,' + alphas[ci % alphas.length] + ')';
-      cx.lineWidth = CABLE_W * 0.08;
-      pathOffset(pts, 0.31, c0, Math.min(np, c0 + chunk + 1));
-      cx.stroke();
+    cx.strokeStyle = '#1d2c5a'; cx.lineWidth = CABLE_W * 0.66; pathOffset(pts, 0.13, 0, np); cx.stroke();
+    cx.strokeStyle = '#2d4180'; cx.lineWidth = CABLE_W * 0.3; pathOffset(pts, 0.26, 0, np); cx.stroke();
+    // gold thread wound around the cord: two dashed strands, half a turn apart
+    cx.lineWidth = CABLE_W * 0.16;
+    cx.setLineDash([2.2, 5.2]);
+    cx.strokeStyle = 'rgba(232,185,58,.75)'; pathOffset(pts, 0.18, 0, np); cx.stroke();
+    cx.lineDashOffset = 3.7;
+    cx.strokeStyle = 'rgba(255,228,150,.55)'; pathOffset(pts, -0.2, 0, np); cx.stroke();
+    cx.setLineDash([]); cx.lineDashOffset = 0;
+    // the mana pulse: a bright bead running from the top down into the socket
+    if (pulseAt >= 0) {
+      var k = (performance.now() - pulseAt) / 900;
+      if (k >= 1) pulseAt = -1;
+      else {
+        var head = Math.floor(M.E.in2(k) * np), tail = Math.max(0, head - 14);
+        cx.strokeStyle = 'rgba(127,214,223,.45)'; cx.lineWidth = CABLE_W * 1.5;
+        pathOffset(pts, 0, tail, Math.min(np, head + 1)); cx.stroke();
+        cx.strokeStyle = 'rgba(235,255,255,.95)'; cx.lineWidth = CABLE_W * 0.45;
+        pathOffset(pts, 0, Math.max(tail, head - 5), Math.min(np, head + 1)); cx.stroke();
+      }
     }
   }
 
@@ -512,20 +534,24 @@ PL.cable = (function () {
     }
     cx.restore();
 
-    // ---- metal tip ----
-    var tw = 10.5, ty0 = y1 - 4, ty1 = y1 + tp;
+    // ---- crystal tip: a faceted cyan shard set in brass ----
+    var tw = 9.5, ty0 = y1 - 4, ty1 = y1 + tp;
     var mg = cx.createLinearGradient(-tw, 0, tw, 0);
-    mg.addColorStop(0, '#8d929d'); mg.addColorStop(0.22, '#e4e7ed'); mg.addColorStop(0.5, '#b7bcc7'); mg.addColorStop(0.78, '#f1f3f7'); mg.addColorStop(1, '#868b97');
-    cx.fillStyle = mg; rr(-tw, ty0, tw * 2, ty1 - ty0, 4.6); cx.fill();
-    cx.strokeStyle = 'rgba(40,44,54,.55)'; cx.lineWidth = 0.9; cx.stroke();
-    // tip end: dark socket with a tongue (visible until the tip is inside the body)
-    cx.fillStyle = '#0c0d10'; rr(-tw + 2, ty1 - 4.4, tw * 2 - 4, 3.4, 1.7); cx.fill();
-    cx.fillStyle = '#6b707c'; cx.fillRect(-tw + 4.5, ty1 - 3.1, tw * 2 - 9, 0.9);
+    mg.addColorStop(0, '#3c9fbf'); mg.addColorStop(0.3, '#d8fbff'); mg.addColorStop(0.55, '#7fd6df'); mg.addColorStop(1, '#2b6f8c');
+    cx.fillStyle = mg;
+    cx.beginPath(); cx.moveTo(-tw, ty0); cx.lineTo(tw, ty0); cx.lineTo(tw * 0.75, ty1 - 3); cx.lineTo(0, ty1); cx.lineTo(-tw * 0.75, ty1 - 3); cx.closePath(); cx.fill();
+    cx.strokeStyle = 'rgba(15,40,60,.6)'; cx.lineWidth = 0.8; cx.stroke();
+    cx.strokeStyle = 'rgba(255,255,255,.55)'; cx.lineWidth = 0.6;
+    cx.beginPath(); cx.moveTo(-tw * 0.3, ty0 + 1); cx.lineTo(0, ty1 - 1); cx.lineTo(tw * 0.35, ty0 + 1); cx.stroke();
 
-    // ---- body: smooth matte shell with a soft bevel ----
+    // ---- body: night-navy enamel shell with brass bands ----
     var hg = cx.createLinearGradient(-hw, 0, hw, 0);
-    hg.addColorStop(0, '#2c2d33'); hg.addColorStop(0.2, '#17181c'); hg.addColorStop(0.62, '#0d0d10'); hg.addColorStop(1, '#050506');
+    hg.addColorStop(0, '#2e4280'); hg.addColorStop(0.25, '#1a2858'); hg.addColorStop(0.65, '#111c3c'); hg.addColorStop(1, '#0a1128');
     cx.fillStyle = hg; rr(-hw, y0, w, hs, 6); cx.fill();
+    var bb = cx.createLinearGradient(-hw, 0, hw, 0);
+    bb.addColorStop(0, '#8a5c1a'); bb.addColorStop(0.3, '#f8e19a'); bb.addColorStop(0.6, '#c99432'); bb.addColorStop(1, '#6b4512');
+    cx.fillStyle = bb; cx.fillRect(-hw + 1, y1 - 5, w - 2, 3.2); cx.fillRect(-hw + 1, y0 + 2.5, w - 2, 2.2);
+    cx.fillStyle = '#E8B93A'; cx.beginPath(); cx.moveTo(0, y0 + 8.5); cx.lineTo(3.4, y0 + 13); cx.lineTo(0, y0 + 17.5); cx.lineTo(-3.4, y0 + 13); cx.closePath(); cx.fill();
     var vg = cx.createLinearGradient(0, y0, 0, y1);
     vg.addColorStop(0, 'rgba(255,255,255,.06)'); vg.addColorStop(0.45, 'rgba(255,255,255,0)'); vg.addColorStop(1, 'rgba(0,0,0,.3)');
     cx.fillStyle = vg; rr(-hw, y0, w, hs, 6); cx.fill();
@@ -536,7 +562,7 @@ PL.cable = (function () {
     // ---- short smooth collar blending into the cable ----
     var cb = CABLE_W * 0.5, bh = hw * 0.62;
     var bg = cx.createLinearGradient(-bh, 0, bh, 0);
-    bg.addColorStop(0, '#2a2b31'); bg.addColorStop(0.3, '#141519'); bg.addColorStop(1, '#050506');
+    bg.addColorStop(0, '#f8e19a'); bg.addColorStop(0.35, '#c99432'); bg.addColorStop(1, '#5c3b0c');
     cx.fillStyle = bg;
     cx.beginPath();
     cx.moveTo(-cb, 0); cx.quadraticCurveTo(-cb - 0.6, rl * 0.5, -bh, rl + 1);
@@ -566,7 +592,7 @@ PL.cable = (function () {
     if (hot && state !== 'drag') {
       cx.save();
       cx.translate(end.x, end.y); cx.rotate(Math.atan2(-axis.x, axis.y));
-      cx.strokeStyle = 'rgba(120,235,255,.75)'; cx.lineWidth = 1.6;
+      cx.strokeStyle = 'rgba(232,185,58,.9)'; cx.lineWidth = 1.6;
       rr(-PLUG.w / 2 - 3, PLUG.relief - 3, PLUG.w + 6, PLUG.house + 6, 9); cx.stroke();
       cx.restore();
     }
@@ -576,7 +602,7 @@ PL.cable = (function () {
   var hintEl = document.createElement('div');
   hintEl.className = 'cable-hint';
   hintEl.setAttribute('aria-hidden', 'true');
-  hintEl.innerHTML = '<i></i><b>' + _('Pull the cable to USB-C') + '</b>';
+  hintEl.innerHTML = '<i></i><b>' + _('Pull the conduit to the socket') + '</b>';
   document.body.appendChild(hintEl);
   function updateHint() {
     var show = state === 'dangle' && !hot && performance.now() - idleSince > 1400 && !document.body.classList.contains('is-on');
@@ -633,7 +659,9 @@ PL.cable = (function () {
     setLen();
     state = 'plugged'; plugged = true; seq = null; grab = null;
     place(); settle(); rest = 0;
+    pulseAt = performance.now();
     draw();
+    wake();
     emit('contact');
     if (pending) pending.resolve();
   }

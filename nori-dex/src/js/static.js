@@ -16,6 +16,7 @@ PL.static = (function () {
   var lut = new Uint32Array(256);
   var seed = (Math.random() * 0xffffffff) >>> 0 || 1;
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var calmOnly = reduce || !!(navigator.connection && navigator.connection.saveData);
   var tears = []; // horizontal tear lines
 
   function rand() {
@@ -29,13 +30,13 @@ PL.static = (function () {
   function buildLut() {
     for (var v = 0; v < 256; v++) {
       var x = v / 255;
-      var b = Math.pow(x, 1.7);
-      var r = 6 + b * 70;
-      var g = 14 + b * 236;
-      var bl = 8 + b * 95;
-      if (x > 0.9) { // brightest sparks
-        var k = (x - 0.9) / 0.1;
-        r += (215 - r) * k; g += (255 - g) * k; bl += (225 - bl) * k;
+      var b = Math.pow(x, 2.1);                 // night navy -> mana cyan, with rare gold sparks
+      var r = 10 + b * 110;
+      var g = 18 + b * 200;
+      var bl = 46 + b * 190;
+      if (x > 0.93) {
+        var k = (x - 0.93) / 0.07;
+        r += (248 - r) * k; g += (226 - g) * k; bl += (150 - bl) * k;
       }
       lut[v] = (255 << 24) | ((bl & 255) << 16) | ((g & 255) << 8) | (r & 255);
     }
@@ -77,10 +78,11 @@ PL.static = (function () {
 
   function loop(ts) {
     raf = requestAnimationFrame(loop);
-    var minGap = mode === 'grain' ? 42 : (reduce ? 66 : 0);
+    var minGap = mode === 'grain' ? 125 : mode === 'tune' ? 16 : 40;   // the mist drifts at 25 fps, the grain at 8 fps
     if (ts - lastDraw < minGap) return;
     lastDraw = ts;
     draw(ts);
+    if (calmOnly && mode !== 'tune') stop();   // reduced motion / Save-Data: one still frame
   }
 
   function start() { if (!raf) raf = requestAnimationFrame(loop); }

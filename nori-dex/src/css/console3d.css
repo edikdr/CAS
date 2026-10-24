@@ -1,395 +1,292 @@
 /* ==========================================================================
-   Volumetric device: body slab with thickness and a bevel, controllers with side walls,
-   buttons = socket + moving cap (travels down, springs back), sticks with tilt and shadow,
-   shoulder buttons with thickness. Light from top left without glare: volume comes from
-   geometry (walls, bevels, contact shadows), not reflections.
-   (Controller shells are replaced by the Mana Communicator body in O3.)
+   The Mana Communicator (device body, crest, controls, glass, socket, slot).
+   Night-navy enamel slab, brass rim and filigree (body art: js/device.js), a crest
+   that holds the game logo and the device's mana crystal, a rune compass instead of a
+   direction pad, crystal gems for select / back, brass studs. Buttons are a socket
+   plus a moving cap: they sink when pressed and spring back.
+   Two layouts: html[data-layout="wide"] (default) and html[data-layout="tall"].
    ========================================================================== */
 
-/* ---------- shared variables ---------- */
-.joycon--left  { --c: var(--jc-red);  --c-hi: var(--jc-red-hi);  --c-lo: var(--jc-red-lo); }
-.joycon--right { --c: var(--jc-blue); --c-hi: var(--jc-blue-hi); --c-lo: var(--jc-blue-lo); }
+/* ---------- placement: wide (1200 x 848) ---------- */
+.console { position: absolute; left: 50px; top: 112px; width: 1100px; height: 510px; }
+.body { position: absolute; inset: 0; z-index: 3; }
+.glass { position: absolute; left: 142px; top: 22px; width: 816px; height: 466px; z-index: 2; border-radius: 16px; background: #04060e; }
+.screen { left: 24px; top: 17px; width: 768px; height: 432px; }
+.crest { left: 400px; top: -74px; width: 300px; height: 90px; }
+.port { left: 790px; }
+.cart-slot { left: 550px; }
+.stud--power { left: 150px; }
+.stud--vdown { left: 202px; }
+.stud--vup { left: 246px; }
+.lever--l { left: 24px; }
+.lever--r { right: 24px; }
+.panel--l { left: 0; top: 0; width: 142px; height: 510px; }
+.panel--r { right: 0; top: 0; width: 142px; height: 510px; }
+.compass { left: 71px; top: 190px; }
+.stud--help { left: 40px; top: 318px; }
+.stud--photo { left: 102px; top: 318px; }
+.medallion { left: 71px; top: 420px; width: 62px; height: 62px; }
+.gem--a { left: 71px; top: 160px; width: 72px; height: 72px; }
+.gem--b { left: 71px; top: 258px; width: 56px; height: 56px; }
+.stud--home { left: 71px; top: 338px; }
+.stud--glass { left: 40px; top: 420px; }
+.stud--sound { left: 102px; top: 420px; }
+
+/* ---------- placement: tall (400 x 920, phones in portrait) ---------- */
+html[data-layout="tall"] .console { left: 4px; top: 64px; width: 392px; height: 620px; }
+html[data-layout="tall"] .glass { left: 8px; top: 26px; width: 376px; height: 412px; border-radius: 12px; }
+html[data-layout="tall"] .screen { left: 4px; top: 4px; width: 368px; height: 404px; }
+html[data-layout="tall"] .crest { left: 76px; top: -60px; width: 240px; height: 74px; }
+html[data-layout="tall"] .port { left: 330px; }
+html[data-layout="tall"] .cart-slot { left: 196px; }
+html[data-layout="tall"] .stud--power { left: 44px; }
+html[data-layout="tall"] .stud--vdown { left: 92px; }
+html[data-layout="tall"] .stud--vup { left: 134px; }
+html[data-layout="tall"] .lever { display: none; }   /* on phones the screen's ‹ › tab keys do this */
+html[data-layout="tall"] .panel--l, html[data-layout="tall"] .panel--r { top: 440px; height: 180px; width: 196px; }
+html[data-layout="tall"] .compass { left: 84px; top: 88px; width: 150px; height: 150px; }
+html[data-layout="tall"] .stud--help { left: 182px; top: 34px; }
+html[data-layout="tall"] .stud--photo { left: 182px; top: 94px; }
+html[data-layout="tall"] .medallion { left: 182px; top: 150px; width: 34px; height: 34px; }
+html[data-layout="tall"] .gem--a { left: 128px; top: 62px; width: 70px; height: 70px; }
+html[data-layout="tall"] .gem--b { left: 62px; top: 126px; width: 58px; height: 58px; }
+html[data-layout="tall"] .stud--home { left: 156px; top: 148px; }
+html[data-layout="tall"] .stud--glass, html[data-layout="tall"] .stud--sound { display: none; }
 
 /* ==========================================================================
-   CONTROLLERS: shell
+   BODY: slab with thickness under the body art
    ========================================================================== */
-.jc-shell {
+.body-shell { /* thickness: stacked offsets of the enamel edge plus a soft contact shadow */
   position: absolute;
   inset: 0;
-  z-index: 1;
-  overflow: hidden;
-  background: linear-gradient(118deg, color-mix(in srgb, var(--c-hi) 58%, var(--c)) 0%, var(--c) 36%, color-mix(in srgb, var(--c-lo) 52%, var(--c)) 100%);
-}
-.joycon--left .jc-shell {
-  border-radius: 108px 0 0 108px / 112px 0 0 112px;
-}
-.joycon--right .jc-shell {
-  border-radius: 0 108px 108px 0 / 0 112px 112px 0;
-}
-.joycon--left .jc-shell, .joycon--right .jc-shell {
+  border-radius: 46px;
+  background: #0b1430;
   box-shadow:
-    inset 0 3px 0 rgba(255, 255, 255, .08),
-    inset 0 -6px 0 rgba(0, 0, 0, .13),
-    0 2px 0 color-mix(in srgb, var(--c-lo) 90%, #000),
-    0 4px 0 color-mix(in srgb, var(--c-lo) 76%, #000),
-    0 6px 0 color-mix(in srgb, var(--c-lo) 62%, #000),
-    0 8px 0 color-mix(in srgb, var(--c-lo) 48%, #000),
-    0 10px 0 color-mix(in srgb, var(--c-lo) 36%, #000),
-    0 34px 40px -14px rgba(0, 0, 0, .7);
+    0 2px 0 #0a1229, 0 4px 0 #091027, 0 6px 0 #080e22, 0 8px 0 #070c1e, 0 10px 0 #5c3d0e,
+    0 12px 0 #3e290a, 0 40px 46px -14px rgba(0, 0, 0, .75);
 }
-.joycon--left .jc-shell  { box-shadow: inset -6px 0 0 rgba(0, 0, 0, .15), inset 0 3px 0 rgba(255, 255, 255, .08), inset 0 -6px 0 rgba(0, 0, 0, .13), 0 2px 0 color-mix(in srgb, var(--c-lo) 90%, #000), 0 4px 0 color-mix(in srgb, var(--c-lo) 76%, #000), 0 6px 0 color-mix(in srgb, var(--c-lo) 62%, #000), 0 8px 0 color-mix(in srgb, var(--c-lo) 48%, #000), 0 10px 0 color-mix(in srgb, var(--c-lo) 36%, #000), 0 34px 40px -14px rgba(0, 0, 0, .7); }
-.joycon--right .jc-shell { box-shadow: inset 6px 0 0 rgba(0, 0, 0, .15), inset 0 3px 0 rgba(255, 255, 255, .08), inset 0 -6px 0 rgba(0, 0, 0, .13), 0 2px 0 color-mix(in srgb, var(--c-lo) 90%, #000), 0 4px 0 color-mix(in srgb, var(--c-lo) 76%, #000), 0 6px 0 color-mix(in srgb, var(--c-lo) 62%, #000), 0 8px 0 color-mix(in srgb, var(--c-lo) 48%, #000), 0 10px 0 color-mix(in srgb, var(--c-lo) 36%, #000), 0 34px 40px -14px rgba(0, 0, 0, .7); }
+html[data-layout="tall"] .body-shell { border-radius: 34px; }
+.body-art { position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none; overflow: visible; }
 
-.jc-shell::before { /* matte grain */
-  content: '';
-  display: block;
-  position: absolute;
-  inset: 0;
-  background: var(--grain);
-  mix-blend-mode: soft-light;
-  opacity: .62;
-  pointer-events: none;
-  border-radius: inherit;
-}
-.jc-shell::after { /* rail at the seam with the body */
-  content: '';
-  display: block;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 10px;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(180deg, rgba(255, 255, 255, .15) 0 2px, transparent 2px 11px) 50% 14px / 3px calc(100% - 28px) no-repeat,
-    linear-gradient(90deg, rgba(0, 0, 0, .08), rgba(0, 0, 0, .38));
-}
-.joycon--left .jc-shell::after  { right: 0; left: auto; }
-.joycon--right .jc-shell::after { left: 0; right: auto; transform: scaleX(-1); }
+/* mana veins: an engraved groove; light runs through it while attuning */
+.dv-groove { stroke: #050913; stroke-width: 3.2; opacity: .8; }
+.dv-light { stroke: var(--plane); stroke-width: 2.2; stroke-dasharray: var(--len) var(--len); stroke-dashoffset: var(--len); opacity: .9; }
+.is-attuned .dv-light { stroke-dashoffset: 0; opacity: .22; transition: opacity .8s; }
+.is-attune .dv-light { animation: veinRun 1.1s cubic-bezier(.4, 0, .2, 1) both; filter: drop-shadow(0 0 3px var(--plane)); }
+@keyframes veinRun { 0% { stroke-dashoffset: var(--len); opacity: 1; } 70% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: .22; } }
 
-/* bevel along the outline: thin edge, light at top left and dark at bottom right */
-.joycon::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  padding: 3px;
-  background: linear-gradient(150deg, rgba(255, 255, 255, .3), rgba(255, 255, 255, .04) 36%, rgba(0, 0, 0, 0) 56%, rgba(0, 0, 0, .34) 100%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-}
-.joycon--left::after  { border-radius: 108px 0 0 108px / 112px 0 0 112px; }
-.joycon--right::after { border-radius: 0 108px 108px 0 / 0 112px 112px 0; }
+/* runes engraved around the glass: dim gold when asleep, lit in the relic's colour */
+.dv-rune { stroke: #b38a3a; stroke-width: 1.6; opacity: .35; transition: stroke .6s, opacity .6s; }
+.is-on .dv-rune { opacity: .55; }
+.is-attuned .dv-rune { stroke: var(--plane); opacity: .75; }
+.is-attune .dv-rune { animation: runeLight .9s ease both; animation-delay: calc(.35s + var(--i) * 45ms); }
+@keyframes runeLight { 0% { stroke: #fff; opacity: .2; } 30% { stroke: #fff; opacity: 1; filter: drop-shadow(0 0 4px var(--plane)); } 100% { stroke: var(--plane); opacity: .75; } }
 
 /* ==========================================================================
-   SHOULDER BUTTONS L / R: an arc with thickness
+   CREST: halo, the device's mana crystal, the game logo on a sky plate
    ========================================================================== */
-.jc-shoulder {
+.crest { position: absolute; z-index: 4; pointer-events: none; }
+.crest-plate {
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 170px;
-  height: 120px;
-  z-index: 0;
-  pointer-events: none;
-}
-.jc-shoulder svg { width: 100%; height: 100%; overflow: visible; }
-.joycon--right .jc-shoulder svg { transform: scaleX(-1); }
-.jc-shoulder path { fill: none; stroke-linecap: round; pointer-events: none; }
-.jc-shoulder .gs { stroke: rgba(0, 0, 0, .2); stroke-width: 24; transform: translateY(9px); }
-.jc-shoulder .sh { stroke: #07080a; stroke-width: 15; transform: translateY(5px); }
-.jc-shoulder .vis { stroke: var(--btn); stroke-width: 12; transition: stroke .15s; }
-.jc-shoulder .rim { stroke: rgba(255, 255, 255, .15); stroke-width: 2.4; transform: translateY(-3.4px); }
-.jc-shoulder .cap { transform: translateY(-1.5px); transition: transform .26s cubic-bezier(.28, 1.9, .5, 1); }
-.jc-shoulder .hit { stroke: transparent; stroke-width: 34; pointer-events: stroke; cursor: pointer; }
-.jc-shoulder:hover .vis { stroke: color-mix(in srgb, var(--btn) 84%, #fff); }
-.jc-shoulder.is-pressed .cap { transform: translateY(3.2px); transition-duration: .05s; transition-timing-function: ease-out; }
-.jc-shoulder.is-pressed .vis { stroke: color-mix(in srgb, var(--btn) 88%, #000); }
-
-/* ==========================================================================
-   CONTROLS: positioned by their centre --x / --y
-   ========================================================================== */
-.ctl, .dpad, .abxy {
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
-  z-index: 2;
-}
-.ctl { transform: translate(-50%, -50%); }
-
-/* socket: recessed seat for the cap, its lower edge catches light */
-.dbtn, .fbtn, .jc-minus, .jc-plus, .jc-capture, .jc-home, .stick {
-  background: radial-gradient(circle at 50% 40%, #050507 0 52%, #0e0f12 100%);
-  box-shadow:
-    inset 0 4px 6px rgba(0, 0, 0, .92),
-    inset 0 0 0 1px rgba(0, 0, 0, .7),
-    0 1px 0 rgba(255, 255, 255, .13),
-    0 0 0 2px rgba(0, 0, 0, .16);
-}
-
-/* shared button cap: wall + contact shadow, travels down when pressed, springs back */
-.dbtn .cap, .fbtn .cap, .jc-minus .cap, .jc-plus .cap, .jc-capture .cap, .jc-home .cap {
-  position: absolute;
+  left: 18px; right: 18px; bottom: 0; top: 18px;
+  border-radius: 60px 60px 12px 12px / 46px 46px 12px 12px;
+  background: radial-gradient(90% 120% at 50% 100%, #ffffff 0%, #e6f4f9 55%, #c6e4ee 100%);   /* matches the logo's pale cloud */
+  box-shadow: inset 0 0 0 3px #d4a341, inset 0 0 0 5px #6b4512, 0 6px 14px rgba(0, 0, 0, .45);
   display: grid;
   place-items: center;
-  color: var(--btn-sym);
-  background:
-    radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--btn) 80%, #fff) 0%, var(--btn) 48%, color-mix(in srgb, var(--btn) 80%, #000) 100%);
-  box-shadow:
-    0 1px 0 var(--btn-lo),
-    0 2px 0 var(--btn-lo),
-    0 3px 0 color-mix(in srgb, var(--btn-lo) 68%, #000),
-    0 6px 5px rgba(0, 0, 0, .55),
-    inset 0 1.5px 0 rgba(255, 255, 255, .17),
-    inset 0 -2px 4px rgba(0, 0, 0, .3);
-  transform: translateY(-3px);
-  transition: transform .24s cubic-bezier(.28, 1.9, .5, 1), box-shadow .24s ease-out, filter .15s;
-  will-change: transform;
+  overflow: hidden;
 }
-.is-pressed .cap {
-  transform: translateY(0) scale(.975);
-  box-shadow:
-    0 0 0 var(--btn-lo),
-    0 0 0 var(--btn-lo),
-    0 1px 0 color-mix(in srgb, var(--btn-lo) 68%, #000),
-    0 1px 2px rgba(0, 0, 0, .6),
-    inset 0 1px 0 rgba(255, 255, 255, .08),
-    inset 0 -1px 3px rgba(0, 0, 0, .4);
-  transition-duration: .045s;
-  transition-timing-function: ease-out;
-  filter: brightness(.9);
+.crest-logo { width: 76%; height: auto; margin-top: 6px; }
+.crest-halo { /* brass halo hovering over the plate */
+  position: absolute;
+  left: 50%; top: 4px;
+  width: 74px; height: 18px;
+  margin-left: -37px;
+  border-radius: 50%;
+  border: 4px solid #d9aa45;
+  box-shadow: 0 2px 0 #6b4512, 0 0 10px rgba(232, 185, 58, .35);
 }
-.dbtn:hover .cap, .fbtn:hover .cap, .jc-minus:hover .cap, .jc-plus:hover .cap, .jc-capture:hover .cap, .jc-home:hover .cap { filter: brightness(1.14); }
-.is-pressed.dbtn:hover .cap, .is-pressed.fbtn:hover .cap { filter: brightness(.95); }
-
-/* light under a pressed button: a quiet glow from the screen */
-.dbtn::after, .fbtn::after, .jc-home::after, .jc-capture::after, .jc-minus::after, .jc-plus::after {
+.crest-crystal { /* the device's mana crystal, set inside the halo */
+  position: absolute;
+  left: 50%; top: -4px;
+  width: 18px; height: 28px;
+  margin-left: -9px;
+  clip-path: polygon(50% 0, 100% 42%, 50% 100%, 0 42%);
+  background: linear-gradient(135deg, #ffffff 0%, #9fb3c9 40%, #44546e 100%);
+  z-index: 2;
+}
+.crest-crystal b { position: absolute; inset: 0; background: linear-gradient(135deg, #fff 0%, var(--plane) 45%, color-mix(in srgb, var(--plane) 40%, #000) 100%); opacity: 0; transition: opacity .6s; }
+.is-on .crest-crystal b { opacity: .55; }
+.is-attuned .crest-crystal b { opacity: 1; animation: crystalBreath 3.2s ease-in-out infinite; }
+.is-attune .crest-crystal b { animation: crystalFlare 1.4s ease both; }
+@keyframes crystalBreath { 50% { filter: brightness(1.35); } }
+@keyframes crystalFlare { 0%, 40% { filter: brightness(1); } 60% { filter: brightness(2.6); } 100% { filter: brightness(1); } }
+.crest::after { /* glow behind the crystal */
   content: '';
   position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow: 0 0 0 0 transparent;
-  transition: box-shadow .3s ease-out;
-}
-.is-pressed.dbtn::after, .is-pressed.fbtn::after, .is-pressed.jc-home::after, .is-pressed.jc-capture::after, .is-pressed.jc-minus::after, .is-pressed.jc-plus::after {
-  box-shadow: 0 0 9px 1px color-mix(in srgb, var(--ambient) 50%, transparent), inset 0 0 0 1.5px color-mix(in srgb, var(--ambient) 38%, transparent);
-  transition-duration: .04s;
-}
-
-/* ring flash on press */
-.ripple {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, .6);
-  animation: ripple .45s ease-out forwards;
-}
-@keyframes ripple {
-  from { opacity: .8; transform: translate(-50%, -50%) scale(1); }
-  to   { opacity: 0;  transform: translate(-50%, -50%) scale(1.7); }
-}
-
-/* ---------- direction pad and face buttons: round buttons ---------- */
-.dbtn, .fbtn {
-  position: absolute;
-  left: var(--dx);
-  top: var(--dy);
-  width: 42px;
-  height: 42px;
-  transform: translate(-50%, -50%);
+  left: 50%; top: -18px;
+  width: 64px; height: 56px;
+  margin-left: -32px;
   border-radius: 50%;
-  display: block;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--plane) 70%, transparent), transparent);
+  opacity: 0;
+  transition: opacity .8s;
+  z-index: 1;
 }
-.dbtn .cap, .fbtn .cap { inset: 3.5px; border-radius: 50%; }
-.fbtn .cap { font: 800 17px/1 var(--round); padding-top: 1px; text-shadow: 0 -1px 0 rgba(0, 0, 0, .5), 0 1px 0 rgba(255, 255, 255, .08); }
-.dbtn .cap svg { width: 12px; height: 12px; fill: var(--btn-sym); opacity: .92; filter: drop-shadow(0 -1px 0 rgba(0, 0, 0, .5)); }
+.is-attuned .crest::after { opacity: .7; }
+.is-attune .crest::after { animation: crestGlow 1.5s ease both; }
+@keyframes crestGlow { 0%, 45% { opacity: .2; transform: scale(.6); } 65% { opacity: 1; transform: scale(1.5); } 100% { opacity: .7; transform: scale(1); } }
 
-/* ---------- minus / plus ---------- */
-.jc-minus { width: 36px; height: 20px; border-radius: 10px; }
-.jc-plus  { width: 36px; height: 36px; border-radius: 50%; }
-.jc-minus .cap { inset: 3px; border-radius: 8px; transform: translateY(-2px); }
-.jc-minus .cap i { display: none; }
-.jc-plus .cap {
-  inset: 5px;
-  background: none;
-  box-shadow: none;
-  filter: drop-shadow(0 1px 0 var(--btn-lo)) drop-shadow(0 2px 0 var(--btn-lo)) drop-shadow(0 4px 3px rgba(0, 0, 0, .55));
-  transform: translateY(-2px);
-}
-.jc-plus .cap i {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 24px;
-  height: 7px;
-  margin: -3.5px 0 0 -12px;
-  border-radius: 2.5px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--btn) 80%, #fff), var(--btn));
-}
-.jc-plus .cap i:nth-child(2) { transform: rotate(90deg); }
-.jc-plus.is-pressed .cap {
-  box-shadow: none;
-  filter: drop-shadow(0 1px 0 var(--btn-lo)) drop-shadow(0 1px 2px rgba(0, 0, 0, .6));
-  transform: translateY(0) scale(.975);
-}
+/* ==========================================================================
+   CONTROLS (positioned by their centre)
+   ========================================================================== */
+.panel { position: absolute; z-index: 3; }
+.compass, .stud, .gem, .medallion { position: absolute; transform: translate(-50%, -50%); }
+.stud--top, .lever { transform: none; }
 
-/* ---------- photo ---------- */
-.jc-capture { width: 36px; height: 36px; border-radius: 9px; }
-.jc-capture .cap { inset: 3.5px; border-radius: 6px; }
-.jc-capture .cap i { width: 14px; height: 14px; border-radius: 50%; background: #121316; box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, .8), 0 1px 0 rgba(255, 255, 255, .1); }
+/* shared: socket + cap that travels down when pressed */
+.stud, .petal, .gem, .lever { touch-action: none; -webkit-user-select: none; }
 
-/* ---------- HOME: metal ring and glow ---------- */
-.jc-home {
+/* ---------- brass studs ---------- */
+.stud {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  box-shadow: inset 0 4px 6px rgba(0, 0, 0, .92), 0 0 0 3.5px #4a4d53, 0 0 0 4.5px rgba(0, 0, 0, .35), 0 4px 0 4px rgba(0, 0, 0, .3);
-  transition: box-shadow .3s;
+  display: grid;
+  place-items: center;
+  color: #2c1a03;
+  background: radial-gradient(circle at 35% 30%, #fff4c6 0%, #e8b93a 35%, #9a6a1c 85%);
+  box-shadow: 0 0 0 3px #070b18, 0 0 0 4px rgba(232, 185, 58, .35), 0 4px 0 #5c3b0c, 0 6px 8px rgba(0, 0, 0, .45);
+  transition: transform .26s cubic-bezier(.28, 1.9, .5, 1), box-shadow .26s;
+  font: 900 18px/1 var(--round);
 }
-.is-on .jc-home { box-shadow: inset 0 4px 6px rgba(0, 0, 0, .92), 0 0 0 3.5px #6fd8ff, 0 0 0 4.5px rgba(0, 0, 0, .35), 0 4px 0 4px rgba(0, 0, 0, .3); }
-.jc-home .cap { inset: 4px; border-radius: 50%; }
-.jc-home .cap span { width: 17px; height: 17px; display: block; }
-.jc-home .cap svg { width: 100%; height: 100%; display: block; }
+html[data-layout="tall"] .stud:not(.stud--top) { width: 50px; height: 50px; }
+.stud svg { width: 20px; height: 20px; stroke-width: 2.4; }
+.stud:hover { filter: brightness(1.1); }
+.stud.is-pressed { transform: translate(-50%, calc(-50% + 3px)); box-shadow: 0 0 0 3px #070b18, 0 0 0 4px rgba(232, 185, 58, .35), 0 1px 0 #5c3b0c, 0 2px 4px rgba(0, 0, 0, .45); transition-duration: .05s; }
+.stud--top { position: absolute; top: -12px; width: 36px; height: 20px; border-radius: 8px 8px 3px 3px; z-index: 0; font-size: 14px; box-shadow: 0 0 0 2px #070b18, 0 3px 0 #5c3b0c; }
+.stud--top svg { width: 14px; height: 14px; }
+.stud--top.is-pressed { transform: translateY(4px); box-shadow: 0 0 0 2px #070b18; }
+html[data-layout="tall"] .stud--top { top: -16px; width: 40px; height: 24px; }
+.stud--power::after { content: ''; position: absolute; right: -9px; top: 7px; width: 5px; height: 5px; border-radius: 50%; background: #2a2f44; }
+.is-on .stud--power::after { background: var(--plane); box-shadow: 0 0 6px var(--plane); }
 
-/* ==========================================================================
-   STICKS: socket, shadow, stem, top pad; tilt towards the travel
-   ========================================================================== */
-.stick {
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  touch-action: none;
-  cursor: grab;
-  box-shadow:
-    inset 0 6px 10px rgba(0, 0, 0, .95),
-    inset 0 0 0 4px #0b0c0e,
-    0 0 0 3px color-mix(in srgb, var(--c) 70%, #000),
-    0 0 0 4.5px rgba(0, 0, 0, .28),
-    0 2px 0 4.5px rgba(255, 255, 255, .07);
-  --tilt: perspective(230px) rotateX(calc(var(--ky, 0) * -14deg)) rotateY(calc(var(--kx, 0) * 14deg));
-}
-.stick.is-dragging { cursor: grabbing; }
-.stick-cap {
+/* ---------- relic levers (previous / next relic) on the top corners ---------- */
+.lever {
   position: absolute;
+  top: 20px;
+  width: 44px;
+  height: 44px;
+  z-index: 4;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #24376e, #111c3c);
+  box-shadow: inset 0 0 0 2px #c9963a, 0 3px 0 #5c3b0c, 0 6px 10px rgba(0, 0, 0, .4);
+  display: grid;
+  place-items: center;
+  transition: transform .2s cubic-bezier(.28, 1.9, .5, 1);
+}
+.lever i { width: 14px; height: 14px; border-left: 4px solid var(--gold); border-bottom: 4px solid var(--gold); transform: rotate(45deg); margin-left: 6px; }
+.lever--r i { transform: rotate(-135deg); margin-left: -6px; }
+.lever.is-pressed { transform: translateY(3px); box-shadow: inset 0 0 0 2px #c9963a, 0 0 0 #5c3b0c; transition-duration: .05s; }
+html[data-layout="wide"] .lever, html:not([data-layout]) .lever { top: 26px; }
+
+/* ---------- rune compass: four petals around a crystal hub ---------- */
+.compass { width: 128px; height: 128px; border-radius: 50%; background: radial-gradient(circle, #0a1126 0%, #0a1126 58%, transparent 60%); box-shadow: 0 0 0 4px #070b18, 0 0 0 6px #b8882a, 0 0 0 7px #5c3b0c, 0 8px 14px rgba(0, 0, 0, .45); }
+.petal {
+  position: absolute;
+  width: 46px;
+  height: 46px;
   left: 50%;
   top: 50%;
-  width: 64px;
-  height: 64px;
-  margin: -32px 0 0 -32px;
-  transform: translate(var(--sx, 0px), var(--sy, 0px)) var(--tilt);
-  transition: transform .36s cubic-bezier(.3, 1.7, .5, 1);
+  margin: -23px 0 0 -23px;
+  border-radius: 14px 14px 14px 2px;
+  background: linear-gradient(135deg, #2b4180 0%, #172654 70%);
+  box-shadow: inset 0 0 0 2px #d4a341, 0 3px 0 #5c3b0c;
+  transition: transform .22s cubic-bezier(.28, 1.9, .5, 1), filter .15s;
 }
-.stick-cap i { position: absolute; inset: 0; border-radius: 50%; display: block; }
-.stick-cap .st-sh {
-  background: #000;
-  opacity: .5;
-  filter: blur(4px);
-  transform: translate(calc(var(--kx, 0) * -5px), calc(8px - var(--ky, 0) * 5px));
+.petal i { position: absolute; inset: 0; margin: auto; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 10px solid var(--gold-hi); transform: rotate(-45deg); }
+.petal--up { transform: translate(0, -38px) rotate(45deg); }
+.petal--right { transform: translate(38px, 0) rotate(135deg); }
+.petal--down { transform: translate(0, 38px) rotate(225deg); }
+.petal--left { transform: translate(-38px, 0) rotate(315deg); }
+.petal:hover { filter: brightness(1.2); }
+.petal--up.is-pressed { transform: translate(0, -35px) rotate(45deg) scale(.95); }
+.petal--right.is-pressed { transform: translate(35px, 0) rotate(135deg) scale(.95); }
+.petal--down.is-pressed { transform: translate(0, 35px) rotate(225deg) scale(.95); }
+.petal--left.is-pressed { transform: translate(-35px, 0) rotate(315deg) scale(.95); }
+.petal.is-pressed { filter: brightness(1.4); box-shadow: inset 0 0 0 2px var(--gold-hi), 0 0 12px var(--plane); transition-duration: .05s; }
+html[data-layout="tall"] .petal { width: 52px; height: 52px; margin: -26px 0 0 -26px; }
+html[data-layout="tall"] .petal--up { transform: translate(0, -44px) rotate(45deg); }
+html[data-layout="tall"] .petal--right { transform: translate(44px, 0) rotate(135deg); }
+html[data-layout="tall"] .petal--down { transform: translate(0, 44px) rotate(225deg); }
+html[data-layout="tall"] .petal--left { transform: translate(-44px, 0) rotate(315deg); }
+.compass-hub { position: absolute; left: 50%; top: 50%; width: 18px; height: 28px; margin: -14px 0 0 -9px; clip-path: polygon(50% 0, 100% 42%, 50% 100%, 0 42%); background: linear-gradient(135deg, #fff 0%, var(--plane) 45%, #1d3550 100%); opacity: .7; pointer-events: none; }
+.is-attuned .compass-hub { opacity: 1; }
+
+/* ---------- crystal gems: select (cyan) and back (ember) ---------- */
+.gem { border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, #0a1126 55%, transparent 57%); box-shadow: 0 0 0 4px #070b18, 0 0 0 6px #b8882a, 0 6px 12px rgba(0, 0, 0, .45); }
+.gem i {
+  width: 58%;
+  height: 76%;
+  clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%);
+  background: linear-gradient(135deg, #f4feff 0%, #7FD6DF 38%, #2b7f9c 80%, #164b62 100%);
+  transition: transform .22s cubic-bezier(.28, 1.9, .5, 1), filter .15s;
+  filter: drop-shadow(0 3px 0 #0b2a38);
 }
-.stick-cap .st-wall {
-  background: linear-gradient(180deg, #232529, #08090a 75%);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, .4);
-  transform: translate(calc(var(--kx, 0) * -2px), calc(4px - var(--ky, 0) * 2px));
-}
-.stick-cap .st-top {
-  background:
-    repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, .05) 0 1px, transparent 1px 3px),
-    radial-gradient(circle at calc(50% - var(--kx, 0) * 10%) calc(34% - var(--ky, 0) * 10%), color-mix(in srgb, var(--btn) 78%, #fff) 0%, var(--btn) 52%, color-mix(in srgb, var(--btn) 76%, #000) 100%);
-  box-shadow:
-    inset 0 0 0 1.5px rgba(0, 0, 0, .38),
-    inset 0 2px 0 rgba(255, 255, 255, .13),
-    inset 0 -3px 5px rgba(0, 0, 0, .32);
-  transform: translateY(-3px);
-  transition: transform .06s;
-}
-.stick-cap .st-top b { /* concave thumb pad */
-  position: absolute;
-  inset: 15px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 58% 62%, color-mix(in srgb, var(--btn) 88%, #fff), color-mix(in srgb, var(--btn) 66%, #000) 78%);
-  box-shadow: inset 2px 3px 5px rgba(0, 0, 0, .7), inset -1px -2px 2px rgba(255, 255, 255, .07), 0 1px 0 rgba(255, 255, 255, .08);
-}
-.stick.is-down .stick-cap { transform: translate(var(--sx, 0px), calc(var(--sy, 0px) + 2px)) var(--tilt) scale(.965); transition: transform .05s ease-out; }
-.stick.is-down .st-top { transform: translateY(-1px); }
-.stick.is-dragging .stick-cap, .stick.is-pad .stick-cap { transition: none; }
+.gem--b i { background: linear-gradient(135deg, #fff2e6 0%, #f39a5c 38%, #c2501c 80%, #6e2508 100%); filter: drop-shadow(0 3px 0 #3a1404); }
+.gem:hover i { filter: brightness(1.15) drop-shadow(0 3px 0 #0b2a38); }
+.gem.is-pressed i { transform: translateY(3px) scale(.96); filter: brightness(1.5); transition-duration: .05s; }
+
+/* ripple on press */
+.ripple { position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 2px var(--plane); opacity: .9; animation: ripple .45s ease-out forwards; pointer-events: none; }
+@keyframes ripple { to { transform: scale(1.5); opacity: 0; } }
+
+/* ---------- studio medallion ---------- */
+.medallion { border-radius: 50%; box-shadow: 0 0 0 3px #070b18, 0 0 0 5px #b8882a, 0 6px 10px rgba(0, 0, 0, .45); background: #000; }
 
 /* ==========================================================================
-   BODY: slab with thickness, bevel and a recessed screen
+   SOCKET (top) AND RELIC SLOT (bottom)
    ========================================================================== */
-.body-shell {
-  border-radius: 10px;
-  background:
-    radial-gradient(120% 100% at 50% 42%, transparent 56%, rgba(0, 0, 0, .3) 100%),
-    linear-gradient(180deg, var(--body-hi) 0%, var(--body) 15%, var(--body) 84%, var(--body-lo) 100%);
-  box-shadow:
-    inset 0 3px 0 rgba(255, 255, 255, .055),
-    inset 0 -5px 0 rgba(0, 0, 0, .32),
-    inset 8px 0 9px -7px rgba(0, 0, 0, .55),
-    inset -8px 0 9px -7px rgba(0, 0, 0, .55),
-    0 2px 0 color-mix(in srgb, var(--body-lo) 88%, #000),
-    0 4px 0 color-mix(in srgb, var(--body-lo) 76%, #000),
-    0 6px 0 color-mix(in srgb, var(--body-lo) 64%, #000),
-    0 8px 0 color-mix(in srgb, var(--body-lo) 52%, #000),
-    0 10px 0 color-mix(in srgb, var(--body-lo) 42%, #000),
-    0 40px 54px -14px rgba(0, 0, 0, .74);
+.port, .cart-slot { position: absolute; z-index: 3; pointer-events: none; }
+.port {
+  top: 0;
+  width: 34px;
+  height: 12px;
+  margin-left: -17px;
+  border-radius: 0 0 8px 8px;
+  background: #02040a;
+  box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 3px #b8882a, 0 0 0 4px #5c3b0c;
 }
-.body-shell::after { /* bevel around the slab */
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 3px;
-  background: linear-gradient(155deg, color-mix(in srgb, var(--body-rim) 100%, rgba(255, 255, 255, .1)), rgba(255, 255, 255, .03) 36%, rgba(0, 0, 0, 0) 58%, rgba(0, 0, 0, .42) 100%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  pointer-events: none;
-}
-.body-sweep { border-radius: 10px; }
+.port::before { content: ''; position: absolute; left: 9px; right: 9px; bottom: 3px; height: 2px; border-radius: 1px; background: #7FD6DF; opacity: .35; }
+.port-led, .slot-led { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #1d2440; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6); transition: background .25s, box-shadow .25s; }
+.port-led { left: calc(100% + 12px); top: 3px; }
+body.is-plugged .port-led { background: var(--gold); box-shadow: 0 0 6px 1px rgba(232, 185, 58, .7); }
+body.is-plugged.is-on .port-led { background: var(--plane); box-shadow: 0 0 7px 2px color-mix(in srgb, var(--plane) 70%, transparent); }
+.port-spark { position: absolute; left: 50%; top: 0; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, .95) 0, rgba(127, 214, 223, .6) 24%, rgba(127, 214, 223, .12) 48%, transparent 64%); opacity: 0; pointer-events: none; }
+.port-spark.go { animation: sparkPop .7s ease-out both; }
+@keyframes sparkPop { 0% { opacity: 1; transform: scale(.25); } 100% { opacity: 0; transform: scale(1.4); } }
+.port.is-call { animation: portCall 1.4s ease-in-out infinite; }
+@keyframes portCall { 50% { box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 3px #f8e19a, 0 0 0 4px #5c3b0c, 0 0 16px 5px rgba(127, 214, 223, .65); } }
+.port.is-near { box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 3px #f8e19a, 0 0 18px 6px rgba(127, 214, 223, .75); }
 
-/* recessed screen: dark rim, the lower lip catches light, shadow along the glass */
-.glass {
-  border-radius: 14px;
-  box-shadow:
-    0 0 0 2px rgba(0, 0, 0, .7),
-    0 0 0 6px rgba(0, 0, 0, .16),
-    0 3px 0 3px rgba(255, 255, 255, .06),
-    inset 0 0 0 1px rgba(255, 255, 255, .05);
+.cart-slot {
+  bottom: 0;
+  width: 124px;
+  height: 12px;
+  margin-left: -62px;
+  border-radius: 8px 8px 0 0;
+  background: #02040a;
+  box-shadow: inset 0 3px 5px rgba(0, 0, 0, .95), 0 0 0 3px #b8882a, 0 0 0 4px #5c3b0c;
 }
-.glass::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 30;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow: inset 0 5px 16px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(0, 0, 0, .5);
-}
-
-/* buttons on the top edge: raised, they sink when pressed */
-.top-btn {
-  top: -9px;
-  height: 14px;
-  border-radius: 5px 5px 0 0;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--btn) 72%, #fff) 0%, var(--btn) 45%, var(--btn-lo) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 -1px 0 rgba(0, 0, 0, .55), 2px 0 0 rgba(0, 0, 0, .3), -2px 0 0 rgba(0, 0, 0, .3);
-  transition: transform .26s cubic-bezier(.28, 1.9, .5, 1), filter .15s;
-}
-.top-btn:hover { background: linear-gradient(180deg, color-mix(in srgb, var(--btn) 62%, #fff) 0%, color-mix(in srgb, var(--btn) 90%, #fff) 45%, var(--btn-lo) 100%); }
-.top-btn.is-pressed { transform: translateY(4px); transition-duration: .05s; transition-timing-function: ease-out; filter: brightness(.88); }
-.top-slot { background: linear-gradient(180deg, #131417, #2c2e33); box-shadow: inset 0 2px 3px rgba(0, 0, 0, .6); }
-
-/* socket and slot: slightly deeper wells */
-.port { box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 2px rgba(0, 0, 0, .45), 0 2px 0 2px rgba(255, 255, 255, .07); }
-.cart-slot { box-shadow: inset 0 4px 6px rgba(0, 0, 0, .95), 0 0 0 2px rgba(0, 0, 0, .45), 0 -2px 0 2px rgba(255, 255, 255, .06); }
+.slot-led { left: calc(100% + 12px); bottom: 3px; }
+.slot-led.is-amber { background: var(--gold); box-shadow: 0 0 7px 2px rgba(232, 185, 58, .7); }
+.slot-led.is-green { background: var(--plane); box-shadow: 0 0 7px 2px color-mix(in srgb, var(--plane) 75%, transparent); }
+.cart-slot.is-hot { box-shadow: inset 0 3px 5px rgba(0, 0, 0, .95), 0 0 0 3px #f8e19a, 0 0 20px 6px rgba(232, 185, 58, .6); }
+.slot-ring { position: absolute; left: 50%; bottom: 0; width: 150px; height: 28px; margin-left: -75px; border-radius: 50%; border: 2px solid var(--plane); opacity: 0; pointer-events: none; }
+.slot-ring.go { animation: slotRing .6s ease-out both; }
+@keyframes slotRing { 0% { opacity: .9; transform: scale(.7, .5); } 100% { opacity: 0; transform: scale(1.8, 1.4); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .dbtn .cap, .fbtn .cap, .jc-minus .cap, .jc-plus .cap, .jc-capture .cap, .jc-home .cap, .top-btn, .jc-shoulder .cap, .stick-cap { transition-duration: .01s; }
+  .is-attuned .crest-crystal b { animation: none; }
+  .stud, .petal, .gem i, .lever { transition-duration: .01s; }
 }

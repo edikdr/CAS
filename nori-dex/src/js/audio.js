@@ -177,6 +177,7 @@ PL.audio = (function () {
       tone({ type: 'triangle', f: 210, f2: 90, t: 0.08, g: 0.2, delay: 0.03 });
     },
     vol: function () { tone({ type: 'sine', f: 1000, t: 0.06, g: 0.12 }); },
+    attune: function () { sounds.boot(); },
 
     /* ---------- dialog kit ---------- */
     /* typewriter blip: short quiet beep with random pitch */
@@ -271,9 +272,9 @@ PL.audio = (function () {
 
   return {
     unlock: function () { unlocked = true; ensure(); },
-    play: function (name) {
+    play: function (name, arg) {
       if (!unlocked || !ensure() || !sounds[name]) return;
-      try { sounds[name](); } catch (e) {}
+      try { sounds[name](arg); } catch (e) {}
     },
     /* background noise hiss, level 0..1 */
     hiss: function (level) {
@@ -295,6 +296,10 @@ PL.audio = (function () {
       setHissGain();
     },
     hissLevel: function () { return hissLevel; },
+    /* low mana hum while the device is on (O4 re-voices it) */
+    hum: function (on) { this.hiss(on ? 0.4 : 0); },
+    /* pause everything while the tab is hidden */
+    pause: function (hidden) { if (ctx) { if (hidden) ctx.suspend(); else if (unlocked) ctx.resume(); } },
     isMuted: function () { return muted; },
     getVolume: function () { return volume; },
     setVolume: function (v) {

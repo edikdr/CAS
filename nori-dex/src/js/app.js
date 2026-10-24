@@ -261,7 +261,7 @@
     attuneEl.querySelector('.at-name').textContent = cd.title;
     attuneEl.classList.remove('is-on'); void attuneEl.offsetWidth;
     if (!reduceMotion) attuneEl.classList.add('is-on');
-    PL.audio.play('attune', cd.crystal);
+    PL.audio.play('attune', cd);
     return PL.device.attune(cd.crystal);
   }
 

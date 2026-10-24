@@ -1,0 +1,642 @@
+/* ==========================================================================
+   Сцена: кабель питания, фактура корпуса, раскраски, стойка с 3D-картриджами.
+   Дизайн-пиксели те же, что в style.css (1200 × 818): запас под кабель 0…112, консоль 112…622, док 622…818.
+   ========================================================================== */
+
+:root {
+  /* мелкое зерно матового пластика (монохромный шум, подмешивается через soft-light) */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-fine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
+   КАБЕЛЬ
+   ========================================================================== */
+#cable {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 40;
+}
+body.over-plug { cursor: grab; }
+body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
+.cable-hint {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 41;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 13px 7px 10px;
+  border-radius: 999px;
+  background: rgba(8, 12, 22, .84);
+  border: 1px solid rgba(120, 235, 255, .5);
+  box-shadow: 0 0 18px rgba(25, 227, 255, .3), 0 6px 14px rgba(0, 0, 0, .4);
+  font: 800 12px/1 var(--round);
+  letter-spacing: .3px;
+  color: #e2f9ff;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .35s;
+}
+.cable-hint.is-show { opacity: 1; }
+.cable-hint i {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 8px solid #19e3ff;
+  animation: hintNudge .9s ease-in-out infinite;
+}
+@keyframes hintNudge { 50% { transform: translateX(-5px); } }
+.port.is-call { animation: portCall 1.4s ease-in-out infinite; }
+@keyframes portCall {
+  0%, 100% { box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 1px rgba(0, 0, 0, .55), 0 1px 0 rgba(255, 255, 255, .06), 0 0 0 0 rgba(25, 227, 255, 0); }
+  50% { box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 1px rgba(0, 0, 0, .55), 0 1px 0 rgba(255, 255, 255, .06), 0 0 14px 4px rgba(25, 227, 255, .6); }
+}
+.port.is-near { box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 1px rgba(0, 0, 0, .55), 0 0 18px 6px rgba(125, 255, 170, .65); }
+
+/* ==========================================================================
+   ФАКТУРА КОРПУСА И ДЖОЙКОНОВ (матовая, без бликов)
+   ========================================================================== */
+.body-shell {
+  border-radius: 7px;
+  background: var(--body);
+  transition: background-color .7s ease, box-shadow .6s;
+  box-shadow:
+    inset 0 0 0 1px var(--body-rim),
+    inset 0 2px 0 rgba(255, 255, 255, .045),
+    inset 0 -3px 0 rgba(0, 0, 0, .3),
+    0 30px 48px -14px rgba(0, 0, 0, .65);
+  overflow: hidden;
+}
+.body-shell::before { /* зерно */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--grain);
+  mix-blend-mode: soft-light;
+  opacity: .62;
+  pointer-events: none;
+}
+.body-shell::after { /* лёгкое затемнение к краям + едва заметная «пескоструйная» строчка */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 100% at 50% 42%, transparent 56%, rgba(0, 0, 0, .3) 100%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .014) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+
+/* направляющие, на которые защёлкиваются джойконы */
+.rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  z-index: 2;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, .13) 0 2px, transparent 2px 11px) 50% 14px / 3px calc(100% - 28px) no-repeat,
+    linear-gradient(90deg, rgba(0, 0, 0, .55), rgba(255, 255, 255, .055) 50%, rgba(0, 0, 0, .5));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .35);
+}
+.body { z-index: 3; }
+.seam { /* вспышка у стыка, когда джойкон защёлкнулся */
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  width: 12px;
+  z-index: 4;
+  border-radius: 8px;
+  background: #fff;
+  filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.seam--l { left: -8px; }
+.seam--r { right: -8px; }
+.rail--l { left: 0; border-radius: 6px 0 0 6px; }
+.rail--r { right: 0; border-radius: 0 6px 6px 0; }
+
+/* динамики: мелкая перфорация в нижних углах рамки */
+.spk {
+  position: absolute;
+  bottom: 7px;
+  width: 38px;
+  height: 9px;
+  z-index: 2;
+  background: radial-gradient(circle, rgba(0, 0, 0, .7) 1.15px, transparent 1.5px) 0 0 / 6px 4.5px;
+  opacity: .8;
+}
+.spk--l { left: 26px; }
+.spk--r { right: 26px; }
+
+/* до PLAY джойконов нет; WAAPI-анимация (app.js → joycons) включает их сама */
+.jc-off .joycon { visibility: hidden; pointer-events: none; }
+.is-swapping .joycon { pointer-events: none; }
+.joycon { z-index: 8; }   /* при прилёте джойкон проходит поверх дока */
+.jc-ghost {
+  position: absolute;
+  top: 0;
+  width: 170px;
+  height: 510px;
+  z-index: 9;
+  pointer-events: none;
+  will-change: transform;
+}
+.jc-ghost * { pointer-events: none !important; }
+
+/* корпус «прокатывается» новым цветом: узкая светлая полоса, не блик, а переход */
+.body-sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 7px;
+  opacity: 0;
+}
+.body-sweep::before {
+  content: '';
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  width: 90px;
+  left: -120px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .24), transparent);
+  mix-blend-mode: overlay;
+  transform: skewX(-14deg);
+}
+.body-sweep.go { animation: sweepFade .9s ease both; }
+.body-sweep.go::before { animation: sweepMove .9s cubic-bezier(.5, 0, .3, 1) both; }
+@keyframes sweepFade { 0%, 100% { opacity: 0; } 15%, 80% { opacity: 1; } }
+@keyframes sweepMove { to { left: calc(100% + 40px); } }
+
+/* ==========================================================================
+   РАЗЪЁМ ПИТАНИЯ (сверху) И СЛОТ КАРТРИДЖА (снизу)
+   ========================================================================== */
+.port, .cart-slot {
+  position: absolute;
+  z-index: 3;
+  background: #020203;
+  pointer-events: none;
+}
+.port {
+  left: 50%;
+  top: 0;
+  width: 30px;
+  height: 10px;
+  margin-left: -15px;
+  border-radius: 0 0 5px 5px;
+  box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 1px rgba(0, 0, 0, .55), 0 1px 0 rgba(255, 255, 255, .06);
+}
+.port::before { /* контактная пластина внутри */
+  content: '';
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, #4c5262, #8b93a6 50%, #4c5262);
+  opacity: .55;
+}
+.port-led, .slot-led {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #202228;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6), 0 0 0 1px rgba(255, 255, 255, .04);
+  transition: background .25s, box-shadow .25s;
+}
+.port-led { left: calc(100% + 14px); top: 2px; }
+body.is-plugged .port-led { background: #ffb347; box-shadow: 0 0 6px 1px rgba(255, 170, 60, .6); }
+body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px rgba(60, 255, 130, .7); }
+.port-spark {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 84px;
+  height: 84px;
+  margin: -42px 0 0 -42px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, .95) 0, rgba(140, 255, 190, .55) 22%, rgba(60, 255, 130, .12) 46%, transparent 64%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+}
+.port-spark.go { animation: sparkPop .62s ease-out both; }
+@keyframes sparkPop {
+  0% { opacity: 1; transform: scale(.25); }
+  35% { opacity: .9; }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+.cart-slot {
+  left: 50%;
+  bottom: 0;
+  width: 122px;
+  height: 11px;
+  margin-left: -61px;
+  border-radius: 6px 6px 0 0;
+  box-shadow: inset 0 3px 5px rgba(0, 0, 0, .95), 0 0 0 1px rgba(0, 0, 0, .55), 0 -1px 0 rgba(255, 255, 255, .05);
+}
+.slot-led { left: calc(100% + 13px); bottom: 2px; }
+.slot-led.is-amber { background: #ffb347; box-shadow: 0 0 7px 2px rgba(255, 170, 60, .7); }
+.slot-led.is-green { background: #7dffaa; box-shadow: 0 0 7px 2px rgba(60, 255, 130, .75); }
+.slot-ring { /* кольцо-волна у щели при защёлкивании */
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 140px;
+  height: 26px;
+  margin-left: -70px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .7);
+  opacity: 0;
+  pointer-events: none;
+}
+.slot-ring.go { animation: slotRing .55s ease-out both; }
+@keyframes slotRing {
+  0% { opacity: .9; transform: scale(.7, .5); }
+  100% { opacity: 0; transform: scale(1.7, 1.3); }
+}
+
+/* ==========================================================================
+   ДОК ПОД КОНСОЛЬЮ: раскраски · стойка · карточка картриджа
+   ========================================================================== */
+.dock-zone {
+  position: absolute;
+  left: 0;
+  top: 622px;
+  width: 1200px;
+  height: 196px;
+  pointer-events: none;
+}
+.dock-zone > * { pointer-events: auto; }
+
+/* --- раскраска --- */
+.skins {
+  position: absolute;
+  left: 34px;
+  top: 52px;
+  width: 316px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.skins-title {
+  font: 800 11px/1 var(--round);
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .5);
+}
+.skins-row { display: flex; gap: 11px; }
+.skin {
+  position: relative;
+  width: 33px;
+  height: 33px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--l) 0 50%, var(--r) 50% 100%);
+  box-shadow: 0 0 0 3.5px var(--b), 0 0 0 5px rgba(255, 255, 255, .18), 0 8px 14px rgba(0, 0, 0, .5);
+  transition: transform .25s cubic-bezier(.3, 1.6, .5, 1), box-shadow .25s;
+}
+.skin:hover { transform: translateY(-3px); }
+.skin.is-on { transform: translateY(-3px) scale(1.1); box-shadow: 0 0 0 3.5px var(--b), 0 0 0 6px #fff, 0 0 20px rgba(255, 255, 255, .35), 0 8px 14px rgba(0, 0, 0, .5); }
+.skins-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, .78);
+  text-shadow: 0 1px 6px #000;
+  letter-spacing: .2px;
+}
+.skins-label b { color: #fff; font-weight: 900; }
+
+/* --- стойка с картриджами --- */
+.rack-clip {
+  position: absolute;
+  left: 290px;
+  top: -9px;
+  width: 620px;
+  height: 205px;
+  pointer-events: none;
+  /* срезаем только верх (на уровне щели консоли), по бокам и снизу — свободно */
+  clip-path: inset(0 -260px -120px -260px);
+}
+.rack-clip > * { pointer-events: none; }
+.rack-clip.rack-intro { clip-path: inset(0 -260px 0 -260px); }
+.rack-lip { /* тень от нижней кромки консоли на картридж, входящий в щель */
+  position: absolute;
+  left: 150px;
+  right: 150px;
+  top: 9px;
+  height: 46px;
+  z-index: 5;
+  background: linear-gradient(180deg, rgba(0, 0, 0, .55), rgba(0, 0, 0, .2) 50%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
+}
+.rack-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  perspective: 1150px;
+  perspective-origin: 50% 8%;
+}
+
+/* платформа-лоток */
+.tray-back {
+  position: absolute;
+  left: 78px;
+  top: 176px;
+  width: 464px;
+  height: 16px;
+  z-index: 1;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(180deg, var(--body-hi), var(--body));
+  box-shadow: inset 0 1px 0 var(--body-rim);
+  transition: background-color .7s;
+}
+.tray-slot {
+  position: absolute;
+  top: 3px;
+  width: 108px;
+  height: 9px;
+  border-radius: 5px;
+  background: #030304;
+  box-shadow: inset 0 2px 3px #000, 0 1px 0 rgba(255, 255, 255, .05);
+}
+.tray-front {
+  position: absolute;
+  left: 78px;
+  top: 187px;
+  width: 464px;
+  height: 18px;
+  z-index: 3;
+  border-radius: 0 0 9px 9px;
+  background: var(--body);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), inset 0 -2px 0 rgba(0, 0, 0, .3), 0 20px 36px rgba(0, 0, 0, .5);
+  overflow: hidden;
+  transition: background-color .7s;
+}
+.tray-front::before { content: ''; position: absolute; inset: 0; background: var(--grain); mix-blend-mode: soft-light; opacity: .6; }
+.tray-no {
+  position: absolute;
+  top: 5px;
+  font: 400 7px/8px var(--pixel);
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, .34);
+  transform: translateX(-50%);
+}
+.tray-led {
+  position: absolute;
+  top: 6px;
+  width: 5px;
+  height: 5px;
+  margin-left: 22px;
+  border-radius: 50%;
+  background: #1c1e22;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6);
+  transition: background .3s, box-shadow .3s;
+}
+.tray-led.is-on { background: var(--cc); box-shadow: 0 0 7px 1px var(--cc); }
+.cart-shadow {
+  position: absolute;
+  top: 177px;
+  width: 100px;
+  height: 14px;
+  margin-left: -50px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .75);
+  filter: blur(6px);
+  opacity: .55;
+  transition: opacity .35s, transform .35s;
+}
+.cart-shadow.is-up { opacity: .18; transform: scale(1.25, 1.1); }
+.cart-shadow.is-gone { opacity: 0; }
+
+/* --- картридж ---
+   .cart (WAAPI: путь полёта) › .cart-tilt (CSS: наведение/выбор, наклон за курсором) ›
+   .cart-3d (preserve-3d, лёгкое «дыхание») › слои корпуса + лицо + оборот */
+.cart {
+  position: absolute;
+  left: calc(var(--cx) - 52px);
+  top: 44px;
+  width: 104px;
+  height: 150px;
+  z-index: 2;
+  transform-style: preserve-3d;
+  transform-origin: 50% 96%;
+  pointer-events: none;
+}
+.cart-hit { /* зона наведения и клика: плоская, вне 3D-контекста картриджа */
+  position: absolute;
+  left: calc(var(--cx) - 58px);
+  top: 36px;
+  width: 116px;
+  height: 164px;
+  z-index: 4;
+  cursor: pointer;
+  pointer-events: auto;
+  border-radius: 14px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.cart-hit:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+.cart-tilt {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform-origin: 50% 96%;
+  --rx0: -3deg;
+  --lift: 0px;
+  --zoff: 0px;
+  transform: translate3d(0, var(--lift), var(--zoff)) rotateX(calc(var(--rx0) + var(--py, 0) * -10deg)) rotateY(calc(var(--ry0, 0deg) + var(--px, 0) * 16deg));
+  transition: transform .5s cubic-bezier(.2, .9, .25, 1.12);
+}
+.cart.is-hover .cart-tilt { --lift: -9px; --zoff: 22px; --rx0: -5deg; transition-duration: .28s; }
+.cart.is-sel .cart-tilt { --lift: -15px; --zoff: 34px; --ry0: 0deg; --rx0: -5deg; }
+.cart.is-sel.is-hover .cart-tilt { --lift: -18px; --zoff: 42px; }
+.cart.is-flying .cart-tilt, .cart.is-seated .cart-tilt { --lift: 0px !important; --zoff: 0px !important; --rx0: 0deg !important; --ry0: 0deg !important; --px: 0 !important; --py: 0 !important; }
+.cart.is-flying .cart-tilt { transition: none; }
+.cart.is-seated .cart-tilt { transition: none; }
+
+
+.cart-3d {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.cart.is-sel:not(.is-seated):not(.is-flying) .cart-3d { animation: cartIdle 7s ease-in-out infinite; }
+@keyframes cartIdle {
+  0%, 100% { transform: translateY(0) rotateY(-1.6deg); }
+  50% { transform: translateY(-1.8px) rotateY(1.6deg); }
+}
+
+.cl { /* один «срез» корпуса: стопка срезов даёт настоящую толщину, крайние чуть меньше — это фаска */
+  position: absolute;
+  inset: 0;
+  border-radius: 10px 10px 14px 14px;
+  background:
+    linear-gradient(90deg, rgba(150,152,170,.55) 0, rgba(150,152,170,0) 2.4px, rgba(0,0,0,0) calc(100% - 2.4px), rgba(0,0,0,.62) 100%),
+    linear-gradient(180deg, #4b4c55 0%, #25262b 24%, #17181c 58%, #0a0a0c 100%);
+  backface-visibility: hidden;
+}
+.cart-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+.cart-face svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.cart-front { transform: translateZ(9.3px); }
+.cart-back { transform: translateZ(-9.3px) rotateY(180deg); }
+.cart-front::after { /* затемнение, когда картридж не выбран */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 3, 8, .0);
+  border-radius: 10px 10px 14px 14px;
+  transition: background .35s;
+  pointer-events: none;
+}
+.rack-stage.has-sel .cart:not(.is-sel):not(.is-hover):not(.is-seated) .cart-front::after { background: rgba(2, 3, 8, .38); }
+.cart-glow { /* внутри .cart-3d, чтобы лежать в одной плоскости с корпусом */
+  position: absolute;
+  left: -30px;
+  top: -24px;
+  right: -30px;
+  bottom: -18px;
+  border-radius: 40px;
+  background: radial-gradient(closest-side, var(--cc), transparent);
+  opacity: 0;
+  transform: translateZ(-20px);
+  transition: opacity .4s;
+  pointer-events: none;
+}
+.cart.is-sel .cart-glow, .cart.is-seated .cart-glow { opacity: .36; }
+.cart.is-hover .cart-glow { opacity: .22; }
+
+/* --- карточка выбранного картриджа --- */
+.cart-info {
+  position: absolute;
+  right: 34px;
+  top: 8px;
+  width: 300px;
+  height: 184px;
+  --cc: #8d94a3;
+}
+.ci-card {
+  position: absolute;
+  inset: 0;
+  padding: 11px 15px 12px;
+  border-radius: 15px;
+  background: linear-gradient(160deg, rgba(22, 25, 34, .86), rgba(10, 12, 18, .88));
+  border: 1px solid rgba(255, 255, 255, .1);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 0 18px 36px rgba(0, 0, 0, .45), inset 0 0 0 1px color-mix(in srgb, var(--cc) 14%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+  transition: border-color .4s;
+}
+.ci-card::before { /* цветная метка картриджа */
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 4px;
+  border-radius: 0 3px 3px 0;
+  background: var(--cc);
+  box-shadow: 0 0 14px var(--cc);
+}
+.ci-top { display: flex; align-items: center; justify-content: space-between; font: 400 8px/1 var(--pixel); letter-spacing: 1px; color: rgba(255, 255, 255, .45); }
+.ci-state { display: inline-flex; align-items: center; gap: 6px; color: rgba(255, 255, 255, .55); }
+.ci-state i { width: 6px; height: 6px; border-radius: 50%; background: #3a3d45; }
+.ci-state.is-in { color: #8dffb4; }
+.ci-state.is-in i { background: #6fffa0; box-shadow: 0 0 8px #39ff7a; }
+.ci-title { display: flex; align-items: baseline; gap: 10px; margin-top: 2px; }
+.ci-title b { font: 900 23px/1.05 var(--round); letter-spacing: .2px; color: #fff; }
+.ci-title i { font: 800 11px/1 var(--round); letter-spacing: .22em; font-style: normal; color: var(--cc); }
+.ci-sub { font: 800 12.5px/1.2 var(--round); color: color-mix(in srgb, var(--cc) 80%, #fff); margin-top: -1px; }
+.ci-blurb { font: 600 12px/1.3 var(--round); color: rgba(255, 255, 255, .66); height: 32px; overflow: hidden; flex: none; }
+.ci-chips { display: flex; gap: 6px; flex-wrap: nowrap; margin-top: 1px; }
+.ci-chips span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font: 700 10.5px/1 var(--round);
+  color: rgba(255, 255, 255, .72);
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .08);
+  white-space: nowrap;
+}
+.ci-chips b { font-weight: 900; color: #fff; font-size: 12px; }
+.ci-hint {
+  margin-top: auto;
+  flex: none;
+  height: 33px;
+  padding: 0 12px 0 9px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font: 800 12.5px/1.15 var(--round);
+  color: color-mix(in srgb, var(--cc) 62%, #fff);
+  background: color-mix(in srgb, var(--cc) 9%, transparent);
+  border: 1.5px dashed color-mix(in srgb, var(--cc) 55%, transparent);
+  transition: background .2s, border-color .2s, color .2s;
+}
+.ci-arrow { width: 18px; height: 18px; flex: none; display: grid; place-items: center; animation: hintUp 1.1s ease-in-out infinite; }
+.ci-arrow svg { width: 16px; height: 16px; fill: currentColor; }
+.ci-hint[data-kind="down"] .ci-arrow { transform: rotate(180deg); animation-name: hintDown; }
+.ci-hint[data-kind="ok"] { background: color-mix(in srgb, var(--cc) 26%, transparent); border-style: solid; border-color: var(--cc); color: #fff; }
+.ci-hint[data-kind="ok"] .ci-arrow { animation: none; }
+.ci-hint[data-kind="no"] { color: #ffb0b0; border-color: rgba(255, 110, 110, .8); background: rgba(255, 90, 90, .12); }
+.ci-hint[data-kind="no"] .ci-arrow { animation: none; opacity: .5; }
+@keyframes hintUp { 50% { transform: translateY(-3px); } }
+@keyframes hintDown { 0%, 100% { transform: rotate(180deg) translateY(0); } 50% { transform: rotate(180deg) translateY(-3px); } }
+/* перетаскивание картриджей */
+.cart-hit { cursor: grab; touch-action: none; }
+.rack-stage.is-grab .cart-hit, body.is-cart-drag, body.is-cart-drag * { cursor: grabbing !important; }
+.cart.is-dragging .cart-glow { opacity: .5; }
+.cart-slot.is-hot { box-shadow: inset 0 3px 5px rgba(0, 0, 0, .95), 0 0 0 1px rgba(0, 0, 0, .55), 0 0 18px 5px rgba(255, 190, 80, .6); }
+.ci-card.is-in { animation: ciIn .42s cubic-bezier(.2, .9, .25, 1.1) both; }
+.ci-card.is-out { animation: ciOut .18s ease-in both; pointer-events: none; }
+@keyframes ciIn { from { opacity: 0; transform: translateX(16px) scale(.98); } }
+@keyframes ciOut { to { opacity: 0; transform: translateX(-10px); } }
+
+/* пустая карточка: подсказка до выбора */
+.ci-empty { justify-content: center; }
+.ci-empty .ci-title b { font-size: 19px; }
+.ci-pick { display: flex; gap: 5px; margin-top: 4px; }
+.ci-pick button {
+  flex: 1;
+  height: 30px;
+  border-radius: 9px;
+  font: 800 10.5px/1 var(--round);
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(255, 255, 255, .1);
+  transition: background .15s, transform .12s;
+}
+.ci-pick button:hover { background: rgba(255, 255, 255, .14); transform: translateY(-1px); }
+.ci-pick i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; background: var(--cc); vertical-align: -1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-3d { animation: none; }
+  .cart-tilt { transition-duration: .01s; }
+  .body-sweep.go, .body-sweep.go::before, .port-spark.go, .slot-ring.go { animation: none; }
+}

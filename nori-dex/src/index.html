@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07080b">
+  <script src="js/i18n.js"></script>
+  <title>PokéLore — интерактивная вики</title>
+  <meta name="description" content="Интерактивная вики по лору покемонов внутри консоли.">
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/sections.css">
+  <link rel="stylesheet" href="css/stage.css">
+  <link rel="stylesheet" href="css/quiz.css">
+  <link rel="stylesheet" href="css/catcher.css">
+  <link rel="stylesheet" href="css/scan.css">
+  <link rel="stylesheet" href="css/console3d.css">
+</head>
+<body class="is-intro jc-off">
+
+  <!-- Фон страницы: коллаж + эмбиент-свет от экрана и джойконов -->
+  <div class="bg" aria-hidden="true">
+    <div class="bg-img"></div>
+    <div class="bg-shade"></div>
+  </div>
+
+  <main class="stage" id="stage">
+    <div class="console-wrap" id="consoleWrap">
+      <div class="floor-glow" aria-hidden="true"></div>
+
+      <div class="console" id="console">
+
+        <!-- ЛЕВЫЙ ДЖОЙКОН -->
+        <div class="joycon joycon--left">
+          <button class="jc-shoulder" data-btn="l" data-tip="L — предыдущий раздел" data-key="Q" aria-label="Кнопка L">
+            <svg viewBox="0 0 170 120" aria-hidden="true">
+              <path class="gs" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /><path class="sh" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" />
+              <g class="cap"><path class="vis" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /><path class="rim" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /></g>
+              <path class="hit" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" />
+            </svg>
+          </button>
+          <div class="jc-shell"></div>
+
+          <button class="ctl jc-minus" style="--x:143px;--y:52px" data-btn="minus" data-tip="− — звук вкл/выкл" data-key="M" aria-label="Минус: звук">
+            <b class="cap"><i></i></b>
+          </button>
+
+          <div class="ctl stick" style="--x:90px;--y:130px" data-stick="left" data-tip="Левый стик — навигация (тяни)" aria-label="Левый стик">
+            <div class="stick-cap"><i class="st-sh"></i><i class="st-wall"></i><i class="st-top"><b></b></i></div>
+          </div>
+
+          <div class="dpad" style="--x:90px;--y:272px">
+            <button class="dbtn" style="--dx:0px;--dy:-45px" data-btn="up" data-tip="Вверх" data-key="↑" aria-label="Вверх"><b class="cap"><svg viewBox="0 0 10 10"><path d="M5 2.2 8.2 7.4H1.8z" /></svg></b></button>
+            <button class="dbtn" style="--dx:-45px;--dy:0px" data-btn="left" data-tip="Влево" data-key="←" aria-label="Влево"><b class="cap"><svg viewBox="0 0 10 10"><path d="M2.2 5 7.4 1.8v6.4z" /></svg></b></button>
+            <button class="dbtn" style="--dx:45px;--dy:0px" data-btn="right" data-tip="Вправо" data-key="→" aria-label="Вправо"><b class="cap"><svg viewBox="0 0 10 10"><path d="M7.8 5 2.6 8.2V1.8z" /></svg></b></button>
+            <button class="dbtn" style="--dx:0px;--dy:45px" data-btn="down" data-tip="Вниз" data-key="↓" aria-label="Вниз"><b class="cap"><svg viewBox="0 0 10 10"><path d="M5 7.8 1.8 2.6h6.4z" /></svg></b></button>
+          </div>
+
+          <button class="ctl jc-capture" style="--x:118px;--y:372px" data-btn="capture" data-tip="Снимок экрана" data-key="C" aria-label="Снимок экрана">
+            <b class="cap"><i></i></b>
+          </button>
+        </div>
+
+        <!-- КОРПУС -->
+        <div class="body">
+          <button class="top-btn top-btn--power" data-btn="power" data-tip="Питание" data-key="P" aria-label="Питание"></button>
+          <button class="top-btn top-btn--vol" style="left:190px" data-btn="voldown" data-tip="Громкость −" data-key="[" aria-label="Тише"></button>
+          <button class="top-btn top-btn--vol" style="left:226px" data-btn="volup" data-tip="Громкость +" data-key="]" aria-label="Громче"></button>
+          <div class="top-slot" aria-hidden="true"></div>
+
+          <div class="body-shell">
+            <div class="vents" aria-hidden="true"></div>
+            <i class="rail rail--l" aria-hidden="true"></i><i class="rail rail--r" aria-hidden="true"></i>
+            <i class="spk spk--l" aria-hidden="true"></i><i class="spk spk--r" aria-hidden="true"></i>
+          </div>
+          <!-- разъём USB-C сверху: сюда втыкается кабель -->
+          <div class="port" id="port" aria-hidden="true"><i class="port-led" id="portLed"></i><i class="port-spark" id="portSpark"></i></div>
+          <!-- слот картриджа снизу -->
+          <div class="cart-slot" id="cartSlot" aria-hidden="true"><i class="slot-led" id="slotLed"></i></div>
+
+          <div class="glass">
+            <i class="sensor" aria-hidden="true"></i>
+
+            <div class="screen" id="screen">
+              <div class="crt" id="crt">
+                <canvas id="static" width="384" height="216" aria-hidden="true"></canvas>
+
+                <!-- ЭКРАН 1: помехи + PLAY -->
+                <section class="view view-static" data-view="static">
+                  <div class="osd osd-tl">CH 01</div>
+                  <div class="osd osd-tr"><span class="blink">НЕТ СИГНАЛА</span></div>
+                  <!-- профиль до запуска: язык интерфейса + имя тренера -->
+                  <div class="setup" id="setup">
+                    <div class="seg lang-seg" role="group" aria-label="Язык интерфейса">
+                      <svg class="seg-globe" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>
+                      <i class="seg-thumb" aria-hidden="true"></i>
+                      <button type="button" data-lang="ru" aria-label="Русский">RU</button>
+                      <button type="button" data-lang="en" aria-label="English">EN</button>
+                    </div>
+                    <label class="name-field">
+                      <span>Имя</span>
+                      <input id="nameIn" type="text" maxlength="14" placeholder="Тренер" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-label="Имя тренера">
+                    </label>
+                  </div>
+                  <div class="play-wrap">
+                    <button class="play" id="playBtn" aria-label="Запустить вики">
+                      <span class="play-ring"></span>
+                      <span class="play-core">
+                        <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M14 9.5v21L31 20z" /></svg>
+                      </span>
+                    </button>
+                    <div class="glitch play-label" data-text="PLAY">PLAY</div>
+                    <div class="play-hint">кликни или нажми <b class="badge">Enter</b></div>
+                  </div>
+                  <div class="osd osd-bl">AV-1&nbsp;&nbsp;<span id="osdClock">00:00</span></div>
+                </section>
+
+                <!-- ЭКРАН 2: загрузка -->
+                <section class="view view-boot" data-view="boot">
+                  <svg class="boot-ball" viewBox="0 0 120 120" aria-hidden="true">
+                    <circle class="bb-ring" cx="60" cy="60" r="52" />
+                    <path class="bb-line" d="M8 60h36M76 60h36" />
+                    <circle class="bb-btn" cx="60" cy="60" r="15" />
+                    <circle class="bb-dot" cx="60" cy="60" r="6" />
+                  </svg>
+                  <div class="glitch boot-logo" data-text="POKÉLORE" id="bootLogo">POKÉLORE</div>
+                  <div class="boot-sub" id="bootSub">интерактивная вики по лору</div>
+                  <div class="boot-bar"><i></i></div>
+                </section>
+
+                <!-- ЭКРАН 3: главное меню -->
+                <section class="view view-home" data-view="home">
+                  <div class="home-bg" aria-hidden="true"></div>
+                  <header class="hud-top">
+                    <div class="hud-left">
+                      <div class="user">
+                        <span class="avatar" data-icon="pokeball"></span>
+                        <span class="user-name" id="userName">Тренер</span>
+                      </div>
+                      <button class="hud-album" id="hudAlbum" aria-label="Альбом карточек"><span data-icon="album"></span>Альбом<em id="hudAlbumCount">0</em></button>
+                      <button class="hud-album hud-fav" id="hudFav" aria-label="Избранное"><span data-icon="heart"></span>Избранное<em id="hudFavCount">0</em></button>
+                      <button class="hud-album hud-scan" id="hudScan" aria-label="Сканер карточек"><span data-icon="scan"></span>Скан<em id="hudScanCount">0</em></button>
+                    </div>
+                    <div class="status">
+                      <span class="clock" id="clock">00:00</span>
+                      <span class="st-ico" data-icon="wifi"></span>
+                      <span class="battery"><i></i></span>
+                    </div>
+                  </header>
+                  <div class="home-title" id="homeTitle">
+                    <b></b><span></span>
+                  </div>
+                  <div class="tiles-viewport">
+                    <div class="tiles" id="tiles"></div>
+                  </div>
+                  <nav class="dock" id="dock" aria-label="Системное меню"></nav>
+                </section>
+
+                <!-- ЭКРАН 4: раздел -->
+                <section class="view view-section" data-view="section">
+                  <div class="tabs">
+                    <span class="tab-key" data-btn-proxy="l">L</span>
+                    <div class="tab-list" id="tabList"></div>
+                    <span class="tab-key" data-btn-proxy="r">R</span>
+                  </div>
+                  <div class="section-scroll" id="sectionScroll"></div>
+                </section>
+
+                <!-- ЭКРАН 5: альбом-журнал с карточками -->
+                <section class="view view-album" data-view="album">
+                  <div class="album-bg" aria-hidden="true"></div>
+                  <header class="album-head">
+                    <div class="album-title"><b id="albumTitle">Альбом тренера</b><span id="albumSub"></span></div>
+                    <div class="album-meta">
+                      <span class="tab-key tab-key--wide" data-btn-proxy="x">X · Наборы</span>
+                      <span class="tab-key" data-btn-proxy="l">L</span>
+                      <span class="album-spread" id="albumSpread"></span>
+                      <span class="tab-key" data-btn-proxy="r">R</span>
+                    </div>
+                  </header>
+                  <div class="binder" id="binder">
+                    <div class="binder-page binder-page--l" id="pageL"></div>
+                    <div class="binder-page binder-page--r" id="pageR"></div>
+                    <div class="binder-spine" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                  </div>
+                  <div class="picker" id="picker">
+                    <div class="picker-panel">
+                      <div class="picker-head"><b>Поиск и наборы</b><span>Все карточки карточной игры, найди любую</span><button class="picker-x" aria-label="Закрыть"><span data-icon="close"></span></button></div>
+                      <div class="pk-find">
+                        <div class="pk-row">
+                          <label class="gi search pk-q" data-focus="1"><span data-icon="search"></span><input id="pkQ" type="search" placeholder="Имя: Чаризард, Charizard, Профессор Оук…" aria-label="Поиск по всем карточкам" autocomplete="off"></label>
+                          <button class="gi pk-go" id="pkGo"></button>
+                        </div>
+                        <div class="pk-row pk-chips"><div id="pkTypes" class="pk-types"></div><div id="pkRar" class="pk-rar"></div></div>
+                      </div>
+                      <div class="picker-grid"></div>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- экран «джойконы подключены» -->
+                <div class="connect-osd" id="connectOsd" aria-hidden="true">
+                  <div class="co-pair"><i class="co-jc co-l"></i><i class="co-body"></i><i class="co-jc co-r"></i></div>
+                  <b>Джойконы подключены</b>
+                  <span>Игрок 1 · <i class="co-led"></i><i class="co-led"></i><i class="co-led off"></i><i class="co-led off"></i></span>
+                </div>
+
+                <!-- Подсказки внизу экрана -->
+                <footer class="hints" id="hints">
+                  <div class="hints-left">
+                    <span class="hints-ico" data-icon="gamepad"></span>
+                    <span id="hintsBrand">POKÉLORE</span>
+                  </div>
+                  <div class="hints-right" id="hintsRight"></div>
+                </footer>
+
+                <!-- Модальное окно карточки -->
+                <div class="cm" id="cardModal" aria-hidden="true">
+                  <div class="cm-panel" id="cmPanel">
+                    <button class="cm-nav cm-prev" id="cmPrev" aria-label="Предыдущая карточка"><span data-icon="prev"></span></button>
+                    <div class="cm-stage" id="cmStage"></div>
+                    <div class="cm-count" id="cmCount"></div>
+                    <div class="cm-info">
+                      <div class="cm-head"><b id="cmName"></b><button class="cm-fav cm-edit-btn" id="cmEditBtn" aria-label="Изменить описание" data-tip="Изменить название и описание" hidden><span data-icon="edit"></span></button><button class="cm-fav" id="cmFav" aria-label="В избранное"><span data-icon="heart"></span></button></div>
+                      <div class="cm-en" id="cmEn"></div>
+                      <div class="cm-sub">Нажми на часть карточки или на кнопку, чтобы узнать значение</div>
+                      <div class="cm-chips" id="cmChips"></div>
+                      <div class="cm-box" id="cmBox"></div>
+                    </div>
+                    <button class="cm-close" id="cmClose" aria-label="Закрыть"><span data-icon="close"></span></button>
+                    <button class="cm-nav cm-next" id="cmNext" aria-label="Следующая карточка"><span data-icon="next"></span></button>
+                  </div>
+                </div>
+
+                <!-- слой для летящей карточки (анимация «достать из кармашка») -->
+                <div class="fly-layer" id="flyLayer" aria-hidden="true"></div>
+
+                <!-- Справка по управлению -->
+                <div class="help" id="help" aria-hidden="true">
+                  <div class="help-panel">
+                    <div class="help-head">
+                      <b>Управление</b>
+                      <span>Кнопки консоли · мышь · клавиатура · геймпад</span>
+                    </div>
+                    <div class="help-grid" id="helpGrid"></div>
+                    <div class="help-foot"><b class="badge">B</b> или <b class="badge">+</b> — закрыть</div>
+                  </div>
+                </div>
+
+                <!-- Эффекты ЭЛТ -->
+                <div class="fx fx-scan" aria-hidden="true"></div>
+                <div class="fx fx-roll" aria-hidden="true"></div>
+                <div class="fx fx-vignette" aria-hidden="true"></div>
+                <div class="fx fx-flash" id="flash" aria-hidden="true"></div>
+
+                <!-- OSD поверх всего -->
+                <div class="toast" id="toast" role="status" aria-live="polite"></div>
+                <div class="osd-vol" id="osdVol" aria-hidden="true">
+                  <span class="osd-vol-label" id="osdVolLabel">VOL</span>
+                  <span class="osd-vol-bars" id="osdVolBars"></span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ПРАВЫЙ ДЖОЙКОН -->
+        <div class="joycon joycon--right">
+          <button class="jc-shoulder" data-btn="r" data-tip="R — следующий раздел" data-key="E" aria-label="Кнопка R">
+            <svg viewBox="0 0 170 120" aria-hidden="true">
+              <path class="gs" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /><path class="sh" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" />
+              <g class="cap"><path class="vis" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /><path class="rim" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" /></g>
+              <path class="hit" d="M6 66 A112 117 0 0 1 108 -4 L138 -4" />
+            </svg>
+          </button>
+          <div class="jc-shell"></div>
+
+          <button class="ctl jc-plus" style="--x:28px;--y:52px" data-btn="plus" data-tip="+ — справка по управлению" data-key="+" aria-label="Плюс: справка">
+            <b class="cap"><i></i><i></i></b>
+          </button>
+
+          <div class="abxy" style="--x:80px;--y:132px">
+            <button class="fbtn" style="--dx:0px;--dy:-45px" data-btn="x" data-tip="X — поиск" data-key="X" aria-label="X"><b class="cap">X</b></button>
+            <button class="fbtn" style="--dx:-45px;--dy:0px" data-btn="y" data-tip="Y — ретро-фильтр" data-key="Y" aria-label="Y"><b class="cap">Y</b></button>
+            <button class="fbtn" style="--dx:45px;--dy:0px" data-btn="a" data-tip="A — выбрать" data-key="Enter" aria-label="A"><b class="cap">A</b></button>
+            <button class="fbtn" style="--dx:0px;--dy:45px" data-btn="b" data-tip="B — назад" data-key="Esc" aria-label="B"><b class="cap">B</b></button>
+          </div>
+
+          <div class="ctl stick" style="--x:80px;--y:272px" data-stick="right" data-tip="Правый стик — прокрутка (тяни)" aria-label="Правый стик">
+            <div class="stick-cap"><i class="st-sh"></i><i class="st-wall"></i><i class="st-top"><b></b></i></div>
+          </div>
+
+          <button class="ctl jc-home" style="--x:52px;--y:372px" data-btn="home" data-tip="HOME — главное меню" data-key="H" aria-label="Домой">
+            <b class="cap"><span data-icon="home"></span></b>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ДОК: раскраски · стойка картриджей · информация о выбранном -->
+      <div class="dock-zone" id="dockZone">
+        <div class="skins" id="skins" aria-label="Раскраска консоли"></div>
+        <div class="rack-clip" id="rackClip">
+          <div class="rack-lip" aria-hidden="true"></div>
+          <div class="rack-stage" id="rackStage"></div>
+        </div>
+        <div class="cart-info" id="cartInfo" aria-live="polite"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- кабель питания (рисуется поверх консоли) -->
+  <canvas id="cable" aria-hidden="true"></canvas>
+
+  <div class="rotate-hint">↻ Поверни телефон — так удобнее</div>
+  <div class="tip" id="tip" role="tooltip"></div>
+
+  <!-- данные (собираются scripts/build-data.mjs) -->
+  <script src="data/meta.js"></script>
+  <script src="data/dex.js"></script>
+  <!-- английский: словари (js/en/<файл>.js → PL.i18n.add) подключаются только при PL.lang==='en' -->
+  <script>["dex","html","config","cards","tcg","sections","data","img","news","carts","cable","shot","audio","motion","input","static","pixballs","icons","quiz","catcher","scan","scan-img","mine","app"].forEach(function (n) { PL.L(null, "js/en/" + n + ".js"); });</script>
+  <script src="data/types.js"></script>
+  <script src="data/world.js"></script>
+  <script src="data/tcg/sets.js"></script>
+  <script src="data/tcg/index.js"></script>
+  <script src="data/tcg/images-map.js"></script>
+  <script src="data/tcg/supporters.js"></script>
+  <script src="data/tcg/images.js"></script>
+  <!-- приложение -->
+  <script>PL.i18n.dom();</script>
+  <script src="js/motion.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/cards.js"></script>
+  <script src="js/img.js"></script>
+  <script>PL.L("js/lore-ru.js", "js/en/lore-ru.js"); PL.L("js/lore-more.js", "js/en/lore-more.js");</script>
+  <script src="js/news.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/tcg.js"></script>
+  <script src="js/sections.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/static.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/cable.js"></script>
+  <script src="js/pixballs.js"></script>
+  <script src="js/carts.js"></script>
+  <script src="js/shot.js"></script>
+  <script>PL.L("js/quiz-data.js", "js/en/quiz-data.js");</script>
+  <script src="js/quiz.js"></script>
+  <script src="js/catcher.js"></script>
+  <script src="js/mine.js"></script>
+  <script src="js/scan-img.js"></script>
+  <script src="js/scan-match.js"></script>
+  <script src="js/scan.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

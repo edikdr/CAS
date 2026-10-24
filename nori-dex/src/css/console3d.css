@@ -1,0 +1,395 @@
+/* ==========================================================================
+   Объёмная консоль (v0.9): корпус-«плита» с толщиной и фаской, джойконы с боковой стенкой,
+   кнопки = лунка + подвижная шляпка (ход вниз, пружинный возврат), стики с наклоном и тенью,
+   плечевые кнопки с толщиной. Свет сверху-слева, но без бликов и пятен: объём даёт геометрия
+   (стенки, фаски, контактные тени), а не отражения.
+   Цвета джойконов берутся из --jc-*, поэтому «призраки» при смене раскраски выглядят так же.
+   ========================================================================== */
+
+/* ---------- общие переменные ---------- */
+.joycon--left  { --c: var(--jc-red);  --c-hi: var(--jc-red-hi);  --c-lo: var(--jc-red-lo); }
+.joycon--right { --c: var(--jc-blue); --c-hi: var(--jc-blue-hi); --c-lo: var(--jc-blue-lo); }
+
+/* ==========================================================================
+   ДЖОЙКОНЫ: корпус
+   ========================================================================== */
+.jc-shell {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: linear-gradient(118deg, color-mix(in srgb, var(--c-hi) 58%, var(--c)) 0%, var(--c) 36%, color-mix(in srgb, var(--c-lo) 52%, var(--c)) 100%);
+}
+.joycon--left .jc-shell {
+  border-radius: 108px 0 0 108px / 112px 0 0 112px;
+}
+.joycon--right .jc-shell {
+  border-radius: 0 108px 108px 0 / 0 112px 112px 0;
+}
+.joycon--left .jc-shell, .joycon--right .jc-shell {
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, .08),
+    inset 0 -6px 0 rgba(0, 0, 0, .13),
+    0 2px 0 color-mix(in srgb, var(--c-lo) 90%, #000),
+    0 4px 0 color-mix(in srgb, var(--c-lo) 76%, #000),
+    0 6px 0 color-mix(in srgb, var(--c-lo) 62%, #000),
+    0 8px 0 color-mix(in srgb, var(--c-lo) 48%, #000),
+    0 10px 0 color-mix(in srgb, var(--c-lo) 36%, #000),
+    0 34px 40px -14px rgba(0, 0, 0, .7);
+}
+.joycon--left .jc-shell  { box-shadow: inset -6px 0 0 rgba(0, 0, 0, .15), inset 0 3px 0 rgba(255, 255, 255, .08), inset 0 -6px 0 rgba(0, 0, 0, .13), 0 2px 0 color-mix(in srgb, var(--c-lo) 90%, #000), 0 4px 0 color-mix(in srgb, var(--c-lo) 76%, #000), 0 6px 0 color-mix(in srgb, var(--c-lo) 62%, #000), 0 8px 0 color-mix(in srgb, var(--c-lo) 48%, #000), 0 10px 0 color-mix(in srgb, var(--c-lo) 36%, #000), 0 34px 40px -14px rgba(0, 0, 0, .7); }
+.joycon--right .jc-shell { box-shadow: inset 6px 0 0 rgba(0, 0, 0, .15), inset 0 3px 0 rgba(255, 255, 255, .08), inset 0 -6px 0 rgba(0, 0, 0, .13), 0 2px 0 color-mix(in srgb, var(--c-lo) 90%, #000), 0 4px 0 color-mix(in srgb, var(--c-lo) 76%, #000), 0 6px 0 color-mix(in srgb, var(--c-lo) 62%, #000), 0 8px 0 color-mix(in srgb, var(--c-lo) 48%, #000), 0 10px 0 color-mix(in srgb, var(--c-lo) 36%, #000), 0 34px 40px -14px rgba(0, 0, 0, .7); }
+
+.jc-shell::before { /* матовое зерно пластика */
+  content: '';
+  display: block;
+  position: absolute;
+  inset: 0;
+  background: var(--grain);
+  mix-blend-mode: soft-light;
+  opacity: .62;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.jc-shell::after { /* рельс у стыка с корпусом */
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, .15) 0 2px, transparent 2px 11px) 50% 14px / 3px calc(100% - 28px) no-repeat,
+    linear-gradient(90deg, rgba(0, 0, 0, .08), rgba(0, 0, 0, .38));
+}
+.joycon--left .jc-shell::after  { right: 0; left: auto; }
+.joycon--right .jc-shell::after { left: 0; right: auto; transform: scaleX(-1); }
+
+/* фаска по контуру: тонкая кромка, светлая сверху-слева и тёмная снизу-справа */
+.joycon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  padding: 3px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, .3), rgba(255, 255, 255, .04) 36%, rgba(0, 0, 0, 0) 56%, rgba(0, 0, 0, .34) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.joycon--left::after  { border-radius: 108px 0 0 108px / 112px 0 0 112px; }
+.joycon--right::after { border-radius: 0 108px 108px 0 / 0 112px 112px 0; }
+
+/* ==========================================================================
+   ПЛЕЧЕВЫЕ КНОПКИ L / R: дуга с толщиной
+   ========================================================================== */
+.jc-shoulder {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 170px;
+  height: 120px;
+  z-index: 0;
+  pointer-events: none;
+}
+.jc-shoulder svg { width: 100%; height: 100%; overflow: visible; }
+.joycon--right .jc-shoulder svg { transform: scaleX(-1); }
+.jc-shoulder path { fill: none; stroke-linecap: round; pointer-events: none; }
+.jc-shoulder .gs { stroke: rgba(0, 0, 0, .2); stroke-width: 24; transform: translateY(9px); }
+.jc-shoulder .sh { stroke: #07080a; stroke-width: 15; transform: translateY(5px); }
+.jc-shoulder .vis { stroke: var(--btn); stroke-width: 12; transition: stroke .15s; }
+.jc-shoulder .rim { stroke: rgba(255, 255, 255, .15); stroke-width: 2.4; transform: translateY(-3.4px); }
+.jc-shoulder .cap { transform: translateY(-1.5px); transition: transform .26s cubic-bezier(.28, 1.9, .5, 1); }
+.jc-shoulder .hit { stroke: transparent; stroke-width: 34; pointer-events: stroke; cursor: pointer; }
+.jc-shoulder:hover .vis { stroke: color-mix(in srgb, var(--btn) 84%, #fff); }
+.jc-shoulder.is-pressed .cap { transform: translateY(3.2px); transition-duration: .05s; transition-timing-function: ease-out; }
+.jc-shoulder.is-pressed .vis { stroke: color-mix(in srgb, var(--btn) 88%, #000); }
+
+/* ==========================================================================
+   КОНТРОЛЫ: позиция по центру --x / --y
+   ========================================================================== */
+.ctl, .dpad, .abxy {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  z-index: 2;
+}
+.ctl { transform: translate(-50%, -50%); }
+
+/* лунка: утопленное гнездо под шляпку, нижняя кромка чуть ловит свет */
+.dbtn, .fbtn, .jc-minus, .jc-plus, .jc-capture, .jc-home, .stick {
+  background: radial-gradient(circle at 50% 40%, #050507 0 52%, #0e0f12 100%);
+  box-shadow:
+    inset 0 4px 6px rgba(0, 0, 0, .92),
+    inset 0 0 0 1px rgba(0, 0, 0, .7),
+    0 1px 0 rgba(255, 255, 255, .13),
+    0 0 0 2px rgba(0, 0, 0, .16);
+}
+
+/* общая шляпка кнопки: стенка + контактная тень, ход вниз при нажатии, пружинный возврат */
+.dbtn .cap, .fbtn .cap, .jc-minus .cap, .jc-plus .cap, .jc-capture .cap, .jc-home .cap {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  color: var(--btn-sym);
+  background:
+    radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--btn) 80%, #fff) 0%, var(--btn) 48%, color-mix(in srgb, var(--btn) 80%, #000) 100%);
+  box-shadow:
+    0 1px 0 var(--btn-lo),
+    0 2px 0 var(--btn-lo),
+    0 3px 0 color-mix(in srgb, var(--btn-lo) 68%, #000),
+    0 6px 5px rgba(0, 0, 0, .55),
+    inset 0 1.5px 0 rgba(255, 255, 255, .17),
+    inset 0 -2px 4px rgba(0, 0, 0, .3);
+  transform: translateY(-3px);
+  transition: transform .24s cubic-bezier(.28, 1.9, .5, 1), box-shadow .24s ease-out, filter .15s;
+  will-change: transform;
+}
+.is-pressed .cap {
+  transform: translateY(0) scale(.975);
+  box-shadow:
+    0 0 0 var(--btn-lo),
+    0 0 0 var(--btn-lo),
+    0 1px 0 color-mix(in srgb, var(--btn-lo) 68%, #000),
+    0 1px 2px rgba(0, 0, 0, .6),
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    inset 0 -1px 3px rgba(0, 0, 0, .4);
+  transition-duration: .045s;
+  transition-timing-function: ease-out;
+  filter: brightness(.9);
+}
+.dbtn:hover .cap, .fbtn:hover .cap, .jc-minus:hover .cap, .jc-plus:hover .cap, .jc-capture:hover .cap, .jc-home:hover .cap { filter: brightness(1.14); }
+.is-pressed.dbtn:hover .cap, .is-pressed.fbtn:hover .cap { filter: brightness(.95); }
+
+/* свет под нажатой кнопкой: тихий отсвет экрана */
+.dbtn::after, .fbtn::after, .jc-home::after, .jc-capture::after, .jc-minus::after, .jc-plus::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 0 0 transparent;
+  transition: box-shadow .3s ease-out;
+}
+.is-pressed.dbtn::after, .is-pressed.fbtn::after, .is-pressed.jc-home::after, .is-pressed.jc-capture::after, .is-pressed.jc-minus::after, .is-pressed.jc-plus::after {
+  box-shadow: 0 0 9px 1px color-mix(in srgb, var(--ambient) 50%, transparent), inset 0 0 0 1.5px color-mix(in srgb, var(--ambient) 38%, transparent);
+  transition-duration: .04s;
+}
+
+/* вспышка-кольцо при нажатии */
+.ripple {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .6);
+  animation: ripple .45s ease-out forwards;
+}
+@keyframes ripple {
+  from { opacity: .8; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 0;  transform: translate(-50%, -50%) scale(1.7); }
+}
+
+/* ---------- крестовина и ABXY: круглые кнопки ---------- */
+.dbtn, .fbtn {
+  position: absolute;
+  left: var(--dx);
+  top: var(--dy);
+  width: 42px;
+  height: 42px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  display: block;
+}
+.dbtn .cap, .fbtn .cap { inset: 3.5px; border-radius: 50%; }
+.fbtn .cap { font: 800 17px/1 var(--round); padding-top: 1px; text-shadow: 0 -1px 0 rgba(0, 0, 0, .5), 0 1px 0 rgba(255, 255, 255, .08); }
+.dbtn .cap svg { width: 12px; height: 12px; fill: var(--btn-sym); opacity: .92; filter: drop-shadow(0 -1px 0 rgba(0, 0, 0, .5)); }
+
+/* ---------- минус / плюс ---------- */
+.jc-minus { width: 36px; height: 20px; border-radius: 10px; }
+.jc-plus  { width: 36px; height: 36px; border-radius: 50%; }
+.jc-minus .cap { inset: 3px; border-radius: 8px; transform: translateY(-2px); }
+.jc-minus .cap i { display: none; }
+.jc-plus .cap {
+  inset: 5px;
+  background: none;
+  box-shadow: none;
+  filter: drop-shadow(0 1px 0 var(--btn-lo)) drop-shadow(0 2px 0 var(--btn-lo)) drop-shadow(0 4px 3px rgba(0, 0, 0, .55));
+  transform: translateY(-2px);
+}
+.jc-plus .cap i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 7px;
+  margin: -3.5px 0 0 -12px;
+  border-radius: 2.5px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--btn) 80%, #fff), var(--btn));
+}
+.jc-plus .cap i:nth-child(2) { transform: rotate(90deg); }
+.jc-plus.is-pressed .cap {
+  box-shadow: none;
+  filter: drop-shadow(0 1px 0 var(--btn-lo)) drop-shadow(0 1px 2px rgba(0, 0, 0, .6));
+  transform: translateY(0) scale(.975);
+}
+
+/* ---------- снимок ---------- */
+.jc-capture { width: 36px; height: 36px; border-radius: 9px; }
+.jc-capture .cap { inset: 3.5px; border-radius: 6px; }
+.jc-capture .cap i { width: 14px; height: 14px; border-radius: 50%; background: #121316; box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, .8), 0 1px 0 rgba(255, 255, 255, .1); }
+
+/* ---------- HOME: металлическое кольцо и подсветка ---------- */
+.jc-home {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  box-shadow: inset 0 4px 6px rgba(0, 0, 0, .92), 0 0 0 3.5px #4a4d53, 0 0 0 4.5px rgba(0, 0, 0, .35), 0 4px 0 4px rgba(0, 0, 0, .3);
+  transition: box-shadow .3s;
+}
+.is-on .jc-home { box-shadow: inset 0 4px 6px rgba(0, 0, 0, .92), 0 0 0 3.5px #6fd8ff, 0 0 0 4.5px rgba(0, 0, 0, .35), 0 4px 0 4px rgba(0, 0, 0, .3); }
+.jc-home .cap { inset: 4px; border-radius: 50%; }
+.jc-home .cap span { width: 17px; height: 17px; display: block; }
+.jc-home .cap svg { width: 100%; height: 100%; display: block; }
+
+/* ==========================================================================
+   СТИКИ: гнездо, тень, ножка, верхняя площадка; наклон в сторону хода
+   ========================================================================== */
+.stick {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  touch-action: none;
+  cursor: grab;
+  box-shadow:
+    inset 0 6px 10px rgba(0, 0, 0, .95),
+    inset 0 0 0 4px #0b0c0e,
+    0 0 0 3px color-mix(in srgb, var(--c) 70%, #000),
+    0 0 0 4.5px rgba(0, 0, 0, .28),
+    0 2px 0 4.5px rgba(255, 255, 255, .07);
+  --tilt: perspective(230px) rotateX(calc(var(--ky, 0) * -14deg)) rotateY(calc(var(--kx, 0) * 14deg));
+}
+.stick.is-dragging { cursor: grabbing; }
+.stick-cap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  transform: translate(var(--sx, 0px), var(--sy, 0px)) var(--tilt);
+  transition: transform .36s cubic-bezier(.3, 1.7, .5, 1);
+}
+.stick-cap i { position: absolute; inset: 0; border-radius: 50%; display: block; }
+.stick-cap .st-sh {
+  background: #000;
+  opacity: .5;
+  filter: blur(4px);
+  transform: translate(calc(var(--kx, 0) * -5px), calc(8px - var(--ky, 0) * 5px));
+}
+.stick-cap .st-wall {
+  background: linear-gradient(180deg, #232529, #08090a 75%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .4);
+  transform: translate(calc(var(--kx, 0) * -2px), calc(4px - var(--ky, 0) * 2px));
+}
+.stick-cap .st-top {
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, .05) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at calc(50% - var(--kx, 0) * 10%) calc(34% - var(--ky, 0) * 10%), color-mix(in srgb, var(--btn) 78%, #fff) 0%, var(--btn) 52%, color-mix(in srgb, var(--btn) 76%, #000) 100%);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(0, 0, 0, .38),
+    inset 0 2px 0 rgba(255, 255, 255, .13),
+    inset 0 -3px 5px rgba(0, 0, 0, .32);
+  transform: translateY(-3px);
+  transition: transform .06s;
+}
+.stick-cap .st-top b { /* вогнутая площадка под палец */
+  position: absolute;
+  inset: 15px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 58% 62%, color-mix(in srgb, var(--btn) 88%, #fff), color-mix(in srgb, var(--btn) 66%, #000) 78%);
+  box-shadow: inset 2px 3px 5px rgba(0, 0, 0, .7), inset -1px -2px 2px rgba(255, 255, 255, .07), 0 1px 0 rgba(255, 255, 255, .08);
+}
+.stick.is-down .stick-cap { transform: translate(var(--sx, 0px), calc(var(--sy, 0px) + 2px)) var(--tilt) scale(.965); transition: transform .05s ease-out; }
+.stick.is-down .st-top { transform: translateY(-1px); }
+.stick.is-dragging .stick-cap, .stick.is-pad .stick-cap { transition: none; }
+
+/* ==========================================================================
+   КОРПУС: плита с толщиной, фаской и утопленным экраном
+   ========================================================================== */
+.body-shell {
+  border-radius: 10px;
+  background:
+    radial-gradient(120% 100% at 50% 42%, transparent 56%, rgba(0, 0, 0, .3) 100%),
+    linear-gradient(180deg, var(--body-hi) 0%, var(--body) 15%, var(--body) 84%, var(--body-lo) 100%);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, .055),
+    inset 0 -5px 0 rgba(0, 0, 0, .32),
+    inset 8px 0 9px -7px rgba(0, 0, 0, .55),
+    inset -8px 0 9px -7px rgba(0, 0, 0, .55),
+    0 2px 0 color-mix(in srgb, var(--body-lo) 88%, #000),
+    0 4px 0 color-mix(in srgb, var(--body-lo) 76%, #000),
+    0 6px 0 color-mix(in srgb, var(--body-lo) 64%, #000),
+    0 8px 0 color-mix(in srgb, var(--body-lo) 52%, #000),
+    0 10px 0 color-mix(in srgb, var(--body-lo) 42%, #000),
+    0 40px 54px -14px rgba(0, 0, 0, .74);
+}
+.body-shell::after { /* фаска по контуру плиты */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 3px;
+  background: linear-gradient(155deg, color-mix(in srgb, var(--body-rim) 100%, rgba(255, 255, 255, .1)), rgba(255, 255, 255, .03) 36%, rgba(0, 0, 0, 0) 58%, rgba(0, 0, 0, .42) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+.body-sweep { border-radius: 10px; }
+
+/* экран утоплен: тёмная кромка, нижняя губа ловит свет, тень по краю стекла */
+.glass {
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, .7),
+    0 0 0 6px rgba(0, 0, 0, .16),
+    0 3px 0 3px rgba(255, 255, 255, .06),
+    inset 0 0 0 1px rgba(255, 255, 255, .05);
+}
+.glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 5px 16px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(0, 0, 0, .5);
+}
+
+/* кнопки на верхней грани: выступают, при нажатии утапливаются */
+.top-btn {
+  top: -9px;
+  height: 14px;
+  border-radius: 5px 5px 0 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--btn) 72%, #fff) 0%, var(--btn) 45%, var(--btn-lo) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 -1px 0 rgba(0, 0, 0, .55), 2px 0 0 rgba(0, 0, 0, .3), -2px 0 0 rgba(0, 0, 0, .3);
+  transition: transform .26s cubic-bezier(.28, 1.9, .5, 1), filter .15s;
+}
+.top-btn:hover { background: linear-gradient(180deg, color-mix(in srgb, var(--btn) 62%, #fff) 0%, color-mix(in srgb, var(--btn) 90%, #fff) 45%, var(--btn-lo) 100%); }
+.top-btn.is-pressed { transform: translateY(4px); transition-duration: .05s; transition-timing-function: ease-out; filter: brightness(.88); }
+.top-slot { background: linear-gradient(180deg, #131417, #2c2e33); box-shadow: inset 0 2px 3px rgba(0, 0, 0, .6); }
+
+/* разъём и слот: чуть более глубокие гнёзда */
+.port { box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 2px rgba(0, 0, 0, .45), 0 2px 0 2px rgba(255, 255, 255, .07); }
+.cart-slot { box-shadow: inset 0 4px 6px rgba(0, 0, 0, .95), 0 0 0 2px rgba(0, 0, 0, .45), 0 -2px 0 2px rgba(255, 255, 255, .06); }
+
+@media (prefers-reduced-motion: reduce) {
+  .dbtn .cap, .fbtn .cap, .jc-minus .cap, .jc-plus .cap, .jc-capture .cap, .jc-home .cap, .top-btn, .jc-shoulder .cap, .stick-cap { transition-duration: .01s; }
+}

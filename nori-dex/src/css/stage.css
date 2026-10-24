@@ -1,16 +1,16 @@
 /* ==========================================================================
-   Сцена: кабель питания, фактура корпуса, раскраски, стойка с 3D-картриджами.
-   Дизайн-пиксели те же, что в style.css (1200 × 818): запас под кабель 0…112, консоль 112…622, док 622…818.
+   Stage: power cable, body texture, relic rack with 3D relics.
+   Same design pixels as style.css (1200 x 818): cable room 0..112, device 112..622, dock 622..818.
    ========================================================================== */
 
 :root {
-  /* мелкое зерно матового пластика (монохромный шум, подмешивается через soft-light) */
+  /* fine grain of the matte body (monochrome noise blended with soft-light) */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --grain-fine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* ==========================================================================
-   КАБЕЛЬ
+   CABLE
    ========================================================================== */
 #cable {
   position: fixed;
@@ -62,7 +62,7 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
 .port.is-near { box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 1px rgba(0, 0, 0, .55), 0 0 18px 6px rgba(125, 255, 170, .65); }
 
 /* ==========================================================================
-   ФАКТУРА КОРПУСА И ДЖОЙКОНОВ (матовая, без бликов)
+   BODY TEXTURE (matte, no glare)
    ========================================================================== */
 .body-shell {
   border-radius: 7px;
@@ -75,7 +75,7 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
     0 30px 48px -14px rgba(0, 0, 0, .65);
   overflow: hidden;
 }
-.body-shell::before { /* зерно */
+.body-shell::before { /* grain */
   content: '';
   position: absolute;
   inset: 0;
@@ -84,7 +84,7 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
   opacity: .62;
   pointer-events: none;
 }
-.body-shell::after { /* лёгкое затемнение к краям + едва заметная «пескоструйная» строчка */
+.body-shell::after { /* slight darkening towards the edges */
   content: '';
   position: absolute;
   inset: 0;
@@ -94,7 +94,7 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
   pointer-events: none;
 }
 
-/* направляющие, на которые защёлкиваются джойконы */
+/* rails the controllers latch onto */
 .rail {
   position: absolute;
   top: 0;
@@ -107,7 +107,7 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .35);
 }
 .body { z-index: 3; }
-.seam { /* вспышка у стыка, когда джойкон защёлкнулся */
+.seam { /* flash at the seam when a controller latches */
   position: absolute;
   top: 16px;
   bottom: 16px;
@@ -125,7 +125,7 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
 .rail--l { left: 0; border-radius: 6px 0 0 6px; }
 .rail--r { right: 0; border-radius: 0 6px 6px 0; }
 
-/* динамики: мелкая перфорация в нижних углах рамки */
+/* speakers: fine perforation in the lower corners */
 .spk {
   position: absolute;
   bottom: 7px;
@@ -138,10 +138,10 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
 .spk--l { left: 26px; }
 .spk--r { right: 26px; }
 
-/* до PLAY джойконов нет; WAAPI-анимация (app.js → joycons) включает их сама */
+/* controllers are hidden until the app shows them */
 .jc-off .joycon { visibility: hidden; pointer-events: none; }
 .is-swapping .joycon { pointer-events: none; }
-.joycon { z-index: 8; }   /* при прилёте джойкон проходит поверх дока */
+.joycon { z-index: 8; }   /* a flying controller passes above the dock */
 .jc-ghost {
   position: absolute;
   top: 0;
@@ -153,7 +153,7 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
 }
 .jc-ghost * { pointer-events: none !important; }
 
-/* корпус «прокатывается» новым цветом: узкая светлая полоса, не блик, а переход */
+/* the body sweeps to a new colour: a narrow light band, a transition rather than a glare */
 .body-sweep {
   position: absolute;
   inset: 0;
@@ -180,7 +180,7 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
 @keyframes sweepMove { to { left: calc(100% + 40px); } }
 
 /* ==========================================================================
-   РАЗЪЁМ ПИТАНИЯ (сверху) И СЛОТ КАРТРИДЖА (снизу)
+   POWER SOCKET (top) AND RELIC SLOT (bottom)
    ========================================================================== */
 .port, .cart-slot {
   position: absolute;
@@ -197,7 +197,7 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
   border-radius: 0 0 5px 5px;
   box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 1px rgba(0, 0, 0, .55), 0 1px 0 rgba(255, 255, 255, .06);
 }
-.port::before { /* контактная пластина внутри */
+.port::before { /* contact plate inside */
   content: '';
   position: absolute;
   left: 7px;
@@ -252,7 +252,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
 .slot-led { left: calc(100% + 13px); bottom: 2px; }
 .slot-led.is-amber { background: #ffb347; box-shadow: 0 0 7px 2px rgba(255, 170, 60, .7); }
 .slot-led.is-green { background: #7dffaa; box-shadow: 0 0 7px 2px rgba(60, 255, 130, .75); }
-.slot-ring { /* кольцо-волна у щели при защёлкивании */
+.slot-ring { /* ripple at the slot when a relic latches */
   position: absolute;
   left: 50%;
   bottom: 0;
@@ -271,7 +271,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
 }
 
 /* ==========================================================================
-   ДОК ПОД КОНСОЛЬЮ: раскраски · стойка · карточка картриджа
+   DOCK UNDER THE DEVICE: relic rack and the info card
    ========================================================================== */
 .dock-zone {
   position: absolute;
@@ -283,7 +283,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
 }
 .dock-zone > * { pointer-events: auto; }
 
-/* --- раскраска --- */
+/* --- (removed) skins --- */
 .skins {
   position: absolute;
   left: 34px;
@@ -321,7 +321,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
 }
 .skins-label b { color: #fff; font-weight: 900; }
 
-/* --- стойка с картриджами --- */
+/* --- relic rack --- */
 .rack-clip {
   position: absolute;
   left: 290px;
@@ -329,12 +329,12 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
   width: 620px;
   height: 205px;
   pointer-events: none;
-  /* срезаем только верх (на уровне щели консоли), по бокам и снизу — свободно */
+  /* clip only the top (at the device slot); sides and bottom stay free */
   clip-path: inset(0 -260px -120px -260px);
 }
 .rack-clip > * { pointer-events: none; }
 .rack-clip.rack-intro { clip-path: inset(0 -260px 0 -260px); }
-.rack-lip { /* тень от нижней кромки консоли на картридж, входящий в щель */
+.rack-lip { /* shadow from the device's bottom edge on a relic entering the slot */
   position: absolute;
   left: 150px;
   right: 150px;
@@ -353,7 +353,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
   perspective-origin: 50% 8%;
 }
 
-/* платформа-лоток */
+/* tray platform */
 .tray-back {
   position: absolute;
   left: 78px;
@@ -424,9 +424,9 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
 .cart-shadow.is-up { opacity: .18; transform: scale(1.25, 1.1); }
 .cart-shadow.is-gone { opacity: 0; }
 
-/* --- картридж ---
-   .cart (WAAPI: путь полёта) › .cart-tilt (CSS: наведение/выбор, наклон за курсором) ›
-   .cart-3d (preserve-3d, лёгкое «дыхание») › слои корпуса + лицо + оборот */
+/* --- relic ---
+   .cart (WAAPI: flight path) > .cart-tilt (CSS: hover / select, tilt after the pointer) >
+   .cart-3d (preserve-3d, gentle breathing) > body slices + face + back */
 .cart {
   position: absolute;
   left: calc(var(--cx) - 52px);
@@ -438,7 +438,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
   transform-origin: 50% 96%;
   pointer-events: none;
 }
-.cart-hit { /* зона наведения и клика: плоская, вне 3D-контекста картриджа */
+.cart-hit { /* hover and click area: flat, outside the relic's 3D context */
   position: absolute;
   left: calc(var(--cx) - 58px);
   top: 36px;
@@ -482,7 +482,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
   50% { transform: translateY(-1.8px) rotateY(1.6deg); }
 }
 
-.cl { /* один «срез» корпуса: стопка срезов даёт настоящую толщину, крайние чуть меньше — это фаска */
+.cl { /* one slice of the body: the stack gives real thickness, outer slices are smaller (bevel) */
   position: absolute;
   inset: 0;
   border-radius: 10px 10px 14px 14px;
@@ -499,7 +499,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
 .cart-face svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .cart-front { transform: translateZ(9.3px); }
 .cart-back { transform: translateZ(-9.3px) rotateY(180deg); }
-.cart-front::after { /* затемнение, когда картридж не выбран */
+.cart-front::after { /* dimming while not selected */
   content: '';
   position: absolute;
   inset: 0;
@@ -509,7 +509,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
   pointer-events: none;
 }
 .rack-stage.has-sel .cart:not(.is-sel):not(.is-hover):not(.is-seated) .cart-front::after { background: rgba(2, 3, 8, .38); }
-.cart-glow { /* внутри .cart-3d, чтобы лежать в одной плоскости с корпусом */
+.cart-glow { /* inside .cart-3d so it lies in the body's plane */
   position: absolute;
   left: -30px;
   top: -24px;
@@ -525,7 +525,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
 .cart.is-sel .cart-glow, .cart.is-seated .cart-glow { opacity: .36; }
 .cart.is-hover .cart-glow { opacity: .22; }
 
-/* --- карточка выбранного картриджа --- */
+/* --- info card of the selected relic --- */
 .cart-info {
   position: absolute;
   right: 34px;
@@ -548,7 +548,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
   overflow: hidden;
   transition: border-color .4s;
 }
-.ci-card::before { /* цветная метка картриджа */
+.ci-card::before { /* relic colour mark */
   content: '';
   position: absolute;
   left: 0;
@@ -607,7 +607,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
 .ci-hint[data-kind="no"] .ci-arrow { animation: none; opacity: .5; }
 @keyframes hintUp { 50% { transform: translateY(-3px); } }
 @keyframes hintDown { 0%, 100% { transform: rotate(180deg) translateY(0); } 50% { transform: rotate(180deg) translateY(-3px); } }
-/* перетаскивание картриджей */
+/* dragging relics */
 .cart-hit { cursor: grab; touch-action: none; }
 .rack-stage.is-grab .cart-hit, body.is-cart-drag, body.is-cart-drag * { cursor: grabbing !important; }
 .cart.is-dragging .cart-glow { opacity: .5; }
@@ -617,7 +617,7 @@ body.is-plugged.is-on .port-led { background: #7dffaa; box-shadow: 0 0 7px 2px r
 @keyframes ciIn { from { opacity: 0; transform: translateX(16px) scale(.98); } }
 @keyframes ciOut { to { opacity: 0; transform: translateX(-10px); } }
 
-/* пустая карточка: подсказка до выбора */
+/* empty card: hint before anything is selected */
 .ci-empty { justify-content: center; }
 .ci-empty .ci-title b { font-size: 19px; }
 .ci-pick { display: flex; gap: 5px; margin-top: 4px; }

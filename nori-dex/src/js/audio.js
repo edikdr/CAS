@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Звуки — синтезируются на лету через WebAudio, файлов нет.
-   Браузер разрешает звук только после первого клика/нажатия.
+   Sounds, synthesized on the fly with WebAudio; there are no audio files.
+   Browsers allow sound only after the first click or key press.
    ========================================================================== */
 window.PL = window.PL || {};
 
@@ -19,7 +19,7 @@ PL.audio = (function () {
     try {
       var saved = JSON.parse(localStorage.getItem('pl-audio') || 'null');
       if (saved) { muted = !!saved.muted; volume = Math.max(0, Math.min(10, saved.volume | 0)); }
-    } catch (e) { /* приватный режим — без сохранения */ }
+    } catch (e) { /* private mode: nothing is saved */ }
   }
   function save() {
     try { localStorage.setItem('pl-audio', JSON.stringify({ muted: muted, volume: volume })); } catch (e) {}
@@ -82,11 +82,11 @@ PL.audio = (function () {
 
   var sounds = {
     tick: function () { tone({ type: 'triangle', f: 1500, t: 0.03, g: 0.05 }); },
-    btndown: function () { // кнопка консоли вниз: сухой щелчок + глухой упор
+    btndown: function () { // device button down: dry click + dull stop
       noise({ t: 0.014, filter: 'highpass', fq: 2600, g: 0.07 });
       tone({ type: 'triangle', f: 250, f2: 120, t: 0.04, g: 0.06 });
     },
-    btnup: function () {   // возврат пружины
+    btnup: function () {   // spring return
       noise({ t: 0.01, filter: 'highpass', fq: 3600, g: 0.04 });
       tone({ type: 'triangle', f: 340, f2: 210, t: 0.026, g: 0.028 });
     },
@@ -106,7 +106,7 @@ PL.audio = (function () {
       tone({ type: 'sine', f: 380, f2: 980, t: 0.14, g: 0.08 });
       tone({ type: 'triangle', f: 1320, t: 0.08, g: 0.03, delay: 0.1 });
     },
-    snap: function () { // «клик» джойкона
+    snap: function () { // latch click
       noise({ t: 0.03, filter: 'highpass', fq: 2200, g: 0.45 });
       tone({ type: 'triangle', f: 190, f2: 90, t: 0.06, g: 0.25 });
       noise({ t: 0.025, filter: 'highpass', fq: 3000, g: 0.3, delay: 0.075 });
@@ -139,7 +139,7 @@ PL.audio = (function () {
       tone({ type: 'triangle', f: 700, f2: 1400, t: 0.1, g: 0.04, delay: 0.03 });
     },
     error: function () { tone({ type: 'square', f: 150, t: 0.14, g: 0.05 }); },
-    /* кабель: вставка разъёма — глухой «клац», потом тонкий звон включения */
+    /* cable: plug goes in (dull clack), then a thin power-on ring */
     plug: function () {
       tone({ type: 'triangle', f: 160, f2: 62, t: 0.09, g: 0.3 });
       noise({ t: 0.03, filter: 'highpass', fq: 2600, g: 0.4 });
@@ -150,11 +150,11 @@ PL.audio = (function () {
       noise({ t: 0.05, filter: 'highpass', fq: 2000, g: 0.3 });
       tone({ type: 'triangle', f: 120, f2: 220, t: 0.07, g: 0.2 });
     },
-    /* лёгкий пролёт (кабель, картридж, джойкон) */
+    /* light whoosh (cable, relic) */
     swoosh: function () {
       noise({ t: 0.38, fq: 500, fq2: 3200, q: 0.9, g: 0.07 });
     },
-    /* скольжение по направляющим */
+    /* sliding along the guide rails */
     slide: function () {
       noise({ t: 0.42, fq: 2600, fq2: 1100, q: 1.4, g: 0.06 });
       tone({ type: 'sine', f: 95, f2: 130, t: 0.4, g: 0.035 });
@@ -163,14 +163,14 @@ PL.audio = (function () {
       tone({ type: 'sine', f: 520, f2: 760, t: 0.08, g: 0.05 });
       noise({ t: 0.04, fq: 3800, q: 1, g: 0.05 });
     },
-    /* картридж встал в слот: тяжёлый «клац-клик» */
+    /* relic seated in the slot: heavy clack-click */
     seat: function () {
       noise({ t: 0.035, filter: 'highpass', fq: 1800, g: 0.5 });
       tone({ type: 'triangle', f: 150, f2: 48, t: 0.12, g: 0.38 });
       noise({ t: 0.028, filter: 'highpass', fq: 3200, g: 0.34, delay: 0.085 });
       tone({ type: 'sine', f: 1320, t: 0.18, g: 0.04, delay: 0.1 });
     },
-    /* пружинный «выстрел» при извлечении */
+    /* spring kick on eject */
     eject: function () {
       tone({ type: 'square', f: 360, f2: 920, t: 0.05, g: 0.05 });
       noise({ t: 0.04, filter: 'highpass', fq: 2800, g: 0.32 });
@@ -178,8 +178,8 @@ PL.audio = (function () {
     },
     vol: function () { tone({ type: 'sine', f: 1000, t: 0.06, g: 0.12 }); },
 
-    /* ---------- викторина ---------- */
-    /* «печать» текста: короткий тихий писк со случайной высотой (как в диалогах старых игр) */
+    /* ---------- dialog kit ---------- */
+    /* typewriter blip: short quiet beep with random pitch */
     blip: function () { tone({ type: 'square', f: 520 + Math.random() * 90, t: 0.022, g: 0.016 }); },
     qcursor: function () { tone({ type: 'square', f: 1040, t: 0.03, g: 0.03 }); },
     qpick: function () {
@@ -197,25 +197,25 @@ PL.audio = (function () {
       tone({ type: 'square', f: 147, f2: 73, t: 0.3, g: 0.05, delay: 0.1 });
       noise({ t: 0.12, fq: 900, fq2: 200, q: 0.9, g: 0.12 });
     },
-    qheart: function () {      // сердце «лопается»
+    qheart: function () {
       noise({ t: 0.05, filter: 'highpass', fq: 3200, g: 0.3 });
       tone({ type: 'triangle', f: 520, f2: 120, t: 0.28, g: 0.12 });
     },
-    qreveal: function () {     // силуэт → покемон
+    qreveal: function () {
       noise({ t: 0.18, fq: 700, fq2: 5200, q: 1.4, g: 0.1 });
       tone({ type: 'square', f: 440, f2: 1760, t: 0.18, g: 0.03 });
     },
-    qstart: function () {      // «начало поединка»: быстрое арпеджио вверх
+    qstart: function () {      // quick rising arpeggio
       [262, 330, 392, 523, 659, 784, 1047].forEach(function (f, i) {
         tone({ type: 'square', f: f, t: 0.07, g: 0.04, delay: i * 0.055 });
       });
       noise({ t: 0.35, fq: 400, fq2: 3600, q: 1.1, g: 0.07 });
     },
-    qnext: function () {       // новая карточка вопроса: «вылет» покемона
+    qnext: function () {
       noise({ t: 0.22, fq: 1200, fq2: 4200, q: 1, g: 0.06 });
       tone({ type: 'triangle', f: 330, f2: 660, t: 0.12, g: 0.05 });
     },
-    qwin: function () {        // зал славы
+    qwin: function () {
       var m = [[523.25, 0, .16], [659.25, .16, .16], [783.99, .32, .16], [1046.5, .48, .3], [783.99, .8, .14], [1046.5, .94, .14], [1318.5, 1.08, .5],
                [1174.7, 1.64, .14], [1318.5, 1.78, .14], [1568, 1.92, .7]];
       m.forEach(function (n) { tone({ type: 'square', f: n[0], t: n[2], g: 0.04, delay: n[1] }); tone({ type: 'triangle', f: n[0] / 2, t: n[2] * 1.2, g: 0.07, delay: n[1] }); });
@@ -231,7 +231,7 @@ PL.audio = (function () {
       tone({ type: 'sine', f: 1568, f2: 2093, t: 0.1, g: 0.03 });
       tone({ type: 'sine', f: 2349, t: 0.12, g: 0.02, delay: 0.05 });
     },
-    /* покебол: бросок → захват → «клик» → мигающая кнопка */
+    /* catch sequence */
     ballcatch: function () {
       tone({ type: 'sine', f: 300, f2: 1100, t: 0.22, g: 0.05 });
       noise({ t: 0.22, fq: 600, fq2: 2800, q: 1.2, g: 0.07 });
@@ -241,24 +241,24 @@ PL.audio = (function () {
       tone({ type: 'triangle', f: 210, f2: 90, t: 0.08, g: 0.3 });
       tone({ type: 'sine', f: 1320, t: 0.16, g: 0.04, delay: 0.08 });
     },
-    throw: function () {   // бросок: быстрый свист вверх
+    throw: function () {
       noise({ t: 0.16, fq: 700, fq2: 3600, q: 1.4, g: 0.1 });
       tone({ type: 'sine', f: 380, f2: 900, t: 0.14, g: 0.03 });
     },
-    ballhit: function () { // шар попал: глухой удар + звон
+    ballhit: function () {
       tone({ type: 'triangle', f: 220, f2: 90, t: 0.09, g: 0.16 });
       noise({ t: 0.04, filter: 'highpass', fq: 2400, g: 0.12 });
       tone({ type: 'sine', f: 1318, t: 0.18, g: 0.04, delay: 0.04 });
     },
-    flee: function () {    // покемон сбежал
+    flee: function () {
       tone({ type: 'square', f: 520, f2: 140, t: 0.3, g: 0.04 });
       noise({ t: 0.18, fq: 1800, fq2: 500, q: 1, g: 0.06, delay: 0.05 });
     },
-    timeup: function () {  // время вышло
+    timeup: function () {
       [0, 0.16, 0.32].forEach(function (d) { tone({ type: 'square', f: 440, t: 0.11, g: 0.05, delay: d }); });
       tone({ type: 'square', f: 220, t: 0.4, g: 0.05, delay: 0.5 });
     },
-    tictoc: function () {  // последние секунды
+    tictoc: function () {
       tone({ type: 'square', f: 1100, t: 0.04, g: 0.035 });
     },
     ballping: function () { tone({ type: 'sine', f: 1568, t: 0.35, g: 0.05 }); tone({ type: 'sine', f: 2093, t: 0.35, g: 0.03, delay: 0.09 }); },
@@ -275,10 +275,10 @@ PL.audio = (function () {
       if (!unlocked || !ensure() || !sounds[name]) return;
       try { sounds[name](); } catch (e) {}
     },
-    /* шипение помех, level 0..1 */
+    /* background noise hiss, level 0..1 */
     hiss: function (level) {
       hissLevel = level;
-      if (!unlocked || !ensure()) return; // включится после первого жеста пользователя
+      if (!unlocked || !ensure()) return; // starts after the first user gesture
       if (!hissSrc && level > 0) {
         hissSrc = ctx.createBufferSource();
         hissSrc.buffer = noiseBuf;

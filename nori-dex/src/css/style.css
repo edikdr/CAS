@@ -1,7 +1,7 @@
 /* ==========================================================================
-   PokéLore — рамка сайта в виде консоли
-   Все размеры консоли заданы в «дизайн-пикселях» (1200×818),
-   а вся консоль масштабируется под окно через --scale (см. app.js → fit()).
+   Nori-Dex: the site frame as a handheld device
+   Device sizes are in design pixels (1200x818);
+   the whole device is scaled to the window through --scale (see app.js -> fit()).
    ========================================================================== */
 
 @property --ambient {
@@ -11,9 +11,9 @@
 }
 
 :root {
-  --ambient: #39ff7a;          /* цвет «света от экрана» — меняется из JS */
+  --ambient: #39ff7a;          /* colour of the light from the screen; set from JS */
 
-  /* раскраска консоли (меняется переключателем под консолью, см. [data-skin]) */
+  /* device palette */
   --jc-red: #f4553f;
   --jc-red-hi: #ff7a63;
   --jc-red-lo: #c9341f;
@@ -37,7 +37,7 @@
   --ui-text: #eef1f5;
   --ui-dim: #8d94a3;
 
-  --pixel: 'Press Start 2P', ui-monospace, monospace;
+  --pixel: 'Tiny5', ui-monospace, monospace;
   --round: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   transition: --ambient 1s ease;
@@ -71,7 +71,7 @@ button {
 }
 button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 
-/* ---------- фон страницы: коллаж под консолью ---------- */
+/* ---------- page backdrop: official art under the device ---------- */
 .bg {
   position: fixed;
   inset: 0;
@@ -81,8 +81,8 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .bg-img {
   position: absolute;
   inset: -3%;
-  background: url(../assets/bg.jpg) center / cover no-repeat;
-  /* цветокор (насыщенность 1.12, яркость .8, контраст 1.06) запечён в assets/bg.jpg — см. scripts/bake-bg.py */
+  background: url(../assets/bg.webp) center / cover no-repeat;
+  /* colour grade is baked into assets/bg.webp, see scripts/bake-bg.py */
   animation: bgDrift 70s ease-in-out infinite alternate;
   will-change: transform;
 }
@@ -90,14 +90,14 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   from { transform: scale(1.02) translate(0, 0); }
   to   { transform: scale(1.09) translate(-1.2%, .9%); }
 }
-.bg-shade { /* затемнение под консолью, чтобы она читалась, по краям коллаж открыт */
+.bg-shade { /* darkening under the device so it reads; the art stays open at the edges */
   position: absolute;
   inset: 0;
   background:
     radial-gradient(62% 58% at 50% 52%, rgba(6, 4, 12, .80) 0%, rgba(6, 4, 12, .52) 55%, rgba(6, 4, 12, .08) 100%),
     linear-gradient(180deg, rgba(6, 4, 12, .38), transparent 24%, transparent 72%, rgba(6, 4, 12, .6));
 }
-.bg::before { /* цветной свет от экрана и джойконов */
+.bg::before { /* coloured light from the screen */
   content: '';
   position: absolute;
   inset: 0;
@@ -108,7 +108,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
     radial-gradient(34% 56% at 3% 50%, color-mix(in srgb, var(--jc-red) 24%, transparent), transparent 70%),
     radial-gradient(34% 56% at 97% 50%, color-mix(in srgb, var(--jc-blue) 24%, transparent), transparent 70%);
 }
-.bg::after { /* лёгкое зерно */
+.bg::after { /* faint grain */
   content: '';
   position: absolute;
   inset: 0;
@@ -117,7 +117,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* ---------- сцена и масштаб ---------- */
+/* ---------- stage and scale ---------- */
 .stage { position: fixed; inset: 0; }
 
 .console-wrap {
@@ -158,7 +158,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 }
 
 /* ==========================================================================
-   КОРПУС
+   BODY
    ========================================================================== */
 .body {
   position: relative;
@@ -173,7 +173,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   border-radius: 5px;
   background: var(--body);
 }
-.vents { /* решётка охлаждения на верхней грани */
+.vents { /* vent grille on the top edge */
   display: none;
   position: absolute;
   top: 5px;
@@ -196,7 +196,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   transition: transform .07s;
 }
 .top-btn--power { left: 136px; width: 32px; }
-.top-btn--power::after { /* точка-индикатор питания */
+.top-btn--power::after { /* power indicator dot */
   content: '';
   position: absolute;
   left: 50%;
@@ -241,7 +241,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .glare { display: none; }
 
 /* ==========================================================================
-   ЭКРАН
+   SCREEN
    ========================================================================== */
 .screen {
   position: absolute;
@@ -272,7 +272,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   pointer-events: none;
   transition: opacity .4s;
 }
-/* при контенте помехи становятся тонким «зерном» поверх */
+/* with content, the noise becomes a faint grain on top */
 .screen.is-content #static {
   z-index: 30;
   opacity: .07;
@@ -294,7 +294,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   transition: opacity .35s ease, transform .45s cubic-bezier(.2, .8, .2, 1), visibility 0s;
 }
 
-/* ---------- OSD (как у телевизора) ---------- */
+/* ---------- OSD ---------- */
 .osd {
   position: absolute;
   font-family: var(--pixel);
@@ -313,12 +313,12 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .blink { animation: blink 1.2s steps(2, jump-none) infinite; }
 @keyframes blink { 50% { opacity: .15; } }
 
-/* ---------- экран помех + PLAY ---------- */
+/* ---------- idle mist + Awaken ---------- */
 .view-static {
   display: grid;
   place-items: center;
 }
-.view-static::before { /* тёмная линза за кнопкой, чтобы читалась на помехах */
+.view-static::before { /* dark lens behind the button so it reads over the noise */
   content: '';
   position: absolute;
   inset: 0;
@@ -410,7 +410,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   text-shadow: 0 1px 2px #000;
 }
 
-/* RGB-глитч для текста (цвета джойконов) */
+/* RGB glitch for text */
 .glitch { position: relative; }
 .glitch::before, .glitch::after {
   content: attr(data-text);
@@ -447,7 +447,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   95% { clip-path: inset(70% 0 5% 0); transform: translate(3px, -1px); }
 }
 
-/* кружок-кнопка в стиле Switch */
+/* round key badge */
 .badge {
   display: inline-grid;
   place-items: center;
@@ -464,7 +464,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   text-shadow: none;
 }
 
-/* ---------- загрузка ---------- */
+/* ---------- boot ---------- */
 .view-boot {
   display: flex;
   flex-direction: column;
@@ -474,32 +474,24 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   background:
     radial-gradient(60% 70% at 50% 45%, #172031 0%, #0a0d14 60%, #04050a 100%);
 }
-.boot-ball {
+.boot-ring {
   width: 112px;
   height: 112px;
   fill: none;
   stroke-linecap: round;
   overflow: visible;
 }
-.bb-ring, .bb-line, .bb-btn {
-  stroke: #f2f4f7;
-  stroke-width: 6;
+.br-ring, .br-halo {
+  stroke: #f4f1e6;
+  stroke-width: 5;
   stroke-dasharray: 340;
   stroke-dashoffset: 340;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, .35));
 }
-.bb-dot { fill: #f2f4f7; opacity: 0; }
-.view-boot.is-active .bb-ring { animation: draw .9s .1s cubic-bezier(.6, 0, .3, 1) forwards, ringColor 1.6s 1s ease forwards; }
-.view-boot.is-active .bb-line { animation: draw .5s .6s ease forwards; }
-.view-boot.is-active .bb-btn { animation: draw .45s .85s ease forwards; }
-.view-boot.is-active .bb-dot { animation: dotOn .4s 1.15s ease forwards; }
+.br-halo { stroke: #E8B93A; stroke-width: 7; }
+.view-boot.is-active .br-ring { animation: draw .9s .1s cubic-bezier(.6, 0, .3, 1) forwards, ringColor 1.6s 1s ease forwards; }
+.view-boot.is-active .br-halo { animation: draw .6s .7s ease forwards; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
-@keyframes dotOn {
-  0% { opacity: 0; transform: scale(.2); transform-origin: 60px 60px; }
-  60% { opacity: 1; fill: #fff; filter: drop-shadow(0 0 12px #fff); transform: scale(1.4); transform-origin: 60px 60px; }
-  100% { opacity: 1; fill: #f2f4f7; transform: scale(1); transform-origin: 60px 60px; }
-}
-@keyframes ringColor { to { stroke: #ff6a52; filter: drop-shadow(0 0 10px rgba(255, 90, 70, .6)); } }
+@keyframes ringColor { to { stroke: #7FD6DF; } }
 
 .boot-logo {
   font-family: var(--pixel);
@@ -541,7 +533,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes fill { to { width: 100%; } }
 
-/* ---------- главное меню ---------- */
+/* ---------- relic altar ---------- */
 .view-home { background: var(--ui-bg); }
 .view-home:not(.is-active) { transform: scale(1.04); }
 .home-bg {
@@ -552,7 +544,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
     radial-gradient(60% 50% at 0% 0%, rgba(255, 255, 255, .05), transparent 70%),
     linear-gradient(165deg, #1b1f2a 0%, #12141b 55%, #0d0f14 100%);
 }
-.home-bg::after { /* большой контур покебола */
+.home-bg::after { /* large ring outline */
   content: '';
   position: absolute;
   right: -90px;
@@ -561,8 +553,6 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   height: 360px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, .05);
-  background:
-    linear-gradient(transparent calc(50% - 1px), rgba(255, 255, 255, .05) calc(50% - 1px), rgba(255, 255, 255, .05) calc(50% + 1px), transparent calc(50% + 1px));
 }
 
 .hud-top {
@@ -579,57 +569,18 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 }
 .user { display: flex; align-items: center; gap: 10px; }
 .hud-left { display: flex; align-items: center; gap: 16px; }
-.hud-album { /* «Альбом» в верхней панели */
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 30px;
-  padding: 0 12px 0 9px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 900;
-  color: #ffe2a8;
-  background: linear-gradient(180deg, rgba(255, 210, 140, .18), rgba(255, 210, 140, .07));
-  box-shadow: inset 0 0 0 1px rgba(255, 214, 150, .3), 0 3px 8px rgba(0, 0, 0, .35);
-  transition: transform .15s, background .15s;
-}
-.hud-album:hover { transform: translateY(-1px); background: linear-gradient(180deg, rgba(255, 210, 140, .28), rgba(255, 210, 140, .1)); }
-.hud-album svg { width: 17px; height: 17px; stroke-width: 2.2; }
-.hud-album em {
-  font-style: normal;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  font-size: 10.5px;
-  color: #241a08;
-  background: #ffd27a;
-}
-.hud-album.is-selected::after {
-  content: '';
-  position: absolute;
-  inset: -5px;
-  border-radius: 999px;
-  border: 3px solid var(--cyan);
-  box-shadow: 0 0 14px rgba(25, 227, 255, .55);
-  animation: selPulse 1.1s ease-in-out infinite;
-  pointer-events: none;
-}
 .avatar {
   width: 34px;
   height: 34px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: linear-gradient(180deg, var(--jc-red) 50%, #f2f4f7 50%);
-  box-shadow: 0 0 0 2px #f2f4f7, 0 3px 8px rgba(0, 0, 0, .5);
-  color: #15171c;
+  background: #0F1B3D;
+  box-shadow: 0 0 0 2px #E8B93A, 0 3px 8px rgba(0, 0, 0, .5);
+  color: #7FD6DF;
   overflow: hidden;
 }
-.avatar svg { width: 34px; height: 34px; stroke-width: 2.2; }
+.avatar svg { width: 20px; height: 20px; stroke-width: 2; }
 .user-name { font-size: 15px; font-weight: 800; }
 .status { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 15px; }
 .st-ico svg { width: 18px; height: 18px; display: block; }
@@ -705,7 +656,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   border-radius: inherit;
   overflow: hidden;
 }
-.tile-art::before { /* точечный узор */
+.tile-art::before { /* dot pattern */
   content: '';
   position: absolute;
   inset: 0;
@@ -714,7 +665,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   -webkit-mask-image: linear-gradient(160deg, #000, transparent 70%);
           mask-image: linear-gradient(160deg, #000, transparent 70%);
 }
-.tile-art::after { /* дуга покебола */
+.tile-art::after { /* arc */
   content: '';
   position: absolute;
   right: -46px;
@@ -757,7 +708,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   text-overflow: ellipsis;
 }
 .tile.is-selected { transform: translateY(-3px); }
-.tile.is-selected::after, .dock-btn.is-selected::after { /* фирменная «живая» рамка выбора */
+.tile.is-selected::after, .dock-btn.is-selected::after { /* animated selection frame */
   content: '';
   position: absolute;
   inset: -7px;
@@ -818,7 +769,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .dock-btn.is-off { color: #6b7280; }
 .view-home.is-active .dock-btn { animation: tileIn .45s cubic-bezier(.2, .9, .3, 1.2) backwards; animation-delay: calc(var(--i) * 40ms + 380ms); }
 
-/* ---------- нижняя панель подсказок ---------- */
+/* ---------- hint bar ---------- */
 .hints {
   position: absolute;
   left: 0;
@@ -846,7 +797,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .hint { display: flex; align-items: center; gap: 6px; cursor: pointer; }
 .hint:hover { color: var(--cyan); }
 
-/* ---------- страница раздела ---------- */
+/* ---------- relic screen ---------- */
 .view-section { background: #0f1117; }
 .view-section:not(.is-active) { transform: scale(.96); }
 .tabs {
@@ -1004,7 +955,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   border: 1px solid rgba(255, 255, 255, .06);
   overflow: hidden;
 }
-.sk-card::after, .sk-line::after { /* мерцание-заглушка */
+.sk-card::after, .sk-line::after { /* shimmer placeholder */
   content: '';
   position: absolute;
   inset: 0;
@@ -1030,7 +981,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 }
 .sk-note b { color: var(--ui-text); }
 
-/* ---------- справка ---------- */
+/* ---------- help ---------- */
 .help {
   position: absolute;
   inset: 0;
@@ -1065,7 +1016,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .help-row .hk { font-size: 10.5px; color: var(--ui-dim); font-weight: 800; white-space: nowrap; }
 .help-foot { margin-top: 12px; font-size: 12px; font-weight: 700; color: var(--ui-dim); display: flex; align-items: center; gap: 6px; justify-content: center; }
 
-/* ---------- эффекты ЭЛТ ---------- */
+/* ---------- glass effects ---------- */
 .fx { position: absolute; inset: 0; pointer-events: none; }
 .fx-scan {
   z-index: 31;
@@ -1094,7 +1045,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .retro-off .screen.is-content .fx-scan,
 .retro-off .screen.is-content .fx-roll { opacity: 0; }
 
-/* включение / выключение / «настройка канала» */
+/* power on / power off / tuning */
 .crt.power-off { animation: crtOff .55s cubic-bezier(.7, 0, .9, .4) forwards; }
 @keyframes crtOff {
   0%   { transform: scale(1, 1); filter: brightness(1); }
@@ -1126,7 +1077,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   100% { transform: scale(1, 1); filter: brightness(1); }
 }
 
-/* ---------- тосты и OSD громкости ---------- */
+/* ---------- toasts and volume OSD ---------- */
 .toast {
   position: absolute;
   left: 50%;
@@ -1174,24 +1125,10 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .osd-vol-bars i.on { background: #7dffaa; box-shadow: 0 0 6px rgba(57, 255, 122, .9); }
 
 /* ==========================================================================
-   СТРАНИЦА ВОКРУГ КОНСОЛИ
+   PAGE AROUND THE DEVICE
    ========================================================================== */
-.rotate-hint {
-  position: fixed;
-  left: 50%;
-  top: max(16px, env(safe-area-inset-top));
-  transform: translateX(-50%);
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 800;
-  background: rgba(255, 255, 255, .08);
-  border: 1px solid rgba(255, 255, 255, .12);
-  display: none;
-  white-space: nowrap;
-}
 
-.tip { /* подсказка кнопки — в «строке состояния» внизу, чтобы не закрывать соседние кнопки */
+.tip { /* button tooltip, in a status line at the bottom so it never covers neighbouring buttons */
   position: fixed;
   left: 50%;
   bottom: max(10px, env(safe-area-inset-bottom));
@@ -1224,129 +1161,22 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
   color: rgba(255, 255, 255, .8);
 }
 
-/* иконки */
+/* icons */
 [data-icon] svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ==========================================================================
-   ИНТРО: джойконы «защёлкиваются» на корпус
+   INTRO: the controllers latch onto the body
    ========================================================================== */
 .is-intro .body { animation: bodyIn .6s ease both; }
 @keyframes bodyIn { from { opacity: 0; transform: translateY(14px) scale(.98); } }
 @keyframes snapShake { 30% { transform: translateY(1.5px); } 60% { transform: translateY(-1px); } }
 
 
-/* ---------- профиль на экране PLAY: язык RU / EN + имя тренера ---------- */
-.view-static .play-wrap { transform: translateY(16px); }
-.setup {
-  position: absolute;
-  z-index: 4;
-  left: 50%;
-  top: 46px;
-  transform: translateX(-50%) scale(var(--sk, 1));
-  transform-origin: 50% 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  white-space: nowrap;
-}
-.seg {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: 36px;
-  padding: 3px 3px 3px 32px;
-  border-radius: 999px;
-  background: rgba(2, 14, 6, .78);
-  border: 1.5px solid rgba(125, 255, 170, .55);
-  box-shadow: 0 0 14px rgba(57, 255, 122, .22), inset 0 0 12px rgba(57, 255, 122, .12);
-}
-.seg-globe {
-  position: absolute; left: 10px; top: 50%; width: 17px; height: 17px; margin-top: -8.5px;
-  fill: none; stroke: #9dffc0; stroke-width: 1.7; stroke-linecap: round; pointer-events: none;
-  filter: drop-shadow(0 0 4px rgba(57, 255, 122, .8));
-}
-.seg button {
-  position: relative; z-index: 1;
-  width: 44px; height: 30px; border: 0; border-radius: 999px; background: none; cursor: pointer;
-  font: 900 13px/1 var(--round); letter-spacing: .1em; color: rgba(215, 255, 228, .7);
-  text-shadow: 0 1px 2px #000;
-  transition: color .22s;
-}
-.seg button:hover { color: #fff; }
-.seg-thumb {
-  position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 32px; width: 44px; border-radius: 999px;
-  background: linear-gradient(180deg, #8dffbb, #2fd679);
-  box-shadow: 0 0 14px rgba(57, 255, 122, .65), inset 0 1px 0 rgba(255, 255, 255, .55);
-  transition: transform .32s cubic-bezier(.3, 1.4, .5, 1);
-}
-html[data-lang="ru"] .seg [data-lang="ru"], html[data-lang="en"] .seg [data-lang="en"] { color: #03150a; text-shadow: none; }
-html[data-lang="en"] .seg-thumb { transform: translateX(44px); }
-.name-field {
-  display: flex; align-items: center; gap: 9px;
-  height: 36px; padding: 0 6px 0 14px;
-  border-radius: 999px;
-  background: rgba(2, 14, 6, .78);
-  border: 1.5px solid rgba(125, 255, 170, .55);
-  box-shadow: 0 0 14px rgba(57, 255, 122, .22), inset 0 0 12px rgba(57, 255, 122, .12);
-  cursor: text;
-  transition: border-color .2s, box-shadow .2s;
-}
-.name-field span { font: 800 10px/1 var(--pixel); letter-spacing: .06em; color: rgba(185, 255, 208, .8); text-shadow: 0 0 6px rgba(57, 255, 122, .7); }
-.name-field input {
-  width: 138px; height: 28px; padding: 0 10px; border: 0; outline: 0; border-radius: 999px;
-  background: rgba(0, 0, 0, .42); color: #effff4;
-  font: 800 16px/1 var(--round); letter-spacing: .02em;
-  user-select: text; -webkit-user-select: text; caret-color: #7dffaa;
-}
-.name-field input::placeholder { color: rgba(185, 255, 208, .42); font-weight: 700; }
-.name-field:focus-within { border-color: #c9ffdb; box-shadow: 0 0 18px rgba(57, 255, 122, .6), inset 0 0 12px rgba(57, 255, 122, .2); }
-.seg button:focus-visible { outline: 2px solid #c9ffdb; outline-offset: 1px; }
-
 /* ==========================================================================
-   АДАПТИВ
+   RESPONSIVE
    ========================================================================== */
-@media (orientation: portrait) and (max-width: 760px) {
-  .rotate-hint { display: block; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .bg-img, .play-ring, .fx-roll { animation: none; }
   .is-intro .joycon--left, .is-intro .joycon--right, .is-intro .body { animation: none; }
   .glitch::before, .glitch::after { animation: none; clip-path: inset(0 0 100% 0); }
-}
-
-
-/* ==========================================================================
-   Раскраски (data-skin на <html>)
-   ========================================================================== */
-:root[data-skin="gengar"] {
-  --jc-red: #7a4fd8; --jc-red-hi: #a07cf5; --jc-red-lo: #4e2a9e;
-  --jc-blue: #46d985; --jc-blue-hi: #86f5b3; --jc-blue-lo: #1f9e57;
-  --body-hi: #241d33; --body: #17121f; --body-lo: #0c0912; --body-rim: rgba(190, 150, 255, .22);
-}
-:root[data-skin="pikachu"] {
-  --jc-red: #ffcd2e; --jc-red-hi: #ffe27a; --jc-red-lo: #d89a00;
-  --jc-blue: #ffcd2e; --jc-blue-hi: #ffe27a; --jc-blue-lo: #d89a00;
-  --body-hi: #2a2520; --body: #1b1814; --body-lo: #0e0c0a; --body-rim: rgba(255, 220, 120, .2);
-}
-:root[data-skin="charizard"] {
-  --jc-red: #ff7a2b; --jc-red-hi: #ffa264; --jc-red-lo: #d14f0c;
-  --jc-blue: #17a5a0; --jc-blue-hi: #4fd2cc; --jc-blue-lo: #0a706c;
-  --body-hi: #2a211d; --body: #1b1512; --body-lo: #0e0b09; --body-rim: rgba(255, 170, 110, .2);
-}
-:root[data-skin="mew"] {
-  --jc-red: #ff8cc6; --jc-red-hi: #ffb6dc; --jc-red-lo: #d9579a;
-  --jc-blue: #a59cff; --jc-blue-hi: #c9c3ff; --jc-blue-lo: #6f63e0;
-  --body-hi: #2a2431; --body: #1c1721; --body-lo: #0f0c12; --body-rim: rgba(255, 190, 230, .22);
-}
-:root[data-skin="snow"] {
-  --jc-red: #eceef2; --jc-red-hi: #ffffff; --jc-red-lo: #b9bec7;
-  --jc-blue: #eceef2; --jc-blue-hi: #ffffff; --jc-blue-lo: #b9bec7;
-  --body-hi: #f4f5f7; --body: #e3e6ea; --body-lo: #b8bdc5; --body-rim: rgba(255, 255, 255, .9);
-}
-:root[data-skin="onyx"] {
-  --jc-red: #2c2e33; --jc-red-hi: #474a51; --jc-red-lo: #16171a;
-  --jc-blue: #2c2e33; --jc-blue-hi: #474a51; --jc-blue-lo: #16171a;
-  --body-hi: #1a1b1e; --body: #0f1012; --body-lo: #060607; --body-rim: rgba(255, 255, 255, .12);
-  --btn-hi: #5d6168; --btn: #383b40; --btn-lo: #1e2023;
 }

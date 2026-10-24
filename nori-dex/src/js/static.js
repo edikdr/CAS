@@ -1,9 +1,9 @@
 /* ==========================================================================
-   Зелёные ТВ-помехи на canvas.
-   Режимы: 'static' — полноэкранный «снег» 60 к/с,
-           'tune'   — «настройка канала» (ярче, с полосами срыва),
-           'grain'  — тонкое зерно поверх контента (~24 к/с),
-           'off'    — остановлено.
+   Screen noise on a canvas (the idle "mana mist" of the device).
+   Modes: 'static' : full-screen noise, throttled frame rate,
+          'tune'   : brighter burst with tear lines (boot transition),
+          'grain'  : faint grain over content (~24 fps),
+          'off'    : stopped.
    ========================================================================== */
 window.PL = window.PL || {};
 
@@ -16,7 +16,7 @@ PL.static = (function () {
   var lut = new Uint32Array(256);
   var seed = (Math.random() * 0xffffffff) >>> 0 || 1;
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var tears = []; // полосы срыва синхронизации
+  var tears = []; // horizontal tear lines
 
   function rand() {
     seed ^= seed << 13; seed >>>= 0;
@@ -25,7 +25,7 @@ PL.static = (function () {
     return seed;
   }
 
-  // палитра люминофора: почти чёрный → зелёный → бело-зелёный
+  // palette: near black -> colour -> near white
   function buildLut() {
     for (var v = 0; v < 256; v++) {
       var x = v / 255;
@@ -33,7 +33,7 @@ PL.static = (function () {
       var r = 6 + b * 70;
       var g = 14 + b * 236;
       var bl = 8 + b * 95;
-      if (x > 0.9) { // самые яркие «искры»
+      if (x > 0.9) { // brightest sparks
         var k = (x - 0.9) / 0.1;
         r += (215 - r) * k; g += (255 - g) * k; bl += (225 - bl) * k;
       }
@@ -46,7 +46,7 @@ PL.static = (function () {
     var intensity = tuning ? 1.35 : 1;
     var roll = (ts * (tuning ? 0.25 : 0.05)) % (H * 1.8) - H * 0.4;
 
-    // случайные срывы строк
+    // random tear lines
     if (Math.random() < (tuning ? 0.5 : 0.06)) {
       tears.push({ y: (Math.random() * H) | 0, h: 1 + ((Math.random() * (tuning ? 14 : 5)) | 0), life: 2 + ((Math.random() * 5) | 0), gain: 1.3 + Math.random() * 0.6 });
     }
@@ -55,8 +55,8 @@ PL.static = (function () {
     for (var y = 0; y < H; y++) {
       var gain = 0.8 + 0.2 * Math.sin((y + ts * 0.03) * 0.11);
       var dr = Math.abs(y - roll);
-      if (dr < 22) gain *= 1.22 - dr / 100;      // светлая катящаяся полоса
-      else if (dr < 60) gain *= 0.86;            // и тень вокруг неё
+      if (dr < 22) gain *= 1.22 - dr / 100;      // light rolling band
+      else if (dr < 60) gain *= 0.86;            // and its shadow
 
       for (var t = 0; t < tears.length; t++) {
         var tr = tears[t];

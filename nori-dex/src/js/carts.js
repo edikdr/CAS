@@ -1,13 +1,13 @@
 /* ==========================================================================
-   Картриджи: стойка под консолью, выбор, карточка с описанием, вставка в слот.
+   Relic cartridges: the rack under the device, selection, info card, insertion.
 
-   • Каждый картридж — настоящий 3D-объект: 14 «срезов» корпуса по 1 px (даёт толщину),
-     лицевая сторона и оборот нарисованы в SVG (этикетка: цвет, название, рисунок).
-   • Выбор: наведи — приподнимается и следует за курсором, клик — выбран, справа карточка.
-   • «Играть»: картридж выходит из ячейки, подлетает к щели под консолью, выравнивается,
-     въезжает и защёлкивается (клик, зелёный индикатор, толчок консоли).
-     Если выбран боковой, сначала он меняется местами с центральным (проходит спереди).
-   • «Достать»: пружинный «выстрел», выезжает и возвращается в свою ячейку.
+   • Every relic is a real 3D object: 15 one-pixel slices give it thickness,
+     the face and the back are drawn in SVG (label: colour, title, art).
+   • Selection: hover lifts it and it tilts after the pointer, click selects it, info card on the right.
+   • Insert: the relic leaves its cell, flies to the slot under the device, lines up,
+     slides in and latches (click, indicator, device jolt).
+     A side relic flies across to the slot through the air.
+   • Eject: spring kick, slides out and returns to its own cell.
    API: PL.carts.select(id), insert(id, hooks), eject(hooks), inserted(), on('play'|'eject'|'seated'|'eject-start', fn)
    ========================================================================== */
 window.PL = window.PL || {};
@@ -17,7 +17,10 @@ PL.carts = (function () {
   var $ = function (s) { return document.querySelector(s); };
   var clip = $('#rackClip'), stage = $('#rackStage'), info = $('#cartInfo');
   var slotLed = $('#slotLed'), consoleEl = $('#console'), slotEl = $('#cartSlot');
-  var defs = C.carts || [];
+  var defs = (C.carts || []).map(function (d) {   // plane colour -> accent, label colours
+    var p = (C.planes || {})[d.plane] || { c1: '#7FD6DF', c2: '#2E7F95' };
+    return Object.assign({ c1: p.c1, c2: p.c2, bg: '#0F1B3D', tc: p.c1 }, d);
+  });
   var noopApi = {
     on: function () {}, select: function () {}, selected: function () { return null; }, inserted: function () { return null; },
     insert: function () { return Promise.resolve(false); }, eject: function () { return Promise.resolve(false); },
@@ -25,22 +28,22 @@ PL.carts = (function () {
   };
   if (!clip || !stage || !info || !slotEl || !defs.length) return noopApi;
 
-  /* ---------- геометрия (координаты .rack-clip) ---------- */
-  var SLOT_X = 310, PITCH = 120;         // ось щели консоли и шаг ячеек (картриджей может быть сколько угодно, ячейки симметричны щели)
-  var CELL_X = defs.map(function (d, i) { return SLOT_X + (i - (defs.length - 1) / 2) * PITCH; });   // центры ячеек
-  var W = 104, H = 150, D = 15;          // размеры картриджа, толщина (D срезов по 1,2 px)
-  var BASE = { y: -15, z: 34, rx: -5 };  // поза «выбран» (то же, что .cart.is-sel .cart-tilt)
-  var MOUTH = -44;                       // смещение, когда верх картриджа на линии щели
-  var SEAT = -155;                       // смещение в слоте: внутри 80%, снаружи остаётся 30 из 150 (только стрелка ▼)
-  var TS = 0.86;                         // обмен местами с центральным
-  function rrp(x, y, w, h, rt, rb) {   // скруглённый прямоугольник: радиус сверху rt, снизу rb
+  /* ---------- geometry (coordinates of .rack-clip) ---------- */
+  var SLOT_X = 310, PITCH = 120;         // slot axis and cell pitch (any number of relics; cells are symmetric around the slot)
+  var CELL_X = defs.map(function (d, i) { return SLOT_X + (i - (defs.length - 1) / 2) * PITCH; });   // cell centres
+  var W = 104, H = 150, D = 15;          // relic size and thickness (D slices of 1.2 px)
+  var BASE = { y: -15, z: 34, rx: -5 };  // 'selected' pose (same as .cart.is-sel .cart-tilt)
+  var MOUTH = -44;                       // offset when the top of the relic is at the slot mouth
+  var SEAT = -155;                       // offset when seated: 80% inside, the bottom 30 of 150 stays visible
+  var TS = 0.86;                         // swap with the centre relic
+  function rrp(x, y, w, h, rt, rb) {   // rounded rectangle: top radius rt, bottom radius rb
     return 'M' + (x + rt) + ' ' + y + 'H' + (x + w - rt) + 'Q' + (x + w) + ' ' + y + ' ' + (x + w) + ' ' + (y + rt) +
       'V' + (y + h - rb) + 'Q' + (x + w) + ' ' + (y + h) + ' ' + (x + w - rb) + ' ' + (y + h) +
       'H' + (x + rb) + 'Q' + x + ' ' + (y + h) + ' ' + x + ' ' + (y + h - rb) + 'V' + (y + rt) + 'Q' + x + ' ' + y + ' ' + (x + rt) + ' ' + y + 'Z';
   }
   var PATH = rrp(0, 0, 104, 150, 10, 14);
 
-  var carts = {}, order = [];            // order[ячейка] = id
+  var carts = {}, order = [];            // order[cell] = id
   var st = { sel: null, ins: null, busy: false, hold: false };
   var handlers = {};
   function emit(n, a) { (handlers[n] || []).forEach(function (f) { f(a); }); }
@@ -49,88 +52,28 @@ PL.carts = (function () {
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
   function mk(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
-  function plural(n, one, few, many) {
-    var m10 = n % 10, m100 = n % 100;
-    if (m10 === 1 && m100 !== 11) return one;
-    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
-    return many;
-  }
 
-  /* ---------- цифры для карточки (считаются из данных) ---------- */
-  function keys(o) { return o ? Object.keys(o).length : 0; }
+
+  /* ---------- numbers for the info card (computed from PL.sky) ---------- */
   var FACTS = {
-    legends: function () {
-      var dex = (PL.data && PL.data.dex) || PL.dex || [];
-      var n = dex.filter(function (p) { return p.leg || p.myth; }).length;
-      return n ? [n, _('legendaries & mythicals')] : null;
+    noris: function () { var n = ((PL.sky || {}).noris || []).length; return n ? [n, _n(n, 'Nori|Noris')] : null; },
+    planes: function () { var n = ((PL.sky || {}).planes || []).length; return n ? [n, _n(n, 'plane|planes')] : null; },
+    questions: function () { return [3, _('questions')]; },
+    days: function () {
+      var c = (PL.sky || {}).campaign, d = c && Math.ceil((new Date(c.endsOn + 'T23:59:59') - Date.now()) / 864e5);
+      return d > 0 ? [d, _n(d, 'day left|days left')] : null;
     },
-    regions: function () { var n = keys(PL.regionsRu); return n ? [n, _n(n, 'region|regions')] : null; },
-    types: function () { return [18, _('types')]; },
-    quiz: function () { return [15, _('questions')]; },
-    people: function () { var n = (PL.charactersRu || []).length; return n ? [n, _n(n, 'hero|heroes')] : null; },
-    generations: function () { var n = ((PL.world || {}).generations || []).length; return n ? [n, _n(n, 'generation|generations')] : null; },
-    catchTime: function () { return [60, _('sec')]; },
-    catchBalls: function () { return [8, _('ball types')]; },
-    catchExp: function () { return ['+200', 'EXP']; },
-    items: function () { var n = ((PL.world || {}).items || []).length; return n ? [n, _n(n, 'item|items')] : null; },
-    itemGroups: function () { var g = PL.itemGroupsRu; var n = Array.isArray(g) ? g.length : keys(g); return n ? [n, _n(n, 'group|groups')] : null; },
   };
 
   /* ==========================================================================
-     ЛИЦО И ОБОРОТ КАРТРИДЖА (SVG)
-     Этикетка: x 8…96, y 12…118. Ниже (y 118…150) — только корпус со стрелкой ▼:
-     когда картридж въехал на 80%, снаружи остаётся именно эта часть.
+     RELIC FACE AND BACK (SVG)
+     Label: x 8..96, y 12..118. Below it (y 118..150) only the body:
+     when the relic is 80% inside the slot, exactly this part stays visible.
      ========================================================================== */
-  var TRAINER = '<g transform="translate(28.4 57.5) scale(.79)" fill="#8d1f1c">' +
-    '<path d="M19.6 10.6C19.6 3.8 24.2.6 30 .6S40.4 3.8 40.4 10.6Z"/>' +
-    '<path d="M36.4 8.8C41 8.4 46.6 9.2 48.6 11.4C49 11.9 48.7 12.5 48.1 12.5L36.4 12.2Z"/>' +
-    '<circle cx="33.6" cy="6" r="1.7" fill="#d9524a" opacity=".85"/>' +
-    '<ellipse cx="30" cy="13.6" rx="6.3" ry="5.9"/>' +
-    '<path d="M24 11.8C22 13.2 22.2 16.4 24.6 17.8L25.6 14.2Z"/>' +
-    '<rect x="27.2" y="18" width="5.6" height="3.4"/>' +
-    '<path d="M16.6 25C16.8 21.8 22 20 30 20S43.2 21.8 43.4 25L45.2 38.2C42 39.6 36 40.2 30 40.2S18 39.6 14.8 38.2Z"/>' +
-    '<path d="M18.2 25.4 9.4 32.6" stroke="#8d1f1c" stroke-width="6.6" stroke-linecap="round" fill="none"/>' +
-    '<path d="M41.8 25.4 50.6 32.6" stroke="#8d1f1c" stroke-width="6.6" stroke-linecap="round" fill="none"/>' +
-    '<path d="M9.4 32.6 6.6 24.2" stroke="#8d1f1c" stroke-width="6.1" stroke-linecap="round" fill="none"/>' +
-    '<path d="M50.6 32.6 53.4 24.2" stroke="#8d1f1c" stroke-width="6.1" stroke-linecap="round" fill="none"/>' +
-    '<circle cx="6" cy="22.4" r="3.9"/><circle cx="54" cy="22.4" r="3.9"/>' +
-    '<path d="M18.4 38.6H30.4L28.6 56.8H16.8Z"/><path d="M29.6 38.6H41.6L43.2 56.8H31.4Z"/>' +
-    '<path d="M15.4 55.4H29L28.8 58.2H14.4Z"/><path d="M31 55.4H44.6L45.6 58.2H31.2Z"/>' +
-    '<path d="M25 20.8C27.6 23.2 32.4 23.2 35 20.8L36.4 39H23.6Z" fill="#fff"/>' +
-    '<path d="M25.2 21.2 23.4 39M34.8 21.2 36.6 39" stroke="#8d1f1c" stroke-width="1.1" fill="none"/></g>';
-  var BALL = '<g transform="translate(52 80.8)">' +
-    '<circle r="22.2" fill="#fff"/><circle r="18.8" fill="#f3f4f7"/>' +
-    '<path d="M-18.8 0A18.8 18.8 0 0 1 18.8 0Z" fill="#e8382c"/>' +
-    '<path d="M-13.6 13A18.8 18.8 0 0 0 18.8 0L8.5 2.8Z" fill="#d4d8df" opacity=".75"/>' +
-    '<rect x="-18.8" y="-2.5" width="37.6" height="5" fill="#202128"/>' +
-    '<circle r="7.5" fill="#f3f4f7" stroke="#202128" stroke-width="3.2"/><circle r="3.1" fill="#d6dae1"/></g>';
-
-  /* ---------- «Master Catcher Edition»: пиксельные покеболы на траве (как на фото) ---------- */
-  function catchArt() {
-    var g = '', i, h;
-    g += '<rect x="8" y="34" width="88" height="56" fill="#62b857"/>';
-    for (i = 0; i < 60; i++) {                                    // крапчатая трава: два оттенка блоками 4×4
-      h = (i * 2654435761) >>> 0;
-      g += '<rect x="' + (8 + (h % 22) * 4) + '" y="' + (34 + ((h >> 8) % 14) * 4) + '" width="4" height="4" fill="' + ((h >> 16) & 1 ? '#58ab4e' : '#6cc460') + '"/>';
-    }
-    [[16, 52], [38, 44], [60, 86], [84, 62], [30, 80], [92, 80], [52, 38]].forEach(function (t) {   // кустики травы
-      g += '<g fill="#3f8f3b" shape-rendering="crispEdges"><rect x="' + t[0] + '" y="' + t[1] + '" width="1.2" height="3"/><rect x="' + (t[0] + 2) + '" y="' + (t[1] + 1) + '" width="1.2" height="2"/><rect x="' + (t[0] - 2) + '" y="' + (t[1] + 1) + '" width="1.2" height="2"/></g>';
-    });
-    [['great', 12, 36], ['poke', 54, 25], ['ultra', 40, 49], ['master', 62, 60], ['premier', 84, 40], ['dusk', 0, 63]].forEach(function (b) {
-      g += '<ellipse cx="' + (b[1] + 13) + '" cy="' + (b[2] + 25) + '" rx="11" ry="3" fill="#2c6a30" opacity=".28"/>';
-      g += '<g transform="translate(' + b[1] + ' ' + b[2] + ')">' + PL.pixballs.svg(b[0]) + '</g>';
-    });
-    g += '<rect x="8" y="90" width="88" height="28" fill="#15284c"/><rect x="8" y="90" width="88" height=".9" fill="#fff" opacity=".14"/>' +
-      '<text x="52" y="102.4" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="800" font-size="8.2" letter-spacing=".2" fill="#eef3ff">MASTER CATCHER</text>' +
-      '<text x="52" y="112.4" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="800" font-size="8.2" letter-spacing="1.2" fill="#eef3ff">EDITION</text>';
-    return g;
+  /* label art: an official image from config (cover-cropped into the label window) */
+  function artOf(d) {
+    return d.art ? '<image href="' + esc(d.art) + '" x="8" y="34" width="88" height="71" preserveAspectRatio="xMidYMid slice"/>' : '';
   }
-  var ARTS = {
-    arceus: '<image href="assets/cart/arceus.png" x="33.6" y="56.4" width="36.8" height="48.4" preserveAspectRatio="xMidYMid meet"/>',
-    trainer: TRAINER + '<image href="assets/cart/pikachu.png" x="64" y="78" width="31" height="29" preserveAspectRatio="xMidYMid meet"/>',
-    ball: BALL,
-    catch: catchArt(),
-  };
 
   function frontSVG(d, idx) {
     var u = d.id, FONT = 'Nunito, system-ui, sans-serif';
@@ -158,28 +101,25 @@ PL.carts = (function () {
         '<pattern id="l-' + u + '" width="4" height="2.6" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="#000" opacity=".07"/></pattern>' +
         '<filter id="g-' + u + '" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="' + (idx * 7 + 3) + '"/><feColorMatrix type="saturate" values="0"/></filter>' +
       '</defs>' +
-      /* корпус: матовый пластик с зерном, ступенчатыми кромками и фаской */
+      /* body with grain, stepped edges and a bevel */
       '<path d="' + PATH + '" fill="url(#h-' + u + ')"/>' +
       '<g clip-path="url(#k-' + u + ')"><rect width="104" height="150" filter="url(#g-' + u + ')" opacity=".2" style="mix-blend-mode:overlay"/></g>' +
       '<path d="' + rrp(2.6, 2.6, 98.8, 144.8, 7.6, 11.6) + '" fill="none" stroke="#000" stroke-opacity=".38" stroke-width="1"/>' +
       '<path d="' + rrp(3.5, 3.5, 97, 143, 6.8, 10.8) + '" fill="none" stroke="#fff" stroke-opacity=".06" stroke-width=".8"/>' +
       '<path d="' + PATH + '" fill="none" stroke="url(#e-' + u + ')" stroke-width="1.7"/>' +
-      /* ребристый язычок-захват сверху */
+      /* ribbed grip on top */
       '<rect x="30.5" y="1.8" width="43" height="7.4" rx="3.2" fill="#070709"/>' +
       '<rect x="32" y="2.6" width="40" height="5.8" rx="2.6" fill="#24252b"/>' + ridges +
       '<rect x="34" y="2.9" width="36" height="1" rx=".5" fill="#fff" opacity=".16"/>' +
-      /* этикетка в углублении */
+      /* recessed label */
       '<rect x="5.6" y="9.6" width="92.8" height="110.8" rx="5" fill="#030304"/>' +
       '<path d="' + rrp(6.2, 10.2, 91.6, 109.6, 4.4, 4.4) + '" fill="none" stroke="#fff" stroke-opacity=".1" stroke-width=".8"/>' +
       '<g clip-path="url(#c-' + u + ')">' +
         '<rect x="8" y="12" width="88" height="106" fill="' + d.bg + '"/>' +
-        ARTS[d.art] +
-        '<rect x="8" y="12" width="88" height="22" fill="#ea312a"/><rect x="8" y="33.6" width="88" height="1.2" fill="#000" opacity=".22"/>' +
-        '<g fill="none" stroke="#fff" stroke-width="1.6"><circle cx="20.4" cy="23" r="5.6"/><path d="M14.8 23h11.2"/></g>' +
-        '<circle cx="20.4" cy="23" r="1.9" fill="#ea312a" stroke="#fff" stroke-width="1.2"/>' +
-        '<text x="29.4" y="21.5" font-family="' + FONT + '" font-weight="900" font-size="8.3" letter-spacing="1" fill="#fff">POKÉ</text>' +
-        '<text x="29.4" y="30" font-family="' + FONT + '" font-weight="900" font-size="8.3" letter-spacing="1" fill="#fff">LORE</text>' +
-        (d.art === 'catch' ? '' :
+        artOf(d) +
+        '<rect x="8" y="12" width="88" height="22" fill="#0F1B3D"/><rect x="8" y="33.6" width="88" height="1.2" fill="#000" opacity=".22"/>' +
+        '<text x="52" y="27" text-anchor="middle" font-family="' + FONT + '" font-weight="900" font-size="9" letter-spacing="1.4" fill="#E8B93A">NORI-DEX</text>' +
+        (
         '<text x="52.4" y="52.6" text-anchor="middle" font-family="' + FONT + '" font-weight="600" font-size="13.4" letter-spacing=".5" fill="#000" opacity=".22">' + esc(d.title) + '</text>' +
         '<text x="52" y="52" text-anchor="middle" font-family="' + FONT + '" font-weight="600" font-size="13.4" letter-spacing=".5" fill="' + d.tc + '">' + esc(d.title) + '</text>' +
         '<rect x="8" y="105" width="88" height="13" fill="#0b0b0e"/><rect x="8" y="105" width="88" height=".8" fill="#fff" opacity=".1"/>' +
@@ -188,7 +128,7 @@ PL.carts = (function () {
         '<rect x="8" y="12" width="88" height="106" fill="url(#s-' + u + ')"/>' +
         '<rect x="8" y="12" width="88" height="106" rx="3.5" fill="none" stroke="#000" stroke-opacity=".5" stroke-width="2.6"/>' +
       '</g>' +
-      /* низ корпуса: желобок под этикеткой, рёбра и крупная стрелка ▼ (то, что остаётся снаружи в слоте) */
+      /* bottom of the body: groove under the label, ribs and the arrow (the part left outside the slot) */
       '<rect x="12" y="121.6" width="80" height="1.1" rx=".5" fill="#050506"/><rect x="12" y="122.7" width="80" height=".7" rx=".35" fill="#fff" opacity=".07"/>' +
       ribL + ribR +
       '<path d="M32.5 126.4H71.5L66.6 146.6H37.4Z" fill="url(#n-' + u + ')"/>' +
@@ -214,7 +154,7 @@ PL.carts = (function () {
       '<rect x="10" y="13" width="84" height="110" rx="6" fill="#101114"/>' +
       '<rect x="10.5" y="13.5" width="83" height="109" rx="5.6" fill="none" stroke="#fff" stroke-opacity=".07"/>' +
       '<g fill="#2b2d34"><rect x="18" y="24" width="46" height="3" rx="1.2"/><rect x="18" y="31" width="68" height="1.8" rx=".9"/><rect x="18" y="36" width="60" height="1.8" rx=".9"/><rect x="18" y="41" width="64" height="1.8" rx=".9"/></g>' +
-      '<text x="52" y="66" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="900" font-size="11" letter-spacing="1.6" fill="#2d2f36">POKÉLORE</text>' +
+      '<text x="52" y="66" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="900" font-size="11" letter-spacing="1.6" fill="#2d2f36">NORI-DEX</text>' +
       '<rect x="64.4" y="82.4" width="23.2" height="23.2" fill="#13141a"/>' + code +
       '<g fill="#25272c"><rect x="18" y="86" width="1.4" height="18"/><rect x="21" y="86" width="2.4" height="18"/><rect x="25.4" y="86" width="1" height="18"/><rect x="28.4" y="86" width="2.8" height="18"/><rect x="33.2" y="86" width="1.4" height="18"/><rect x="36.4" y="86" width="1" height="18"/><rect x="39.4" y="86" width="2.4" height="18"/><rect x="43.8" y="86" width="1.4" height="18"/><rect x="47.4" y="86" width="1" height="18"/></g>' +
       '<rect x="14" y="131" width="76" height="16" rx="3" fill="#08080a"/>' + pins +
@@ -222,7 +162,7 @@ PL.carts = (function () {
   }
 
   /* ==========================================================================
-     СБОРКА СТОЙКИ
+     RACK ASSEMBLY
      ========================================================================== */
   var trayBack = mk('div', 'tray-back'), trayFront = mk('div', 'tray-front');
   var shadows = [];
@@ -246,10 +186,10 @@ PL.carts = (function () {
     el.style.setProperty('--cx', CELL_X[i] + 'px');
     el.style.setProperty('--cc', d.c1);
     el.style.setProperty('--i', i);
-    el.style.setProperty('--ry0', (((defs.length - 1) / 2 - i) * 16) + 'deg');   // крайние чуть повёрнуты к щели
+    el.style.setProperty('--ry0', (((defs.length - 1) / 2 - i) * 16) + 'deg');   // outer relics turn slightly towards the slot
     var layers = '';
     for (var k = 0; k < D; k++) {
-      var e = (k === 0 || k === D - 1) ? 1.5 : (k === 1 || k === D - 2) ? 0.7 : 0;   // фаска: крайние срезы чуть меньше
+      var e = (k === 0 || k === D - 1) ? 1.5 : (k === 1 || k === D - 2) ? 0.7 : 0;   // bevel: outer slices are slightly smaller
       layers += '<i class="cl" style="transform:translateZ(' + ((k - (D - 1) / 2) * 1.2).toFixed(2) + 'px)' + (e ? ';inset:' + e + 'px;border-radius:' + (10 - e) + 'px ' + (10 - e) + 'px ' + (14 - e) + 'px ' + (14 - e) + 'px' : '') + '"></i>';
     }
     el.innerHTML =
@@ -262,7 +202,7 @@ PL.carts = (function () {
     hit.tabIndex = 0;
     hit.setAttribute('role', 'button');
     hit.setAttribute('aria-pressed', 'false');
-    hit.setAttribute('aria-label', _('Cartridge “{name}”: {sub}', { name: d.ru, sub: d.sub }));
+    hit.setAttribute('aria-label', _('Relic “{name}”: {sub}', { name: d.name, sub: d.sub }));
     hit.style.setProperty('--cx', CELL_X[i] + 'px');
     stage.appendChild(el);
     stage.appendChild(hit);
@@ -270,7 +210,7 @@ PL.carts = (function () {
     order[i] = d.id;
   });
 
-  /* ---------- наведение, наклон за курсором, выбор ---------- */
+  /* ---------- hover, tilt after the pointer, selection ---------- */
   function track(c, e) {
     var r = c.hit.getBoundingClientRect(), el = c.el;
     var px = ((e.clientX - r.left) / r.width - 0.5) * 2, py = ((e.clientY - r.top) / r.height - 0.5) * 2;
@@ -289,12 +229,11 @@ PL.carts = (function () {
     });
     hit.addEventListener('click', function () { if (!st.busy && performance.now() - lastClick > 350) select(id); });
     hit.addEventListener('keydown', function (e) {
-      if ((PL.quiz && PL.quiz.active()) || (PL.catcher && PL.catcher.active())) return;
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault(); e.stopPropagation();
         if (st.busy || st.hold) return;
-        if (st.sel !== id) select(id);                              // первый Enter — выбрать
-        else emit(st.ins === id ? 'eject' : 'play', id);            // второй — вставить / достать (то же, что перетащить)
+        if (st.sel !== id) select(id);                              // first Enter selects
+        else emit(st.ins === id ? 'eject' : 'play', id);            // second Enter inserts / ejects (same as dragging)
       }
     });
   });
@@ -302,7 +241,10 @@ PL.carts = (function () {
     if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
     if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
     var m = /^(?:Digit|Numpad)([1-9])$/.exec(e.code || '');
-    if (m && defs[+m[1] - 1] && !st.busy && !(PL.quiz && PL.quiz.active()) && !(PL.catcher && PL.catcher.active())) select(defs[+m[1] - 1].id);
+    if (!m || !defs[+m[1] - 1] || st.busy) return;
+    var id = defs[+m[1] - 1].id;
+    select(id);
+    try { carts[id].hit.focus({ preventScroll: true }); } catch (err) {}   // so the next Enter seats (or draws out) this relic
   });
 
   function select(id, quiet) {
@@ -329,7 +271,7 @@ PL.carts = (function () {
   }
 
   /* ==========================================================================
-     КАРТОЧКА ВЫБРАННОГО КАРТРИДЖА
+     INFO CARD OF THE SELECTED RELIC
      ========================================================================== */
 
   function cardHTML(d) {
@@ -338,22 +280,22 @@ PL.carts = (function () {
       var f = FACTS[k] && FACTS[k]();
       return f ? '<span><b>' + f[0] + '</b> ' + f[1] + '</span>' : '';
     }).join('');
-    return '<div class="ci-top"><span>' + _('CARTRIDGE {n}/{total}', { n: pad2(idx), total: pad2(defs.length) }) + '</span>' +
-      '<span class="ci-state' + (inC ? ' is-in' : '') + '"><i></i>' + (inC ? _('in console') : _('in rack')) + '</span></div>' +
-      '<div class="ci-title"><b>' + esc(d.ru) + '</b><i>' + esc(d.title) + '</i></div>' +
+    return '<div class="ci-top"><span>' + _('RELIC {n}/{total}', { n: pad2(idx), total: pad2(defs.length) }) + '</span>' +
+      '<span class="ci-state' + (inC ? ' is-in' : '') + '"><i></i>' + (inC ? _('seated') : _('in the rack')) + '</span></div>' +
+      '<div class="ci-title"><b>' + esc(d.name) + '</b><i>' + esc(d.title) + '</i></div>' +
       '<div class="ci-sub">' + esc(d.sub) + '</div>' +
       '<p class="ci-blurb">' + esc(d.blurb) + '</p>' +
       '<div class="ci-chips">' + facts + '</div>' +
-      hintHTML(inC ? 'down' : 'up', inC ? _('Drag down to eject') : _('Drag up into the console slot'));
+      hintHTML(inC ? 'down' : 'up', inC ? _('Drag down to draw it out') : _('Drag it up into the slot'));
   }
   function emptyHTML() {
-    return '<div class="ci-top"><span>' + _('CARTRIDGES · {n}', { n: defs.length }) + '</span><span class="ci-state"><i></i>' + (st.ins ? _('in console') : _('slot empty')) + '</span></div>' +
-      '<div class="ci-title"><b>' + _('Pick a cartridge') + '</b></div>' +
-      '<p class="ci-blurb">' + _('Three 15-question quizzes and the Poké Ball Catcher arcade. Click a cartridge to peek inside.') + '</p>' +
+    return '<div class="ci-top"><span>' + _('RELICS · {n}', { n: defs.length }) + '</span><span class="ci-state"><i></i>' + (st.ins ? _('seated') : _('slot open')) + '</span></div>' +
+      '<div class="ci-title"><b>' + _('Choose a relic') + '</b></div>' +
+      '<p class="ci-blurb">' + _('Four relics, four screens: the bestiary, the worlds, a spirit quiz and the campaign. Tap one to see what it holds.') + '</p>' +
       '<div class="ci-pick">' + defs.map(function (d) {
-        return '<button data-pick="' + d.id + '" style="--cc:' + d.c1 + '"><i></i>' + esc(d.short || d.ru) + '</button>';
+        return '<button data-pick="' + d.id + '" style="--cc:' + d.c1 + '"><i></i>' + esc(d.short || d.name) + '</button>';
       }).join('') + '</div>' +
-      hintHTML('up', _('Drag one into the console slot'));
+      hintHTML('up', _('Drag any relic into the slot'));
   }
 
   var cardEl = null;
@@ -369,15 +311,15 @@ PL.carts = (function () {
     cardEl = card;
     info.style.setProperty('--cc', d ? d.c1 : '#8d94a3');
   }
-  function refreshState() {   // статус и подсказка без перерисовки всей карточки
+  function refreshState() {   // state and hint without redrawing the whole card
     var d = st.sel && carts[st.sel] && carts[st.sel].def;
     if (!d || !cardEl) { if (cardEl && !d) renderInfo(false); return; }
     var inC = st.ins === d.id;
     var state = cardEl.querySelector('.ci-state');
-    if (state) { state.classList.toggle('is-in', inC); state.lastChild.textContent = inC ? _('in console') : _('in rack'); }
+    if (state) { state.classList.toggle('is-in', inC); state.lastChild.textContent = inC ? _('seated') : _('in the rack'); }
     if (!drag) restoreHint();
   }
-  /* подсказка в плашке: что сделать с картриджем (стрелка показывает направление) */
+  /* hint on the card: what to do with the relic (the arrow shows the direction) */
   function hintHTML(kind, text) {
     return '<div class="ci-hint" data-kind="' + kind + '"><i class="ci-arrow"><svg viewBox="0 0 16 16"><path d="M8 2 14 9H10v5H6V9H2z"/></svg></i><span>' + esc(text) + '</span></div>';
   }
@@ -390,10 +332,10 @@ PL.carts = (function () {
   function restoreHint() {
     var d = st.sel && carts[st.sel] && carts[st.sel].def;
     var inC = d && st.ins === d.id;
-    if (!d) return setHint(_('Drag one into the console slot'), 'up');
-    setHint(inC ? _('Drag down to eject') : _('Drag up into the console slot'), inC ? 'down' : 'up');
+    if (!d) return setHint(_('Drag any relic into the slot'), 'up');
+    setHint(inC ? _('Drag down to draw it out') : _('Drag it up into the slot'), inC ? 'down' : 'up');
   }
-  /* Enter / Space на кнопке карточки жмут её саму, а не «A» консоли */
+  /* Enter / Space on a card button press that button, not the device's confirm key */
   info.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); });
   info.addEventListener('click', function (e) {
     var b = e.target.closest('[data-pick]');
@@ -402,43 +344,43 @@ PL.carts = (function () {
   });
 
   /* ==========================================================================
-     ХОРЕОГРАФИЯ
-     Картриджи не меняются местами: боковой сам едет к щели по воздуху (смещение dx), а при
-     извлечении возвращается в свою ячейку. Позы — {x, y, z, rx, ry, rz} относительно ячейки.
+     CHOREOGRAPHY
+     Relics never swap places: a side relic flies to the slot by itself (offset dx) and
+     returns to its own cell when ejected. Poses are {x, y, z, rx, ry, rz} relative to the cell.
      ========================================================================== */
   function led(s) { slotLed.className = 'slot-led' + (s ? ' is-' + s : ''); }
   function setBusy(v) { st.busy = v; stage.classList.toggle('is-busy', v); refreshState(); }
-  function dxOf(c) { return SLOT_X - CELL_X[c.cell]; }          // от своей ячейки до щели
+  function dxOf(c) { return SLOT_X - CELL_X[c.cell]; }          // from its own cell to the slot
 
-  /* путь картриджа в слот: t — секунды, возвращает позу (x = 0 — над своей ячейкой) */
+  /* path into the slot: t in seconds, returns a pose (x = 0 is above its own cell) */
   var T_IN = 2.36;
   function insertAt(t, dx) {
     var x = 0, y, z, rx, ry = 0, rz = 0, u;
-    if (t < 0.16) {                                   // присесть перед рывком
+    if (t < 0.16) {                                   // crouch before the lift
       u = E.out2(seg(t, 0, 0.16));
       y = BASE.y + 6 * u; z = BASE.z; rx = BASE.rx + 3 * u;
-    } else if (t < 0.74) {                            // выдернуть из ячейки и подать к консоли (боковой — ещё и по воздуху к щели)
+    } else if (t < 0.74) {                            // pull out of the cell and carry to the device (a side relic also flies to the slot)
       u = seg(t, 0.16, 0.74);
       x = dx * E.io2(u);
       y = mix(BASE.y + 6, -36, E.out5(u)); z = mix(BASE.z, 64, E.out3(u)); rx = mix(BASE.rx + 3, -7, E.out3(u));
       ry = 7 * Math.sin(2 * Math.PI * u) * (1 - u); rz = 1.8 * Math.sin(2 * Math.PI * u * 1.3) * (1 - u);
-    } else if (t < 1.04) {                            // прицелиться у щели
+    } else if (t < 1.04) {                            // aim at the slot
       x = dx;
       u = E.io2(seg(t, 0.74, 1.04));
       y = mix(-36, MOUTH, u); z = mix(64, 34, u); rx = mix(-7, -1, u);
-    } else if (t < 1.56) {                            // аккуратно завести в щель
+    } else if (t < 1.56) {                            // guide it into the slot
       x = dx;
       u = E.io2(seg(t, 1.04, 1.56));
       y = mix(MOUTH, -88, u); z = mix(34, 6, u); rx = mix(-1, 0, u);
-    } else if (t < 1.88) {                            // въезжает глубже, ускоряясь
+    } else if (t < 1.88) {                            // slides deeper, speeding up
       x = dx;
       u = E.in2(seg(t, 1.56, 1.88));
       y = mix(-88, -144, u); z = mix(6, 0, u); rx = 0;
-    } else if (t < 2.04) {                            // твёрдый толчок до упора
+    } else if (t < 2.04) {                            // firm push to the stop
       x = dx;
       u = E.in2(seg(t, 1.88, 2.04));
       y = mix(-144, SEAT, u); z = 0; rx = 0;
-    } else {                                          // отскок после «клика»
+    } else {                                          // bounce after the click
       x = dx;
       u = seg(t, 2.04, T_IN);
       y = SEAT + 3.2 * Math.sin(Math.PI * u) * (1 - 0.5 * u); z = 0; rx = 0.7 * Math.sin(Math.PI * u);
@@ -461,7 +403,7 @@ PL.carts = (function () {
     if (hooks && hooks.onSeat) hooks.onSeat();
   }
 
-  /* картридж встал в слот: фиксируем позу стилями */
+  /* relic seated: commit the pose as styles */
   function settleSeated(c, a) {
     var dx = dxOf(c), el = c.el;
     el.classList.remove('is-flying', 'is-hover', 'is-dragging');
@@ -490,7 +432,7 @@ PL.carts = (function () {
     return a.finished.then(function () { el.style.zIndex = ''; settleSeated(c, a); });
   }
 
-  /* картридж отпущен у щели: от текущей позы подъезжает к ней и дальше как обычно */
+  /* relic released at the slot: from the current pose it moves to the mouth and continues as usual */
   var T_CATCH = 0.3;
   function dropIn(c, from, hooks) {
     var el = c.el, dx = dxOf(c);
@@ -515,7 +457,7 @@ PL.carts = (function () {
     return a.finished.then(function () { el.style.zIndex = ''; settleSeated(c, a); });
   }
 
-  /* извлечение: пружинный «выстрел», вынуть вниз, подать на стойку (боковой уходит в свою ячейку) */
+  /* eject: spring kick, pull down, back to the rack (a side relic returns to its cell) */
   var T_OUT = 1.62;
   function outAt(t, dx) {
     var x = dx, y, z, rx = 0, ry = 0, u;
@@ -553,7 +495,7 @@ PL.carts = (function () {
     led('amber');
     emit('eject-start', { id: c.def.id });
     var a;
-    if (!from) {                                       // обычное извлечение из слота
+    if (!from) {                                       // regular eject from the slot
       M.commit(el, { x: dx, y: SEAT, z: 0, rx: 0 });
       a = M.play(el, function (u) { return outAt(u * T_OUT, dx); }, T_OUT * 1000);
       M.cues(a, [
@@ -561,7 +503,7 @@ PL.carts = (function () {
         { t: 0.14, fn: function () { PL.audio.play('slide'); led(''); } },
         { t: 1.15, fn: function () { shadows[c.cell].classList.remove('is-gone'); shadows[c.cell].classList.add('is-up'); } },
       ]);
-    } else {                                           // вытянули рукой: дальше сама
+    } else {                                           // pulled by hand: it finishes by itself
       var t0 = 0.12, total = 0.34 + (T_OUT - 0.98);
       var mouth = outAt(0.98, dx);
       PL.audio.play('eject'); if (hooks && hooks.onEject) hooks.onEject();
@@ -583,7 +525,12 @@ PL.carts = (function () {
 
   function doEject(hooks) { return flyOut(carts[st.ins], hooks); }
 
-  /* ---------- публичные действия ---------- */
+  function releaseFocus() {
+    var a = document.activeElement;
+    if (a && a.classList && a.classList.contains('cart-hit')) a.blur();
+  }
+
+  /* ---------- public actions ---------- */
   function insert(id, hooks) {
     var c = carts[id];
     if (!c || st.busy) return Promise.resolve(false);
@@ -598,7 +545,7 @@ PL.carts = (function () {
       return M.wait(hovered ? 340 : 60);
     });
     chain = chain.then(function () { return flyIn(c, hooks); });
-    return chain.then(function () { setBusy(false); refreshState(); emit('seated', { id: id }); return true; }, function () { setBusy(false); return false; });
+    return chain.then(function () { setBusy(false); refreshState(); releaseFocus(); emit('seated', { id: id }); return true; }, function () { setBusy(false); return false; });
   }
   function eject(hooks) {
     if (st.busy || !st.ins) return Promise.resolve(false);
@@ -607,10 +554,10 @@ PL.carts = (function () {
   }
 
   /* ==========================================================================
-     РУКА: картридж можно взять и перетащить. Вверх, в щель консоли — вставится; из щели вниз — достанется.
+     HAND: a relic can be grabbed and dragged. Up into the slot inserts it; down out of the slot ejects it.
      ========================================================================== */
   var drag = null, dragRaf = 0, lastClick = 0;
-  var X_RANGE = 380;                                            // насколько далеко от щели можно утащить картридж
+  var X_RANGE = 380;                                            // how far from the slot a relic can be dragged
 
   function startDrag(c, e) {
     var seated = st.ins === c.def.id;
@@ -628,7 +575,7 @@ PL.carts = (function () {
     stage.classList.add('is-grab');
     document.body.classList.add('is-cart-drag');
     PL.audio.play('lift');
-    setHint(seated ? _('Drag down to eject') : _('Release over the console slot'), 'up');
+    setHint(seated ? _('Drag down to draw it out') : _('Let go over the slot'), 'up');
     updateLeds();
     if (!dragRaf) dragRaf = requestAnimationFrame(dragFrame);
   }
@@ -647,7 +594,7 @@ PL.carts = (function () {
     var zoneK = M.clamp(1 - Math.abs(worldX - SLOT_X) / 90, 0, 1) * M.clamp((-52 - (y - BASE.y)) / 40 + 0.4, 0, 1);
     var inZone = Math.abs(worldX - SLOT_X) < 62 && (y - BASE.y) < -58;
     drag.zone = inZone;
-    // у щели картридж выравнивается и тянется к её оси
+    // near the slot the relic straightens and is pulled to its axis
     x += (SLOT_X - worldX) * 0.55 * zoneK;
     return { x: x, y: y, z: mix(BASE.z + 26, 40, zoneK), rx: mix(BASE.rx, -1, zoneK), ry: 0, rz: 0, k: zoneK };
   }
@@ -660,7 +607,7 @@ PL.carts = (function () {
     var lagX = t.x - p.x, lagY = t.y - p.y;
     p.x = mix(p.x, t.x, k); p.y = mix(p.y, t.y, k); p.z = mix(p.z, t.z, k);
     var kz = t.k || 0;
-    // наклон по скорости: картридж «тянется» за рукой
+    // tilt from velocity: the relic trails the hand
     p.rz = mix(p.rz, M.clamp(-lagX * 0.22, -11, 11) * (1 - kz), 0.3);
     p.ry = mix(p.ry, M.clamp(lagX * 0.3, -16, 16) * (1 - kz), 0.3);
     p.rx = mix(p.rx, t.rx + M.clamp(lagY * 0.12, -6, 6), 0.3);
@@ -671,12 +618,12 @@ PL.carts = (function () {
       stage.classList.toggle('is-zone', zone);
       led(zone ? 'amber' : '');
       slotEl.classList.toggle('is-hot', zone);
-      if (zone) { PL.audio.play('tick'); setHint(_('Release to insert'), 'ok'); }
-      else if (!drag.seated) setHint(drag.zone && st.ins ? _('Slot taken: eject the cartridge first') : _('Release over the console slot'), 'up');
+      if (zone) { PL.audio.play('tick'); setHint(_('Let go to seat it'), 'ok'); }
+      else if (!drag.seated) setHint(drag.zone && st.ins ? _('Slot taken: draw the other relic out first') : _('Let go over the slot'), 'up');
     }
     if (drag.seated) {
       var armed = drag.pull > 60;
-      if (armed !== !!drag.armed) { drag.armed = armed; setHint(armed ? _('Release to eject') : _('Drag down to eject'), armed ? 'ok' : 'down'); if (armed) PL.audio.play('tick'); }
+      if (armed !== !!drag.armed) { drag.armed = armed; setHint(armed ? _('Let go to draw it out') : _('Drag down to draw it out'), armed ? 'ok' : 'down'); if (armed) PL.audio.play('tick'); }
     }
     dragRaf = requestAnimationFrame(dragFrame);
   }
@@ -688,16 +635,16 @@ PL.carts = (function () {
     stage.classList.remove('is-grab', 'is-zone');
     slotEl.classList.remove('is-hot');
     document.body.classList.remove('is-cart-drag');
-    if (!d.active) return;                       // не потянули — это обычный клик
+    if (!d.active) return;                       // not dragged: this was a plain click
     lastClick = performance.now();
     var c = d.c, p = d.pose, el = c.el;
     setBusy(true);
     var done;
     if (d.seated) {
-      if (!cancelled && d.pull > 60) {           // вытянули достаточно — достаём
+      if (!cancelled && d.pull > 60) {           // pulled far enough: eject
         led('amber');
         done = flyOut(c, null, p).then(function () { restoreHint(); });
-      } else {                                   // слишком мало — защёлкивается обратно
+      } else {                                   // not far enough: snaps back in
         var from = { x: p.x, y: p.y, z: p.z, rx: p.rx, ry: p.ry, rz: p.rz }, dx = dxOf(c);
         var a = M.play(el, function (u) {
           var k = E.spring(u, 14, 0.5);
@@ -706,12 +653,12 @@ PL.carts = (function () {
         M.cues(a, [{ t: 0.12, fn: function () { PL.audio.play('seat'); } }]);
         done = a.finished.then(function () { el.style.zIndex = ''; settleSeated(c, a); led('green'); restoreHint(); });
       }
-    } else if (!cancelled && d.zone && st.ins == null) {            // над щелью и слот свободен — вставляем
+    } else if (!cancelled && d.zone && st.ins == null) {            // over the slot and the slot is free: insert
       var hooks = { onSeat: function () {} };
       done = dropIn(c, p, hooks).then(function () { emit('seated', { id: c.def.id, drag: true }); restoreHint(); });
-    } else {                                                          // иначе — обратно на стойку
+    } else {                                                          // otherwise: back to the rack
       var bad = d.zone && st.ins != null;
-      if (bad) { PL.audio.play('error'); setHint(_('Slot taken: eject the cartridge first'), 'no'); }
+      if (bad) { PL.audio.play('error'); setHint(_('Slot taken: draw the other relic out first'), 'no'); }
       var f2 = { x: p.x, y: p.y, z: p.z, rx: p.rx, ry: p.ry, rz: p.rz };
       var a2 = M.play(el, function (u) {
         var k = E.spring(u, 11, 0.55);
@@ -744,14 +691,14 @@ PL.carts = (function () {
     });
     var up = function (e) {
       if (drag && drag.c === c && e.pointerId === drag.pid) endDrag(e.type === 'pointercancel');
-      if (e.pointerType !== 'touch' || true) setTimeout(function () { if (document.activeElement === hit) hit.blur(); }, 0);   // мышиный фокус не должен перехватывать Enter консоли
+      if (e.pointerType !== 'touch' || true) setTimeout(function () { if (document.activeElement === hit) hit.blur(); }, 0);   // mouse focus must not capture the device's Enter
     };
     hit.addEventListener('pointerup', up);
     hit.addEventListener('pointercancel', up);
   });
   window.addEventListener('blur', function () { if (drag && drag.active) endDrag(true); });
 
-  /* ---------- появление стойки при загрузке: картриджи «выезжают» из ячеек ---------- */
+  /* ---------- rack intro on load: relics rise out of their cells ---------- */
   function intro(delay) {
     if (M.reduce) return;
     clip.classList.add('rack-intro');

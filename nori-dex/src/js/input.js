@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Ввод: кнопки консоли (мышь/тач), клавиатура, стики, реальный геймпад.
-   Всё сводится к одному событию PL.bus 'press' с именем кнопки:
+   Input: device buttons (mouse / touch), keyboard, sticks, real gamepads.
+   Everything becomes one PL.bus 'press' event carrying the button name:
    up down left right a b x y l r plus minus home capture power volup voldown ls rs
    ========================================================================== */
 window.PL = window.PL || {};
@@ -15,8 +15,8 @@ PL.bus = (function () {
 
 PL.input = (function () {
   var DIRS = { up: 1, down: 1, left: 1, right: 1 };
-  var STICK_R = 13;           // ход стика в дизайн-пикселях
-  var held = {};              // name -> время нажатия (для минимальной длительности подсветки)
+  var STICK_R = 13;           // stick travel in design pixels
+  var held = {};              // name -> press time (for a minimum highlight duration)
   var pointerHeld = {};       // pointerId -> name
   var sticks = {
     left:  { x: 0, y: 0, src: null, el: null, lastDir: null, next: 0 },
@@ -47,7 +47,7 @@ PL.input = (function () {
       el.classList.add('is-pressed');
       if (i === 0 && el.matches('.dbtn, .fbtn, .jc-home, .jc-capture')) ripple(el);
     });
-    if (src !== 'proxy' && src !== 'stick') PL.audio.play('btndown');   // тихий механический щелчок кнопки
+    if (src !== 'proxy' && src !== 'stick') PL.audio.play('btndown');   // quiet mechanical click
     PL.bus.emit('press', { name: name, src: src });
   }
 
@@ -63,10 +63,10 @@ PL.input = (function () {
     }, wait);
   }
 
-  /* короткое «нажатие» (для прокси-кнопок и стиков) */
+  /* short tap (proxy buttons and sticks) */
   function tap(name, src) { pressStart(name, src); pressEnd(name); }
 
-  /* ---------- мышь / тач по кнопкам ---------- */
+  /* ---------- mouse / touch on buttons ---------- */
   document.addEventListener('pointerdown', function (e) {
     unlock();
     hideTip();
@@ -88,7 +88,7 @@ PL.input = (function () {
   document.addEventListener('pointerup', releasePointer);
   document.addEventListener('pointercancel', releasePointer);
 
-  /* ---------- клавиатура ---------- */
+  /* ---------- keyboard ---------- */
   var KEYS = {
     ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
     Enter: 'a', Space: 'a', NumpadEnter: 'a',
@@ -100,11 +100,11 @@ PL.input = (function () {
     BracketLeft: 'voldown', BracketRight: 'volup',
   };
   function typing(e) { return e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName); }
-  function onPill(e) { return e.target && e.target.closest && e.target.closest('.lang-seg'); }   // кнопки RU/EN на экране PLAY: Enter/Space — как у обычных кнопок
+  function onPill(e) { return e.target && e.target.closest && e.target.closest('.lang-seg'); }   // segmented buttons keep native Enter / Space
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey || e.metaKey || e.altKey || onPill(e)) return;
-    if (typing(e)) {   // в поле поиска клавиши работают как обычно; Esc / Enter — выйти из поля
-      if (e.target.tagName === 'TEXTAREA') { if (e.key === 'Escape') { e.preventDefault(); e.target.blur(); } return; }     // в описании Enter — новая строка
+    if (typing(e)) {   // inside text fields keys behave normally; Esc / Enter leave the field
+      if (e.target.tagName === 'TEXTAREA') { if (e.key === 'Escape') { e.preventDefault(); e.target.blur(); } return; }     // Enter makes a new line in a textarea
       if (e.key === 'Escape' || e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); e.target.blur(); }
       return;
     }
@@ -125,13 +125,13 @@ PL.input = (function () {
   });
   window.addEventListener('blur', function () { Object.keys(held).forEach(pressEnd); });
 
-  /* ---------- стики (тянуть мышью/пальцем) ---------- */
+  /* ---------- sticks (drag with mouse or finger) ---------- */
   function setCap(side, x, y) {
     var s = sticks[side];
     if (!s.el) return;
     s.el.style.setProperty('--sx', (x * STICK_R).toFixed(2) + 'px');
     s.el.style.setProperty('--sy', (y * STICK_R).toFixed(2) + 'px');
-    s.el.style.setProperty('--kx', x.toFixed(3));   // −1…1: из них CSS считает наклон шляпки и сдвиг тени
+    s.el.style.setProperty('--kx', x.toFixed(3));   // -1..1: CSS derives cap tilt and shadow offset
     s.el.style.setProperty('--ky', y.toFixed(3));
   }
 
@@ -156,8 +156,8 @@ PL.input = (function () {
       var dy = (e.clientY - start.cy) / scale;
       var len = Math.hypot(dx, dy);
       start.moved = Math.max(start.moved, len);
-      if (start.moved > 5) el.classList.remove('is-down');   // потянул — уже не «нажатие на стик»
-      var lim = STICK_R * 1.6; // сколько тянуть до упора
+      if (start.moved > 5) el.classList.remove('is-down');   // dragged: no longer a stick click
+      var lim = STICK_R * 1.6; // drag distance to full travel
       var k = len > lim ? lim / len : 1;
       s.x = (dx * k) / lim;
       s.y = (dy * k) / lim;
@@ -178,8 +178,8 @@ PL.input = (function () {
     el.addEventListener('lostpointercapture', end);
   });
 
-  /* ---------- реальный геймпад (Joy-Con, Pro Controller, Xbox, DualSense) ---------- */
-  // раскладка по позиции, как у Nintendo: правая = A, нижняя = B, верхняя = X, левая = Y
+  /* ---------- real gamepads (standard mapping) ---------- */
+  // positional layout: right face button = A, bottom = B, top = X, left = Y
   var GP = { 0: 'b', 1: 'a', 2: 'y', 3: 'x', 4: 'l', 5: 'r', 6: 'l', 7: 'r', 8: 'minus', 9: 'plus',
              10: 'ls', 11: 'rs', 12: 'up', 13: 'down', 14: 'left', 15: 'right', 16: 'home', 17: 'capture' };
   var padPrev = {};
@@ -214,7 +214,7 @@ PL.input = (function () {
         }
         prev[b] = down;
       }
-      // стики геймпада двигают нарисованные стики
+      // gamepad sticks move the drawn sticks
       [['left', 0, 1], ['right', 2, 3]].forEach(function (a) {
         var s = sticks[a[0]];
         if (s.src === 'pointer') return;
@@ -232,7 +232,7 @@ PL.input = (function () {
     }
   }
 
-  /* ---------- цикл: стики → навигация / прокрутка ---------- */
+  /* ---------- loop: sticks -> navigation / scrolling ---------- */
   function loop(now) {
     requestAnimationFrame(loop);
     pollPads(now);
@@ -252,7 +252,7 @@ PL.input = (function () {
   }
   requestAnimationFrame(loop);
 
-  /* ---------- всплывающие подсказки у кнопок ---------- */
+  /* ---------- tooltips on buttons ---------- */
   var tip = document.getElementById('tip');
   var tipTimer = 0;
   function hideTip() { clearTimeout(tipTimer); tip.classList.remove('is-show'); document.body.classList.remove('tip-on'); }

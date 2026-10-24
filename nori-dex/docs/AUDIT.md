@@ -54,7 +54,7 @@ Third-party hosts found: jsDelivr + raw.githubusercontent (quiz sprites, card da
 - **Shell state machine** (app.js): `static → boot → altar (hub) → section`, plus `help`. Nothing else. Album, modal, scan, catcher and favorites are removed.
 - **Screen contract**: a controller with `press(name) → bool`, `hints() → [[keys, label]]`, `scrollBy(d)`, `destroy()`. Context methods: `audio, toast, ambient(color), hints, eject, swap(id)`.
 - **Two device layouts**: *wide* (1200×818 design px, 768×432 screen) and *tall* for phones (≈380×840, portrait screen). The screen is a CSS size container, so screens adapt with `@container`.
-- **i18n rule**: a one-off codemod rewrites every kept `_('русский')` to `_('English')` from the `js/en` dictionaries. English is the source; `_()` returns `dict[key] || key`. Spanish = one `js/i18n/es.js` dictionary later. The build fails on any Cyrillic in `dist`.
+- **i18n rule**: a one-off codemod rewrites every kept `_('<Russian text>')` to `_('English')` from the `js/en` dictionaries. English is the source; `_()` returns `dict[key] || key`. Spanish = one `js/i18n/es.js` dictionary later. The build fails on any Cyrillic in `dist`.
 - **Build**: one `js/app.<hash>.js` and one `css/app.<hash>.css`, no inline script, assets stamped `?v=<hash>`. Build gates: script list, brand regex, Cyrillic, URL allowlist (outbound links only), budgets, and that every `assets/` path referenced exists. `vercel.json` sets immutable caching and a strict CSP.
 - **Perf**: every rAF loop (cable dangle, static noise, gamepad poll) stops when idle or hidden; `will-change` only while dragging; reduced-motion and Save-Data skip the intro and idle motion; the backdrop is baked by `bake-bg.py`.
 

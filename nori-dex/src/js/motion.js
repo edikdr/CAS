@@ -1,15 +1,15 @@
 /* ==========================================================================
-   Движение: плавные анимации по «позе».
-   Анимация описывается функцией pose(u) от 0 до 1 → {x, y, z, rx, ry, rz, s, o, blur, shadow}
-   и превращается в плотные ключевые кадры Web Animations (transform + opacity),
-   поэтому можно делать дуги, пружины и составные пути, которых не даёт CSS.
+   Motion: smooth animations driven by a "pose".
+   An animation is a function pose(u) from 0 to 1 -> {x, y, z, rx, ry, rz, s, o, blur, shadow}
+   that is turned into dense Web Animations keyframes (transform + opacity),
+   so arcs, springs and compound paths that CSS cannot express are possible.
    ========================================================================== */
 window.PL = window.PL || {};
 
 PL.motion = (function () {
   var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-  /* ---- кривые плавности ---- */
+  /* ---- easing curves ---- */
   var E = {
     lin: function (u) { return u; },
     in2: function (u) { return u * u; },
@@ -20,11 +20,11 @@ PL.motion = (function () {
     io2: function (u) { return u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; },
     io3: function (u) { return u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2; },
     io5: function (u) { return u < 0.5 ? 16 * Math.pow(u, 5) : 1 - Math.pow(-2 * u + 2, 5) / 2; },
-    /* «мягкий» вход и выход (sin) */
+    /* soft in and out (sine) */
     sine: function (u) { return -(Math.cos(Math.PI * u) - 1) / 2; },
-    /* с «перелётом» в конце */
+    /* with an overshoot at the end */
     back: function (u, k) { k = k == null ? 1.70158 : k; var m = u - 1; return 1 + (k + 1) * m * m * m + k * m * m; },
-    /* затухающая пружина: приходит в 1, один-два раза «перелетая»; в конце ровно 1 */
+    /* damped spring: reaches 1 after overshooting once or twice; ends exactly at 1 */
     spring: function (u, w, z) {
       w = w || 12; z = z || 0.45;
       function step(t) {
@@ -37,7 +37,7 @@ PL.motion = (function () {
 
   function mix(a, b, t) { return a + (b - a) * t; }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-  /* отрезок [a, b] по u → 0…1 */
+  /* segment [a, b] of u -> 0..1 */
   function seg(u, a, b) { return clamp((u - a) / (b - a), 0, 1); }
   function bez(p0, p1, p2, p3, t) {
     var m = 1 - t;
@@ -66,22 +66,22 @@ PL.motion = (function () {
     return out;
   }
 
-  /* play(el, pose, dur, {delay, fill}) → Animation; при reduced-motion сразу в конец */
+  /* play(el, pose, dur, {delay, fill}) -> Animation; with reduced motion it jumps to the end */
   function play(el, pose, dur, opts) {
     opts = opts || {};
     if (reduce) { dur = 1; }
     var a = el.animate(frames(pose, dur), { duration: dur, delay: opts.delay || 0, fill: opts.fill || 'both', easing: 'linear' });
     return a;
   }
-  /* зафиксировать конечную позу обычными стилями (после этого анимацию можно снять) */
+  /* commit the final pose as plain styles (the animation can then be removed) */
   function commit(el, p) {
     el.style.transform = toTransform(p);
     if (p.o != null) el.style.opacity = p.o;
     if (p.filter) el.style.filter = p.filter;
   }
 
-  /* то же, но возвращает Promise; по окончании поза фиксируется стилями, анимация снимается
-     (opts.hold — оставить анимацию висеть на последнем кадре) */
+  /* same, but returns a Promise; at the end the pose is committed and the animation removed
+     (opts.hold keeps the animation on its last frame) */
   function run(el, pose, dur, opts) {
     opts = opts || {};
     var a = play(el, pose, dur, opts);
@@ -92,11 +92,11 @@ PL.motion = (function () {
     }, function () { return a; });
   }
 
-  /* «метки» по времени анимации: cues = [{t: секунды, fn}], срабатывают, когда анимация доходит до t
-     (синхронно с замедлением в отладке, в отличие от setTimeout) */
+  /* time cues on an animation: cues = [{t: seconds, fn}], fired when the animation reaches t
+     (stays in sync when slowed down for debugging, unlike setTimeout) */
   function cues(anim, list) {
     var i = 0, sorted = list.slice().sort(function (a, b) { return a.t - b.t; });
-    if (reduce) sorted = sorted.slice(-1);       // без анимации звучит только итоговая метка (иначе все звуки разом)
+    if (reduce) sorted = sorted.slice(-1);       // without animation only the last cue fires (otherwise all sounds at once)
     function tick() {
       var t = (anim.currentTime || 0) / 1000;
       while (i < sorted.length && sorted[i].t <= t) { try { sorted[i].fn(); } catch (e) {} i++; }

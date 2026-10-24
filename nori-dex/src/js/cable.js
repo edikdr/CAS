@@ -1,19 +1,19 @@
 /* ==========================================================================
-   Кабель питания: всегда болтается сверху, а чтобы включить консоль, его нужно
-   дотянуть до разъёма USB-C на корпусе.
+   Power cable: it always dangles from the top, and to switch the device on it
+   has to be pulled to the socket on the body.
 
-   • Физика: верёвка из 34 точек (метод Верле) — кабель настоящий: свисает с верхнего края
-     окна, раскачивается от ветерка и от руки, тянется за штекером, провисает при вставке.
-     Штекер тяжелее кабеля, поэтому висит остриём вниз и качается как маятник.
-   • Управление: схвати штекер мышью или пальцем и потяни к разъёму. Рядом с разъёмом штекер
-     «примагничивается» и встаёт ровно; дотянул — входит, и экран включается. Вытащить —
-     потянуть штекер от разъёма (или кликнуть по нему).
-   • Отрисовка: canvas над консолью; кабель — трубка с объёмом (тень, тёмный край, корпус,
-     блик), штекер USB-C (резина, корпус, металл). Наконечник уходит ЗА кромку корпуса.
-   Все размеры внутри симуляции в «дизайн-пикселях» (экранные пиксели / масштаб консоли).
-   API: dangle() — сбросить кабель сверху, plugIn({fast}) — вставить сам, unplug(), snap(),
+   • Physics: a 34-point rope (Verlet), so the cable is real: it hangs from the top edge
+     of the window, sways in the breeze and under the hand, follows the plug, sags when plugged.
+     The plug is heavier than the cable, so it hangs tip down and swings like a pendulum.
+   • Control: grab the plug with mouse or finger and pull it to the socket. Near the socket
+     the plug snaps into alignment; pull it home and it goes in and the screen powers on.
+     To unplug, pull it away from the socket (or click it).
+   • Drawing: a canvas above the device; the cable is a shaded tube (shadow, dark edge, body,
+     highlight), the plug has a collar, body and tip. The tip disappears BEHIND the body edge.
+   All sizes inside the simulation are design pixels (screen pixels / device scale).
+   API: dangle() drops the cable from the top, plugIn({fast}) plugs it in, unplug(), snap(),
         isPlugged(), busy(), on('contact' | 'pull' | 'push' | 'grab' | 'drop', fn)
-        'pull' можно отменить, вернув false.
+        'pull' can be cancelled by returning false.
    ========================================================================== */
 window.PL = window.PL || {};
 
@@ -25,32 +25,32 @@ PL.cable = (function () {
   var cx = cv.getContext('2d');
   var M = PL.motion;
 
-  var N = 34;                 // точек верёвки
-  var LEN = 150;              // длина верёвки от верхнего края до штекера (пересчитывается под высоту окна)
+  var N = 34;                 // rope points
+  var LEN = 150;              // rope length from the top edge to the plug (recomputed for the window height)
   var SEG = LEN / (N - 1);
-  var PLUG = { relief: 13, house: 27, tip: 16, w: 30 };   // размеры штекера (минималистичный USB-C)
+  var PLUG = { relief: 13, house: 27, tip: 16, w: 30 };   // plug dimensions
   var PLUG_LEN = PLUG.relief + PLUG.house + PLUG.tip;
-  var DEPTH = 15;             // на сколько наконечник уходит в корпус (почти весь)
-  var SOCKET = 5;             // сколько из них видно внутри разъёма (остальное скрыто)
+  var DEPTH = 15;             // how deep the tip goes into the body (almost all of it)
+  var SOCKET = 5;             // how much of that stays visible inside the socket
   var CABLE_W = 9;
-  var AX = 74;                // верхний край кабеля правее разъёма на столько
-  var MAG = 64;               // радиус «примагничивания» штекера к разъёму
+  var AX = 74;                // the cable's top end sits this far right of the socket
+  var MAG = 64;               // radius in which the plug snaps to the socket
   var DEG = Math.PI / 180;
 
   var dpr = 1, W = 0, H = 0;
-  var S = 1;                  // масштаб консоли
-  var P = [], Q = [];         // позиции и предыдущие позиции (дизайн-координаты экрана)
+  var S = 1;                  // device scale
+  var P = [], Q = [];         // positions and previous positions (design coordinates)
   var state = 'away';         // away | dangle | drag | seq | plugged
-  var seq = null;             // автосценарий: { kind, def, resolve }
+  var seq = null;             // scripted sequence: { kind, def, resolve }
   var tSim = 0, raf = 0, lastT = 0, rest = 0, clock = 0;
   var slow = 1;
-  var axis = { x: 0, y: 1 };  // направление штекера (к наконечнику)
-  var end = { x: 0, y: 0 };   // точка, где кабель входит в штекер
+  var axis = { x: 0, y: 1 };  // plug direction (towards the tip)
+  var end = { x: 0, y: 0 };   // where the cable enters the plug
   var plugged = false;
   var handlers = {};
   var grab = null;            // { ox, oy, startX, startY, fromPlug, moved }
-  var near = false;           // штекер в зоне разъёма
-  var hot = false;            // курсор над штекером
+  var near = false;           // plug is in the socket zone
+  var hot = false;            // pointer is over the plug
   var idleSince = 0;
 
   function emit(n, a) {
@@ -60,14 +60,14 @@ PL.cable = (function () {
   }
   function on(n, f) { (handlers[n] = handlers[n] || []).push(f); }
 
-  function portInfo() {   // верхняя кромка корпуса в центре разъёма, в дизайн-координатах
+  function portInfo() {   // top edge of the body at the socket centre, in design coordinates
     var r = port.getBoundingClientRect();
     return { x: (r.left + r.width / 2) / S, y: (r.top + 1) / S };
   }
   function anchorPos() { var pi = portInfo(); return { x: pi.x + AX, y: -20 }; }
-  /* длина кабеля: чтобы штекер висел чуть ниже верхней кромки корпуса и при этом дотягивался до разъёма */
+  /* cable length: the plug hangs just below the top edge of the body and can still reach the socket */
   function setLen() {
-    var pi = portInfo(), dx = AX, dy = pi.y + DEPTH - PLUG_LEN + 20;     // расстояние от края окна до штекера, вставленного в разъём
+    var pi = portInfo(), dx = AX, dy = pi.y + DEPTH - PLUG_LEN + 20;     // distance from the window edge to a plug seated in the socket
     LEN = Math.max(120, pi.y + 12, Math.sqrt(dx * dx + dy * dy) + 8);
     SEG = LEN / (N - 1);
   }
@@ -76,7 +76,7 @@ PL.cable = (function () {
     dpr = Math.min(2, window.devicePixelRatio || 1);
     S = PL.scale || 1;
     W = window.innerWidth;
-    // рисуем только в полосе над консолью (+запас): так холст в разы меньше и кадр дешевле
+    // draw only in the band above the device (plus margin): a much smaller canvas, cheaper frames
     var pr = port.getBoundingClientRect();
     H = Math.max(80, Math.min(window.innerHeight, Math.ceil(pr.top + 110)));
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
@@ -86,7 +86,7 @@ PL.cable = (function () {
     wake();
   }
 
-  /* ---------- верёвка ---------- */
+  /* ---------- rope ---------- */
   function lineInit(a, b) {
     P = []; Q = [];
     for (var i = 0; i < N; i++) {
@@ -96,7 +96,7 @@ PL.cable = (function () {
     }
   }
 
-  /* ctl: { anchor, end (точка штекера или null — свободный конец), axis, wind } */
+  /* ctl: { anchor, end (plug point, or null for a free end), axis, wind } */
   function stepPhysics(h, ctl) {
     var g = 1700, free = !ctl.end, damp = free ? (ctl.calm ? 0.982 : 0.989) : 0.9935;
     var i, last = free ? N : N - 1;
@@ -104,11 +104,11 @@ PL.cable = (function () {
       var p = P[i], q = Q[i];
       var vx = (p.x - q.x) * damp, vy = (p.y - q.y) * damp;
       q.x = p.x; q.y = p.y;
-      var m = (free && i >= N - 4) ? 2.5 : 1;                      // штекер тяжёлый
+      var m = (free && i >= N - 4) ? 2.5 : 1;                      // the plug is heavy
       p.x += vx + (ctl.wind || 0) * h * h * (0.4 + i / N);
       p.y += vy + g * m * h * h;
     }
-    /* жёсткость изгиба: каждая точка слегка тянется к прямому продолжению */
+    /* bending stiffness: each point is pulled slightly towards the straight continuation */
     for (i = 2; i < last; i++) {
       var tx = P[i - 1].x + (P[i - 1].x - P[i - 2].x), ty = P[i - 1].y + (P[i - 1].y - P[i - 2].y);
       P[i].x += (tx - P[i].x) * 0.055; P[i].y += (ty - P[i].y) * 0.055;
@@ -130,7 +130,7 @@ PL.cable = (function () {
     P[0].x = ctl.anchor.x; P[0].y = ctl.anchor.y;
     if (!free) {
       P[N - 1].x = ctl.end.x; P[N - 1].y = ctl.end.y;
-      /* разгрузка изгиба: последние точки лежат вдоль оси штекера */
+      /* strain relief: the last points lie along the plug axis */
       for (i = 1; i <= 5; i++) {
         var f = 0.55 / i;
         var gx = ctl.end.x - ctl.axis.x * SEG * i, gy = ctl.end.y - ctl.axis.y * SEG * i;
@@ -142,7 +142,7 @@ PL.cable = (function () {
     }
   }
 
-  /* направление штекера у свободного конца: вдоль последних звеньев кабеля, с плавным догоном */
+  /* plug direction at a free end: along the last links, with smooth follow */
   function freeAxis() {
     var a = P[N - 4], b = P[N - 1];
     var dx = b.x - a.x, dy = b.y - a.y, l = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -151,8 +151,8 @@ PL.cable = (function () {
     axis.x = ax / al; axis.y = ay / al;
   }
 
-  /* ---------- позы ---------- */
-  /* кабель просто висит на верхнем крае: штекер чуть правее и ниже кромки корпуса */
+  /* ---------- poses ---------- */
+  /* the cable just hangs from the top edge: plug slightly right of and below the body edge */
   function hang() {
     var A = anchorPos();
     var e = { x: A.x - 6, y: A.y + LEN };
@@ -164,7 +164,7 @@ PL.cable = (function () {
     for (i = 0; i < N; i++) { Q[i].x = P[i].x; Q[i].y = P[i].y; }
     freeAxis();
   }
-  /* «сбросили» сверху: кабель лежит вдоль верхней кромки и падает, раскачиваясь */
+  /* dropped from the top: the cable lies along the top edge and falls, swaying */
   function drop() {
     var A = anchorPos();
     lineInit(A, { x: A.x + 90, y: A.y - LEN * 0.9 });
@@ -172,7 +172,7 @@ PL.cable = (function () {
     axis.x = 0.3; axis.y = -0.95;
   }
 
-  function place() {   // кабель вставлен: ставим всё по месту
+  function place() {   // cable plugged: put everything in place
     var pi = portInfo();
     var A = anchorPos();
     var tip = { x: pi.x, y: pi.y + DEPTH };
@@ -186,7 +186,7 @@ PL.cable = (function () {
     for (i = 0; i < N; i++) { Q[i].x = P[i].x; Q[i].y = P[i].y; }
   }
 
-  /* ---------- автосценарии (вставка и выдёргивание без руки) ---------- */
+  /* ---------- scripted sequences (plug and unplug without a hand) ---------- */
   function seqPlug(opts, from) {
     var pi = portInfo();
     var px = pi.x, py = pi.y;
@@ -230,12 +230,12 @@ PL.cable = (function () {
     };
   }
 
-  /* ---------- кадр ---------- */
+  /* ---------- frame ---------- */
   function wind() { return hot ? 0 : Math.sin(clock * 0.9) * 15 + Math.sin(clock * 2.3 + 1) * 7; }
 
   function frame(now) {
     raf = 0;
-    if (state === 'dangle' && !hot && now - lastT < 30) { raf = requestAnimationFrame(frame); return; }   // в покое — 30 к/с
+    if (state === 'dangle' && !hot && now - lastT < 30) { raf = requestAnimationFrame(frame); return; }   // at rest: 30 fps
     var dt = Math.min(0.05, (now - lastT) / 1000) * slow;
     lastT = now;
     clock += dt;
@@ -265,10 +265,10 @@ PL.cable = (function () {
         if (done.kind === 'plug') {
           state = 'plugged'; plugged = true; rest = 0;
           place(); settle();
-          for (var k = 3; k < N - 6; k++) P[k].y += 1.6 * Math.sin(k);       // лёгкий «толчок» от удара при вставке
+          for (var k = 3; k < N - 6; k++) P[k].y += 1.6 * Math.sin(k);       // small jolt from the impact when plugging in
           emit('contact');
         } else {
-          // отпустили: штекер падает и качается
+          // released: the plug falls and swings
           state = 'dangle'; plugged = false; idleSince = performance.now();
           for (var j = 0; j < N; j++) { Q[j].y = P[j].y + 3 * (j / N); Q[j].x = P[j].x - 1.5 * (j / N); }
         }
@@ -292,8 +292,8 @@ PL.cable = (function () {
   }
   function wake() { if (!raf && state !== 'away') { lastT = performance.now(); raf = requestAnimationFrame(frame); } }
 
-  /* ---------- рука: тащим штекер ---------- */
-  var pointer = { x: 0, y: 0 };      // в дизайн-координатах
+  /* ---------- hand: dragging the plug ---------- */
+  var pointer = { x: 0, y: 0 };      // in design coordinates
   function toDesign(e) { return { x: e.clientX / S, y: e.clientY / S }; }
 
   function tipOf() { return { x: end.x + axis.x * PLUG_LEN, y: end.y + axis.y * PLUG_LEN }; }
@@ -304,10 +304,10 @@ PL.cable = (function () {
 
   function dragStep(dt, steps, h) {
     var A = anchorPos(), pi = portInfo();
-    // желаемая позиция «держащей» точки штекера → конец кабеля
+    // desired position of the plug's held point -> end of the cable
     var ox = grab.ox, oy = grab.oy;
     var hx = pointer.x - ox, hy = pointer.y - oy;
-    // штекер ориентируем по кабелю, а у разъёма выравниваем вертикально
+    // the plug follows the cable, and near the socket it turns vertical
     var ax = end.x - P[N - 3].x, ay = end.y - P[N - 3].y;
     var al = Math.sqrt(ax * ax + ay * ay) || 1; ax /= al; ay /= al;
     var tipx = hx + axis.x * PLUG_LEN * 0.5, tipy = hy + axis.y * PLUG_LEN * 0.5;
@@ -318,20 +318,20 @@ PL.cable = (function () {
     var vx = M.mix(ax, 0, align), vy = M.mix(ay, 1, align), vl = Math.sqrt(vx * vx + vy * vy) || 1;
     axis.x = M.mix(axis.x, vx / vl, 0.35); axis.y = M.mix(axis.y, vy / vl, 0.35);
     var al2 = Math.sqrt(axis.x * axis.x + axis.y * axis.y) || 1; axis.x /= al2; axis.y /= al2;
-    // центр штекера тянется к руке, у разъёма — к оси разъёма
+    // plug centre is pulled to the hand, near the socket to the socket axis
     var cx0 = hx - axis.x * PLUG_LEN * 0.5, cy0 = hy - axis.y * PLUG_LEN * 0.5;
     if (align > 0) cx0 = M.mix(cx0, pi.x - axis.x * PLUG_LEN, align * 0.8) ;
     var k = 1 - Math.exp(-dt * 38);
     var ex = M.mix(end.x, cx0, k), ey = M.mix(end.y, cy0, k);
-    // кабель не растягивается: дальше натяжения штекер не уходит
+    // the cable does not stretch: the plug cannot go beyond full tension
     var rx = ex - A.x, ry = ey - A.y, rl = Math.sqrt(rx * rx + ry * ry), mx = LEN * 0.997;
     if (rl > mx) { ex = A.x + rx / rl * mx; ey = A.y + ry / rl * mx; }
     end.x = ex; end.y = ey;
     for (var s = 0; s < steps; s++) stepPhysics(h, { anchor: A, end: end, axis: axis, wind: 0 });
 
-    // дотянул: наконечник на кромке разъёма и ровно над ним → входит сам
+    // pulled home: tip on the socket rim and straight above it -> it goes in by itself
     var t = tipOf();
-    if (!grab.armed && t.y < pi.y - 12) grab.armed = true;       // только что вытащили из разъёма — сразу обратно не втыкаем
+    if (!grab.armed && t.y < pi.y - 12) grab.armed = true;       // just pulled out of the socket: do not plug straight back in
     if (grab.armed && near && t.y >= pi.y + 6 && Math.abs(t.x - pi.x) < 14) { finishPlug(); }
   }
   function finishPlug() {
@@ -378,7 +378,7 @@ PL.cable = (function () {
   document.addEventListener('pointermove', function (e) {
     var d = toDesign(e);
     pointer = d;
-    if (grab && grab.fromPlug && state === 'plugged') {       // потянули вставленный штекер — вытаскиваем
+    if (grab && grab.fromPlug && state === 'plugged') {       // pulling a seated plug: unplug
       var mv = Math.sqrt((e.clientX - grab.sx) * (e.clientX - grab.sx) + (e.clientY - grab.sy) * (e.clientY - grab.sy));
       if (mv > 14 * S) {
         if (emit('pull', { drag: true }) === false) { grab = null; return; }
@@ -394,12 +394,12 @@ PL.cable = (function () {
     var g = grab; grab = null;
     document.body.classList.remove('is-cable-drag');
     cv.style.cursor = '';
-    if (state === 'plugged' && g.fromPlug) {                  // просто кликнули по вставленному штекеру
+    if (state === 'plugged' && g.fromPlug) {                  // a plain click on a seated plug
       if (emit('pull', { drag: false }) !== false) startSeq('unplug', seqUnplug());
       return;
     }
     if (state === 'drag') {
-      // отпустили: у разъёма — вставляем, иначе кабель падает и качается
+      // released: near the socket plug in, otherwise the cable falls and swings
       var pi = portInfo(), t = tipOf();
       if (g.armed && (near || (Math.abs(t.x - pi.x) < 26 && t.y > pi.y - 70 && t.y < pi.y + 40))) { startSeq('plug', seqPlug({ fast: true }, t)); return; }
       state = 'dangle'; idleSince = performance.now();
@@ -411,11 +411,11 @@ PL.cable = (function () {
   document.addEventListener('pointercancel', release);
   window.addEventListener('blur', release);
 
-  /* ---------- отрисовка: чёрный кабель из матового ПВХ и штекер USB-C ---------- */
-  var LIGHT = { x: -0.52, y: -0.85 };      // свет сверху-слева (нормализован)
+  /* ---------- drawing: the cable and the plug ---------- */
+  var LIGHT = { x: -0.52, y: -0.85 };      // light from top left (normalized)
 
   function smoothPoints() {
-    // сплайн Катмулла—Рома по точкам верёвки → плотная ломаная с нормалями
+    // Catmull-Rom spline through the rope points -> dense polyline with normals
     var out = [];
     var n = P.length;
     for (var i = 0; i < n - 1; i++) {
@@ -433,12 +433,12 @@ PL.cable = (function () {
       var a = out[Math.max(0, j - 1)], b = out[Math.min(out.length - 1, j + 1)];
       var tx = b.x - a.x, ty = b.y - a.y, l = Math.sqrt(tx * tx + ty * ty) || 1;
       out[j].nx = -ty / l; out[j].ny = tx / l;
-      out[j].l = out[j].nx * LIGHT.x + out[j].ny * LIGHT.y;      // насколько нормаль смотрит на свет (−1…1)
+      out[j].l = out[j].nx * LIGHT.x + out[j].ny * LIGHT.y;      // how much the normal faces the light (-1..1)
     }
     return out;
   }
 
-  /* путь по точкам, сдвинутым вдоль нормали на k·W (для бликов и полутонов) */
+  /* path through points shifted along the normal by k*W (for highlights and half tones) */
   function pathOffset(pts, k, from, to) {
     cx.beginPath();
     for (var i = from; i < to; i++) {
@@ -451,7 +451,7 @@ PL.cable = (function () {
     var pts = smoothPoints(), np = pts.length, i;
     cx.lineCap = 'round'; cx.lineJoin = 'round';
 
-    // мягкая тень на фоне: три прозрачные обводки со смещением (дешевле, чем shadowBlur)
+    // soft shadow on the background: three offset translucent strokes (cheaper than shadowBlur)
     cx.save();
     cx.translate(5, 9);
     var sw = [CABLE_W * 1.9, CABLE_W * 1.3, CABLE_W * 0.8], sa = [0.08, 0.12, 0.19];
@@ -463,20 +463,20 @@ PL.cable = (function () {
     }
     cx.restore();
 
-    // едва заметная кромка: чёрный кабель не должен сливаться с тёмным фоном
+    // faint rim so a dark cable does not vanish against a dark background
     cx.strokeStyle = 'rgba(165,170,190,.16)'; cx.lineWidth = CABLE_W + 1.8;
     cx.beginPath(); cx.moveTo(pts[0].x, pts[0].y);
     for (i = 1; i < np; i++) cx.lineTo(pts[i].x, pts[i].y);
     cx.stroke();
 
-    // матовая оболочка
+    // matte sheath
     cx.strokeStyle = '#0b0b0e'; cx.lineWidth = CABLE_W;
     cx.stroke();
 
-    // мягкий полутон и широкий блик, сдвинутые к свету (как на цилиндре)
+    // soft half tone and a broad highlight shifted towards the light (like on a cylinder)
     cx.strokeStyle = '#16171b'; cx.lineWidth = CABLE_W * 0.66; pathOffset(pts, 0.13, 0, np); cx.stroke();
     cx.strokeStyle = '#25272d'; cx.lineWidth = CABLE_W * 0.3; pathOffset(pts, 0.26, 0, np); cx.stroke();
-    // тонкий блик вдоль кабеля (длинными кусками, без «гофры»)
+    // thin highlight along the cable (in long pieces, no ribbing)
     var chunk = 11, alphas = [0.3, 0.24, 0.32, 0.26, 0.3];
     for (var c0 = 0, ci = 0; c0 < np - 1; c0 += chunk, ci++) {
       cx.strokeStyle = 'rgba(190,196,214,' + alphas[ci % alphas.length] + ')';
@@ -502,7 +502,7 @@ PL.cable = (function () {
     var w = PLUG.w, hw = w / 2, rl = PLUG.relief, hs = PLUG.house, tp = PLUG.tip;
     var y0 = rl, y1 = rl + hs;
 
-    // тень штекера на фоне
+    // plug shadow on the background
     cx.save();
     cx.translate(4, 8);
     for (var q = 0; q < 3; q++) {
@@ -512,17 +512,17 @@ PL.cable = (function () {
     }
     cx.restore();
 
-    // ---- металлический разъём USB-C ----
+    // ---- metal tip ----
     var tw = 10.5, ty0 = y1 - 4, ty1 = y1 + tp;
     var mg = cx.createLinearGradient(-tw, 0, tw, 0);
     mg.addColorStop(0, '#8d929d'); mg.addColorStop(0.22, '#e4e7ed'); mg.addColorStop(0.5, '#b7bcc7'); mg.addColorStop(0.78, '#f1f3f7'); mg.addColorStop(1, '#868b97');
     cx.fillStyle = mg; rr(-tw, ty0, tw * 2, ty1 - ty0, 4.6); cx.fill();
     cx.strokeStyle = 'rgba(40,44,54,.55)'; cx.lineWidth = 0.9; cx.stroke();
-    // торец: тёмное гнездо с язычком (виден, пока разъём не вошёл в корпус)
+    // tip end: dark socket with a tongue (visible until the tip is inside the body)
     cx.fillStyle = '#0c0d10'; rr(-tw + 2, ty1 - 4.4, tw * 2 - 4, 3.4, 1.7); cx.fill();
     cx.fillStyle = '#6b707c'; cx.fillRect(-tw + 4.5, ty1 - 3.1, tw * 2 - 9, 0.9);
 
-    // ---- корпус: гладкий матовый чёрный пластик с мягкой фаской ----
+    // ---- body: smooth matte shell with a soft bevel ----
     var hg = cx.createLinearGradient(-hw, 0, hw, 0);
     hg.addColorStop(0, '#2c2d33'); hg.addColorStop(0.2, '#17181c'); hg.addColorStop(0.62, '#0d0d10'); hg.addColorStop(1, '#050506');
     cx.fillStyle = hg; rr(-hw, y0, w, hs, 6); cx.fill();
@@ -533,7 +533,7 @@ PL.cable = (function () {
     cx.strokeStyle = 'rgba(190,196,216,.2)'; cx.beginPath(); cx.moveTo(-hw + 5, y0 + 0.7); cx.lineTo(hw - 5, y0 + 0.7); cx.stroke();
     cx.strokeStyle = 'rgba(190,196,216,.14)'; cx.beginPath(); cx.moveTo(-hw + 0.7, y0 + 5); cx.lineTo(-hw + 0.7, y1 - 5); cx.stroke();
 
-    // ---- короткая гладкая муфта плавно переходит в кабель ----
+    // ---- short smooth collar blending into the cable ----
     var cb = CABLE_W * 0.5, bh = hw * 0.62;
     var bg = cx.createLinearGradient(-bh, 0, bh, 0);
     bg.addColorStop(0, '#2a2b31'); bg.addColorStop(0.3, '#141519'); bg.addColorStop(1, '#050506');
@@ -553,7 +553,7 @@ PL.cable = (function () {
     cx.setTransform(dpr * S, 0, 0, dpr * S, 0, 0);
     drawCable();
     var pi = portInfo();
-    // наконечник уходит за кромку только у самого разъёма
+    // the tip goes behind the edge only right at the socket
     var t = tipOf();
     var inserted = (state === 'plugged' || state === 'seq' || state === 'drag') && t.y > pi.y + 0.5 && Math.abs(t.x - pi.x) < 18;
     if (inserted || state === 'plugged') {
@@ -562,7 +562,7 @@ PL.cable = (function () {
       cx.fillStyle = gr; cx.fillRect(pi.x - 48, pi.y - 40, 96, 48);
     }
     drawPlug(inserted ? pi.y + SOCKET : null);
-    // обводка при наведении на штекер (можно схватить)
+    // outline while hovering the plug (it can be grabbed)
     if (hot && state !== 'drag') {
       cx.save();
       cx.translate(end.x, end.y); cx.rotate(Math.atan2(-axis.x, axis.y));
@@ -572,7 +572,7 @@ PL.cable = (function () {
     }
   }
 
-  /* ---------- подсказка у штекера и подсветка разъёма ---------- */
+  /* ---------- hint next to the plug and socket highlight ---------- */
   var hintEl = document.createElement('div');
   hintEl.className = 'cable-hint';
   hintEl.setAttribute('aria-hidden', 'true');
@@ -602,7 +602,7 @@ PL.cable = (function () {
     });
   }
 
-  /* кабель падает сверху и качается на краю окна */
+  /* the cable falls from the top and sways at the window edge */
   function dangle(opts) {
     opts = opts || {};
     S = PL.scale || S;
@@ -640,9 +640,9 @@ PL.cable = (function () {
   function isPlugged() { return plugged && state === 'plugged'; }
   function busy() { return state === 'seq'; }
 
-  resize();   // дальше размер подстраивает app.js → fit() → PL.cable.resize()
+  resize();   // from here on app.js -> fit() -> PL.cable.resize() keeps the size right
 
-  /* для отладки: сдвинуть симуляцию ровно на dt секунд (вместе с setSlow(0) даёт покадровую съёмку) */
+  /* debugging: advance the simulation by exactly dt seconds (with setSlow(0) gives frame-by-frame capture) */
   function debugStep(dt) { var s = slow; slow = 1; while (dt > 1e-6) { var d = Math.min(0.05, dt); lastT = 0; frame(d * 1000); dt -= d; } slow = s; }
 
   return {

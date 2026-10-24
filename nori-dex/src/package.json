@@ -1,21 +1,18 @@
 {
-  "name": "pokelore",
+  "name": "nori-dex",
   "version": "1.0.0",
   "private": true,
-  "description": "PokéLore — интерактивная вики по лору покемонов внутри консоли",
+  "description": "Nori-Dex: interactive bestiary and promo hub for The Sky Project: Land of Noris (Enthariel Games)",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "check:i18n": "node scripts/i18n-check.mjs",
-    "data": "node scripts/build-data.mjs",
-    "data:offline": "node scripts/build-data.mjs --cache-sets",
-    "images": "node scripts/fetch-card-images.mjs"
+    "images": "python3 scripts/bake-images.py && python3 scripts/bake-bg.py",
+    "fonts": "node scripts/build-shot-fonts.mjs"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
-    "acorn": "^8.18.0",
     "csso": "^5.0.5",
     "html-minifier-terser": "^7.2.0",
     "terser": "^5.44.0"

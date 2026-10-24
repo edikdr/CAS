@@ -1,324 +1,82 @@
 /* ==========================================================================
-   Викторина картриджа: экран в духе GBA-покемонов, цветокор — тёмный неон сайта,
-   поверх зерно, срывы строк и редкий «глюк» (рисуются в js/quiz.js).
-   Сетка: 768×432, диалог внизу (3 строки), меню справа над ним, герой слева,
-   рамка с героем вопроса по центру.
+   Dialog kit (js/quiz.js): typewriter text box and ▶ menu.
+   Pixel font Tiny5, framed like the relic device: brass ring, night-navy glass.
+   Place .q-box anywhere inside a screen; it docks to the bottom of its host.
+   --qa is the accent (set from JS, defaults to halo gold).
    ========================================================================== */
-
-.view-quiz {
-  --qa: #e3c071;                  /* акцент картриджа (ставится из JS) */
-  --qn: #19e3ff;                  /* неон сайта */
-  --q-dark: #05070f;
-  --q-sh: #1a3a7a;                /* пиксельная тень текста */
-  --q-ring: rgba(25, 227, 255, .9);
-  background: #060914;
-  font-family: 'Tiny5', 'Press Start 2P', ui-monospace, monospace;
-  color: #f2f8ff;
-  overflow: hidden;
-}
-.view-quiz:not(.is-active) { transform: scale(1.03); }
-.view-quiz img { image-rendering: pixelated; image-rendering: crisp-edges; -webkit-user-drag: none; }
-
-.q-stage { position: absolute; inset: 0; filter: contrast(1.05) saturate(1.12); }
-.q-stage.is-shake { animation: qshake .42s linear; }
-.q-stage.is-glitch { animation: qglitch .2s steps(1, end); }
-@keyframes qshake {
-  0%, 100% { transform: translate(0, 0); }
-  14% { transform: translate(-8px, 3px); } 28% { transform: translate(7px, -3px); }
-  42% { transform: translate(-6px, -2px); } 57% { transform: translate(5px, 3px); }
-  72% { transform: translate(-3px, 1px); } 86% { transform: translate(2px, -1px); }
-}
-@keyframes qglitch {
-  0% { transform: translateX(-5px) skewX(-2deg); filter: hue-rotate(-24deg) saturate(1.7) contrast(1.1); }
-  33% { transform: translateX(6px) skewX(1.5deg); filter: hue-rotate(20deg) saturate(1.5) contrast(1.1); }
-  66% { transform: translateX(-2px); filter: hue-rotate(-10deg) saturate(1.3); }
-  100% { transform: none; filter: contrast(1.05) saturate(1.12); }
+.q-box {
+  --qa: #E8B93A;
+  --q-dark: #070b1a;
+  --q-ring: color-mix(in srgb, var(--qa) 80%, #fff);
+  --q-sh: #142449;
+  position: absolute;
+  left: 14px; right: 14px; bottom: 12px;
+  z-index: 6;
+  font-family: 'Tiny5', ui-monospace, monospace;
+  color: #f4f7ff;
 }
 
-/* ---------- фон сцены ---------- */
-.q-sky {
-  position: absolute; inset: 0; overflow: hidden;
-  background:
-    radial-gradient(ellipse 52% 46% at 38% 42%, color-mix(in srgb, var(--qa) 22%, transparent), transparent 72%),
-    linear-gradient(180deg, #070b1d 0%, #0d1840 34%, #1a2f6e 47.5%, #0a1230 47.9%, #070b1c 100%);
-}
-.q-stars { position: absolute; left: 0; top: 36px; width: 2px; height: 2px; animation: qtw 3.4s steps(2, jump-none) infinite alternate; }
-@keyframes qtw { to { opacity: .45; } }
-.q-glow {
-  position: absolute; left: 220px; top: 40px; width: 300px; height: 230px; opacity: .8;
-  background: radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--qa) 38%, transparent), transparent 66%);
-  animation: qglow 3.6s ease-in-out infinite alternate;
-}
-@keyframes qglow { to { opacity: .5; transform: scale(1.07); } }
-.q-hills { position: absolute; left: 0; top: 111px; width: 100%; height: 96px; fill: #0a1233; }
-.q-hills path { shape-rendering: crispEdges; }
-.q-floor { position: absolute; left: 0; top: 207px; width: 100%; height: 56px; }
-.q-floor line { stroke: var(--qa); stroke-opacity: .38; stroke-width: 1px; vector-effect: non-scaling-stroke; }
-.q-floor .qh { stroke-opacity: .5; }
-
-/* ---------- верхняя панель ---------- */
-.q-hud {
-  position: absolute; left: 0; right: 0; top: 0; height: 32px; z-index: 5;
-  display: flex; align-items: center; justify-content: space-between; padding: 0 14px;
-  background: linear-gradient(180deg, #0f193d, #0a112b);
-  box-shadow: 0 3px 0 var(--qa), 0 6px 0 var(--q-dark), 0 8px 20px rgba(0, 0, 0, .55);
-  font-size: 20px; letter-spacing: 0; text-transform: uppercase; text-shadow: 1px 1px 0 #000;
-}
-.q-cart { display: flex; align-items: center; gap: 8px; min-width: 160px; }
-.q-cart-ico { width: 13px; height: 17px; position: relative; background: var(--qa); border-radius: 2px 2px 0 0; box-shadow: 0 0 0 1px #05070f; }
-.q-cart-ico::before { content: ''; position: absolute; left: 2px; right: 2px; top: 2px; height: 7px; background: #0a0f26; opacity: .8; }
-.q-cart-ico::after { content: ''; position: absolute; left: 3px; right: 3px; bottom: 0; height: 3px; background: #05070f; }
-.q-cart-name { font-family: var(--pixel); font-size: 11px; color: var(--qa); letter-spacing: 1px; text-shadow: 0 0 10px color-mix(in srgb, var(--qa) 70%, transparent), 2px 2px 0 #000; }
-.q-prog { display: flex; align-items: center; gap: 10px; }
-.q-qn { color: #9fb6ef; white-space: nowrap; }
-.q-qn b { color: #fff; font-weight: 700; }
-.q-pips { display: flex; gap: 3px; }
-.q-pips i { width: 10px; height: 10px; background: #1b2650; box-shadow: inset 0 -2px 0 #0b1230, 0 0 0 1px #2a3a78; }
-.q-pips i.ok { background: #5ee08a; box-shadow: inset 0 -2px 0 #2a9a50, 0 0 7px rgba(94, 224, 138, .65); }
-.q-pips i.bad { background: #ff4d7a; box-shadow: inset 0 -2px 0 #b01a47, 0 0 7px rgba(255, 77, 122, .6); }
-.q-pips i.cur { background: var(--qa); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .35), 0 0 8px var(--qa); animation: qblink .7s steps(2, jump-none) infinite; }
-@keyframes qblink { 50% { opacity: .25; } }
-.q-stat { display: flex; align-items: center; justify-content: flex-end; gap: 14px; min-width: 160px; }
-.q-exp { color: #ffd24a; white-space: nowrap; }
-.q-exp b { color: #fff; margin-left: 4px; font-weight: 700; }
-.q-hearts { display: flex; gap: 4px; }
-.q-heart { position: relative; display: block; width: 20px; height: 20px; }
-.q-heart svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.q-heart .off { opacity: 0; }
-.q-heart:not(.is-lost) .on { animation: qbeat 1.5s steps(2, jump-none) infinite; }
-@keyframes qbeat { 50% { transform: scale(1.09); } }
-.q-heart.is-lost .on { opacity: 0; }
-.q-heart.is-lost .off { opacity: 1; }
-.q-heart.is-lost.is-break .on { opacity: 1; animation: qbreak .6s linear forwards; }
-.q-heart.is-lost.is-break .off { opacity: 0; animation: qappear .01s .6s forwards; }
-@keyframes qbreak {
-  0% { transform: scale(1); filter: none; } 18% { transform: scale(1.5); filter: brightness(2.2); }
-  38% { transform: translateX(-3px) rotate(-10deg) scale(1.2); } 58% { transform: translateX(3px) rotate(10deg) scale(1.15); }
-  100% { transform: scale(.5) translateY(8px); opacity: 0; }
-}
-@keyframes qappear { to { opacity: 1; } }
-.q-shard { position: absolute; z-index: 12; width: 5px; height: 5px; background: #ff3d7a; box-shadow: 0 0 6px #ff3d7a; pointer-events: none; animation: qshard .75s cubic-bezier(.2, .7, .4, 1) forwards; }
-@keyframes qshard { to { transform: translate(var(--dx), var(--dy)) rotate(var(--rt)); opacity: 0; } }
-
-/* ---------- заставка ---------- */
-.q-title { position: absolute; left: 474px; right: 20px; top: 10px; z-index: 3; display: none; }
-.is-title .q-title { display: block; }
-.is-title .q-hud, .is-end .q-hud, .is-end .q-hero, .is-end .q-subject { display: none; }
-.q-title small { display: block; font-family: var(--pixel); font-size: 9px; letter-spacing: 3px; color: #8fb2ff; margin-bottom: 9px; text-shadow: 2px 2px 0 #000; }
-.q-title-name {
-  display: block; font-family: var(--pixel); font-size: 26px; letter-spacing: 3px; color: var(--qa); line-height: 1.15;
-  text-shadow: 3px 3px 0 #0a0f26, 0 0 26px color-mix(in srgb, var(--qa) 65%, transparent);
-}
-.q-title-sub em { font-style: normal; color: var(--qa); }
-.q-title-sub {
-  display: inline-block; line-height: 1.3; margin-top: 8px; padding: 4px 10px 3px; font-size: 20px; letter-spacing: 0; color: #d6e4ff; background: rgba(6, 9, 22, .75);
-  box-shadow: 0 0 0 2px var(--qa), 0 0 0 4px var(--q-dark);
-}
-
-/* ---------- герой с напарником ---------- */
-.q-hero { position: absolute; left: 14px; top: 98px; width: 232px; height: 140px; z-index: 2; }
-.q-hero img { position: absolute; bottom: 0; opacity: 0; transition: opacity .25s; animation: qbob 1.1s steps(2, jump-none) infinite; filter: drop-shadow(0 0 0 transparent); }
-.q-hero-tr { left: 4px; }
-.q-hero-mon { left: 106px; bottom: -6px !important; animation-delay: -.45s !important; }
-@keyframes qbob { 50% { transform: translateY(-3px); } }
-.q-plat {
-  position: absolute; left: -6px; right: -6px; bottom: -18px; height: 32px; border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 42%, color-mix(in srgb, var(--qa) 40%, #0a1233) 0, rgba(10, 18, 51, .75) 52%, transparent 74%);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--qa) 55%, transparent), 0 0 20px color-mix(in srgb, var(--qa) 40%, transparent);
-}
-
-/* ---------- рамка с героем вопроса ---------- */
-.q-subject { position: absolute; left: 276px; top: 40px; width: 172px; z-index: 3; }
-.q-spwrap { position: relative; width: 172px; height: 176px; }
-.q-frame {
-  position: absolute; inset: 0; overflow: hidden; display: grid; place-items: center; background: #0b1332;
-  box-shadow:
-    0 -3px 0 0 var(--qa), 0 3px 0 0 var(--qa), -3px 0 0 0 var(--qa), 3px 0 0 0 var(--qa),
-    0 -6px 0 0 var(--q-dark), 0 6px 0 0 var(--q-dark), -6px 0 0 0 var(--q-dark), 6px 0 0 0 var(--q-dark),
-    -3px -3px 0 0 var(--q-dark), 3px -3px 0 0 var(--q-dark), -3px 3px 0 0 var(--q-dark), 3px 3px 0 0 var(--q-dark),
-    0 0 24px color-mix(in srgb, var(--qa) 35%, transparent);
-}
-.q-rays { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(circle at 50% 66%, #4b6fe0 0, #243c9a 46%, #101a4c 100%); }
-.q-rays::before {
-  content: ''; position: absolute; inset: -70%; opacity: .5;
-  background: repeating-conic-gradient(from 0deg at 50% 50%, rgba(170, 200, 255, .55) 0 6deg, rgba(40, 60, 150, 0) 6deg 12deg);
-  animation: qspin 30s linear infinite;
-}
-.q-rays::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(5, 8, 24, .55) 100%); }
-@keyframes qspin { to { transform: rotate(360deg); } }
-.q-sprite { position: relative; z-index: 1; opacity: 0; transition: opacity .15s; animation: qbob 1s steps(2, jump-none) infinite; }
-.q-ballwrap { position: absolute; inset: 0; z-index: 1; display: none; place-items: center; }
-.q-ballwrap.is-on { display: grid; }
-.q-ball { width: 96px; height: 96px; animation: qbob 1s steps(2, jump-none) infinite; filter: drop-shadow(0 0 10px rgba(255, 255, 255, .25)); }
-.is-sil .q-sprite { filter: brightness(0) drop-shadow(0 0 3px rgba(0, 0, 0, .8)); }
-.is-sil .q-rays { background: radial-gradient(circle at 50% 66%, #7b97f0 0, #3550c0 46%, #16206a 100%); }
-.is-reveal .q-sprite { animation: qrev .55s steps(6, end), qbob 1s .55s steps(2, jump-none) infinite; }
-@keyframes qrev { 0% { filter: brightness(0) } 30% { filter: brightness(8) saturate(0) } 100% { filter: none } }
-.is-happy .q-sprite { animation: qhop .5s 2 steps(4, jump-none), qbob 1s 1s steps(2, jump-none) infinite; }
-@keyframes qhop { 50% { transform: translateY(-14px); } }
-.is-sad .q-sprite { animation: qno .4s 2 linear, qbob 1s .8s steps(2, jump-none) infinite; }
-@keyframes qno { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
-.q-spwrap.is-in { animation: qin .5s cubic-bezier(.2, .8, .3, 1) both; }
-.q-subject.is-out .q-spwrap { animation: qout .22s ease-in forwards; }
-@keyframes qin { 0% { transform: translateX(90px); opacity: 0; filter: brightness(3); } 45% { opacity: 1; filter: brightness(1.7); } 100% { transform: none; filter: none; } }
-@keyframes qout { to { transform: translateX(-46px); opacity: 0; filter: brightness(2); } }
-.q-plate {
-  margin: 14px auto 0; width: max-content; max-width: 196px; padding: 4px 10px 3px; text-align: center;
-  font-family: var(--pixel); font-size: 9px; line-height: 1.5; letter-spacing: 1px; color: #fff; background: #0a1130;
-  box-shadow: 0 0 0 2px var(--qa), 0 0 0 4px var(--q-dark);
-}
-.q-plate.is-hid { color: #8fa0d8; }
-.q-gain { position: absolute; right: 7px; top: 7px; z-index: 3; font-family: var(--pixel); font-size: 13px; color: #ffd24a; opacity: 0; text-shadow: 2px 2px 0 #3a2a00; }
-.q-gain.go { animation: qgain 1.1s ease-out; }
-@keyframes qgain { 0% { opacity: 0; transform: translateY(12px); } 15% { opacity: 1; } 100% { opacity: 0; transform: translateY(-28px); } }
-
-/* ---------- диалог (печать текста) ---------- */
+/* ---------- text box ---------- */
 .q-dialog {
-  position: absolute; left: 16px; right: 16px; top: 258px; height: 126px; z-index: 6; padding: 15px 24px 9px;
-  background: linear-gradient(180deg, #162858 0%, #0e1c46 55%, #0a1536 100%);
-  box-shadow:
-    0 -3px 0 0 var(--q-ring), 0 3px 0 0 var(--q-ring), -3px 0 0 0 var(--q-ring), 3px 0 0 0 var(--q-ring),
-    0 -6px 0 0 var(--q-dark), 0 6px 0 0 var(--q-dark), -6px 0 0 0 var(--q-dark), 6px 0 0 0 var(--q-dark),
-    -3px -3px 0 0 var(--q-dark), 3px -3px 0 0 var(--q-dark), -3px 3px 0 0 var(--q-dark), 3px 3px 0 0 var(--q-dark),
-    inset 0 0 0 3px rgba(255, 255, 255, .06), inset 0 -10px 24px rgba(0, 0, 0, .3), 0 0 26px rgba(25, 227, 255, .28);
+  position: relative;
+  min-height: 108px;
+  padding: 14px 22px 10px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #15244f 0%, #0f1b3d 60%, #0a1430 100%);
+  box-shadow: 0 0 0 3px var(--q-ring), 0 0 0 6px var(--q-dark), inset 0 0 0 2px rgba(255, 255, 255, .06), 0 0 24px color-mix(in srgb, var(--qa) 30%, transparent);
   cursor: pointer;
 }
 .q-who {
-  position: absolute; left: 20px; top: -18px; padding: 4px 12px 3px; background: var(--qa); color: #0a0f26;
-  font-family: var(--pixel); font-size: 9px; line-height: 1.3; letter-spacing: 1px; white-space: nowrap;
+  position: absolute; left: 18px; top: -17px; padding: 4px 12px 3px; background: var(--qa); color: #0a0f26;
+  font-size: 13px; line-height: 1.2; letter-spacing: 1px; white-space: nowrap;
   box-shadow: 0 0 0 3px var(--q-dark); text-transform: uppercase;
 }
 .q-text {
-  font-size: 30px; line-height: 33px; letter-spacing: 0; color: #fff; white-space: pre-wrap; word-break: normal; overflow-wrap: anywhere;
-  text-shadow: 2px 2px 0 var(--q-sh), 1px 0 0 rgba(255, 70, 110, .32), -1px 0 0 rgba(25, 227, 255, .32);
+  font-size: 24px; line-height: 28px; color: #fff; white-space: pre-wrap; overflow-wrap: anywhere;
+  text-shadow: 2px 2px 0 var(--q-sh);
 }
 .tw-b { visibility: hidden; }
-.q-text.q-meas { position: absolute; left: 24px; right: 24px; top: 15px; visibility: hidden; pointer-events: none; }
-.is-typing .tw-a::after { content: ''; display: inline-block; width: 11px; height: 3px; margin-left: 3px; background: var(--qa); animation: qblink .36s steps(2, jump-none) infinite; }
+.q-text.q-meas { position: absolute; left: 22px; right: 22px; top: 14px; visibility: hidden; pointer-events: none; }
+.is-typing .tw-a::after { content: ''; display: inline-block; width: 10px; height: 3px; margin-left: 3px; background: var(--qa); animation: qblink .36s steps(2, jump-none) infinite; }
+@keyframes qblink { 50% { opacity: .25; } }
 .q-more {
-  position: absolute; right: 24px; bottom: 11px; width: 0; height: 0; opacity: 0;
+  position: absolute; right: 22px; bottom: 10px; width: 0; height: 0; opacity: 0;
   border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid var(--qa);
-  filter: drop-shadow(2px 2px 0 #000);
 }
 .q-more.is-on { opacity: 1; animation: qmore .62s steps(2, jump-none) infinite; }
 @keyframes qmore { 50% { transform: translateY(4px); } }
 
-/* ---------- меню выбора (как YES/NO в FireRed) ---------- */
+/* ---------- ▶ menu ---------- */
 .q-menu {
-  position: absolute; right: 24px; bottom: 194px; width: max-content; min-width: 220px; max-width: 296px; z-index: 7; padding: 9px 12px 9px 10px; max-height: 190px;
-  background: linear-gradient(180deg, #17295c, #0d1b45);
-  box-shadow:
-    0 -3px 0 0 var(--q-ring), 0 3px 0 0 var(--q-ring), -3px 0 0 0 var(--q-ring), 3px 0 0 0 var(--q-ring),
-    0 -6px 0 0 var(--q-dark), 0 6px 0 0 var(--q-dark), -6px 0 0 0 var(--q-dark), 6px 0 0 0 var(--q-dark),
-    -3px -3px 0 0 var(--q-dark), 3px -3px 0 0 var(--q-dark), -3px 3px 0 0 var(--q-dark), 3px 3px 0 0 var(--q-dark),
-    inset 0 0 0 3px rgba(255, 255, 255, .06), 0 0 24px rgba(25, 227, 255, .28);
-  opacity: 0; visibility: hidden; transform: translateY(10px); transition: opacity .12s, transform .14s steps(3, end), visibility 0s .14s;
+  position: absolute; right: 8px; bottom: calc(100% + 16px);
+  min-width: 220px; max-width: calc(100% - 16px);
+  padding: 8px 12px 8px 10px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #17295c, #0f1b3d);
+  box-shadow: 0 0 0 3px var(--q-ring), 0 0 0 6px var(--q-dark), 0 0 22px color-mix(in srgb, var(--qa) 28%, transparent);
+  opacity: 0; visibility: hidden; transform: translateY(10px);
+  transition: opacity .12s, transform .14s steps(3, end), visibility 0s .14s;
 }
 .q-menu.is-open { opacity: 1; visibility: visible; transform: none; transition: opacity .12s, transform .14s steps(3, end), visibility 0s; }
-.q-menu.is-wide, .q-menu.is-confirm { min-width: 250px; }
-.is-title .q-opt { padding: 1px 2px; font-size: 20px; line-height: 28px; }
-.is-title .q-num { font-size: 16px; line-height: 28px; }
-.is-title .q-cur { margin-top: 7px; }
 .q-opt {
-  display: flex; align-items: flex-start; gap: 6px; width: 100%; padding: 4px 2px; text-align: left; cursor: pointer;
-  font-family: inherit; font-size: 30px; line-height: 33px; color: #cfdcff; text-shadow: 2px 2px 0 var(--q-sh);
+  display: flex; align-items: flex-start; gap: 6px; width: 100%; min-height: 44px; padding: 6px 2px; text-align: left; cursor: pointer;
+  font-family: inherit; font-size: 22px; line-height: 28px; color: #cfdcff; text-shadow: 2px 2px 0 var(--q-sh);
 }
-.q-cur { flex: 0 0 14px; height: 14px; margin-top: 10px; clip-path: polygon(0 0, 100% 50%, 0 100%); background: transparent; }
-.q-num { flex: 0 0 14px; margin-top: 1px; font-size: 20px; line-height: 33px; color: #6d84c8; }
+.q-cur { flex: 0 0 13px; height: 13px; margin-top: 8px; clip-path: polygon(0 0, 100% 50%, 0 100%); background: transparent; }
+.q-num { flex: 0 0 14px; font-size: 16px; line-height: 28px; color: #7f8fc0; }
 .q-opt.is-sel { color: #fff; }
 .q-opt.is-sel .q-cur { background: var(--qa); animation: qcur .5s steps(2, jump-none) infinite; }
 .q-opt.is-sel .q-num { color: var(--qa); }
+.q-opt:focus-visible { outline: 2px solid var(--qa); outline-offset: 2px; }
 @keyframes qcur { 50% { transform: translateX(3px); } }
-.q-opt.is-right { color: #7dffaa; }
-.q-opt.is-right .q-cur { background: #7dffaa; }
-.q-opt.is-wrong { color: #ff6f92; }
-.q-opt.is-wrong .q-cur { background: #ff6f92; }
 .q-opt.is-pick .q-ot { animation: qpick .24s steps(2, jump-none) 2; }
 @keyframes qpick { 50% { opacity: .2; } }
 
-/* меню-«полоса» над диалогом (финальные экраны) */
-.q-menu.is-bar { left: 16px; right: 16px; top: 198px; bottom: auto; width: auto; min-width: 0; max-width: none; display: flex; justify-content: center; gap: 4px; padding: 3px 10px; }
-.q-menu.is-bar .q-opt { width: auto; flex: 0 0 auto; align-items: center; padding: 1px 18px 1px 8px; }
-.q-menu.is-bar .q-cur { margin-top: 0; }
-.q-menu.is-bar .q-num { display: none; }
-
-/* ---------- финал: Зал Славы / поражение ---------- */
-.q-end {
-  position: absolute; inset: 0; z-index: 4; overflow: hidden; opacity: 0; visibility: hidden; transition: opacity .35s, visibility 0s .35s;
-  background: linear-gradient(180deg, #170d3a 0%, #2a1a66 46%, #3f2c88 66%, #1f1248 100%);
+@container screen (max-width: 480px) {
+  .q-text { font-size: 20px; line-height: 24px; }
+  .q-opt { font-size: 19px; line-height: 24px; }
+  .q-menu { left: 8px; right: 8px; min-width: 0; }
 }
-.q-end.is-on { opacity: 1; visibility: visible; transition: opacity .35s, visibility 0s; }
-.qe-rays {
-  position: absolute; left: 50%; top: 36%; width: 1300px; height: 1300px; margin: -650px 0 0 -650px; pointer-events: none;
-  background: repeating-conic-gradient(from 0deg, rgba(200, 180, 255, .13) 0 9deg, transparent 9deg 18deg);
-  -webkit-mask-image: radial-gradient(circle, #000 0, transparent 52%); mask-image: radial-gradient(circle, #000 0, transparent 52%);
-  animation: qspin 50s linear infinite;
-}
-.qe-confetti { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; z-index: 3; pointer-events: none; }
-.qe-head { position: absolute; left: 0; right: 0; top: 4px; text-align: center; z-index: 2; }
-.qe-head b {
-  display: block; font-family: var(--pixel); font-size: 22px; letter-spacing: 4px; color: #ffe27a;
-  text-shadow: 3px 3px 0 #3a1d00, 0 0 28px rgba(255, 210, 90, .75);
-}
-.qe-head span { position: absolute; right: 18px; top: 8px; display: inline-block; padding: 1px 10px 0; font-size: 20px; letter-spacing: 1px; color: #e8dcff; background: rgba(15, 8, 40, .6); box-shadow: 0 0 0 2px rgba(255, 226, 122, .6); text-transform: uppercase; }
-.qe-floor {
-  position: absolute; left: 0; right: 0; top: 154px; height: 120px;
-  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .09) 0 3px, transparent 3px 8px), linear-gradient(180deg, #6a4fc8, #382483 60%, #1f1450);
-  box-shadow: 0 -3px 0 #9a82f0, 0 -6px 0 #1a0f40;
-}
-.qe-row { position: absolute; left: 12px; right: 12px; top: 38px; height: 128px; display: flex; align-items: flex-end; justify-content: space-between; z-index: 2; }
-.qe-tr, .qe-mon { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
-.qe-tr { width: 128px; }
-.qe-hero { opacity: 0; transition: opacity .4s; }
-.qe-hero.is-on { opacity: 1; }
-.qe-mon { width: 104px; opacity: 0; transform: translateY(-26px) scale(.8); transition: opacity .3s calc(var(--i) * .3s + .5s), transform .4s calc(var(--i) * .3s + .5s) cubic-bezier(.3, 1.6, .5, 1); }
-.qe-mon.is-on { opacity: 1; transform: none; }
-.qe-mon img { animation: qbob 1.2s steps(2, jump-none) infinite; animation-delay: calc(var(--i) * -.2s); }
-.qe-mon b { margin-top: 20px; font-family: var(--pixel); font-size: 8px; letter-spacing: .5px; color: #fff; text-shadow: 2px 2px 0 #1a0f40; white-space: nowrap; position: absolute; bottom: -20px; }
-.qe-mon.is-on::after {
-  content: ''; position: absolute; left: 50%; top: 18%; width: 4px; height: 4px; background: #fff; opacity: 0;
-  box-shadow: 0 -8px 0 #fff, 0 8px 0 #fff, -8px 0 0 #fff, 8px 0 0 #fff, 0 -14px 0 #ffe27a, 0 14px 0 #ffe27a, -14px 0 0 #ffe27a, 14px 0 0 #ffe27a;
-  animation: qspark .7s calc(var(--i) * .3s + .55s) steps(5, end) both;
-}
-@keyframes qspark { 0% { opacity: 1; transform: scale(.2); } 60% { opacity: 1; transform: scale(1.2); } 100% { opacity: 0; transform: scale(1.7); } }
-.is-lose .q-end { background: linear-gradient(180deg, #14070f 0%, #240f1d 55%, #100610 100%); }
-.is-lose .qe-rays { display: none; }
-.is-lose .qe-head b { color: #ff6f92; text-shadow: 3px 3px 0 #2a0612, 0 0 24px rgba(255, 70, 110, .6); }
-.is-lose .qe-head span { box-shadow: 0 0 0 2px rgba(255, 90, 130, .55); }
-.is-lose .qe-floor { background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .04) 0 3px, transparent 3px 8px), linear-gradient(180deg, #3a1f33, #1d0e1a 60%, #0f060d); box-shadow: 0 -3px 0 #5a2f4a, 0 -6px 0 #0a0408; }
-.is-lose .qe-row img { filter: grayscale(1) brightness(.62); animation: none; }
-.is-lose .qe-mon.is-on::after { display: none; }
-.is-lose .qe-confetti { display: none; }
-
-/* ---------- шторки перехода ---------- */
-.q-wipe { position: absolute; inset: 0; z-index: 9; pointer-events: none; visibility: hidden; overflow: hidden; }
-.q-wipe i { position: absolute; left: 0; right: 0; top: calc(var(--i) * 48px); height: 49px; background: #04060d; --s: 1; transform: translateX(calc(101% * var(--s))); }
-.q-wipe i:nth-child(even) { --s: -1; }
-.q-wipe.in { visibility: visible; }
-.q-wipe.in i { animation: wIn .44s calc(var(--i) * 28ms) cubic-bezier(.6, 0, .3, 1) forwards; }
-.q-wipe.out { visibility: visible; }
-.q-wipe.out i { transform: none; animation: wOut .42s calc(var(--i) * 28ms) cubic-bezier(.6, 0, .3, 1) forwards; }
-@keyframes wIn { to { transform: none; } }
-@keyframes wOut { to { transform: translateX(calc(-101% * var(--s))); } }
-
-/* ---------- цветокор и помехи поверх ---------- */
-.q-fx { position: absolute; inset: 0; z-index: 20; pointer-events: none; overflow: hidden; }
-.q-grade {
-  position: absolute; inset: 0;
-  background:
-    radial-gradient(ellipse at 50% 46%, rgba(0, 0, 0, 0) 54%, rgba(2, 4, 14, .6) 100%),
-    linear-gradient(180deg, rgba(25, 227, 255, .075), rgba(255, 42, 133, .06));
-}
-.q-noise { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; mix-blend-mode: screen; opacity: .9; }
-.q-flash { position: absolute; inset: 0; opacity: 0; background: #fff; }
-.q-flash.go { animation: qflash .38s ease-out; }
-.q-flash.go.good { background: #7dffaa; animation-name: qflash2; }
-.q-flash.go.bad { background: #ff2a5a; animation-name: qflash2; }
-@keyframes qflash { 0% { opacity: .85; } 100% { opacity: 0; } }
-@keyframes qflash2 { 0% { opacity: .38; } 100% { opacity: 0; } }
-
 @media (prefers-reduced-motion: reduce) {
-  .view-quiz * { animation-duration: .01s !important; animation-iteration-count: 1 !important; }
+  .is-typing .tw-a::after, .q-more.is-on, .q-opt.is-sel .q-cur, .q-opt.is-pick .q-ot { animation: none; }
 }
-/* на финальных экранах над диалогом лежит полоса меню — плашка говорящего ей мешает */
-.is-end .q-who { display: none; }

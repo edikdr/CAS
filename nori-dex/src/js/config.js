@@ -1,98 +1,56 @@
 /* ==========================================================================
-   КОНФИГ — здесь меняются название, разделы меню и системные кнопки.
-   Разделы пока заглушки: заменишь названия/цвета/иконки, когда решишь
-   с контентом. Иконки — ключи из js/icons.js.
+   CONFIG: site name, screens, relic cartridges and system buttons.
+   Cartridges are pure data: add, remove or reorder them here. Icons are keys
+   of js/icons.js. Screens are rendered by PL.sections.mount(id) (js/sections.js).
    ========================================================================== */
 window.PL = window.PL || {};
 
 PL.config = {
-  siteName: 'POKÉLORE',
-  tagline: _('interactive lore wiki'),
-  userName: _('Trainer'),
+  siteName: 'NORI-DEX',
+  tagline: _('Bestiary of the Land of Noris'),
 
-  // Плитки главного меню (как игры на Switch)
+  /* Plane themes: device glow and relic crystal colours. Purely visual; the
+     plane names and lore live in PL.sky.planes (with their Placeholder status). */
+  planes: {
+    p1: { c1: '#7FD6DF', c2: '#2E7F95' },   // sky cyan
+    p2: { c1: '#7BC46A', c2: '#3E7A33' },   // leaf green
+    p3: { c1: '#F07A3E', c2: '#A8401A' },   // ember orange
+    p4: { c1: '#A98BE0', c2: '#5A3E99' },   // abyssal violet
+  },
+
+  /* Screens (one per relic). title / subtitle show on the altar and in the tab bar. */
   sections: [
-    {
-      id: 'regions',
-      title: _('Regions'),
-      subtitle: _('Kanto, Johto, Hoenn and beyond'),
-      icon: 'map',
-      c1: '#36d17c', c2: '#0b7f55',
-    },
-    {
-      id: 'pokedex',
-      title: _('Pokédex'),
-      subtitle: _('All 1025 Pokémon: types, stats, evolutions'),
-      icon: 'dex',
-      c1: '#ff6a52', c2: '#c22d3c',
-    },
-    {
-      id: 'legends',
-      title: _('Legends & Myths'),
-      subtitle: _('Myths, hero dossiers and internet theories'),
-      icon: 'star',
-      c1: '#b28cff', c2: '#5a35c9',
-    },
-    {
-      id: 'types',
-      title: _('Types'),
-      subtitle: _('18 types: what beats what'),
-      icon: 'flame',
-      c1: '#ffbe4d', c2: '#e2621f',
-    },
-    {
-      id: 'timeline',
-      title: _('Timeline'),
-      subtitle: _('Game generations and Trading Card Game series'),
-      icon: 'clock',
-      c1: '#3cc2ff', c2: '#1d5fd6',
-    },
-    {
-      id: 'items',
-      title: _('Items'),
-      subtitle: _('Poké Balls, evolution stones, berries'),
-      icon: 'pokeball',
-      c1: '#5f6bff', c2: '#22297a',
-    },
+    { id: 'dex',    title: _('Nori-Dex'),    subtitle: _('The bestiary: every Nori we can show you'), icon: 'dex',    plane: 'p1' },
+    { id: 'worlds', title: _('Worlds'),      subtitle: _('The four planes joined by the stream of mana'), icon: 'map', plane: 'p2' },
+    { id: 'spirit', title: _('Spirit Quiz'), subtitle: _('Which Nori is your spirit guardian?'),        icon: 'star',   plane: 'p4' },
+    { id: 'join',   title: _('Join'),        subtitle: _('Kickstarter, Steam and the studio'),          icon: 'flag',   plane: 'p3' },
   ],
 
-  // Раскраски консоли: l / r — джойконы, b — корпус (переключатель под консолью)
-  skins: [
-    { id: 'neon',      name: _('Neon'),      l: '#f4553f', r: '#13c3e3', b: '#18191c' },
-    { id: 'gengar',    name: _('Gengar'),    l: '#7a4fd8', r: '#46d985', b: '#17121f' },
-    { id: 'pikachu',   name: _('Pikachu'),    l: '#ffcd2e', r: '#ffcd2e', b: '#1b1814' },
-    { id: 'charizard', name: _('Charizard'),  l: '#ff7a2b', r: '#17a5a0', b: '#1b1512' },
-    { id: 'mew',       name: _('Mew'),       l: '#ff8cc6', r: '#a59cff', b: '#1c1721' },
-    { id: 'snow',      name: _('Snow'),      l: '#eceef2', r: '#eceef2', b: '#e3e6ea' },
-    { id: 'onyx',      name: _('Onyx'),     l: '#2c2e33', r: '#2c2e33', b: '#0f1012' },
-  ],
-
-  // Картриджи рядом с консолью: берёшь картридж и перетаскиваешь в слот консоли: запускается его викторина (15 вопросов, 3 сердца).
-  // title / cap — надписи на этикетке (как на картинке), ru / sub / blurb — карточка справа,
-  // opens — id раздела из sections (кнопка «Читать раздел» в меню картриджа), bg / tc — цвет этикетки и её заголовка, c1 — акцент интерфейса,
-  // art — рисунок на этикетке (arceus | trainer | ball | catch), game — картридж запускает аркаду вместо викторины, facts — какие цифры показать (считаются из данных).
+  /* Relic cartridges. Drag one into the slot and its screen boots.
+     title / cap: label on the relic; name / sub / blurb: the info card;
+     opens: section id (see sections above); tab: optional sub-view passed to the screen;
+     plane: crystal colour (key of planes); art: image on the relic face (official art only);
+     facts: numbers on the info card (keys of FACTS in js/carts.js). */
   carts: [
-    { id: 'lore', title: 'LORE', cap: 'MYTHS & LEGENDS', ru: _('Lore'), sub: _('Myths & Legends'),
-      blurb: _('World creators, ancient powers and the regions where it all began.'),
-      opens: 'legends', tab: 'myths', bg: '#16213a', tc: '#d9b968', c1: '#e3c071', art: 'arceus', facts: ['quiz', 'legends', 'regions'] },
-    { id: 'trainers', title: 'TRAINERS', cap: 'HEROES & RIVALS', ru: _('Trainers'), sub: _('Heroes & Rivals'),
-      blurb: _('Professors, Gym Leaders and Champions: the people closest to Pokémon.'),
-      opens: 'legends', tab: 'dossier', bg: '#d03a2f', tc: '#fff3ee', c1: '#ff6a58', art: 'trainer', facts: ['quiz', 'people', 'generations'] },
-    { id: 'items', title: 'ITEMS', cap: 'KEY ADVENTURE GEAR', ru: _('Items'), sub: _('Adventure gear'),
-      blurb: _('Poké Balls, evolution stones and berries: everything from a Trainer’s bag.'),
-      opens: 'items', bg: '#5ea9dd', tc: '#f4fbff', c1: '#63bdf7', art: 'ball', facts: ['quiz', 'items', 'itemGroups'] },
-    { id: 'catch', title: 'MASTER CATCHER', cap: 'MASTER CATCHER EDITION', ru: _('Catcher'), short: _('Catcher'), sub: _('Arcade · catch them on the fly'), game: 'catch',
-      blurb: _('Pick the right Poké Ball for the Pokémon and catch it as it darts across the screen. Earn EXP for accuracy.'),
-      opens: 'items', bg: '#62b857', tc: '#ffffff', c1: '#7fdc6a', art: 'catch', facts: ['catchTime', 'catchBalls', 'catchExp'] },
+    { id: 'dex', title: 'NORI-DEX', cap: 'BESTIARY', name: _('Nori-Dex'), sub: _('Bestiary'),
+      blurb: _('Every Nori the studio has shown so far, with playtest readings.'),
+      opens: 'dex', plane: 'p1', facts: ['noris'], art: 'assets/nori/hud-zer.webp' },
+    { id: 'worlds', title: 'WORLDS', cap: 'THE FOUR PLANES', name: _('Worlds'), sub: _('The four planes'),
+      blurb: _('Four planes joined by the eternal stream of mana.'),
+      opens: 'worlds', plane: 'p2', facts: ['planes'], art: 'assets/shots/overgrown-ruins-960.webp' },
+    { id: 'spirit', title: 'SPIRIT', cap: 'SPIRIT QUIZ', name: _('Spirit Quiz'), sub: _('Three questions'),
+      blurb: _('Answer three questions and meet your spirit guardian.'),
+      opens: 'spirit', plane: 'p4', facts: ['questions'], art: 'assets/nori/hud-garnia.webp' },
+    { id: 'join', title: 'JOIN', cap: 'KICKSTARTER', name: _('Join'), sub: _('Back the campaign'),
+      blurb: _('Kickstarter, Steam, Discord and the studio channels.'),
+      opens: 'join', plane: 'p3', facts: ['days'], art: 'assets/logo/enthariel-games-logo.webp' },
   ],
 
-  // Круглые системные кнопки под плитками
+  /* Round system buttons under the altar tiles */
   dock: [
-    { id: 'news',     label: _('News'),     icon: 'news',    color: '#ff6a52' },
-    { id: 'search',   label: _('Search'),       icon: 'search',  color: '#ffd25a' },
-    { id: 'controls', label: _('Controls'),  icon: 'gamepad', color: '#7dffaa' },
-    { id: 'retro',    label: _('Retro filter'), icon: 'tv',     color: '#b28cff' },
-    { id: 'sound',    label: _('Sound'),        icon: 'sound',   color: '#ffffff' },
-    { id: 'exit',     label: _('Exit'),       icon: 'power',   color: '#ff7a7a' },
+    { id: 'controls', label: _('Controls'), icon: 'gamepad', color: '#7FD6DF' },
+    { id: 'retro',    label: _('Glass effect'), icon: 'tv',  color: '#A98BE0' },
+    { id: 'sound',    label: _('Sound'),    icon: 'sound',   color: '#ffffff' },
+    { id: 'exit',     label: _('Sleep'),    icon: 'power',   color: '#F07A3E' },
   ],
 };

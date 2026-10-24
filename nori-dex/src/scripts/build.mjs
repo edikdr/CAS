@@ -1,21 +1,28 @@
 #!/usr/bin/env node
-/* Сборка боевой версии сайта (без потери качества: только минификация и склейка).
+/* Production build of Nori-Dex (minify and bundle only; no quality loss).
  *
- *   npm i                      # terser, csso, html-minifier-terser, acorn (dev-зависимости)
- *   node scripts/build.mjs     # → dist/   (можно открыть dist/index.html или залить папку dist на Netlify)
+ *   npm i              # terser, csso, html-minifier-terser (dev dependencies)
+ *   npm run build      # -> dist/   (open dist/index.html through any static server, or deploy dist/)
  *
- * Что делает:
- *   • js: данные (data/**) → js/data.min.js; код → js/app.ru.min.js и js/app.en.min.js (в EN вместо русских
- *     lore-ru / lore-more / quiz-data подставляются английские версии и подключаются словари js/en/*);
- *     по одному запросу на язык вместо ~30–60 файлов; js/shot-fonts.js (шрифты для снимков) остаётся отдельным и грузится по требованию;
- *   • css: все стили → один css/app.css (минификация csso, без «умных» перестановок правил);
- *   • index.html: минификация, версия ?v=<хэш> у бандлов (можно кэшировать «навсегда»), preload шрифтов;
- *   • assets/, fonts/ копируются как есть, assets/src (исходники картинок) не включается;
- *   • _headers для Netlify (кэш и сжатие).
- * Исходники остаются читаемыми: всё, что делает сборка, — в этом файле.
+ * What it does:
+ *   • js:  every script listed in index.html -> one js/app.<hash>.js (deferred, no inline script);
+ *   • css: every stylesheet listed in index.html -> one css/app.<hash>.css;
+ *   • html: minified, fonts preloaded;
+ *   • assets/ (minus assets/src, the untouched originals) and fonts/ are copied, and every
+ *     reference to them gets ?v=<content hash> so they can be cached forever;
+ *   • gates (the build fails when one trips):
+ *       - index.html script list must equal CORE below (same order);
+ *       - no Cyrillic anywhere in the sources or the output (English only);
+ *       - brand sweep over dist: no third-party franchise or hardware names (BRAND below);
+ *       - every absolute URL in dist is an outbound link to an allowed host (zero third-party requests);
+ *       - every assets/... path referenced by code or data exists;
+ *       - budgets: first load (HTML + CSS + JS, gzip) < 250 KB, data/sky.js < 20 KB,
+ *         every shipped image is WebP and < 250 KB.
+ * Everything the build does is in this file. Images are prepared by scripts/bake-images.py.
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -23,46 +30,63 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.resolve(ROOT, process.argv[2] || 'dist');
 const require = createRequire(import.meta.url);
-const TOOLS = process.env.TOOLS_DIR || '';
-function need(name) {
-  try { return require(name); } catch (e) { return require(path.join(TOOLS, name)); }
-}
-const terser = need('terser');
-const csso = need('csso');
-const { minify: minifyHtml } = need('html-minifier-terser');
+const terser = require('terser');
+const csso = require('csso');
+const { minify: minifyHtml } = require('html-minifier-terser');
 
 const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const hash = (s) => crypto.createHash('sha1').update(s).digest('hex').slice(0, 8);
-const kb = (n) => (n / 1024).toFixed(1) + ' КБ';
+const kb = (n) => (n / 1024).toFixed(1) + ' KB';
+const gz = (s) => zlib.gzipSync(s, { level: 9 }).length;
+const problems = [];
+const fail = (msg) => problems.push(msg);
 
-/* ---------- состав бандлов (должен совпадать с порядком <script> в index.html) ---------- */
-const DATA = ['data/meta.js', 'data/dex.js', 'data/types.js', 'data/world.js', 'data/tcg/sets.js', 'data/tcg/index.js', 'data/tcg/images-map.js', 'data/tcg/supporters.js', 'data/tcg/images.js'];
-const CORE = ['js/i18n.js', 'js/motion.js', 'js/config.js', 'js/icons.js', 'js/cards.js', 'js/img.js', 'js/lore-ru.js', 'js/lore-more.js', 'js/news.js', 'js/data.js', 'js/tcg.js', 'js/sections.js', 'js/audio.js', 'js/static.js', 'js/input.js', 'js/cable.js', 'js/pixballs.js', 'js/carts.js', 'js/shot.js', 'js/quiz-data.js', 'js/quiz.js', 'js/catcher.js', 'js/mine.js', 'js/scan-img.js', 'js/scan-match.js', 'js/scan.js', 'js/app.js'];
+/* ---------- bundle contents (must match the <script> order in index.html) ---------- */
+const CORE = [
+  'js/i18n.js', 'data/sky.js',
+  'js/motion.js', 'js/config.js', 'js/icons.js', 'js/audio.js', 'js/static.js', 'js/input.js',
+  'js/cable.js', 'js/carts.js', 'js/sections.js', 'js/quiz-data.js', 'js/quiz.js', 'js/shot.js',
+  'js/app.js',
+];
+const FONTS_PRELOAD = ['nunito-latin', 'tiny5'];
+/* outbound links the site may contain (they are <a href>, never fetched) */
+const LINK_HOSTS = ['www.kickstarter.com', 'kickstarter.com', 'www.entharielgames.com', 'entharielgames.com',
+  'www.instagram.com', 'x.com', 'www.tiktok.com', 'www.youtube.com', 'store.steampowered.com', 'discord.gg', 'discord.com'];
+const NAMESPACES = ['http://www.w3.org/2000/svg', 'http://www.w3.org/1999/xhtml', 'http://www.w3.org/1999/xlink'];
+const BRAND = /pok[eé]|pikachu|arceus|tcg/i;
+const CYRILLIC = /[\u0400-\u04FF]/;
+const BUDGET = { firstLoadGz: 250 * 1024, sky: 20 * 1024, image: 250 * 1024 };
 
-/* сверка с index.html: чтобы бандлы не разошлись с исходником */
+/* ---------- gate: index.html lists exactly CORE ---------- */
 const srcHtml = read('index.html');
 const inHtml = [...srcHtml.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]);
-const expected = [...CORE.slice(0, 1), ...DATA, ...CORE.slice(1)].join();
-const actual = inHtml.join();
-if (expected !== actual) {
-  console.error('⚠ состав бандлов не совпадает с index.html:');
-  const a = new Set(expected.split(',')), b = new Set(actual.split(','));
-  [...a].filter((x) => !b.has(x)).forEach((x) => console.error('  нет в index.html:', x));
-  [...b].filter((x) => !a.has(x)).forEach((x) => console.error('  нет в build.mjs:', x));
+if (inHtml.join() !== CORE.join()) {
+  console.error('index.html <script> list differs from CORE in scripts/build.mjs:');
+  CORE.filter((x) => !inHtml.includes(x)).forEach((x) => console.error('  missing in index.html:', x));
+  inHtml.filter((x) => !CORE.includes(x)).forEach((x) => console.error('  missing in build.mjs:', x));
+  if (CORE.every((x) => inHtml.includes(x)) && inHtml.every((x) => CORE.includes(x))) console.error('  (same files, different order)');
   process.exit(1);
 }
 
-async function min(file, code) {
-  const r = await terser.minify({ [file]: code }, { ecma: 2015, compress: { passes: 2 }, mangle: true, format: { comments: false } });
-  if (r.error) throw r.error;
-  return r.code;
+/* ---------- gate: English only (sources) ---------- */
+function walk(dir, skip, fn) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (skip(p, e)) continue;
+    if (e.isDirectory()) walk(p, skip, fn); else fn(p);
+  }
 }
-/* items: путь к файлу или { code } (готовый фрагмент) */
-async function bundle(items) {
-  const parts = [];
-  for (const it of items) parts.push(typeof it === 'string' ? await min(it, read(it)) : it.code);
-  return parts.join(';\n') + '\n';
-}
+const TEXT = /\.(js|mjs|css|html|json|md|py|txt)$/;
+walk(ROOT, (p) => /node_modules|[\\/]dist$|[\\/]\.git$/.test(p) || p === OUT, (p) => {
+  if (!TEXT.test(p) || p.endsWith('package-lock.json')) return;
+  fs.readFileSync(p, 'utf8').split('\n').forEach((l, i) => {
+    if (CYRILLIC.test(l)) fail(`Cyrillic text in ${path.relative(ROOT, p)}:${i + 1}`);
+  });
+});
+
+/* ---------- output ---------- */
+fs.rmSync(OUT, { recursive: true, force: true });
+fs.mkdirSync(OUT, { recursive: true });
 const write = (f, s) => { fs.mkdirSync(path.dirname(path.join(OUT, f)), { recursive: true }); fs.writeFileSync(path.join(OUT, f), s); };
 const copyDir = (from, to, skip = () => false) => {
   fs.mkdirSync(path.join(OUT, to), { recursive: true });
@@ -72,52 +96,97 @@ const copyDir = (from, to, skip = () => false) => {
     else fs.copyFileSync(path.join(ROOT, from, e.name), path.join(OUT, to, e.name));
   }
 };
+copyDir('assets', 'assets', (n) => n === 'src');
+copyDir('fonts', 'fonts');
 
-fs.rmSync(OUT, { recursive: true, force: true });
-fs.mkdirSync(OUT, { recursive: true });
+/* every assets/... or fonts/... reference -> must exist; gets ?v=<file hash> */
+const fileHash = {};
+function stamp(code, where) {
+  return code.replace(/((?:\.\.\/)?)((?:assets|fonts)\/[\w\-./]+\.(?:webp|png|jpe?g|svg|gif|woff2))/g, (m, up, rel) => {
+    const f = path.join(OUT, rel);
+    if (!fs.existsSync(f)) { fail(`missing file ${rel} (referenced in ${where})`); return m; }
+    fileHash[rel] = fileHash[rel] || hash(fs.readFileSync(f));
+    return up + rel + '?v=' + fileHash[rel];
+  });
+}
+
+/* ---------- shot fonts (lazy, for photo mode) ---------- */
+let shotFonts = null;
+if (fs.existsSync(path.join(ROOT, 'js/shot-fonts.js'))) {
+  const code = read('js/shot-fonts.js');
+  shotFonts = `js/shot-fonts.${hash(code)}.js`;
+  write(shotFonts, code);
+}
 
 /* ---------- js ---------- */
-const appJs = await bundle([CORE[0], ...DATA, ...CORE.slice(1)]);
-const v = { app: hash(appJs) };
-write('js/app.min.js', appJs);
-fs.copyFileSync(path.join(ROOT, 'js/shot-fonts.js'), path.join(OUT, 'js/shot-fonts.js'));
+async function min(file, code) {
+  const r = await terser.minify({ [file]: code }, { ecma: 2015, compress: { passes: 2 }, mangle: true, format: { comments: false } });
+  if (r.error) throw r.error;
+  return r.code;
+}
+const parts = [`window.PL=window.PL||{};PL.build=${JSON.stringify({ shotFonts })};`];
+for (const f of CORE) parts.push(await min(f, read(f)));
+const appJs = stamp(parts.join(';\n') + '\n', 'js');
+const jsName = `js/app.${hash(appJs)}.js`;
+write(jsName, appJs);
 
 /* ---------- css ---------- */
 const links = [...srcHtml.matchAll(/<link rel="stylesheet" href="([^"]+)">/g)].map((m) => m[1]);
 const cssSrc = links.map((f) => read(f)).join('\n');
-const cssMin = csso.minify(cssSrc, { restructure: false, comments: false }).css;
-const vCss = hash(cssMin);
-write('css/app.css', cssMin);
+const cssMin = stamp(csso.minify(cssSrc, { restructure: false, comments: false }).css, 'css');
+const cssName = `css/app.${hash(cssMin)}.css`;
+write(cssName, cssMin);
 
 /* ---------- html ---------- */
 let html = srcHtml;
 html = html.replace(/\s*<link rel="stylesheet" href="[^"]+">/g, '');
-html = html.replace(/\s*<script[\s\S]*?<\/script>/g, '');            // все скрипты: i18n уйдёт в <head> инлайном, остальное — в бандлах
-const FONTS = ['nunito-latin', 'pressstart-latin', 'tiny5'];
+html = html.replace(/\s*<script[\s\S]*?<\/script>/g, '');
 const head =
-  FONTS.map((n) => `<link rel="preload" href="fonts/${n}.woff2" as="font" type="font/woff2" crossorigin>`).join('') +
-  `<link rel="stylesheet" href="css/app.css?v=${vCss}">` +
-  `<script defer src="js/app.min.js?v=${v.app}"></script>`;
+  FONTS_PRELOAD.map((n) => `<link rel="preload" href="fonts/${n}.woff2" as="font" type="font/woff2" crossorigin>`).join('') +
+  `<link rel="stylesheet" href="${cssName}">` +
+  `<script defer src="${jsName}"></script>`;
 html = html.replace('</head>', head + '</head>');
 html = await minifyHtml(html, { collapseWhitespace: true, conservativeCollapse: true, removeComments: true, minifyCSS: false, minifyJS: false, keepClosingSlash: true, caseSensitive: true });
+html = stamp(html, 'index.html');
 write('index.html', html);
 
-/* ---------- файлы как есть ---------- */
-copyDir('assets', 'assets', (n) => n === 'src');
-copyDir('fonts', 'fonts');
-write('_headers', [
-  '/*', '  X-Content-Type-Options: nosniff', '  Referrer-Policy: strict-origin-when-cross-origin', '',
-  '/index.html', '  Cache-Control: no-cache', '',
-  '/js/*.min.js', '  Cache-Control: public, max-age=31536000, immutable', '',   // у бандлов в адресе ?v=<хэш>; js/shot-fonts.js (без хэша) остаётся с обычной проверкой свежести
-  '/css/*', '  Cache-Control: public, max-age=31536000, immutable', '',
-  '/fonts/*', '  Cache-Control: public, max-age=31536000, immutable', '',
-  '/assets/*', '  Cache-Control: public, max-age=2592000', '',
-].join('\n'));
+/* ---------- gates on the output ---------- */
+const shipped = { 'index.html': html, [jsName]: appJs, [cssName]: cssMin };
+for (const [f, s] of Object.entries(shipped)) {
+  const b = BRAND.exec(s); if (b) fail(`brand sweep: "${s.slice(Math.max(0, b.index - 30), b.index + 30)}" in ${f}`);
+  const c = CYRILLIC.exec(s); if (c) fail(`Cyrillic in ${f}`);
+  for (const m of s.matchAll(/https?:\/\/[^\s"'`)<>]+/g)) {
+    const url = m[0].replace(/[.,;]+$/, '');
+    if (NAMESPACES.some((n) => url.startsWith(n))) continue;
+    let host = ''; try { host = new URL(url).host; } catch (e) { /* not a URL */ }
+    if (!LINK_HOSTS.includes(host)) fail(`third-party URL in ${f}: ${url}`);
+  }
+}
+const nintendo = Object.values(shipped).reduce((n, s) => n + (s.match(/nintendo/gi) || []).length, 0);
 
-/* ---------- отчёт ---------- */
-const size = (f) => fs.statSync(path.join(OUT, f)).size;
-const srcSize = (fs_) => fs_.reduce((a, f) => a + fs.statSync(path.join(ROOT, f)).size, 0);
-console.log('js          ', kb(srcSize([...DATA, ...CORE])), '→', kb(size('js/app.min.js')));
-console.log('css         ', kb(cssSrc.length), '→', kb(size('css/app.css')));
-console.log('index.html  ', kb(srcHtml.length), '→', kb(size('index.html')));
-console.log('✓ готово:', OUT);
+/* ---------- budgets ---------- */
+const firstLoad = gz(html) + gz(cssMin) + gz(appJs);
+if (firstLoad > BUDGET.firstLoadGz) fail(`first load ${kb(firstLoad)} gzip exceeds ${kb(BUDGET.firstLoadGz)}`);
+const skySize = fs.statSync(path.join(ROOT, 'data/sky.js')).size;
+if (skySize > BUDGET.sky) fail(`data/sky.js is ${kb(skySize)} (budget ${kb(BUDGET.sky)})`);
+let images = 0, imageBytes = 0;
+walk(path.join(OUT, 'assets'), () => false, (p) => {
+  const rel = path.relative(OUT, p), size = fs.statSync(p).size;
+  if (/\.(png|jpe?g|gif)$/i.test(p)) fail(`${rel}: ship WebP (run scripts/bake-images.py)`);
+  if (/\.webp$/i.test(p)) { images++; imageBytes += size; if (size > BUDGET.image) fail(`${rel} is ${kb(size)} (budget ${kb(BUDGET.image)})`); }
+});
+
+/* ---------- report ---------- */
+console.log('js   ', jsName.padEnd(26), kb(appJs.length).padStart(9), '  gzip', kb(gz(appJs)));
+console.log('css  ', cssName.padEnd(26), kb(cssMin.length).padStart(9), '  gzip', kb(gz(cssMin)));
+console.log('html ', 'index.html'.padEnd(26), kb(html.length).padStart(9), '  gzip', kb(gz(html)));
+console.log('first load (html+css+js, gzip):', kb(firstLoad), '/ budget', kb(BUDGET.firstLoadGz));
+console.log('data/sky.js:', kb(skySize), '/ budget', kb(BUDGET.sky));
+console.log('images:', images, 'WebP files,', kb(imageBytes), 'total, each under', kb(BUDGET.image));
+console.log('"Nintendo" mentions in shipped code:', nintendo, '(allowed only in the platform line)');
+if (problems.length) {
+  console.error('\nBuild FAILED:');
+  problems.forEach((p) => console.error('  ✗ ' + p));
+  process.exit(1);
+}
+console.log('✓ built:', path.relative(process.cwd(), OUT) || OUT);

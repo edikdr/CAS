@@ -61,8 +61,8 @@ window.PL = window.PL || {};
     return new Promise(function (res, rej) {
       var s = document.createElement('script');
       s.src = 'data/tcg/sets/' + id + '.js';
-      s.onload = function () { cache[id] ? res(cache[id]) : rej(new Error(_('пусто'))); };
-      s.onerror = function () { rej(new Error(_('нет локального набора'))); };
+      s.onload = function () { cache[id] ? res(cache[id]) : rej(new Error(_('empty'))); };
+      s.onerror = function () { rej(new Error(_('no local set'))); };
       document.head.appendChild(s);
     });
   }
@@ -99,7 +99,7 @@ window.PL = window.PL || {};
   var SPECIAL_STAGE = ['BREAK', 'LEVEL-UP', 'MEGA', 'VMAX', 'VSTAR', 'V-UNION', 'Restored', 'Baby'];
   var SUFFIX = ['ex', 'EX', 'GX', 'VMAX', 'VSTAR', 'V'];
   var ENERGY = { Grass: 'grass', Fire: 'fire', Water: 'water', Lightning: 'lightning', Psychic: 'psychic', Fighting: 'fighting', Darkness: 'dark', Metal: 'steel', Fairy: 'fairy' };
-  var TRAINER_KIND = { Supporter: _('Сторонник'), Item: _('Предмет'), Stadium: _('Стадион'), 'Pokémon Tool': _('Инструмент'), 'Technical Machine': _('Техническая машина'), 'Rocket\'s Secret Machine': _('Секретная машина') };
+  var TRAINER_KIND = { Supporter: _('Supporter'), Item: _('Item'), Stadium: _('Stadium'), 'Pokémon Tool': _('Pokémon Tool'), 'Technical Machine': _('Technical Machine'), 'Rocket\'s Secret Machine': _('Rocket’s Secret Machine') };
 
   function ruName(name, dexNum) {
     var p = dexNum ? dexById[dexNum] : null;
@@ -136,10 +136,10 @@ window.PL = window.PL || {};
     } else if (raw.s === 'E') {
       var m = raw.n.match(/^(\w+) Energy/);
       card.type = m && ENERGY[m[1]] ? ENERGY[m[1]] : 'colorless';
-      card.kind = sb.indexOf('Special') !== -1 ? _('Особая энергия') : _('Базовая энергия');
+      card.kind = sb.indexOf('Special') !== -1 ? _('Special Energy') : _('Basic Energy');
     } else {
       card.type = 'colorless';
-      card.kind = sb.map(function (s) { return TRAINER_KIND[s]; }).filter(Boolean)[0] || _('Тренер');
+      card.kind = sb.map(function (s) { return TRAINER_KIND[s]; }).filter(Boolean)[0] || _('Trainer');
     }
 
     var p = card.num ? dexById[card.num] : null;
@@ -172,7 +172,7 @@ window.PL = window.PL || {};
       en: r[2], name: ruName(r[2], r[6]), super: kindSuper, sub: [], num: r[6], dex: r[6] ? [r[6]] : [],
       hp: r[7], type: r[4] >= 0 ? CARD_TYPES[r[4]] : 'colorless', rarityName: rn, rarity: rarityKey(rn),
       attacks: [], ability: null, weak: null, resist: null, retreat: 0, rules: [], from: null, illus: '', stage: 0,
-      kind: kindSuper === 'T' ? _('Тренер') : kindSuper === 'E' ? _('Энергия') : '', lore: '', imgs: null,
+      kind: kindSuper === 'T' ? _('Trainer') : kindSuper === 'E' ? _('Energy') : '', lore: '', imgs: null,
       art: r[6] ? PL.img.art(r[6]) : null, scan: true, light: true, row: i,
     };
     return c;

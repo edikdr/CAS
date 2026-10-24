@@ -62,18 +62,18 @@ PL.carts = (function () {
     legends: function () {
       var dex = (PL.data && PL.data.dex) || PL.dex || [];
       var n = dex.filter(function (p) { return p.leg || p.myth; }).length;
-      return n ? [n, _('легенд и мифов')] : null;
+      return n ? [n, _('legendaries & mythicals')] : null;
     },
-    regions: function () { var n = keys(PL.regionsRu); return n ? [n, _n(n, 'регион|региона|регионов')] : null; },
-    types: function () { return [18, _('типов')]; },
-    quiz: function () { return [15, _('вопросов')]; },
-    people: function () { var n = (PL.charactersRu || []).length; return n ? [n, _n(n, 'герой|героя|героев')] : null; },
-    generations: function () { var n = ((PL.world || {}).generations || []).length; return n ? [n, _n(n, 'поколение|поколения|поколений')] : null; },
-    catchTime: function () { return [60, _('сек')]; },
-    catchBalls: function () { return [8, _('видов шаров')]; },
+    regions: function () { var n = keys(PL.regionsRu); return n ? [n, _n(n, 'region|regions')] : null; },
+    types: function () { return [18, _('types')]; },
+    quiz: function () { return [15, _('questions')]; },
+    people: function () { var n = (PL.charactersRu || []).length; return n ? [n, _n(n, 'hero|heroes')] : null; },
+    generations: function () { var n = ((PL.world || {}).generations || []).length; return n ? [n, _n(n, 'generation|generations')] : null; },
+    catchTime: function () { return [60, _('sec')]; },
+    catchBalls: function () { return [8, _('ball types')]; },
     catchExp: function () { return ['+200', 'EXP']; },
-    items: function () { var n = ((PL.world || {}).items || []).length; return n ? [n, _n(n, 'предмет|предмета|предметов')] : null; },
-    itemGroups: function () { var g = PL.itemGroupsRu; var n = Array.isArray(g) ? g.length : keys(g); return n ? [n, _n(n, 'группа|группы|групп')] : null; },
+    items: function () { var n = ((PL.world || {}).items || []).length; return n ? [n, _n(n, 'item|items')] : null; },
+    itemGroups: function () { var g = PL.itemGroupsRu; var n = Array.isArray(g) ? g.length : keys(g); return n ? [n, _n(n, 'group|groups')] : null; },
   };
 
   /* ==========================================================================
@@ -262,7 +262,7 @@ PL.carts = (function () {
     hit.tabIndex = 0;
     hit.setAttribute('role', 'button');
     hit.setAttribute('aria-pressed', 'false');
-    hit.setAttribute('aria-label', _('Картридж «{name}»: {sub}', { name: d.ru, sub: d.sub }));
+    hit.setAttribute('aria-label', _('Cartridge “{name}”: {sub}', { name: d.ru, sub: d.sub }));
     hit.style.setProperty('--cx', CELL_X[i] + 'px');
     stage.appendChild(el);
     stage.appendChild(hit);
@@ -338,22 +338,22 @@ PL.carts = (function () {
       var f = FACTS[k] && FACTS[k]();
       return f ? '<span><b>' + f[0] + '</b> ' + f[1] + '</span>' : '';
     }).join('');
-    return '<div class="ci-top"><span>' + _('КАРТРИДЖ {n}/{total}', { n: pad2(idx), total: pad2(defs.length) }) + '</span>' +
-      '<span class="ci-state' + (inC ? ' is-in' : '') + '"><i></i>' + (inC ? _('в консоли') : _('в стойке')) + '</span></div>' +
+    return '<div class="ci-top"><span>' + _('CARTRIDGE {n}/{total}', { n: pad2(idx), total: pad2(defs.length) }) + '</span>' +
+      '<span class="ci-state' + (inC ? ' is-in' : '') + '"><i></i>' + (inC ? _('in console') : _('in rack')) + '</span></div>' +
       '<div class="ci-title"><b>' + esc(d.ru) + '</b><i>' + esc(d.title) + '</i></div>' +
       '<div class="ci-sub">' + esc(d.sub) + '</div>' +
       '<p class="ci-blurb">' + esc(d.blurb) + '</p>' +
       '<div class="ci-chips">' + facts + '</div>' +
-      hintHTML(inC ? 'down' : 'up', inC ? _('Потяни вниз, чтобы достать') : _('Перетащи вверх, в слот консоли'));
+      hintHTML(inC ? 'down' : 'up', inC ? _('Drag down to eject') : _('Drag up into the console slot'));
   }
   function emptyHTML() {
-    return '<div class="ci-top"><span>' + _('КАРТРИДЖИ · {n}', { n: defs.length }) + '</span><span class="ci-state"><i></i>' + (st.ins ? _('в консоли') : _('слот свободен')) + '</span></div>' +
-      '<div class="ci-title"><b>' + _('Выбери картридж') + '</b></div>' +
-      '<p class="ci-blurb">' + _('Три викторины на 15 вопросов и аркада «Ловец покеболов». Нажми на картридж, чтобы узнать, что внутри.') + '</p>' +
+    return '<div class="ci-top"><span>' + _('CARTRIDGES · {n}', { n: defs.length }) + '</span><span class="ci-state"><i></i>' + (st.ins ? _('in console') : _('slot empty')) + '</span></div>' +
+      '<div class="ci-title"><b>' + _('Pick a cartridge') + '</b></div>' +
+      '<p class="ci-blurb">' + _('Three 15-question quizzes and the Poké Ball Catcher arcade. Click a cartridge to peek inside.') + '</p>' +
       '<div class="ci-pick">' + defs.map(function (d) {
         return '<button data-pick="' + d.id + '" style="--cc:' + d.c1 + '"><i></i>' + esc(d.short || d.ru) + '</button>';
       }).join('') + '</div>' +
-      hintHTML('up', _('Перетащи любой в слот консоли'));
+      hintHTML('up', _('Drag one into the console slot'));
   }
 
   var cardEl = null;
@@ -374,7 +374,7 @@ PL.carts = (function () {
     if (!d || !cardEl) { if (cardEl && !d) renderInfo(false); return; }
     var inC = st.ins === d.id;
     var state = cardEl.querySelector('.ci-state');
-    if (state) { state.classList.toggle('is-in', inC); state.lastChild.textContent = inC ? _('в консоли') : _('в стойке'); }
+    if (state) { state.classList.toggle('is-in', inC); state.lastChild.textContent = inC ? _('in console') : _('in rack'); }
     if (!drag) restoreHint();
   }
   /* подсказка в плашке: что сделать с картриджем (стрелка показывает направление) */
@@ -390,8 +390,8 @@ PL.carts = (function () {
   function restoreHint() {
     var d = st.sel && carts[st.sel] && carts[st.sel].def;
     var inC = d && st.ins === d.id;
-    if (!d) return setHint(_('Перетащи любой в слот консоли'), 'up');
-    setHint(inC ? _('Потяни вниз, чтобы достать') : _('Перетащи вверх, в слот консоли'), inC ? 'down' : 'up');
+    if (!d) return setHint(_('Drag one into the console slot'), 'up');
+    setHint(inC ? _('Drag down to eject') : _('Drag up into the console slot'), inC ? 'down' : 'up');
   }
   /* Enter / Space на кнопке карточки жмут её саму, а не «A» консоли */
   info.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); });
@@ -628,7 +628,7 @@ PL.carts = (function () {
     stage.classList.add('is-grab');
     document.body.classList.add('is-cart-drag');
     PL.audio.play('lift');
-    setHint(seated ? _('Потяни вниз, чтобы достать') : _('Отпусти над щелью консоли'), 'up');
+    setHint(seated ? _('Drag down to eject') : _('Release over the console slot'), 'up');
     updateLeds();
     if (!dragRaf) dragRaf = requestAnimationFrame(dragFrame);
   }
@@ -671,12 +671,12 @@ PL.carts = (function () {
       stage.classList.toggle('is-zone', zone);
       led(zone ? 'amber' : '');
       slotEl.classList.toggle('is-hot', zone);
-      if (zone) { PL.audio.play('tick'); setHint(_('Отпусти: картридж встанет в слот'), 'ok'); }
-      else if (!drag.seated) setHint(drag.zone && st.ins ? _('Слот занят: сначала достань картридж') : _('Отпусти над щелью консоли'), 'up');
+      if (zone) { PL.audio.play('tick'); setHint(_('Release to insert'), 'ok'); }
+      else if (!drag.seated) setHint(drag.zone && st.ins ? _('Slot taken: eject the cartridge first') : _('Release over the console slot'), 'up');
     }
     if (drag.seated) {
       var armed = drag.pull > 60;
-      if (armed !== !!drag.armed) { drag.armed = armed; setHint(armed ? _('Отпусти, чтобы достать') : _('Потяни вниз, чтобы достать'), armed ? 'ok' : 'down'); if (armed) PL.audio.play('tick'); }
+      if (armed !== !!drag.armed) { drag.armed = armed; setHint(armed ? _('Release to eject') : _('Drag down to eject'), armed ? 'ok' : 'down'); if (armed) PL.audio.play('tick'); }
     }
     dragRaf = requestAnimationFrame(dragFrame);
   }
@@ -711,7 +711,7 @@ PL.carts = (function () {
       done = dropIn(c, p, hooks).then(function () { emit('seated', { id: c.def.id, drag: true }); restoreHint(); });
     } else {                                                          // иначе — обратно на стойку
       var bad = d.zone && st.ins != null;
-      if (bad) { PL.audio.play('error'); setHint(_('Слот занят: сначала достань картридж'), 'no'); }
+      if (bad) { PL.audio.play('error'); setHint(_('Slot taken: eject the cartridge first'), 'no'); }
       var f2 = { x: p.x, y: p.y, z: p.z, rx: p.rx, ry: p.ry, rz: p.rz };
       var a2 = M.play(el, function (u) {
         var k = E.spring(u, 11, 0.55);

@@ -124,21 +124,21 @@ PL.scan = (function () {
     function strong() { var l = out.m && out.m.list; return !!(l && l[0] && l[0].score >= 0.88); }
     var HEAD = [0.03, 0.012, 0.74, 0.13];
 
-    name(_('Читаю название'), 'bin', HEAD, 2.4, P6);
-    name(_('Читаю название'), 'binInv', HEAD, 2.4, P6);
+    name(_('Reading name'), 'bin', HEAD, 2.4, P6);
+    name(_('Reading name'), 'binInv', HEAD, 2.4, P6);
 
     /* номер и HP (если уже уверены в карточке — пропускаем номер, но HP читаем: он отделяет печати) */
     var numBoxes = [[0.03, 0.932, 0.47, 0.985], [0.53, 0.932, 0.97, 0.985]];
     numBoxes.forEach(function (b, k) {
       step(function () {
         if (M.parseNumber(out.nums) || strong()) return null;
-        say(_('Читаю номер'));
+        say(_('Reading number'));
         return recog(w, S.prep(card, b[0], b[1], b[2], b[3], 2.6, 'bin'), PN).then(function (r) { out.nums.push(r.text); });
       });
     });
     step(function () {
       if (M.parseNumber(out.nums) || strong()) return null;
-      say(_('Читаю номер'));
+      say(_('Reading number'));
       return recog(w, S.prep(card, 0.02, 0.915, 0.98, 0.99, 2.2, 'gray'), PN11).then(function (r) { out.nums.push(r.text); });
     });
     step(function () {
@@ -148,7 +148,7 @@ PL.scan = (function () {
     ['bin', 'binInv'].forEach(function (mode) {
       step(function () {
         if (M.parseHP(out.hps).length) return null;
-        say(_('Читаю HP'));
+        say(_('Reading HP'));
         return recog(w, S.prep(card, 0.56, 0.0, 0.99, 0.13, 2.4, mode), PH).then(function (r) { out.hps.push(r.text); });
       });
     });
@@ -159,7 +159,7 @@ PL.scan = (function () {
     [['gray', [0.04, 0.018, 0.72, 0.108], 2.6, P7], ['inv', [0.04, 0.018, 0.72, 0.108], 2.6, P7], ['binMin', [0.0, 0.0, 0.8, 0.16], 2.2, P11], ['bin', [0.0, 0.0, 1.0, 0.2], 1.8, P11]].forEach(function (t) {
       step(function () {
         if (!weak()) return null;
-        say(_('Пробую иначе'));
+        say(_('Trying another way'));
         return recog(w, S.prep(card, t[1][0], t[1][1], t[1][2], t[1][3], t[2], t[0]), t[3]).then(function (r) {
           out.texts.push(r);
           if (r.text) out.reads.push(r.text);
@@ -194,15 +194,15 @@ PL.scan = (function () {
       '<div class="sc-stage">' +
         '<video class="sc-vid" playsinline muted autoplay></video>' +
         '<canvas class="sc-ov" width="' + (W * RS) + '" height="' + (H * RS) + '"></canvas>' +
-        '<header class="sc-top"><span class="sc-ico">' + PL.icon('scan') + '</span><b>' + esc(_('СКАНЕР КАРТОЧЕК')) + '</b><em class="sc-sub"></em><span class="sc-count"></span></header>' +
+        '<header class="sc-top"><span class="sc-ico">' + PL.icon('scan') + '</span><b>' + esc(_('CARD SCANNER')) + '</b><em class="sc-sub"></em><span class="sc-count"></span></header>' +
         '<div class="sc-menu"></div>' +
-        '<div class="sc-cam"><button class="sc-sh sc-btn" data-act="gallery" aria-label="' + esc(_('Фото из устройства')) + '">' + PL.icon('upload') + '<span>' + esc(_('Фото')) + '</span></button>' +
-          '<button class="sc-shutter" data-act="shoot" aria-label="' + esc(_('Снять')) + '"><i></i></button>' +
-          '<button class="sc-sh sc-btn sc-auto is-on" data-act="auto" aria-label="' + esc(_('Автоснимок')) + '"><span>' + esc(_('Авто')) + '</span></button></div>' +
+        '<div class="sc-cam"><button class="sc-sh sc-btn" data-act="gallery" aria-label="' + esc(_('Photo from device')) + '">' + PL.icon('upload') + '<span>' + esc(_('Photo')) + '</span></button>' +
+          '<button class="sc-shutter" data-act="shoot" aria-label="' + esc(_('Capture')) + '"><i></i></button>' +
+          '<button class="sc-sh sc-btn sc-auto is-on" data-act="auto" aria-label="' + esc(_('Auto capture')) + '"><span>' + esc(_('Auto')) + '</span></button></div>' +
         '<div class="sc-hint"></div>' +
         '<div class="sc-busy"><i class="sc-spin"></i><ul></ul></div>' +
         '<div class="sc-review"></div>' +
-        '<div class="sc-cropbar"><button class="sc-btn" data-act="crop-ok"><span>' + esc(_('Готово')) + '</span></button><button class="sc-btn" data-act="crop-auto"><span>' + esc(_('Авто')) + '</span></button><button class="sc-btn" data-act="crop-cancel"><span>' + esc(_('Отмена')) + '</span></button></div>' +
+        '<div class="sc-cropbar"><button class="sc-btn" data-act="crop-ok"><span>' + esc(_('Done')) + '</span></button><button class="sc-btn" data-act="crop-auto"><span>' + esc(_('Auto')) + '</span></button><button class="sc-btn" data-act="crop-cancel"><span>' + esc(_('Cancel')) + '</span></button></div>' +
         '<input class="sc-file" type="file" accept="image/*" multiple hidden>' +
         '<input class="sc-file sc-native" type="file" accept="image/*" capture="environment" hidden>' +
       '</div>';
@@ -248,10 +248,10 @@ PL.scan = (function () {
   }
   function counter() {
     var n = PL.mine ? PL.mine.count() : 0;
-    E.count.textContent = n ? _('В коллекции: {n}', { n: n }) : '';
+    E.count.textContent = n ? _('In collection: {n}', { n: n }) : '';
     var left = st && st.queue ? st.queue.length : 0;
-    E.sub.textContent = st && st.job && st.total > 1 ? _('Фото {a} из {b}', { a: st.done, b: st.total }) : '';
-    if (E.sub) E.sub.dataset.crop = _('Тяни за углы · тык по карточке — найду её');
+    E.sub.textContent = st && st.job && st.total > 1 ? _('Photo {a} of {b}', { a: st.done, b: st.total }) : '';
+    if (E.sub) E.sub.dataset.crop = _('Drag the corners · tap the card to find it');
   }
 
   /* ==========================================================================
@@ -282,17 +282,17 @@ PL.scan = (function () {
 
   /* ---------- меню ---------- */
   var TILES = [
-    { id: 'camera', icon: 'camera', ru: _('Камера'), sub: _('Наведи на карточку: найду её и добавлю сам'), color: '#19e3ff' },
-    { id: 'file', icon: 'upload', ru: _('Фото из устройства'), sub: _('Выбери снимки из галереи, можно сразу несколько'), color: '#ffd25a' },
-    { id: 'mine', icon: 'album', ru: _('Моя коллекция'), sub: '', color: '#7dffaa' },
+    { id: 'camera', icon: 'camera', ru: _('Camera'), sub: _('Point at a card: it is found and added automatically'), color: '#19e3ff' },
+    { id: 'file', icon: 'upload', ru: _('Photo from device'), sub: _('Pick photos from your gallery, several at once'), color: '#ffd25a' },
+    { id: 'mine', icon: 'album', ru: _('My collection'), sub: '', color: '#7dffaa' },
   ];
   function renderMenu() {
     var n = PL.mine ? PL.mine.count() : 0;
     E.menu.innerHTML = TILES.map(function (t, i) {
-      var sub = t.id === 'mine' ? (n ? _('{n} {w} в альбоме', { n: n, w: _n(n, 'карточка|карточки|карточек') }) : _('Пока пусто: отсканируй первую')) : t.sub;
-      if (t.id === 'camera' && !hasCam()) sub = _('Живой камеры тут нет (нужен https): откроется камера телефона');
+      var sub = t.id === 'mine' ? (n ? _('{n} {w} in album', { n: n, w: _n(n, 'card|cards') }) : _('Empty for now: scan your first one')) : t.sub;
+      if (t.id === 'camera' && !hasCam()) sub = _('No live camera here (https required): your phone camera will open');
       return '<button class="sc-tile' + (i === st.sel ? ' is-sel' : '') + '" data-tile="' + i + '" style="--tc:' + t.color + '"><i>' + PL.icon(t.icon) + '</i><b>' + t.ru + '</b><span>' + esc(sub) + '</span></button>';
-    }).join('') + '<p class="sc-priv">' + esc(_('Фото обрабатывается прямо в браузере и никуда не отправляется. Для чтения текста один раз скачивается модель распознавания (около 3 МБ).')) + '</p>';
+    }).join('') + '<p class="sc-priv">' + esc(_('Photos are processed right in your browser and never sent anywhere. A recognition model (about 3 MB) is downloaded once to read the text.')) + '</p>';
   }
   function pickTile(i) {
     var t = TILES[i];
@@ -308,7 +308,7 @@ PL.scan = (function () {
   function startCamera() {
     if (!hasCam()) { E.native.click(); return; }
     setPhase('camwait');
-    E.hint.textContent = _('Запрашиваю камеру…');
+    E.hint.textContent = _('Requesting camera…');
     var tk = st.token;
     navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }).then(function (s) {
       if (!st || st.token !== tk) { s.getTracks().forEach(function (t) { t.stop(); }); return; }
@@ -316,14 +316,14 @@ PL.scan = (function () {
       var p = E.vid.play(); if (p && p.catch) p.catch(function () {});
       st.cam.stable = 0; st.cam.quad = null; st.cam.count = 0;
       setPhase('cam');
-      E.hint.textContent = _('Положи карточку в рамку');
+      E.hint.textContent = _('Place the card in the frame');
       view.classList.add('is-live');
       st.cam.timer = setInterval(liveTick, 240);
       snd('open');
     }, function (err) {
       if (!st || st.token !== tk) return;
       var denied = err && /NotAllowed|Permission|Security/i.test(err.name || '');
-      toast(denied ? _('Камера не разрешена. Разреши доступ в браузере или загрузи фото') : _('Камера недоступна. Загрузи фото из устройства'));
+      toast(denied ? _('Camera not allowed. Allow access in your browser or upload a photo') : _('Camera unavailable. Upload a photo from your device'));
       setPhase('menu'); renderMenu(); snd('error');
     });
   }
@@ -361,17 +361,17 @@ PL.scan = (function () {
       c.stable = moved < tol ? c.stable + 1 : 0;
       c.quad = c.quad && moved < tol * 4 ? q.map(function (p, i) { return { x: c.quad[i].x * 0.5 + p.x * 0.5, y: c.quad[i].y * 0.5 + p.y * 0.5 }; }) : q;
       c.score = r.score;
-      E.hint.textContent = c.stable >= 2 ? (c.auto ? _('Держи ровно…') : _('Карточка найдена: жми снять')) : _('Карточка найдена');
+      E.hint.textContent = c.stable >= 2 ? (c.auto ? _('Hold steady…') : _('Card found: press Capture')) : _('Card found');
       if (c.auto && c.stable >= 5) { shoot(); return; }
     } else {
       c.stable = 0; c.quad = null;
-      E.hint.textContent = _('Положи карточку в рамку');
+      E.hint.textContent = _('Place the card in the frame');
     }
     drawOverlay();
   }
   function shoot() {
     if (!st || st.phase !== 'cam') return;
-    var v = E.vid; if (!v.videoWidth) { toast(_('Камера ещё не готова')); return; }
+    var v = E.vid; if (!v.videoWidth) { toast(_('Camera is not ready yet')); return; }
     st.cam.busy = true;
     var src = S.fromVideo(v), quad = null, found = false;
     if (st.cam.quad && st.cam.stable >= 1) {
@@ -391,14 +391,14 @@ PL.scan = (function () {
   function addFiles(files) {
     if (!st) return;
     var list = Array.prototype.filter.call(files, function (f) { return /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif|bmp)$/i.test(f.name || ''); });
-    if (!list.length) { toast(_('Это не картинки')); snd('error'); return; }
+    if (!list.length) { toast(_('These are not images')); snd('error'); return; }
     stopCamera();
     var tk = st.token;
-    setPhase('busy'); busySteps([_('Открываю фото')], 0);
+    setPhase('busy'); busySteps([_('Opening photo')], 0);
     Promise.all(list.map(function (f) { return S.fromFile(f).then(function (c) { return { src: c, quad: null, found: false, origin: 'file', name: f.name }; }, function () { return null; }); })).then(function (jobs) {
       if (!st || st.token !== tk) return;
       jobs = jobs.filter(Boolean);
-      if (!jobs.length) { toast(_('Не удалось открыть фото')); snd('error'); setPhase('menu'); renderMenu(); return; }
+      if (!jobs.length) { toast(_('Could not open the photo')); snd('error'); setPhase('menu'); renderMenu(); return; }
       st.queue = st.queue.concat(jobs); st.total += jobs.length;
       if (!st.job) nextJob();
     });
@@ -407,14 +407,14 @@ PL.scan = (function () {
   /* ==========================================================================
      ОБРАБОТКА СНИМКА: поиск → выравнивание → OCR → сверка
      ========================================================================== */
-  var STEPS = [_('Ищу карточку на фото'), _('Выравниваю и форматирую 63×88'), _('Читаю название и номер'), _('Сверяю с базой')];
+  var STEPS = [_('Finding the card in the photo'), _('Straightening and sizing to 63×88'), _('Reading name and number'), _('Matching with the database')];
   function busySteps(list, cur) {
     E.steps.innerHTML = list.map(function (s, i) { return '<li class="' + (i < cur ? 'ok' : i === cur ? 'on' : '') + '">' + esc(s) + '</li>'; }).join('');
   }
   function nextJob() {
     if (!st) return;
     var job = st.queue.shift();
-    if (!job) { st.job = null; counter(); setPhase('menu'); renderMenu(); if (st.added) toast(_('Добавлено карточек: {n}', { n: st.added })); return; }
+    if (!job) { st.job = null; counter(); setPhase('menu'); renderMenu(); if (st.added) toast(_('Cards added: {n}', { n: st.added })); return; }
     st.job = job; st.done++;
     counter();
     process(job);
@@ -451,7 +451,7 @@ PL.scan = (function () {
   function topScore(o) { return o && o.m && o.m.list[0] ? o.m.list[0].score : 0; }
   function runOCR(job) {
     var tk = st.token;
-    job.ocr = { state: 'work', msg: _('Скачиваю модель распознавания…') };
+    job.ocr = { state: 'work', msg: _('Downloading recognition model…') };
     job.cands = []; job.sel = 0; job.verdict = 'none';
     renderReview();
     function say(t) {
@@ -463,16 +463,16 @@ PL.scan = (function () {
       if (!st || st.token !== tk || st.job !== job || job.ocr.state !== 'work') return;
       if (m.status && /loading|initializ/i.test(m.status) && typeof m.progress === 'number') {
         var pct = Math.round(m.progress * 100);
-        job.ocr.msg = (/language/i.test(m.status) ? _('Скачиваю модель') : _('Запускаю распознавание')) + (pct ? ' ' + pct + '%' : '…');
+        job.ocr.msg = (/language/i.test(m.status) ? _('Downloading model') : _('Starting recognition')) + (pct ? ' ' + pct + '%' : '…');
         var el = E.review.querySelector('.sc-ocr'); if (el) el.textContent = job.ocr.msg;
       }
     };
     getWorker().then(function (w) {
       if (!st || st.token !== tk || st.job !== job) return null;
-      say(_('Читаю карточку'));
+      say(_('Reading card'));
       return readCard(w, job.ocrCard || job.card, say).then(function (o1) {
         if (o1.verdict !== 'none' && topScore(o1) >= 0.6) return o1;
-        say(_('Проверяю, не вверх ли ногами'));
+        say(_('Checking if it is upside down'));
         return readCard(w, rot180(job.ocrCard || job.card), say).then(function (o2) {      // вдруг карточка вверх ногами
           if (topScore(o2) > topScore(o1) + 0.1) { job.card = rot180(job.card); job.ocrCard = null; job.rounded = S.rounded(job.card); job.url = job.rounded.toDataURL('image/png'); return o2; }
           return o1;
@@ -489,7 +489,7 @@ PL.scan = (function () {
       renderReview();
     }, function (err) {
       if (!st || st.token !== tk || st.job !== job) return;
-      job.ocr = { state: 'fail', msg: _('Распознавание недоступно (нужен интернет). Найди карточку вручную.') };
+      job.ocr = { state: 'fail', msg: _('Recognition unavailable (internet required). Find the card manually.') };
       openSearch(true);
     });
   }
@@ -511,12 +511,12 @@ PL.scan = (function () {
     if (k.hp) chips.push('HP ' + k.hp);
     if (k.rarityName) chips.push(k.rarityName);
     var ev = [];
-    if (c.num && c.tot) ev.push(_('номер совпал')); else if (c.num) ev.push(_('номер'));
+    if (c.num && c.tot) ev.push(_('number matched')); else if (c.num) ev.push(_('number'));
     if (c.hp === true) ev.push('HP');
     return '<li class="sc-cand' + (i === sel ? ' is-sel' : '') + '" data-c="' + i + '">' + thumb(k) +
       '<div class="sc-ct"><b>' + esc(k.name) + '</b><span>' + esc(meta[0]) + '</span><span class="sc-chips">' + esc(chips.join(' · ')) + (ev.length ? ' <u>' + esc(ev.join(' · ')) + '</u>' : '') + '</span></div>' +
       (showPct ? '<em>' + pct + '%</em>' : '<em></em>') +
-      '<button class="sc-lnk" data-open="' + i + '" title="' + esc(_('Открыть в альбоме')) + '" aria-label="' + esc(_('Открыть в альбоме')) + '">' + PL.icon('link') + '</button></li>';
+      '<button class="sc-lnk" data-open="' + i + '" title="' + esc(_('Open in album')) + '" aria-label="' + esc(_('Open in album')) + '">' + PL.icon('link') + '</button></li>';
   }
   function windowOf(list, sel, top) {
     if (sel < top) top = sel;
@@ -526,7 +526,7 @@ PL.scan = (function () {
   function candList(list, sel, job, showPct) {
     job.top = windowOf(list, sel, job.top || 0);
     var rows = list.slice(job.top, job.top + VIS).map(function (c, j) { return candRow(c, job.top + j, sel, showPct); }).join('');
-    var more = list.length > VIS ? '<div class="sc-pg">' + _('{a}–{b} из {n}', { a: job.top + 1, b: Math.min(list.length, job.top + VIS), n: list.length }) + ' · <kbd>↑</kbd><kbd>↓</kbd></div>' : '';
+    var more = list.length > VIS ? '<div class="sc-pg">' + _('{a}–{b} of {n}', { a: job.top + 1, b: Math.min(list.length, job.top + VIS), n: list.length }) + ' · <kbd>↑</kbd><kbd>↓</kbd></div>' : '';
     return '<ul class="sc-cands">' + rows + '</ul>' + more;
   }
   function readLine(o) {
@@ -534,7 +534,7 @@ PL.scan = (function () {
     if (o.text) bits.push('«' + o.text + '»');
     if (o.hp && o.hp.length) bits.push('HP ' + o.hp[0]);
     if (o.num) bits.push('№ ' + o.num.n + (o.num.total ? '/' + o.num.total : ''));
-    return bits.length ? _('Прочитал: {x}', { x: bits.join(' · ') }) : '';
+    return bits.length ? _('Read: {x}', { x: bits.join(' · ') }) : '';
   }
   function renderReview() {
     if (!st || !st.job) return;
@@ -542,34 +542,34 @@ PL.scan = (function () {
     var cands = job.cands || [];
     var head, body;
     if (o.state === 'work') {
-      head = _('Читаю карточку');
+      head = _('Reading card');
       body = '<div class="sc-ocr">' + esc(o.msg || '') + '</div><i class="sc-spin sc-spin--s"></i>';
     } else if (job.custom) {
-      head = _('Добавлю как «{n}»', { n: job.custom });
-      body = '<div class="sc-ocr">' + esc(_('Такой карточки нет в базе, поэтому она попадёт в «Мою коллекцию» с твоим названием и фото.')) + '</div>';
+      head = _('Will add as “{n}”', { n: job.custom });
+      body = '<div class="sc-ocr">' + esc(_('This card is not in the database, so it goes to “My collection” with your name and photo.')) + '</div>';
     } else if (cands.length) {
-      head = job.verdict === 'sure' ? _('Похоже, это она') : _('Выбери подходящую');
+      head = job.verdict === 'sure' ? _('Looks like this one') : _('Pick the right one');
       var rl = readLine(o);
       body = (rl ? '<div class="sc-ocr sc-read">' + esc(rl) + '</div>' : '') + candList(cands, job.sel, job, true);
     } else {
-      head = _('Не узнал карточку');
-      body = '<div class="sc-ocr">' + esc(_('Уверенного совпадения нет. Найди карточку вручную (X) или добавь без названия.')) + '</div>';
+      head = _('Card not recognized');
+      body = '<div class="sc-ocr">' + esc(_('No confident match. Find the card manually (X) or add it without a name.')) + '</div>';
     }
-    var found = job.found ? '' : '<div class="sc-warn">' + esc(_('Карточку на фото не нашёл: взят центр кадра. Поправь углы (Y).')) + '</div>';
-    var preview = '<div class="sc-prev"><div class="sc-card"><img src="' + job.url + '" alt="' + esc(_('Отсканированная карточка')) + '"><i class="sc-sheen"></i></div>' +
-        '<span class="sc-dim">630 × 880 · 63 × 88 ' + esc(_('мм')) + '</span></div>';
+    var found = job.found ? '' : '<div class="sc-warn">' + esc(_('Card not found in the photo: center of the frame used. Adjust the corners (Y).')) + '</div>';
+    var preview = '<div class="sc-prev"><div class="sc-card"><img src="' + job.url + '" alt="' + esc(_('Scanned card')) + '"><i class="sc-sheen"></i></div>' +
+        '<span class="sc-dim">630 × 880 · 63 × 88 ' + esc(_('mm')) + '</span></div>';
     if (st.search && st.phase === 'search') {
       var rd = readLine(o);
-      html = preview + '<div class="sc-info"><h4>' + esc(o.state === 'fail' ? _('Выбери карточку вручную') : cands.length || !o.state ? _('Найди карточку в базе') : _('Не узнал карточку: найди в базе')) + '</h4>' + (rd ? '<div class="sc-ocr sc-read">' + esc(rd) + '</div>' : (o.state === 'fail' ? '<div class="sc-ocr bad">' + esc(o.msg) + '</div>' : '')) + searchHTML() +
-        '<div class="sc-acts sc-acts--2"><button class="sc-btn sc-go" data-act="pick"><kbd>A</kbd><span>' + esc(_('Выбрать')) + '</span></button><button class="sc-btn" data-act="unsearch"><kbd>B</kbd><span>' + esc(_('Назад')) + '</span></button></div></div>';
+      html = preview + '<div class="sc-info"><h4>' + esc(o.state === 'fail' ? _('Choose the card manually') : cands.length || !o.state ? _('Find the card in the database') : _('Card not recognized: find it in the database')) + '</h4>' + (rd ? '<div class="sc-ocr sc-read">' + esc(rd) + '</div>' : (o.state === 'fail' ? '<div class="sc-ocr bad">' + esc(o.msg) + '</div>' : '')) + searchHTML() +
+        '<div class="sc-acts sc-acts--2"><button class="sc-btn sc-go" data-act="pick"><kbd>A</kbd><span>' + esc(_('Select')) + '</span></button><button class="sc-btn" data-act="unsearch"><kbd>B</kbd><span>' + esc(_('Back')) + '</span></button></div></div>';
     } else {
       html = preview +
       '<div class="sc-info"><h4>' + esc(head) + '</h4>' + body + found +
         '<div class="sc-acts">' +
-          '<button class="sc-btn sc-go" data-act="add"' + (cands.length || job.custom || o.state !== 'work' ? '' : ' disabled') + '><kbd>A</kbd><span>' + esc(cands.length ? _('Добавить в альбом') : _('Добавить как есть')) + '</span></button>' +
-          '<button class="sc-btn" data-act="search"><kbd>X</kbd><span>' + esc(_('Найти вручную')) + '</span></button>' +
-          '<button class="sc-btn" data-act="crop"><kbd>Y</kbd><span>' + esc(_('Поправить углы')) + '</span></button>' +
-          '<button class="sc-btn" data-act="redo"><kbd>B</kbd><span>' + esc(_('Отмена')) + '</span></button>' +
+          '<button class="sc-btn sc-go" data-act="add"' + (cands.length || job.custom || o.state !== 'work' ? '' : ' disabled') + '><kbd>A</kbd><span>' + esc(cands.length ? _('Add to album') : _('Add as is')) + '</span></button>' +
+          '<button class="sc-btn" data-act="search"><kbd>X</kbd><span>' + esc(_('Find manually')) + '</span></button>' +
+          '<button class="sc-btn" data-act="crop"><kbd>Y</kbd><span>' + esc(_('Adjust corners')) + '</span></button>' +
+          '<button class="sc-btn" data-act="redo"><kbd>B</kbd><span>' + esc(_('Cancel')) + '</span></button>' +
         '</div></div>';
     }
     E.review.innerHTML = html;
@@ -577,8 +577,8 @@ PL.scan = (function () {
   }
   function searchHTML() {
     var s = st.search, job = st.job;
-    return '<div class="sc-search"><label>' + PL.icon('search') + '<input class="sc-q" type="search" placeholder="' + esc(_('Название: Pikachu, Пикачу…')) + '" autocomplete="off" enterkeyhint="search"></label>' +
-      (s.rows.length ? candList(s.rows, s.sel, s, false) : '<p class="sc-tip">' + esc(s.q.trim().length >= 2 ? _('Ничего не нашёл. Нет в базе: A добавит с твоим названием.') : _('Пиши название по-русски или по-английски. Нет в базе: A добавит с твоим названием.')) + '</p>') + '</div>';
+    return '<div class="sc-search"><label>' + PL.icon('search') + '<input class="sc-q" type="search" placeholder="' + esc(_('Name: Pikachu, Charizard…')) + '" autocomplete="off" enterkeyhint="search"></label>' +
+      (s.rows.length ? candList(s.rows, s.sel, s, false) : '<p class="sc-tip">' + esc(s.q.trim().length >= 2 ? _('Nothing found. Not in the database: A adds it with your name.') : _('Type the card name. Not in the database: A adds it with your name.')) + '</p>') + '</div>';
   }
 
   /* ---------- ручной поиск по базе ---------- */
@@ -604,7 +604,7 @@ PL.scan = (function () {
       var old = box.querySelector('.sc-cands, .sc-tip'), pg = box.querySelector('.sc-pg');
       if (pg) pg.remove();
       var tmp = document.createElement('div');
-      tmp.innerHTML = st.search.rows.length ? candList(st.search.rows, 0, st.search, false) : '<p class="sc-tip">' + esc(q.trim().length >= 2 ? _('Ничего не нашёл. Нет в базе: A добавит с твоим названием.') : _('Пиши название по-русски или по-английски. Нет в базе: A добавит с твоим названием.')) + '</p>';
+      tmp.innerHTML = st.search.rows.length ? candList(st.search.rows, 0, st.search, false) : '<p class="sc-tip">' + esc(q.trim().length >= 2 ? _('Nothing found. Not in the database: A adds it with your name.') : _('Type the card name. Not in the database: A adds it with your name.')) + '</p>';
       if (old) old.remove();
       while (tmp.firstChild) box.appendChild(tmp.firstChild);
     }
@@ -641,7 +641,7 @@ PL.scan = (function () {
     if (st.job && !st.job.saved && !(st.armed && st.armed.i === c.i && now - st.armed.t < 4500)) {     // скан ещё не сохранён: просим подтвердить
       st.armed = { i: c.i, t: now };
       snd('error');
-      toast(_('Скан ещё не сохранён. Нажми ещё раз, чтобы перейти в альбом, или сначала добавь карточку (A)'));
+      toast(_('Scan not saved yet. Press again to go to the album, or add the card first (A)'));
       return;
     }
     emit('open-album', { row: c.i });
@@ -654,16 +654,16 @@ PL.scan = (function () {
     st.saving = true;
     S.toBlob(job.rounded, 'image/webp', 0.9).then(function (blob) {
       if (!blob) throw new Error('no blob');
-      return PL.mine.add({ cardId: card ? card.id : null, name: card ? card.en : (job.custom || _('Моя карточка')), localId: card ? card.localId : '', blob: blob, w: job.rounded.width, h: job.rounded.height, src: job.origin, conf: c ? +c.score.toFixed(2) : 0 });
+      return PL.mine.add({ cardId: card ? card.id : null, name: card ? card.en : (job.custom || _('My card')), localId: card ? card.localId : '', blob: blob, w: job.rounded.width, h: job.rounded.height, src: job.origin, conf: c ? +c.score.toFixed(2) : 0 });
     }).then(function () {
       st.saving = false; st.added++; job.saved = true;
       snd('select');
       var img = E.review.querySelector('.sc-card'); if (img) img.classList.add('is-fly');
-      toast(_('«{n}» добавлена в «Мою коллекцию»', { n: card ? card.name : (job.custom || _('Моя карточка')) }));
+      toast(_('“{n}” added to “My collection”', { n: card ? card.name : (job.custom || _('My card')) }));
       emit('added', { id: card && card.id });
       var tk = st && st.token;
       setTimeout(function () { if (st && st.token === tk) nextJob(); }, 520);
-    }, function () { st.saving = false; toast(_('Не удалось сохранить карточку')); snd('error'); });
+    }, function () { st.saving = false; toast(_('Could not save the card')); snd('error'); });
   }
   function discard() {
     if (!st) return;
@@ -698,7 +698,7 @@ PL.scan = (function () {
     var sx = (p.x - c.ox) / c.k, sy = (p.y - c.oy) / c.k;
     if (sx >= 0 && sy >= 0 && sx <= st.job.src.width && sy <= st.job.src.height) {
       var r = S.findCard(st.job.src, 360, { x: sx, y: sy });
-      if (r) { c.quad = r.pts; snd('tick'); } else { snd('error'); toast(_('Здесь карточку не нашёл: потяни за углы')); }
+      if (r) { c.quad = r.pts; snd('tick'); } else { snd('error'); toast(_('No card found here: drag the corners')); }
       drawOverlay();
     }
   }
@@ -718,7 +718,7 @@ PL.scan = (function () {
   }
   function cropAuto() {
     var r = S.findCard(st.job.src);
-    if (r) { st.crop.quad = r.pts; snd('sparkle'); } else { st.crop.quad = S.guideQuad(st.job.src.width, st.job.src.height); toast(_('Не нашёл карточку: поставил рамку по центру')); snd('error'); }
+    if (r) { st.crop.quad = r.pts; snd('sparkle'); } else { st.crop.quad = S.guideQuad(st.job.src.width, st.job.src.height); toast(_('Card not found: frame placed in the center')); snd('error'); }
     drawOverlay();
   }
 
@@ -871,12 +871,12 @@ PL.scan = (function () {
   function hints() {
     if (!st) return [];
     switch (st.phase) {
-      case 'menu': return [[['up', 'down'], _('Выбор')], [['a'], _('Открыть')], [['x'], _('Фото')], [['b'], _('Назад')]];
-      case 'cam': return [[['a'], _('Снять')], [['x'], _('Фото')], [['y'], _('Авто')], [['b'], _('Назад')]];
-      case 'review': return [[['up', 'down'], _('Выбор')], [['r'], _('Превью')], [['a'], _('Добавить')], [['x'], _('Поиск')], [['y'], _('Углы')], [['b'], _('Отмена')]];
-      case 'search': return [[['up', 'down'], _('Выбор')], [['r'], _('Превью')], [['a'], _('Выбрать')], [['b'], _('Назад')]];
-      case 'crop': return [[['l', 'r'], _('Угол')], [['up', 'down'], _('Двигать')], [['a'], _('Готово')], [['y'], _('Авто')], [['b'], _('Отмена')]];
-      default: return [[['b'], _('Назад')]];
+      case 'menu': return [[['up', 'down'], _('Choose')], [['a'], _('Open')], [['x'], _('Photo')], [['b'], _('Back')]];
+      case 'cam': return [[['a'], _('Capture')], [['x'], _('Photo')], [['y'], _('Auto')], [['b'], _('Back')]];
+      case 'review': return [[['up', 'down'], _('Choose')], [['r'], _('Preview')], [['a'], _('Add')], [['x'], _('Search')], [['y'], _('Corners')], [['b'], _('Cancel')]];
+      case 'search': return [[['up', 'down'], _('Choose')], [['r'], _('Preview')], [['a'], _('Select')], [['b'], _('Back')]];
+      case 'crop': return [[['l', 'r'], _('Corner')], [['up', 'down'], _('Move')], [['a'], _('Done')], [['y'], _('Auto')], [['b'], _('Cancel')]];
+      default: return [[['b'], _('Back')]];
     }
   }
 
@@ -887,7 +887,7 @@ PL.scan = (function () {
     open: open, close: close, press: press, hints: hints, addFiles: addFiles,
     active: function () { return !!st; },
     accent: function () { return ACCENT; },
-    status: function () { return { title: _('Сканер карточек'), line: st ? (st.phase === 'review' ? _('проверка') : st.phase === 'cam' ? _('камера') : _('меню')) : '' }; },
+    status: function () { return { title: _('Card scanner'), line: st ? (st.phase === 'review' ? _('review') : st.phase === 'cam' ? _('camera') : _('menu')) : '' }; },
     on: function (evt, fn) { (listeners[evt] = listeners[evt] || []).push(fn); },
     refresh: function () { if (st && st.phase === 'menu') renderMenu(); counter(); },
     /* для автотестов */

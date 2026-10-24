@@ -181,10 +181,10 @@ PL.quiz = (function () {
           scenery() + '</div>' +
         '<header class="q-hud">' +
           '<div class="q-cart"><i class="q-cart-ico"></i><b class="q-cart-name"></b></div>' +
-          '<div class="q-prog"><span class="q-qn">' + _('ВОПРОС') + ' <b>01</b>/' + TOTAL + '</span><div class="q-pips"></div></div>' +
+          '<div class="q-prog"><span class="q-qn">' + _('QUESTION') + ' <b>01</b>/' + TOTAL + '</span><div class="q-pips"></div></div>' +
           '<div class="q-stat"><span class="q-exp">EXP <b>0000</b></span><div class="q-hearts"></div></div>' +
         '</header>' +
-        '<div class="q-title"><small>POKÉLORE · ' + _('КАРТРИДЖ') + '</small><b class="q-title-name"></b><span class="q-title-sub"></span></div>' +
+        '<div class="q-title"><small>POKÉLORE · ' + _('CARTRIDGE') + '</small><b class="q-title-name"></b><span class="q-title-sub"></span></div>' +
         '<div class="q-hero"><i class="q-plat"></i><img class="q-hero-tr" alt=""><img class="q-hero-mon" alt=""></div>' +
         '<div class="q-subject">' +
           '<div class="q-spwrap">' +
@@ -574,15 +574,15 @@ PL.quiz = (function () {
     E.end.classList.remove('is-on');
     renderHud();
     E.titleName.textContent = cd.title;
-    E.titleSub.innerHTML = esc(cd.sub.toUpperCase()) + '<br><em>' + _('{n} ВОПРОСОВ · ♥♥♥', { n: TOTAL }) + '</em>';
+    E.titleSub.innerHTML = esc(cd.sub.toUpperCase()) + '<br><em>' + _('{n} QUESTIONS · ♥♥♥', { n: TOTAL }) + '</em>';
     showHero(false);
-    var emb = { lore: { mon: 493, nm: _('Аркеус') }, trainers: { ball: 1, nm: _('Тренеры') }, items: { item: 'master-ball', nm: _('Мастербол') } }[st.id] || { ball: 1, nm: cd.ru };
+    var emb = { lore: { mon: 493, nm: _('Arceus') }, trainers: { ball: 1, nm: _('Trainers') }, items: { item: 'master-ball', nm: _('Master Ball') } }[st.id] || { ball: 1, nm: cd.ru };
     showSubject(emb, false);
     E.subject.classList.remove('is-sil'); E.plate.classList.remove('is-hid');
     var best = readBest(st.id);
-    var lines = short ? [_('Ещё раз? Три сердца, пятнадцать вопросов — теперь ты знаешь, чего ждать.')]
+    var lines = short ? [_('Again? Three hearts, fifteen questions — now you know what to expect.')]
                       : d.intro.slice();
-    if (!short && best && best.wins) lines.push(best.stars ? _('Твой рекорд: {exp} EXP · {stars}. Побьёшь?', { exp: best.exp, stars: stars(best.stars) }) : _('Твой рекорд: {exp} EXP. Побьёшь?', { exp: best.exp }));
+    if (!short && best && best.wins) lines.push(best.stars ? _('Your best: {exp} EXP · {stars}. Think you can beat it?', { exp: best.exp, stars: stars(best.stars) }) : _('Your best: {exp} EXP. Think you can beat it?', { exp: best.exp }));
     snd('qstart');
     say(lines, d.host, function () { titleMenu(); });
   }
@@ -590,7 +590,7 @@ PL.quiz = (function () {
 
   function titleMenu() {
     var cd = st.cd;
-    showMenu([_('ИГРАТЬ'), _('ЧИТАТЬ РАЗДЕЛ'), _('ВЫЙТИ')], function (i) {
+    showMenu([_('PLAY'), _('READ SECTION'), _('EXIT')], function (i) {
       hideMenu();
       if (i === 0) startRun();
       else if (i === 1) { later(function () { emit('section', { cart: st.id }); }, 120); }
@@ -677,8 +677,8 @@ PL.quiz = (function () {
     later(function () {
       hideMenu();
       var xx = fill(q.x), pages;
-      if (ok) pages = [pickOf([_('Верно!'), _('Точно!'), _('Так и есть!'), _('Отлично!')]) + (st.streak >= 3 ? ' ' + _('Серия: {n}!', { n: st.streak }) : '') + ' ' + xx];
-      else pages = [_('Неверно! Правильный ответ: {a}.', { a: st.opts[st.right].t }) + ' ' + xx];
+      if (ok) pages = [pickOf([_('Correct!'), _('Exactly!'), _('That\'s right!'), _('Excellent!')]) + (st.streak >= 3 ? ' ' + _('Streak: {n}!', { n: st.streak }) : '') + ' ' + xx];
+      else pages = [_('Wrong! The correct answer is {a}.', { a: st.opts[st.right].t }) + ' ' + xx];
       say(pages, q.s, function () { waitA(advance); });
     }, reduce ? 0 : 520);
   }
@@ -707,7 +707,7 @@ PL.quiz = (function () {
     var prev = st.phase, pm = st.menu, pOpts = E.menu.innerHTML, sel = pm ? pm.sel : 0;
     var keep = { phase: prev, menu: pm, html: pOpts, cls: E.menu.className };
     snd('card');
-    showMenu([_('ДА, ВЫЙТИ'), _('НЕТ, ПРОДОЛЖИТЬ')], function (i) {
+    showMenu([_('YES, EXIT'), _('NO, CONTINUE')], function (i) {
       if (i === 0) { hideMenu(); st.phase = 'type'; wipe(function () { openTitle(true); }, null); }
       else restoreMenu(keep, sel);
     }, { onBack: function () { restoreMenu(keep, sel); }, nums: false, cls: 'is-confirm' });
@@ -730,7 +730,7 @@ PL.quiz = (function () {
   /* ---------- финалы ---------- */
   function rank() {
     var lost = LIVES - st.hearts;
-    return lost === 0 ? { n: _('МАСТЕР-ТРЕНЕР'), s: 3 } : lost === 1 ? { n: _('ЭЛИТНЫЙ ТРЕНЕР'), s: 2 } : { n: _('ТРЕНЕР'), s: 1 };
+    return lost === 0 ? { n: _('MASTER TRAINER'), s: 3 } : lost === 1 ? { n: _('ELITE TRAINER'), s: 2 } : { n: _('TRAINER'), s: 1 };
   }
   function partyRow(grey) {
     var hd = st.data.hero, html = '<div class="qe-tr"><img class="qe-hero" alt=""></div>';
@@ -759,7 +759,7 @@ PL.quiz = (function () {
       scene('end'); view.classList.add('is-win'); view.classList.remove('is-lose');
       hideMenu();
       E.ta.textContent = ''; E.tb.textContent = '';
-      E.endHead.firstChild.textContent = _('ЗАЛ СЛАВЫ');
+      E.endHead.firstChild.textContent = _('HALL OF FAME');
       E.endHead.lastChild.textContent = st.cd.title + ' · ' + stars(r.s);
       E.end.classList.add('is-on');
       partyRow(false);
@@ -767,8 +767,8 @@ PL.quiz = (function () {
       saveBest(r);
     }, function () {
       var d = st.data;
-      say([_('Добро пожаловать в Зал Славы!'),
-           _('Верных ответов: {ok} из {total}. Сердец осталось: {hearts}. EXP: {exp}. Ранг — {rank}!', { ok: st.ok, total: TOTAL, hearts: st.hearts, exp: st.exp, rank: r.n })],
+      say([_('Welcome to the Hall of Fame!'),
+           _('Correct answers: {ok} of {total}. Hearts left: {hearts}. EXP: {exp}. Rank: {rank}!', { ok: st.ok, total: TOTAL, hearts: st.hearts, exp: st.exp, rank: r.n })],
           d.host, function () { endMenu(); });
     });
   }
@@ -780,20 +780,20 @@ PL.quiz = (function () {
       scene('end'); view.classList.add('is-lose'); view.classList.remove('is-win');
       hideMenu();
       E.ta.textContent = ''; E.tb.textContent = '';
-      E.endHead.firstChild.textContent = _('КОНЕЦ ИГРЫ');
-      E.endHead.lastChild.textContent = _('сердец не осталось');
+      E.endHead.firstChild.textContent = _('GAME OVER');
+      E.endHead.lastChild.textContent = _('out of hearts');
       E.end.classList.add('is-on');
       partyRow(true);
       stopConfetti();
     }, function () {
-      say([_('Все три сердца потеряны… Но каждый тренер проигрывал, прежде чем стать лучшим.'),
-           _('Верных ответов: {ok} из {total}. Попробуешь ещё раз?', { ok: st.ok, total: TOTAL })],
+      say([_('All three hearts lost… But every Trainer has lost before becoming the best.'),
+           _('Correct answers: {ok} of {total}. Want to try again?', { ok: st.ok, total: TOTAL })],
           st.data.host, function () { endMenu(); });
     });
   }
 
   function endMenu() {
-    showMenu([_('ЕЩЁ РАЗ'), _('ЧИТАТЬ РАЗДЕЛ'), _('ВЫЙТИ')], function (i) {
+    showMenu([_('TRY AGAIN'), _('READ SECTION'), _('EXIT')], function (i) {
       hideMenu();
       if (i === 0) { st.phase = 'type'; stopConfetti(); wipe(function () { openTitle(true); }, null); }
       else if (i === 1) later(function () { emit('section', { cart: st.id }); }, 120);
@@ -867,10 +867,10 @@ PL.quiz = (function () {
   function hints() {
     if (!st) return [];
     if (st.phase === 'menu' && st.menu) {
-      return st.menu.onBack ? [[['up', 'down'], _('Выбор')], [['a'], _('Выбрать')], [['b'], _('Назад')]] : [[['up', 'down'], _('Выбор')], [['a'], _('Выбрать')]];
+      return st.menu.onBack ? [[['up', 'down'], _('Choose')], [['a'], _('Select')], [['b'], _('Back')]] : [[['up', 'down'], _('Choose')], [['a'], _('Select')]];
     }
-    if (st.phase === 'wait') return [[['a'], _('Дальше')], [['b'], _('Выйти')]];
-    return [[['a'], _('Пропустить печать')], [['b'], _('Пропустить')]];
+    if (st.phase === 'wait') return [[['a'], _('Next')], [['b'], _('Exit')]];
+    return [[['a'], _('Skip text')], [['b'], _('Skip')]];
   }
 
   /* ---------- открытие / закрытие ---------- */
@@ -898,7 +898,7 @@ PL.quiz = (function () {
     active: function () { return !!st; },
     accent: function () { return st ? st.cd.c1 : '#19e3ff'; },
     best: readBest,
-    status: function () { return st ? { title: st.cd.title, line: st.phase === 'title' ? _('заставка') : _('вопрос {n} из {total} · ♥ {hearts}', { n: Math.min(st.idx + 1, TOTAL), total: TOTAL, hearts: st.hearts }) } : { title: '', line: '' }; },
+    status: function () { return st ? { title: st.cd.title, line: st.phase === 'title' ? _('title screen') : _('question {n} of {total} · ♥ {hearts}', { n: Math.min(st.idx + 1, TOTAL), total: TOTAL, hearts: st.hearts }) } : { title: '', line: '' }; },
     stars: stars,
     on: function (evt, fn) { (listeners[evt] = listeners[evt] || []).push(fn); },
     _state: function () { return st; }, _paginate: paginate, _nlines: nlines, _fill: fill,

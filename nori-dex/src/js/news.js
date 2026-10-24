@@ -29,7 +29,7 @@ PL.news = (function () {
     var i = 0;
     return new Promise(function (resolve, reject) {
       (function next() {
-        if (i >= urls.length) return reject(new Error(_('нет ответа')));
+        if (i >= urls.length) return reject(new Error(_('no response')));
         var u = urls[i++], ctl = window.AbortController ? new AbortController() : null;
         var t = setTimeout(function () { if (ctl) ctl.abort(); }, ms || 9000);
         fetch(u, ctl ? { signal: ctl.signal } : {}).then(function (r) {

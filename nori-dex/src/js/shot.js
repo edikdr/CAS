@@ -263,7 +263,7 @@ PL.shot = (function () {
     meta = meta || {};
     var node = document.getElementById('crt');
     return open().then(function () { return render(node, meta.onBuilt).catch(function (e) { meta.fallback = true; if (meta.onBuilt) meta.onBuilt(); return fallback(meta); }); }).then(function (url) {
-      var rec = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: Date.now(), url: url, title: meta.title || _('Снимок экрана'), sub: meta.sub || '', fallback: !!meta.fallback };
+      var rec = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: Date.now(), url: url, title: meta.title || _('Screenshot'), sub: meta.sub || '', fallback: !!meta.fallback };
       return put(rec);
     });
   }

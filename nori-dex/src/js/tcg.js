@@ -11,16 +11,16 @@
 window.PL = window.PL || {};
 
 PL.tcg = (function () {
-  var STAGES = [_('Базовый'), _('Стадия 1'), _('Стадия 2')];
+  var STAGES = [_('Basic'), _('Stage 1'), _('Stage 2')];
 
   /* правило особых карт: сколько призовых карт получает соперник */
   var SUFFIX = {
-    ex:    { prizes: 2, text: _('Карта «ex»: сильнее обычной версии, но за её нокаут соперник берёт 2 призовые карты вместо одной.') },
-    EX:    { prizes: 2, text: _('Карта «EX» (старая серия): мощнее обычной, но за её нокаут соперник берёт 2 призовые карты.') },
-    GX:    { prizes: 2, text: _('Карта «GX»: у неё есть особая GX-атака, которую можно применить один раз за игру. За нокаут соперник берёт 2 призовые карты.') },
-    V:     { prizes: 2, text: _('Карта «V»: усиленная версия покемона. За её нокаут соперник берёт 2 призовые карты.') },
-    VMAX:  { prizes: 3, text: _('Карта «VMAX» — гигантская форма. Очень много HP, но за нокаут соперник берёт сразу 3 призовые карты.') },
-    VSTAR: { prizes: 2, text: _('Карта «VSTAR»: у неё есть VSTAR-сила, которую можно применить один раз за игру. За нокаут соперник берёт 2 призовые карты.') },
+    ex:    { prizes: 2, text: _('Pokémon ex: stronger than the regular version, but when it is Knocked Out, your opponent takes 2 Prize cards instead of 1.') },
+    EX:    { prizes: 2, text: _('Pokémon-EX (older series): more powerful than the regular version, but when it is Knocked Out, your opponent takes 2 Prize cards.') },
+    GX:    { prizes: 2, text: _('Pokémon-GX: it has a special GX attack that you can use once per game. When it is Knocked Out, your opponent takes 2 Prize cards.') },
+    V:     { prizes: 2, text: _('Pokémon V: a powered-up version of a Pokémon. When it is Knocked Out, your opponent takes 2 Prize cards.') },
+    VMAX:  { prizes: 3, text: _('Pokémon VMAX is a gigantic form. It has a lot of HP, but when it is Knocked Out, your opponent takes 3 Prize cards at once.') },
+    VSTAR: { prizes: 2, text: _('Pokémon VSTAR: it has a VSTAR Power that you can use once per game. When it is Knocked Out, your opponent takes 2 Prize cards.') },
   };
 
   /* зоны на скане карточки в % (рассчитаны на современную раскладку; на старых картах могут чуть съезжать) */
@@ -50,7 +50,7 @@ PL.tcg = (function () {
     return '<span class="orb ' + (cls || '') + (light ? ' orb--light' : '') + '" style="--o1:' + t.c1 + ';--o2:' + t.c2 + '">' + PL.icon(t.icon) + '</span>';
   }
 
-  function stageLabel(card) { return card.stageLabel || STAGES[card.stage] || _('Базовый'); }
+  function stageLabel(card) { return card.stageLabel || STAGES[card.stage] || _('Basic'); }
 
   function zone(part, z) {
     return '<i class="zone" data-part="' + part + '" style="left:' + z[0] + '%;top:' + z[1] + '%;width:' + z[2] + '%;height:' + z[3] + '%"></i>';
@@ -106,34 +106,34 @@ PL.tcg = (function () {
         '<div class="tcg-id">' +
           (card.light ? '' : '<span class="tcg-stage" data-part="stage">' + esc(stageLabel(card)) + '</span>') +
           '<b class="tcg-name" data-part="lore">' + esc(card.name) + '</b>' +
-          (card.from ? '<span class="tcg-from" data-part="stage">' + _('Эволюция от {name}', { name: esc(card.from) }) + '</span>' : '') +
+          (card.from ? '<span class="tcg-from" data-part="stage">' + _('Evolves from {name}', { name: esc(card.from) }) + '</span>' : '') +
         '</div>' +
         (card.hp ? '<div class="tcg-hp" data-part="hp"><span>HP</span><b>' + card.hp + '</b></div>' : '') +
         '<span class="tcg-type" data-part="type">' + orb(card.type, 'orb--l') + '</span>' +
       '</div>' +
       '<div class="tcg-moves">' + attacks + '</div>' +
       '<div class="tcg-foot">' +
-        '<div class="ft" data-part="weak"><span>' + _('Слабость') + '</span><div>' + weak + '</div></div>' +
-        '<div class="ft" data-part="resist"><span>' + _('Сопротивл.') + '</span><div>' + resist + '</div></div>' +
-        '<div class="ft" data-part="retreat"><span>' + _('Отступление') + '</span><div>' + retreat + '</div></div>' +
+        '<div class="ft" data-part="weak"><span>' + _('Weakness') + '</span><div>' + weak + '</div></div>' +
+        '<div class="ft" data-part="resist"><span>' + _('Resistance') + '</span><div>' + resist + '</div></div>' +
+        '<div class="ft" data-part="retreat"><span>' + _('Retreat') + '</span><div>' + retreat + '</div></div>' +
       '</div>' +
-      '<div class="tcg-credit" data-part="rarity"><span>' + esc(card.set || _('Тестовый набор · арт скоро')) + '</span><span>' + pad3(card.num) + ' ' + r.mark + '</span></div>' +
+      '<div class="tcg-credit" data-part="rarity"><span>' + esc(card.set || _('Test set · art coming soon')) + '</span><span>' + pad3(card.num) + ' ' + r.mark + '</span></div>' +
     '</div>';
   }
 
   /* лицо карты-тренера или энергии */
   /* card.kind приходит из data.js русским идентификатором (в EN — уже переведённым): ключи ниже — идентификаторы, не текст интерфейса */
   var KIND_NAME = {
-    'Сторонник': _('Сторонник'),                       // i18n-ok
-    'Предмет': _('Предмет'),                           // i18n-ok
-    'Стадион': _('Стадион'),                           // i18n-ok
-    'Инструмент': _('Инструмент'),                     // i18n-ok
-    'Техническая машина': _('Техническая машина'),     // i18n-ok
-    'Секретная машина': _('Секретная машина'),         // i18n-ok
-    'Базовая энергия': _('Базовая энергия'),           // i18n-ok
-    'Особая энергия': _('Особая энергия'),             // i18n-ok
-    'Тренер': _('Тренер'),                             // i18n-ok
-    'Энергия': _('Энергия'),                           // i18n-ok
+    'Сторонник': _('Supporter'),                       // i18n-ok
+    'Предмет': _('Item'),                           // i18n-ok
+    'Стадион': _('Stadium'),                           // i18n-ok
+    'Инструмент': _('Pokémon Tool'),                     // i18n-ok
+    'Техническая машина': _('Technical Machine'),     // i18n-ok
+    'Секретная машина': _('Rocket’s Secret Machine'),         // i18n-ok
+    'Базовая энергия': _('Basic Energy'),           // i18n-ok
+    'Особая энергия': _('Special Energy'),             // i18n-ok
+    'Тренер': _('Trainer'),                             // i18n-ok
+    'Энергия': _('Energy'),                           // i18n-ok
   };
   function kindId(card) {   // русский идентификатор вида карты, как бы он ни пришёл (оригинал или перевод)
     var k = card.kind;
@@ -178,20 +178,20 @@ PL.tcg = (function () {
 
   /* ---------- пояснения ---------- */
   function costText(cost) {
-    if (!cost.length) return _('бесплатно');
+    if (!cost.length) return _('free');
     var counts = {}, order = [];
     cost.forEach(function (c) { if (!counts[c]) { counts[c] = 0; order.push(c); } counts[c]++; });
     return order.map(function (c) {
-      return counts[c] + '× ' + (c === 'colorless' ? _('любая энергия') : T(c).name);
+      return counts[c] + '× ' + (c === 'colorless' ? _('any Energy') : T(c).name);
     }).join(', ');
   }
 
   function dmgNote(dmg) {
-    if (!dmg) return _('Урона нет, только эффект.');
-    if (/\+$/.test(dmg)) return _('«{dmg}» — это базовый урон {base} и возможная прибавка от эффекта.', { dmg: dmg, base: dmg.slice(0, -1) });
-    if (/[×x]$/.test(dmg)) return _('«{dmg}» — урон умножается в зависимости от условия.', { dmg: dmg });
-    if (/-$/.test(dmg)) return _('«{dmg}» — базовый урон, который может уменьшиться от эффекта.', { dmg: dmg });
-    return _('Урон: {dmg}.', { dmg: dmg });
+    if (!dmg) return _('No damage, just an effect.');
+    if (/\+$/.test(dmg)) return _('“{dmg}” means base damage of {base} plus a possible bonus from an effect.', { dmg: dmg, base: dmg.slice(0, -1) });
+    if (/[×x]$/.test(dmg)) return _('“{dmg}” means the damage is multiplied depending on a condition.', { dmg: dmg });
+    if (/-$/.test(dmg)) return _('“{dmg}” is base damage that an effect may reduce.', { dmg: dmg });
+    return _('Damage: {dmg}.', { dmg: dmg });
   }
 
   function chainOf(card) {
@@ -200,19 +200,19 @@ PL.tcg = (function () {
   }
 
   var KIND_TEXT = {
-    'Сторонник': _('Сторонник — сильная карта-помощник. Играть можно только одного сторонника за ход, поэтому выбирать надо с умом.'),   // i18n-ok
-    'Предмет': _('Предмет можно сыграть сколько угодно раз за ход. После использования он уходит в сброс.'),   // i18n-ok
-    'Стадион': _('Стадион кладут в центр поля, и он действует на обоих игроков, пока его не заменят другим стадионом.'),   // i18n-ok
-    'Инструмент': _('Инструмент прикрепляют к покемону, и он даёт постоянный эффект, пока покемон в игре.'),   // i18n-ok
-    'Техническая машина': _('Техническую машину прикрепляют к покемону, чтобы дать ему дополнительную атаку.'),   // i18n-ok
-    'Секретная машина': _('Секретная машина Команды R прикрепляется к покемону и даёт ему особую атаку.'),   // i18n-ok
-    'Базовая энергия': _('Базовая энергия — топливо для атак. Каждый ход можно прикрепить одну энергию к своему покемону.'),   // i18n-ok
-    'Особая энергия': _('Особая энергия работает как обычная, но даёт ещё и дополнительный эффект, указанный на карте.'),   // i18n-ok
-    'Тренер': _('Карта тренера помогает в игре: добирает карты, лечит или мешает сопернику.'),   // i18n-ok
+    'Сторонник': _('A Supporter is a powerful helper card. You can play only one Supporter per turn, so choose wisely.'),   // i18n-ok
+    'Предмет': _('You can play as many Item cards as you like during your turn. After it is used, it goes to the discard pile.'),   // i18n-ok
+    'Стадион': _('A Stadium is played in the center of the field and affects both players until another Stadium replaces it.'),   // i18n-ok
+    'Инструмент': _('A Pokémon Tool is attached to a Pokémon and gives a lasting effect for as long as that Pokémon is in play.'),   // i18n-ok
+    'Техническая машина': _('A Technical Machine is attached to a Pokémon to give it an extra attack.'),   // i18n-ok
+    'Секретная машина': _('A Team Rocket’s Secret Machine is attached to a Pokémon and gives it a special attack.'),   // i18n-ok
+    'Базовая энергия': _('Basic Energy is the fuel for attacks. Once per turn, you can attach one Energy card to one of your Pokémon.'),   // i18n-ok
+    'Особая энергия': _('Special Energy works like basic Energy, but it also has an extra effect printed on the card.'),   // i18n-ok
+    'Тренер': _('A Trainer card helps you during the game: it draws cards, heals, or disrupts your opponent.'),   // i18n-ok
   };
   /* «Набор · № 12/102 · художник Имя» */
   function whereOf(card) {
-    return [card.set, card.localId ? _('№ {id}', { id: card.localId + (card.total ? '/' + card.total : '') }) : '', card.illus ? _('художник {name}', { name: card.illus }) : ''].filter(Boolean).join(' · ');
+    return [card.set, card.localId ? _('№ {id}', { id: card.localId + (card.total ? '/' + card.total : '') }) : '', card.illus ? _('illustrator {name}', { name: card.illus }) : ''].filter(Boolean).join(' · ');
   }
 
   function trainerItems(card) {
@@ -220,11 +220,11 @@ PL.tcg = (function () {
     var rules = card.rules.length ? card.rules : card.attacks.map(function (a) { return a.text; }).filter(Boolean);
     var kindText = KIND_TEXT[kindId(card)] || KIND_TEXT['Тренер'];   // i18n-ok
     var list = [
-      { id: 'kind', label: _('Тип карты'), title: kindName(card), value: card.super === 'E' ? _('Энергия') : _('Тренер'), tag: _('В игре'), text: kindText,
-        note: card.super === 'E' && card.type !== 'colorless' ? _('Тип энергии: {type}.', { type: T(card.type).name }) : '' },
+      { id: 'kind', label: _('Card type'), title: kindName(card), value: card.super === 'E' ? _('Energy') : _('Trainer'), tag: _('Gameplay'), text: kindText,
+        note: card.super === 'E' && card.type !== 'colorless' ? _('Energy type: {type}.', { type: T(card.type).name }) : '' },
     ];
-    if (rules.length) list.push({ id: 'rules', label: _('Эффект'), title: _('Эффект карты'), value: '', tag: _('В игре'), text: _('Что происходит, когда карту разыгрывают. Текст приведён так, как он напечатан на карте.'), note: _('Текст на карте: {text}', { text: rules.join(' ') }) });
-    list.push({ id: 'rarity', label: _('Редкость'), title: _('Редкость · {name}', { name: card.rarityName || r.name }), value: card.localId || '', tag: _('В игре'), text: r.text, note: whereOf(card) });
+    if (rules.length) list.push({ id: 'rules', label: _('Effect'), title: _('Card effect'), value: '', tag: _('Gameplay'), text: _('What happens when the card is played. The text is shown exactly as it is printed on the card.'), note: _('Card text: {text}', { text: rules.join(' ') }) });
+    list.push({ id: 'rarity', label: _('Rarity'), title: _('Rarity · {name}', { name: card.rarityName || r.name }), value: card.localId || '', tag: _('Gameplay'), text: r.text, note: whereOf(card) });
     return list;
   }
 
@@ -236,94 +236,94 @@ PL.tcg = (function () {
     var list = [];
 
     list.push({
-      id: 'lore', label: _('Запись'), title: _('Запись о покемоне'), value: _('№{num}', { num: pad3(card.num) }), tag: _('В лоре'),
-      text: card.lore || _('Описание этого покемона появится позже.'),
+      id: 'lore', label: _('Entry'), title: _('Pokémon entry'), value: _('№{num}', { num: pad3(card.num) }), tag: _('Lore'),
+      text: card.lore || _('This Pokémon’s description will be added later.'),
       note: card.loreLang === 'en' && PL.lang !== 'en'
-        ? _('Описание на английском (с карты или из Покедекса) — русский перевод добавим позже.')
-        : _('Линия эволюции: {chain}.', { chain: chain.join(' → ') }),
+        ? _('Description in English (from the card or the Pokédex); a translation will be added later.')
+        : _('Evolution line: {chain}.', { chain: chain.join(' → ') }),
     });
 
     list.push({
-      id: 'type', label: _('Тип'), title: _('Тип · {name}', { name: t.name }), value: t.name, tag: _('В лоре'),
+      id: 'type', label: _('Type'), title: _('Type · {name}', { name: t.name }), value: t.name, tag: _('Lore'),
       text: t.lore,
-      note: _('В игре тип определяет, какая энергия нужна для атак и против каких покемонов карта сильна или слаба.'),
+      note: _('In the game, a Pokémon’s type determines which Energy its attacks need and which Pokémon the card is strong or weak against.'),
     });
 
     var st;
     if (card.stageLabel) {
-      st = { text: _('Особая стадия «{stage}». Такие карты кладут поверх обычной формы покемона или выкладывают по особым правилам, указанным на карте.', { stage: card.stageLabel }),
-             note: card.from ? _('Эволюционирует из: {name}.', { name: card.from }) : _('Подробности — в правиле карты.') };
+      st = { text: _('Special stage “{stage}”. These cards are played on top of the regular form of the Pokémon, or put into play under the special rules printed on the card.', { stage: card.stageLabel }),
+             note: card.from ? _('Evolves from: {name}.', { name: card.from }) : _('See the card’s rule text for details.') };
     } else {
       st = {
-        0: { text: _('Базовый покемон — начало эволюционной цепочки. Его можно выложить в игру сразу, без подготовки.'),
-             note: chain.length > 1 ? _('В лоре это исходная форма вида, из которой развиваются {list}.', { list: chain.slice(1).join(_(' и ')) }) : _('В лоре это исходная форма вида.') },
-        1: { text: card.from ? _('Первая эволюция. Эту карту кладут поверх базового покемона ({name}): он становится сильнее, но сначала его надо подготовить.', { name: card.from })
-                             : _('Первая эволюция. Эту карту кладут поверх базового покемона: он становится сильнее, но сначала его надо подготовить.'),
-             note: _('В лоре эволюция — резкое изменение тела: покемон растёт, набирает силу и иногда меняет облик целиком.') },
-        2: { text: chain.length > 2 ? _('Вторая эволюция, финал цепочки. Нужны оба предыдущих этапа ({chain}), зато такие карты самые мощные.', { chain: chain.slice(0, -1).join(' → ') })
-                                    : _('Вторая эволюция, финал цепочки. Нужны оба предыдущих этапа, зато такие карты самые мощные.'),
-             note: _('В лоре финальная форма — результат долгого пути: покемон полностью раскрыл свою природу.') },
-      }[card.stage] || { text: _('Стадия эволюции покемона.'), note: '' };
+        0: { text: _('A Basic Pokémon is the start of an evolution line. You can put it into play right away, with no setup.'),
+             note: chain.length > 1 ? _('In lore, this is the original form of the species, which evolves into {list}.', { list: chain.slice(1).join(_(' and ')) }) : _('In lore, this is the original form of the species.') },
+        1: { text: card.from ? _('A first evolution. Play this card on top of a Basic Pokémon ({name}): it grows stronger, but the Basic has to be in play first.', { name: card.from })
+                             : _('A first evolution. Play this card on top of a Basic Pokémon: it grows stronger, but the Basic has to be in play first.'),
+             note: _('In lore, evolution is a dramatic change of body: the Pokémon grows, gains strength and sometimes changes its whole appearance.') },
+        2: { text: chain.length > 2 ? _('A second evolution, the end of the line. You need both earlier stages ({chain}), but these cards are the most powerful.', { chain: chain.slice(0, -1).join(' → ') })
+                                    : _('A second evolution, the end of the line. You need both earlier stages, but these cards are the most powerful.'),
+             note: _('In lore, the final form is the result of a long journey: the Pokémon has fully realized its nature.') },
+      }[card.stage] || { text: _('A Pokémon’s evolution stage.'), note: '' };
     }
-    list.push({ id: 'stage', label: _('Стадия'), title: _('Стадия эволюции'), value: stageLabel(card), tag: _('В игре'), text: st.text, note: st.note });
+    list.push({ id: 'stage', label: _('Stage'), title: _('Evolution stage'), value: stageLabel(card), tag: _('Gameplay'), text: st.text, note: st.note });
 
-    var hpWord = card.hp >= 150 ? _('Это высокий показатель: карта живучая.') : card.hp <= 80 ? _('Это мало: покемон хрупкий и быстро выбывает.') : _('Это средний запас здоровья.');
+    var hpWord = card.hp >= 150 ? _('That is high: a sturdy card.') : card.hp <= 80 ? _('That is low: the Pokémon is fragile and gets Knocked Out quickly.') : _('That is an average amount of health.');
     list.push({
-      id: 'hp', label: 'HP', title: _('Здоровье (HP)'), value: card.hp + ' HP', tag: _('В игре'),
-      text: _('Сколько урона выдерживает покемон. Когда накопленный урон достигает {hp}, покемон нокаутирован и покидает поле.', { hp: card.hp }) + ' ' + hpWord,
-      note: _('Урон не исчезает сам: он копится, пока покемона не вылечат или не заменят.'),
+      id: 'hp', label: 'HP', title: _('Hit Points (HP)'), value: card.hp + ' HP', tag: _('Gameplay'),
+      text: _('How much damage this Pokémon can take. When the damage on it reaches {hp}, it is Knocked Out and leaves the field.', { hp: card.hp }) + ' ' + hpWord,
+      note: _('Damage does not go away on its own: it builds up until the Pokémon is healed or replaced.'),
     });
 
     if (card.ability) {
       list.push({
-        id: 'abil', label: card.ability.name, title: _('Способность · {name}', { name: card.ability.name }), value: card.ability.kind || 'Ability', tag: _('В игре'),
-        text: _('Способность — это не атака: она работает постоянно или по условию и не требует энергии.'),
-        note: card.ability.text ? _('Текст на карте: {text}', { text: card.ability.text }) : '',
+        id: 'abil', label: card.ability.name, title: _('Ability · {name}', { name: card.ability.name }), value: card.ability.kind || 'Ability', tag: _('Gameplay'),
+        text: _('An Ability is not an attack: it works all the time or under certain conditions, and it needs no Energy.'),
+        note: card.ability.text ? _('Card text: {text}', { text: card.ability.text }) : '',
       });
     }
 
     card.attacks.forEach(function (a, i) {
       list.push({
-        id: 'atk' + i, label: a.name, title: _('Атака · {name}', { name: a.name }), value: a.dmg || _('эффект'), tag: _('В игре'),
-        text: _('Стоимость: {cost}. Цветные кружки требуют энергию именно этого типа, серый (звезда) подходит любой.', { cost: costText(a.cost) }) + ' ' + dmgNote(a.dmg),
-        note: a.explain || (a.text ? _('Текст на карте: {text}', { text: a.text }) : ''),
+        id: 'atk' + i, label: a.name, title: _('Attack · {name}', { name: a.name }), value: a.dmg || _('effect'), tag: _('Gameplay'),
+        text: _('Cost: {cost}. Colored orbs require Energy of exactly that type; a gray one (star) accepts any Energy.', { cost: costText(a.cost) }) + ' ' + dmgNote(a.dmg),
+        note: a.explain || (a.text ? _('Card text: {text}', { text: a.text }) : ''),
       });
     });
 
     var w = card.weak;
     list.push({
-      id: 'weak', label: _('Слабость'), title: _('Слабость'), value: w ? T(w.type).name + ' ' + w.val : _('нет'), tag: _('В игре'),
+      id: 'weak', label: _('Weakness'), title: _('Weakness'), value: w ? T(w.type).name + ' ' + w.val : _('none'), tag: _('Gameplay'),
       text: w ? (/^[×x]/.test(w.val)
-                  ? _('Против покемонов типа «{type}» эта карта страдает сильнее: урон умножается на {n}.', { type: T(w.type).name, n: w.val.slice(1) })
-                  : _('Против покемонов типа «{type}» эта карта страдает сильнее: к урону добавляется {n}.', { type: T(w.type).name, n: w.val.replace('+', '') }))
-              : _('У этой карты нет слабости: ни один тип не бьёт её сильнее обычного.'),
+                  ? _('This card takes extra damage from {type}-type Pokémon: the damage is multiplied by {n}.', { type: T(w.type).name, n: w.val.slice(1) })
+                  : _('This card takes extra damage from {type}-type Pokémon: the damage is increased by {n}.', { type: T(w.type).name, n: w.val.replace('+', '') }))
+              : _('This card has no Weakness: no type hits it harder than usual.'),
       note: w ? (PL.weakWhy[w.type] || '') : '',
     });
 
     var rs = card.resist;
     list.push({
-      id: 'resist', label: _('Сопротивление'), title: _('Сопротивление'), value: rs ? T(rs.type).name + ' ' + rs.val : _('нет'), tag: _('В игре'),
-      text: rs ? _('Против покемонов типа «{type}» урон уменьшается на {n}. Это защитный бонус, обратный слабости.', { type: T(rs.type).name, n: rs.val.replace(/[−-]/, '') })
-               : _('Сопротивления нет: все типы бьют эту карту в полную силу.'),
-      note: rs ? _('Сопротивление показывает, чьи приёмы покемон хорошо переносит или умеет гасить.') : _('Такое бывает у большинства карт, это нормально.'),
+      id: 'resist', label: _('Resistance'), title: _('Resistance'), value: rs ? T(rs.type).name + ' ' + rs.val : _('none'), tag: _('Gameplay'),
+      text: rs ? _('Against {type}-type Pokémon, damage is reduced by {n}. This is a defensive bonus, the opposite of Weakness.', { type: T(rs.type).name, n: rs.val.replace(/[−-]/, '') })
+               : _('There is no Resistance: every type hits this card at full strength.'),
+      note: rs ? _('Resistance shows whose attacks the Pokémon can take well or shrug off.') : _('Most cards have none, and that is perfectly normal.'),
     });
 
     var rt = card.retreat;
     list.push({
-      id: 'retreat', label: _('Отступление'), title: _('Цена отступления'), value: rt ? rt + ' ' + _n(rt, 'энергия|энергии|энергий') : _('бесплатно'), tag: _('В игре'),
-      text: rt ? _('Чтобы заменить покемона на скамье, нужно сбросить {n} энергии с него.', { n: rt }) + ' ' + (rt >= 3 ? _('Это дорого: отступать невыгодно, покемон обычно остаётся до конца.') : _('Цена умеренная.')) : _('Отступать можно бесплатно: такой покемон лёгкий и ловкий.'),
-      note: _('Серые кружки — любая энергия. Чем тяжелее покемон, тем дороже его оттаскивать с поля.'),
+      id: 'retreat', label: _('Retreat'), title: _('Retreat Cost'), value: rt ? rt + ' ' + _n(rt, 'Energy|Energy') : _('free'), tag: _('Gameplay'),
+      text: rt ? _('To switch this Pokémon with one on your Bench, you must discard {n} Energy attached to it.', { n: rt }) + ' ' + (rt >= 3 ? _('That is expensive: retreating is a poor deal, so the Pokémon usually stays put to the end.') : _('The cost is moderate.')) : _('You can retreat for free: this Pokémon is light and agile.'),
+      note: _('Gray orbs mean any Energy. The heavier the Pokémon, the more it costs to drag it off the field.'),
     });
 
     if (card.suffix && SUFFIX[card.suffix]) {
-      list.push({ id: 'rule', label: _('Правило {suffix}', { suffix: card.suffix }), title: _('Правило карты {suffix}', { suffix: card.suffix }), value: SUFFIX[card.suffix].prizes + ' ' + _n(SUFFIX[card.suffix].prizes, 'приз|приза|призов'), tag: _('В игре'),
-        text: SUFFIX[card.suffix].text, note: _('Призовые карты — это 6 карт, отложенных в начале игры. Кто первым заберёт все свои призы, тот победил.') });
+      list.push({ id: 'rule', label: _('{suffix} rule', { suffix: card.suffix }), title: _('{suffix} card rule', { suffix: card.suffix }), value: SUFFIX[card.suffix].prizes + ' ' + _n(SUFFIX[card.suffix].prizes, 'Prize card|Prize cards'), tag: _('Gameplay'),
+        text: SUFFIX[card.suffix].text, note: _('Prize cards are the 6 cards set aside at the start of the game. Whoever takes all of their Prize cards first wins.') });
     }
 
     list.push({
-      id: 'rarity', label: _('Редкость'), title: _('Редкость · {name}', { name: card.rarityName || r.name }), value: card.localId ? card.localId + (card.total ? '/' + card.total : '') : pad3(card.num) + ' ' + r.mark, tag: _('В игре'),
+      id: 'rarity', label: _('Rarity'), title: _('Rarity · {name}', { name: card.rarityName || r.name }), value: card.localId ? card.localId + (card.total ? '/' + card.total : '') : pad3(card.num) + ' ' + r.mark, tag: _('Gameplay'),
       text: r.text,
-      note: whereOf(card) || _('Значок рядом с номером показывает редкость, а блеск на рисунке — отдельный эффект «фольги». Сейчас данные тестовые.'),
+      note: whereOf(card) || _('The symbol next to the number shows the rarity, while the shine on the art is a separate “foil” effect. The data here is for testing.'),
     });
 
     return list;

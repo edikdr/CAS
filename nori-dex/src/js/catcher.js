@@ -58,14 +58,14 @@ PL.catcher = (function () {
      Порядок — слева направо в лотке; приоритет — справа налево: если подходят несколько, берём правый.
      ========================================================================== */
   var BALLS = [
-    { k: 'poke',   ru: _('Покебол'),    rule: _('Все остальные покемоны'),          pw: 1.0, test: function () { return true; } },
-    { k: 'great',  ru: _('Грейт-бол'),  rule: _('Средние: сумма статов от 400'),    pw: 1.3, test: function (p) { return bst(p) >= 400; } },
-    { k: 'ultra',  ru: _('Ультра-бол'), rule: _('Сильные: сумма статов от 500'),    pw: 1.6, test: function (p) { return bst(p) >= 500; } },
-    { k: 'fast',   ru: _('Фаст-бол'),   rule: _('Быстрые: скорость от 100'),        pw: 1.0, test: function (p) { return p.st[5] >= 100; } },
-    { k: 'heavy',  ru: _('Хэви-бол'),   rule: _('Тяжёлые: от 200 кг'),              pw: 1.0, test: function (p) { return p.w >= 2000; } },
-    { k: 'net',    ru: _('Нет-бол'),    rule: _('Водные и насекомые'),              pw: 1.0, test: function (p) { return has(p, 'water') || has(p, 'bug'); } },
-    { k: 'dusk',   ru: _('Даск-бол'),   rule: _('Тёмные и призрачные'),             pw: 1.0, test: function (p) { return has(p, 'dark') || has(p, 'ghost'); } },
-    { k: 'master', ru: _('Мастер-бол'), rule: _('Легендарные и мифические'),        pw: 99, test: function (p) { return !!(p.leg || p.myth); }, limited: true },
+    { k: 'poke',   ru: _('Poké Ball'),    rule: _('All other Pokémon'),          pw: 1.0, test: function () { return true; } },
+    { k: 'great',  ru: _('Great Ball'),  rule: _('Mid-tier: stat total 400+'),    pw: 1.3, test: function (p) { return bst(p) >= 400; } },
+    { k: 'ultra',  ru: _('Ultra Ball'), rule: _('Strong: stat total 500+'),    pw: 1.6, test: function (p) { return bst(p) >= 500; } },
+    { k: 'fast',   ru: _('Fast Ball'),   rule: _('Fast: Speed 100+'),        pw: 1.0, test: function (p) { return p.st[5] >= 100; } },
+    { k: 'heavy',  ru: _('Heavy Ball'),   rule: _('Heavy: 200 kg or more'),              pw: 1.0, test: function (p) { return p.w >= 2000; } },
+    { k: 'net',    ru: _('Net Ball'),    rule: _('Water and Bug types'),              pw: 1.0, test: function (p) { return has(p, 'water') || has(p, 'bug'); } },
+    { k: 'dusk',   ru: _('Dusk Ball'),   rule: _('Dark and Ghost types'),             pw: 1.0, test: function (p) { return has(p, 'dark') || has(p, 'ghost'); } },
+    { k: 'master', ru: _('Master Ball'), rule: _('Legendary and Mythical'),        pw: 99, test: function (p) { return !!(p.leg || p.myth); }, limited: true },
   ];
   var BALL = {};
   BALLS.forEach(function (b, i) { b.i = i; BALL[b.k] = b; });
@@ -182,7 +182,7 @@ PL.catcher = (function () {
         '<div class="c-rule"></div>' +
         '<div class="c-tray"></div>' +
         '<div class="c-pop"></div>' +
-        '<div class="c-title"><small>' + _('POKÉLORE · КАРТРИДЖ') + '</small><b>' + _('ЛОВЕЦ') + '</b><span>MASTER CATCHER EDITION</span>' +
+        '<div class="c-title"><small>' + _('POKÉLORE · CARTRIDGE') + '</small><b>' + _('CATCHER') + '</b><span>MASTER CATCHER EDITION</span>' +
           '<div class="c-lvl"></div><div class="c-rec"></div></div>' +
         '<div class="c-panel"></div>' +
         '<div class="q-menu" role="listbox"></div>' +
@@ -363,9 +363,9 @@ PL.catcher = (function () {
     st.mon = null; st.ball = null; st.cap = null;
     setPhase('title');
     E.panel.innerHTML = '';
-    E.lvl.innerHTML = _('УР. {lvl} · {total} EXP', { lvl: L.lvl, total: db.total }) + '<i><em style="width:' + Math.round(L.into * 100) + '%"></em></i>';
-    E.rec.textContent = db.best != null ? _('Лучшая попытка: {best} EXP · попыток: {n}', { best: signed(db.best), n: db.runs.length }) : _('Попыток пока нет: самое время начать');
-    showMenu([_('ИГРАТЬ'), _('ПРАВИЛА'), _('ИСТОРИЯ ПОПЫТОК'), _('РЕЖИМ AR: {state}', { state: st.ar ? _('ВКЛ') : _('ВЫКЛ') }), _('ВЫЙТИ')], function (i) {
+    E.lvl.innerHTML = _('LV {lvl} · {total} EXP', { lvl: L.lvl, total: db.total }) + '<i><em style="width:' + Math.round(L.into * 100) + '%"></em></i>';
+    E.rec.textContent = db.best != null ? _('Best run: {best} EXP · runs: {n}', { best: signed(db.best), n: db.runs.length }) : _('No runs yet: time to get started');
+    showMenu([_('PLAY'), _('RULES'), _('RUN HISTORY'), _('AR MODE: {state}', { state: st.ar ? _('ON') : _('OFF') }), _('EXIT')], function (i) {
       if (i === 0) startRun();
       else if (i === 1) openRules(0);
       else if (i === 2) openHistory();
@@ -380,26 +380,26 @@ PL.catcher = (function () {
   }
   var RULE_PAGES = [
     function () {
-      return '<h3>' + _('БРОСОК') + '</h3><ul class="c-lines">' +
-        '<li><b>1</b><span>' + _('Самое простое: {tap}, и шар полетит точно в него. Или схвати шар и {swipe}.', { tap: '<em>' + _('тапни по покемону') + '</em>', swipe: '<em>' + _('смахни вверх') + '</em>' }) + '</span></li>' +
-        '<li><b>2</b><span>' + _('Рамка вокруг покемона загорается, когда смах направлен на него: шар сам доворачивает и догоняет бегущую цель.') + '</span></li>' +
-        '<li><b>3</b><span>' + _('Раскрути шар по кругу перед броском: {curve} загибает путь и повышает шанс.', { curve: '<em>' + _('бросок с подкруткой') + '</em>' }) + '</span></li>' +
-        '<li><b>4</b><span>' + _('Цветное кольцо сужается. Чем оно меньше в момент попадания, тем надёжнее захват.') + '</span></li>' +
-        '<li><b>5</b><span>' + _('Без мыши: {arrows} двигают прицел, {a} бросает, {lr} или {nums} меняют шар.', { arrows: '<em>' + _('стрелки') + '</em>', a: '<em>A</em>', lr: '<em>L / R</em>', nums: '<em>1–8</em>' }) + '</span></li>' +
-        '<li><b>6</b><span>' + _('Режим {ar} включает камеру телефона: покемон бегает по твоей комнате.', { ar: '<em>AR</em>' }) + '</span></li></ul>';
+      return '<h3>' + _('HOW TO THROW') + '</h3><ul class="c-lines">' +
+        '<li><b>1</b><span>' + _('Easiest way: {tap} and the ball flies straight at it. Or grab the ball and {swipe}.', { tap: '<em>' + _('tap the Pokémon') + '</em>', swipe: '<em>' + _('swipe up') + '</em>' }) + '</span></li>' +
+        '<li><b>2</b><span>' + _('The frame around the Pokémon lights up when your swipe is aimed at it: the ball steers itself and chases the running target.') + '</span></li>' +
+        '<li><b>3</b><span>' + _('Spin the ball in a circle before the throw: a {curve} bends its path and boosts your odds.', { curve: '<em>' + _('curveball') + '</em>' }) + '</span></li>' +
+        '<li><b>4</b><span>' + _('The colored ring keeps shrinking. The smaller it is when the ball hits, the surer the catch.') + '</span></li>' +
+        '<li><b>5</b><span>' + _('No mouse? {arrows} move the aim, {a} throws, {lr} or {nums} switch the ball.', { arrows: '<em>' + _('arrow keys') + '</em>', a: '<em>A</em>', lr: '<em>L / R</em>', nums: '<em>1–8</em>' }) + '</span></li>' +
+        '<li><b>6</b><span>' + _('{ar} mode turns on your phone camera: the Pokémon runs around your room.', { ar: '<em>AR</em>' }) + '</span></li></ul>';
     },
     function () {
-      return '<h3>' + _('КАКОЙ ШАР') + '</h3><p class="c-note">' + _('Подходит несколько: берём тот, что {right} в лотке.', { right: '<em>' + _('правее') + '</em>' }) + '</p><ul class="c-balls">' +
+      return '<h3>' + _('WHICH BALL') + '</h3><p class="c-note">' + _('If several fit, the one {right} in the tray counts.', { right: '<em>' + _('farther right') + '</em>' }) + '</p><ul class="c-balls">' +
         BALLS.slice().reverse().map(ballRow).join('') + '</ul>';
     },
     function () {
       return '<h3>EXP</h3><ul class="c-lines">' +
-        '<li class="ok"><b>+200</b><span>' + _('Поймал покемона {right} шаром.', { right: '<em>' + _('верным') + '</em>' }) + '</span></li>' +
-        '<li class="mid"><b>+50</b><span>' + _('Поймал, но шар был другой.') + '</span></li>' +
-        '<li class="bad"><b>−100</b><span>' + _('Не поймал: покемон сбежал (пять бросков или время на него вышло).') + '</span></li>' +
-        '<li><b>' + _('60с') + '</b><span>' + _('Время одной попытки. Если оно вышло, пока ловишь, захват доигрывается до конца.') + '</span></li>' +
-        '<li><b>×' + MASTER_N + '</b><span>' + _('Мастер-бол ловит всегда, но таких шаров только {n} за попытку.', { n: MASTER_N }) + '</span></li>' +
-        '<li><b>≡</b><span>' + _('Все попытки сохраняются в истории.') + '</span></li></ul>';
+        '<li class="ok"><b>+200</b><span>' + _('Caught a Pokémon with the {right} ball.', { right: '<em>' + _('right') + '</em>' }) + '</span></li>' +
+        '<li class="mid"><b>+50</b><span>' + _('Caught it, but with a different ball.') + '</span></li>' +
+        '<li class="bad"><b>−100</b><span>' + _('Missed: the Pokémon fled (five throws used or its time ran out).') + '</span></li>' +
+        '<li><b>' + _('60s') + '</b><span>' + _('Time for one run. If it runs out mid-catch, the capture plays out to the end.') + '</span></li>' +
+        '<li><b>×' + MASTER_N + '</b><span>' + _('The Master Ball never fails, but you only get {n} per run.', { n: MASTER_N }) + '</span></li>' +
+        '<li><b>≡</b><span>' + _('All runs are saved in the history.') + '</span></li></ul>';
     },
   ];
   function openRules(page) {
@@ -423,16 +423,16 @@ PL.catcher = (function () {
     var h = st.hist, runs = st.db.runs.slice().reverse();      // свежие сверху
     if (h.open != null) {
       var r = runs[h.open];
-      E.panel.innerHTML = '<h3>' + _('ПОПЫТКА {date} · {exp} EXP', { date: fmtDate(r.t), exp: signed(r.exp) }) + '</h3><ul class="c-log">' +
+      E.panel.innerHTML = '<h3>' + _('RUN {date} · {exp} EXP', { date: fmtDate(r.t), exp: signed(r.exp) }) + '</h3><ul class="c-log">' +
         r.log.map(function (l) {
           var good = l.res === 'ok';
           return '<li class="' + (l.res === 'ok' ? (l.d >= EXP_RIGHT ? 'ok' : 'mid') : l.res === 'skip' ? '' : 'bad') + '"><b>' + esc(l.ru) + '</b><span>' +
-            (l.res === 'ok' ? esc(BALL[l.ball] ? BALL[l.ball].ru : l.ball) + (l.d >= EXP_RIGHT ? '' : ' ' + _('(нужен {ball})', { ball: esc(BALL[l.best].ru) })) :
-             l.res === 'skip' ? _('не успел') : _('сбежал')) + '</span><em>' + (l.res === 'skip' ? '' : signed(l.d)) + '</em></li>';
+            (l.res === 'ok' ? esc(BALL[l.ball] ? BALL[l.ball].ru : l.ball) + (l.d >= EXP_RIGHT ? '' : ' ' + _('(needed {ball})', { ball: esc(BALL[l.best].ru) })) :
+             l.res === 'skip' ? _('out of time') : _('fled')) + '</span><em>' + (l.res === 'skip' ? '' : signed(l.d)) + '</em></li>';
         }).join('') + '</ul>';
       return;
     }
-    if (!runs.length) { E.panel.innerHTML = '<h3>' + _('ИСТОРИЯ ПОПЫТОК') + '</h3><p class="c-empty">' + _('Пока пусто. Сыграй первую попытку: 60 секунд.') + '</p>'; return; }
+    if (!runs.length) { E.panel.innerHTML = '<h3>' + _('RUN HISTORY') + '</h3><p class="c-empty">' + _('Nothing here yet. Play your first run: 60 seconds.') + '</p>'; return; }
     var per = 6;
     if (h.sel < h.top) h.top = h.sel;
     if (h.sel >= h.top + per) h.top = h.sel - per + 1;
@@ -441,8 +441,8 @@ PL.catcher = (function () {
       return '<li data-row="' + i + '" class="' + (i === h.sel ? 'is-sel ' : '') + (r.exp >= 0 ? 'pos' : 'neg') + '"><i></i><span class="n">#' + (st.db.runs.length - i) + '</span><span class="d">' + fmtDate(r.t) + '</span>' +
         '<b>' + signed(r.exp) + ' EXP</b><span class="c">' + r.caught + '/' + r.enc + ' · ' + acc + '%</span></li>';
     }).join('');
-    E.panel.innerHTML = '<h3>' + _('ИСТОРИЯ ПОПЫТОК') + ' <small>' + runs.length + '</small></h3><ul class="c-hist">' + rows + '</ul>' +
-      '<p class="c-note">' + _('▲▼ выбрать · A подробности · B назад') + '</p>';
+    E.panel.innerHTML = '<h3>' + _('RUN HISTORY') + ' <small>' + runs.length + '</small></h3><ul class="c-hist">' + rows + '</ul>' +
+      '<p class="c-note">' + _('▲▼ select · A details · B back') + '</p>';
   }
 
   /* ---------- AR-режим ---------- */
@@ -479,14 +479,14 @@ PL.catcher = (function () {
     return startCam().then(function () { cam.on = true; E.ar.classList.add('is-on'); return true; }, function (err) {
       cam.on = false; stopCam();
       var denied = err && /NotAllowed|Permission|Security/i.test(err.name || err.message || '');
-      if (PL.app && PL.app.toast) PL.app.toast(denied ? _('Камера не разрешена. Разреши доступ в браузере') : _('Камера недоступна. Нужен https или телефон'));
+      if (PL.app && PL.app.toast) PL.app.toast(denied ? _('Camera access denied. Allow it in your browser settings') : _('Camera unavailable. It needs https or a phone'));
       return false;
     });
   }
   function refreshArItem() {
     if (!st || st.phase !== 'title' || !st.menu) return;
     var el = E.menu.children[3];
-    if (el) el.querySelector('.q-ot').textContent = _('РЕЖИМ AR: {state}', { state: st.ar ? _('ВКЛ') : _('ВЫКЛ') });
+    if (el) el.querySelector('.q-ot').textContent = _('AR MODE: {state}', { state: st.ar ? _('ON') : _('OFF') });
   }
   function toggleAR() {
     if (!st) return;
@@ -521,7 +521,7 @@ PL.catcher = (function () {
       var n = 3;
       (function tick() {
         if (!st || st.token !== tk) return;
-        if (n === 0) { E.count.textContent = _('ЛОВИ!'); E.count.className = 'c-count go'; snd('qstart'); beginPlay(); setTimeout(function () { if (st && st.token === tk) E.count.className = 'c-count'; }, 700); return; }
+        if (n === 0) { E.count.textContent = _('CATCH!'); E.count.className = 'c-count go'; snd('qstart'); beginPlay(); setTimeout(function () { if (st && st.token === tk) E.count.className = 'c-count'; }, 700); return; }
         E.count.textContent = n; E.count.className = 'c-count'; void E.count.offsetWidth; E.count.className = 'c-count on';
         snd('tick'); n--; setTimeout(tick, 820);
       })();
@@ -661,7 +661,7 @@ PL.catcher = (function () {
     e.preventDefault();
     try { E.field.setPointerCapture(e.pointerId); } catch (er) {}
     st.pad = false;
-    if (!canThrow()) { if (BALL[st.sel].limited && st.master <= 0 && !st.ball && !st.cap) { snd('error'); pop(_('МАСТЕР-БОЛЫ КОНЧИЛИСЬ'), 'bad', 900); } return; }
+    if (!canThrow()) { if (BALL[st.sel].limited && st.master <= 0 && !st.ball && !st.cap) { snd('error'); pop(_('OUT OF MASTER BALLS'), 'bad', 900); } return; }
     var p = toLocal(e);
     st.drag = { id: e.pointerId, x: p.x, y: p.y, o: { x: p.x, y: p.y }, pts: [{ x: p.x, y: p.y, t: e.timeStamp }], t0: e.timeStamp, spin: 0 };
     snd('tick');
@@ -737,7 +737,7 @@ PL.catcher = (function () {
     st.lastFlick = { tap: 1 };
     launch({ x: HOME.x, y: HOME.y }, { x: dx / L, y: dy / L }, 1.3, 0, onMon);
   }
-  function hintThrow() { floatText(HOME.x, HOME.y - 44, _('СМАХНИ ВВЕРХ ИЛИ ТАПНИ'), '#fff', 0.9); snd('error'); }
+  function hintThrow() { floatText(HOME.x, HOME.y - 44, _('SWIPE UP OR TAP'), '#fff', 0.9); snd('error'); }
 
   /* Автонаведение. Если смах идёт примерно в сторону покемона (в конусе AIM_CONE), шар доворачивает
      на упреждающую точку, а недолёт растягивается до цели: достаточно «примерно туда». */
@@ -769,7 +769,7 @@ PL.catcher = (function () {
   }
   /* бросок с клавиатуры / геймпада: летит в прицел */
   function padThrow() {
-    if (!canThrow()) { if (st && st.phase === 'play' && BALL[st.sel].limited && st.master <= 0) { snd('error'); pop(_('МАСТЕР-БОЛЫ КОНЧИЛИСЬ'), 'bad', 900); } return; }
+    if (!canThrow()) { if (st && st.phase === 'play' && BALL[st.sel].limited && st.master <= 0) { snd('error'); pop(_('OUT OF MASTER BALLS'), 'bad', 900); } return; }
     var r = st.ret, aim = { x: r.x, y: r.y };
     if (st.mon) {                                       // небольшая помощь: прицел подтягивается к упреждающей точке
       var g = monGeom(st.mon), pred = { x: g.cx + st.mon.vx * 0.7 * 0.9, y: g.cy + st.mon.vy * 0.4 };
@@ -808,7 +808,7 @@ PL.catcher = (function () {
       if (m) {          // добивающая «подтяжка»: почти попал — считаем попаданием
         var g2 = monGeom(m);
         if (hittable(m) && Math.hypot(b.x - g2.cx, b.y - g2.cy) <= g2.r * 1.6 + 18) return onHit(b, g2);
-        if (m.dive && Math.hypot(b.x - g2.cx, b.y - g2.cy) <= g2.r * 1.1) floatText(g2.cx, g2.cy - 40, _('НЫРНУЛ!'), '#cfeaff', 1);
+        if (m.dive && Math.hypot(b.x - g2.cx, b.y - g2.cy) <= g2.r * 1.1) floatText(g2.cx, g2.cy - 40, _('DIVED!'), '#cfeaff', 1);
       }
       b.land = 0.001; b.lx = b.x; b.ly = b.y;
       snd('click');
@@ -817,7 +817,7 @@ PL.catcher = (function () {
   function afterMiss() {
     var m = st.mon; if (!m) return;
     m.rage = 2.2;
-    floatText(m.x, monGeom(m).cy - 30, _('МИМО'), '#fff', 0.9);
+    floatText(m.x, monGeom(m).cy - 30, _('MISS'), '#fff', 0.9);
     if (m.throws >= MAX_THROWS) fleeNow('throws');
   }
 
@@ -830,11 +830,11 @@ PL.catcher = (function () {
     var rm = ringRatio(), ringR = m.ringMax || g.r * 1.45;
     ringR = g.r * 1.2 * rm;
     if (Math.hypot(b.x - g.cx, b.y - g.cy) <= ringR + 10) {
-      if (rm <= 0.34) { q = 1.5; label = _('ОТЛИЧНО!'); col = '#ff6a5a'; }
-      else if (rm <= 0.7) { q = 1.25; label = _('ЗДОРОВО!'); col = '#ffd24a'; }
-      else { q = 1.1; label = _('ХОРОШО'); col = '#7dffaa'; }
+      if (rm <= 0.34) { q = 1.5; label = _('EXCELLENT!'); col = '#ff6a5a'; }
+      else if (rm <= 0.7) { q = 1.25; label = _('GREAT!'); col = '#ffd24a'; }
+      else { q = 1.1; label = _('NICE'); col = '#7dffaa'; }
     }
-    if (b.cur) { q *= 1.15; label = (label ? label + ' ' : '') + _('ПОДКРУТКА'); if (!col || col === '#fff') col = '#9ff4ff'; }
+    if (b.cur) { q *= 1.15; label = (label ? label + ' ' : '') + _('CURVEBALL'); if (!col || col === '#fff') col = '#9ff4ff'; }
     st.hits++;
     st.ball = null;
     m.hit = 0.4; st.flashT = 0.12; st.shake = 0.12;
@@ -886,7 +886,7 @@ PL.catcher = (function () {
     var m = st.mon, c = st.cap;
     m.vis = 1; m.appear = 0.4; m.x = c.x; m.fy = c.gy; m.rage = 2.6; m.wait = 0.2;
     pickTarget(m);
-    floatText(c.x, c.gy - 70, _('ВЫРВАЛСЯ!'), '#ff8a6a', 1.1);
+    floatText(c.x, c.gy - 70, _('BROKE FREE!'), '#ff8a6a', 1.1);
     for (var i = 0; i < 18; i++) addPart(c.x, c.gy - 20, 'dot', '#ff7a5a', 110);
     if (m.throws >= MAX_THROWS) later(function () { fleeNow('throws'); }, 650);
   }
@@ -894,7 +894,7 @@ PL.catcher = (function () {
     var m = st.mon, c = st.cap, right = c.k === m.best, d = right ? EXP_RIGHT : EXP_OTHER;
     st.exp += d; st.caught++; if (right) st.rightN++; st.streak++; st.bestStreak = Math.max(st.bestStreak, st.streak);
     st.log.push({ id: m.id, ru: m.p.ru, best: m.best, ball: c.k, res: 'ok', d: d, th: m.throws, q: c.label });
-    pop('<b>' + _('ПОЙМАН!') + '</b> ' + esc(m.p.ru) + '<small>' + signed(d) + ' EXP' + (right ? ' · ' + _('верный шар') : ' · ' + _('нужен был {ball}', { ball: esc(BALL[m.best].ru) })) + '</small>', right ? 'good' : 'ok', 1500);
+    pop('<b>' + _('CAUGHT!') + '</b> ' + esc(m.p.ru) + '<small>' + signed(d) + ' EXP' + (right ? ' · ' + _('right ball') : ' · ' + _('needed {ball}', { ball: esc(BALL[m.best].ru) })) + '</small>', right ? 'good' : 'ok', 1500);
     expFloat(d);
     updateHud(false);
     st.mon = null;
@@ -909,7 +909,7 @@ PL.catcher = (function () {
     var g = monGeom(m);
     st.runAway = { id: m.id, spr: m.spr, bb: m.bb, x: g.x, fy: g.fy, lift: m.lift, s: g.s, dir: m.x < W / 2 ? -1 : 1, t: 0 };
     snd('flee'); flash('bad'); st.shake = 0.2;
-    pop('<b>' + _('СБЕЖАЛ!') + '</b> ' + esc(m.p.ru) + '<small>' + signed(d) + ' EXP · ' + _('нужен был {ball}', { ball: esc(BALL[m.best].ru) }) + '</small>', 'bad', 1500);
+    pop('<b>' + _('FLED!') + '</b> ' + esc(m.p.ru) + '<small>' + signed(d) + ' EXP · ' + _('needed {ball}', { ball: esc(BALL[m.best].ru) }) + '</small>', 'bad', 1500);
     expFloat(d);
     updateHud(false);
     st.mon = null; st.ball = null;
@@ -945,21 +945,21 @@ PL.catcher = (function () {
     setPhase('result');
     view.classList.add('is-over');
     E.panel.innerHTML = '';
-    pop('<b>' + _('ВРЕМЯ!') + '</b>', 'info', 700);
+    pop('<b>' + _('TIME!') + '</b>', 'info', 700);
   }
   function showResult(run, newBest, quiet) {
     var acc = run.throws ? Math.round(run.hits / run.throws * 100) : 0;
     var L = levelOf(st.db.total);
     E.panel.innerHTML =
-      '<h3>' + _('РЕЗУЛЬТАТ') + (newBest ? ' <em class="rec">' + _('НОВЫЙ РЕКОРД!') + '</em>' : '') + '</h3>' +
+      '<h3>' + _('RESULT') + (newBest ? ' <em class="rec">' + _('NEW RECORD!') + '</em>' : '') + '</h3>' +
       '<div class="c-big ' + (run.exp >= 0 ? 'pos' : 'neg') + '">' + signed(run.exp) + '<small>EXP</small></div>' +
-      '<div class="c-sum"><span><b>' + run.caught + '/' + run.enc + '</b>' + _('поймано') + '</span><span><b>' + run.right + '</b>' + _('верным шаром') + '</span><span><b>' + acc + '%</b>' + _('меткость') + '</span><span><b>' + run.streak + '</b>' + _('серия') + '</span></div>' +
+      '<div class="c-sum"><span><b>' + run.caught + '/' + run.enc + '</b>' + _('caught') + '</span><span><b>' + run.right + '</b>' + _('right ball') + '</span><span><b>' + acc + '%</b>' + _('accuracy') + '</span><span><b>' + run.streak + '</b>' + _('streak') + '</span></div>' +
       '<ul class="c-chips">' + run.log.slice(0, 12).map(function (l) {
         return '<li class="' + (l.res === 'ok' ? (l.d >= EXP_RIGHT ? 'ok' : 'mid') : l.res === 'skip' ? 'skip' : 'bad') + '">' + esc(l.ru) + ' <b>' + (l.res === 'skip' ? '·' : signed(l.d)) + '</b></li>';
       }).join('') + '</ul>' +
-      '<div class="c-lvl c-lvl--r">' + _('УР. {lvl} · {total} EXP', { lvl: L.lvl, total: st.db.total }) + '<i><em style="width:' + Math.round(L.into * 100) + '%"></em></i></div>';
+      '<div class="c-lvl c-lvl--r">' + _('LV {lvl} · {total} EXP', { lvl: L.lvl, total: st.db.total }) + '<i><em style="width:' + Math.round(L.into * 100) + '%"></em></i></div>';
     if (!quiet) snd(run.exp > 0 ? 'qwin' : 'qlose');
-    showMenu([_('ЕЩЁ РАЗ'), _('ИСТОРИЯ'), _('ВЫЙТИ')], function (i) {
+    showMenu([_('TRY AGAIN'), _('HISTORY'), _('EXIT')], function (i) {
       hideMenu();
       if (i === 0) startRun();
       else if (i === 1) { st.hist.back = 'result'; openHistory(); }
@@ -972,7 +972,7 @@ PL.catcher = (function () {
     if (!st || st.phase !== 'play' || st.paused) return;
     st.paused = true; st.drag = null; st.leftAtPause = st.left;
     view.classList.add('is-paused');
-    showMenu([_('ПРОДОЛЖИТЬ'), _('В МЕНЮ')], function (i) {
+    showMenu([_('RESUME'), _('TO MENU')], function (i) {
       hideMenu();
       if (i === 0) resumeGame();
       else { st.paused = false; view.classList.remove('is-paused'); stopRunToTitle(); }
@@ -1018,8 +1018,8 @@ PL.catcher = (function () {
     E.info.innerHTML =
       '<div class="c-in"><b>' + esc(p.ru) + '</b><small>№' + pad(p.id, 3) + '</small></div>' +
       '<div class="c-it">' + p.t.map(function (t) { var g = GT[t] || { ru: t, c: '#888' }; return '<span style="--tc:' + g.c + '">' + g.ru + '</span>'; }).join('') + '</div>' +
-      '<div class="c-is"><span>' + _('ВЕС') + ' <b>' + (p.w / 10).toLocaleString(PL.loc) + ' ' + _('кг') + '</b></span><span>' + _('СКОР') + ' <b>' + p.st[5] + '</b></span><span>' + _('СУММА') + ' <b>' + bst(p) + '</b></span></div>' +
-      ((p.leg || p.myth) ? '<div class="c-il">' + (p.myth ? _('МИФИЧЕСКИЙ') : _('ЛЕГЕНДАРНЫЙ')) + '</div>' : '');
+      '<div class="c-is"><span>' + _('WEIGHT') + ' <b>' + (p.w / 10).toLocaleString(PL.loc) + ' ' + _('kg') + '</b></span><span>' + _('SPEED') + ' <b>' + p.st[5] + '</b></span><span>' + _('TOTAL') + ' <b>' + bst(p) + '</b></span></div>' +
+      ((p.leg || p.myth) ? '<div class="c-il">' + (p.myth ? _('MYTHICAL') : _('LEGENDARY')) + '</div>' : '');
     E.info.classList.add('is-on');
     E.info.classList.remove('is-pop'); void E.info.offsetWidth; E.info.classList.add('is-pop');
   }
@@ -1084,7 +1084,7 @@ PL.catcher = (function () {
       if (st.left > 0) st.left = Math.max(0, (st.tEnd - performance.now()) / 1000);      // по часам, а не по кадрам: на слабом телефоне время не растягивается
       if (Math.ceil(st.left) !== prev && st.left > 0 && st.left <= 10) snd('tictoc');
       st.ring += dt;
-      if (st.left <= 0) { st.left = 0; if (!st.over) { st.over = true; floatText(W / 2, 150, _('ВРЕМЯ!'), '#ffe14a', 1); } }
+      if (st.left <= 0) { st.left = 0; if (!st.over) { st.over = true; floatText(W / 2, 150, _('TIME!'), '#ffe14a', 1); } }
       // следующий покемон
       if (!st.mon && st.next && !st.over) {
         st.nextDelay -= dt;
@@ -1314,15 +1314,15 @@ PL.catcher = (function () {
   function hints() {
     if (!st) return [];
     if (st.menu && (st.phase === 'title' || st.phase === 'result' || st.paused)) {
-      var h = [[['up', 'down'], _('Выбор')], [['a'], _('Выбрать')]];
+      var h = [[['up', 'down'], _('Choose')], [['a'], _('Select')]];
       if (st.phase === 'title') h.push([['x'], 'AR']);
-      if (st.menu.onBack) h.push([['b'], _('Назад')]);
+      if (st.menu.onBack) h.push([['b'], _('Back')]);
       return h;
     }
     switch (st.phase) {
-      case 'rules': return [[['l', 'r'], _('Страница')], [['a'], _('Дальше')], [['b'], _('Назад')]];
-      case 'history': return [[['up', 'down'], _('Выбор')], [['a'], _('Подробно')], [['b'], _('Назад')]];
-      case 'play': return [[['up', 'down'], _('Прицел')], [['a'], _('Бросок')], [['l', 'r'], _('Шар')], [['x'], 'AR'], [['b'], _('Пауза')]];
+      case 'rules': return [[['l', 'r'], _('Page')], [['a'], _('Next')], [['b'], _('Back')]];
+      case 'history': return [[['up', 'down'], _('Choose')], [['a'], _('Details')], [['b'], _('Back')]];
+      case 'play': return [[['up', 'down'], _('Aim')], [['a'], _('Throw')], [['l', 'r'], _('Ball')], [['x'], 'AR'], [['b'], _('Pause')]];
     }
     return [];
   }
@@ -1336,8 +1336,8 @@ PL.catcher = (function () {
     active: function () { return !!st; },
     accent: function () { return ACCENT; },
     status: function () {
-      if (!st) return { title: _('Ловец'), line: '' };
-      return { title: _('Ловец покеболов'), line: st.phase === 'play' ? 'EXP ' + signed(st.exp) + ' · ' + fmtTime(st.left) : st.phase === 'result' ? _('итог {exp} EXP', { exp: signed(st.exp) }) : _('меню') };
+      if (!st) return { title: _('Catcher'), line: '' };
+      return { title: _('Poké Ball Catcher'), line: st.phase === 'play' ? 'EXP ' + signed(st.exp) + ' · ' + fmtTime(st.left) : st.phase === 'result' ? _('result {exp} EXP', { exp: signed(st.exp) }) : _('menu') };
     },
     stats: function () { var d = readDB(); return { total: d.total, best: d.best, runs: d.runs.length }; },
     bestBall: bestBall, catchChance: catchChance, BALLS: BALLS,

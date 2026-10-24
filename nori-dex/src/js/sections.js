@@ -11,7 +11,7 @@ PL.sections = (function () {
   var D = PL.data;
   var GT = PL.gameTypes;
   var ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
-  var STAT_RU = ['HP', _('Атака'), _('Защита'), _('Сп. атака'), _('Сп. защита'), _('Скорость')];
+  var STAT_RU = ['HP', _('Attack'), _('Defense'), _('Sp. Atk'), _('Sp. Def'), _('Speed')];
   var ctx = null;
   var current = null;
   var pref = {};   // «открой раздел сразу на этой вкладке»: pref.legends = 'dossier'
@@ -80,7 +80,7 @@ PL.sections = (function () {
     root.innerHTML =
       '<div class="sec-head">' + (opts.head || '') + '</div>' +
       '<div class="sec-scroll"></div>' +
-      '<div class="sheet"><div class="sheet-in"></div><button class="sheet-x" aria-label="' + _('Закрыть') + '">' + PL.icon('close') + '</button></div>';
+      '<div class="sheet"><div class="sheet-in"></div><button class="sheet-x" aria-label="' + _('Close') + '">' + PL.icon('close') + '</button></div>';
     this.head = root.querySelector('.sec-head');
     this.scroll = root.querySelector('.sec-scroll');
     this.sheet = root.querySelector('.sheet');
@@ -158,7 +158,7 @@ PL.sections = (function () {
   Section.prototype.applyFavDex = function (id) {
     var on = PL.fav.toggle('dex', id);
     ctx.audio(on ? 'select' : 'back');
-    ctx.toast(on ? _('Добавлено в избранное') : _('Убрано из избранного'));
+    ctx.toast(on ? _('Added to favorites') : _('Removed from favorites'));
     this.root.querySelectorAll('[data-dex="' + id + '"]').forEach(function (e) { e.classList.toggle('is-fav', on); });
     var b = this.sheet.querySelector('.fav-btn[data-id="' + id + '"]');
     if (b) b.classList.toggle('is-on', on);
@@ -256,17 +256,17 @@ PL.sections = (function () {
   Section.prototype.hints = function () {
     if (this.sheetOpen) {
       var h = [];
-      if (this.sheetNav && this.sheetNav.list.length > 1) h.push([['l', 'r'], _('Листать')]);
-      if (this.sheet.querySelector('.fav-btn')) h.push([['y'], _('Избранное')]);
-      else if (this.sheet.querySelector('[data-secondary]')) h.push([['y'], this.sheet.querySelector('[data-secondary]').dataset.label || _('Действие')]);
-      if (this.sheet.querySelector('[data-primary]')) h.push([['x'], this.sheet.querySelector('[data-primary]').dataset.label || _('Открыть')]);
-      h.push([['b'], _('Назад')]);
+      if (this.sheetNav && this.sheetNav.list.length > 1) h.push([['l', 'r'], _('Browse')]);
+      if (this.sheet.querySelector('.fav-btn')) h.push([['y'], _('Favorites')]);
+      else if (this.sheet.querySelector('[data-secondary]')) h.push([['y'], this.sheet.querySelector('[data-secondary]').dataset.label || _('Action')]);
+      if (this.sheet.querySelector('[data-primary]')) h.push([['x'], this.sheet.querySelector('[data-primary]').dataset.label || _('Open')]);
+      h.push([['b'], _('Back')]);
       return h;
     }
-    var base = [[['l', 'r'], _('Разделы')]];
+    var base = [[['l', 'r'], _('Sections')]];
     if (this.opts.xLabel) base.push([['x'], this.opts.xLabel]);
-    if (this.sel && this.sel.dataset.dex) base.push([['y'], _('В избранное')]);
-    base.push([['b'], _('Назад')], [['a'], _('Открыть')]);
+    if (this.sel && this.sel.dataset.dex) base.push([['y'], _('Add to favorites')]);
+    base.push([['b'], _('Back')], [['a'], _('Open')]);
     return base;
   };
 
@@ -308,33 +308,33 @@ PL.sections = (function () {
     }).join('');
     var total = p.st.reduce(function (a, b) { return a + b; }, 0);
     var chain = evoChain(p);
-    var evo = chain.length > 1 ? '<div class="sh-sub">' + _('Эволюция') + '</div><div class="evo">' + chain.map(function (col, k) {
+    var evo = chain.length > 1 ? '<div class="sh-sub">' + _('Evolution') + '</div><div class="evo">' + chain.map(function (col, k) {
       return (k ? '<span class="evo-arrow">' + PL.icon('next') + '</span>' : '') + '<div class="evo-col">' + col.map(function (x) {
         return '<button class="evo-mon' + (x.id === id ? ' is-cur' : '') + '" data-act="dex" data-id="' + x.id + '" data-list="' + (list.indexOf(x.id) >= 0 ? list : familyIds(x.id)).join(',') + '"><img src="' + art(x.id) + '" alt="" loading="lazy"><span>' + esc(x.ru) + '</span></button>';
       }).join('') + '</div>';
     }).join('') + '</div>' : '';
-    var badges = (p.leg ? '<span class="badge-l">' + _('Легендарный') + '</span>' : '') + (p.myth ? '<span class="badge-l myth">' + _('Мифический') + '</span>' : '') + (p.baby ? '<span class="badge-l baby">' + _('Малыш') + '</span>' : '');
+    var badges = (p.leg ? '<span class="badge-l">' + _('Legendary') + '</span>' : '') + (p.myth ? '<span class="badge-l myth">' + _('Mythical') + '</span>' : '') + (p.baby ? '<span class="badge-l baby">' + _('Baby') + '</span>' : '');
 
     return '<div class="dex-sheet">' +
       '<div class="ds-art"><div class="ds-glow"></div><img src="' + art(id) + '" alt="' + esc(p.en) + '" draggable="false"><span class="ds-num">' + _('№') + pad3(id) + '</span>' +
-        '<button class="fav-btn' + (PL.fav.has('dex', id) ? ' is-on' : '') + '" data-act="fav-dex" data-id="' + id + '">' + PL.icon('heart') + '<span>' + _('Избранное') + '</span></button></div>' +
+        '<button class="fav-btn' + (PL.fav.has('dex', id) ? ' is-on' : '') + '" data-act="fav-dex" data-id="' + id + '">' + PL.icon('heart') + '<span>' + _('Favorites') + '</span></button></div>' +
       '<div class="ds-info">' +
         '<div class="ds-name"><b>' + esc(p.ru) + '</b>' + (p.ru === p.en ? '' : '<span>' + esc(p.en) + '</span>') + '</div>' +
         '<div class="ds-genus">' + esc(p.g) + (badges ? ' ' + badges : '') + '</div>' +
         '<div class="ds-types">' + p.t.map(typePill).join('') + '</div>' +
         (extra || '') +
         '<div class="ds-facts">' +
-          '<div><span>' + _('Рост') + '</span><b>' + _('{n} м', { n: (p.h / 10).toLocaleString(PL.loc) }) + '</b></div>' +
-          '<div><span>' + _('Вес') + '</span><b>' + _('{n} кг', { n: (p.w / 10).toLocaleString(PL.loc) }) + '</b></div>' +
-          '<div><span>' + _('Поколение') + '</span><b>' + ROMAN[p.gen] + '</b></div>' +
-          '<div><span>' + _('Регион') + '</span><b>' + (region ? PL.regionsRu[region].ru : '—') + '</b></div>' +
+          '<div><span>' + _('Height') + '</span><b>' + _('{n} m', { n: (p.h / 10).toLocaleString(PL.loc) }) + '</b></div>' +
+          '<div><span>' + _('Weight') + '</span><b>' + _('{n} kg', { n: (p.w / 10).toLocaleString(PL.loc) }) + '</b></div>' +
+          '<div><span>' + _('Generation') + '</span><b>' + ROMAN[p.gen] + '</b></div>' +
+          '<div><span>' + _('Region') + '</span><b>' + (region ? PL.regionsRu[region].ru : '—') + '</b></div>' +
         '</div>' +
-        (p.fl ? '<p class="ds-flavor"><span>' + _('Покедекс (англ.)') + '</span>' + esc(p.fl) + '</p>' : '') +
-        '<div class="sh-sub">' + _('Базовые характеристики') + ' <em>' + _('сумма {n}', { n: total }) + '</em></div><div class="stats" style="--tc:' + g.c + '">' + stats + '</div>' +
-        (p.ab.length ? '<div class="sh-sub">' + _('Способности') + '</div><div class="abils">' + p.ab.map(function (a) { return '<span' + (a.h ? ' class="hid" title="' + _('Скрытая способность') + '"' : '') + '>' + esc(a.n) + (a.h ? ' · ' + _('скрытая') : '') + '</span>'; }).join('') + '</div>' : '') +
+        (p.fl ? '<p class="ds-flavor"><span>' + _('Pokédex entry') + '</span>' + esc(p.fl) + '</p>' : '') +
+        '<div class="sh-sub">' + _('Base stats') + ' <em>' + _('total {n}', { n: total }) + '</em></div><div class="stats" style="--tc:' + g.c + '">' + stats + '</div>' +
+        (p.ab.length ? '<div class="sh-sub">' + _('Abilities') + '</div><div class="abils">' + p.ab.map(function (a) { return '<span' + (a.h ? ' class="hid" title="' + _('Hidden Ability') + '"' : '') + '>' + esc(a.n) + (a.h ? ' · ' + _('hidden') : '') + '</span>'; }).join('') + '</div>' : '') +
         evo +
-        (cards.length ? '<div class="sh-sub">' + _('Карточки') + ' <em>' + cards.length + '</em></div><div class="mini-cards dex-cards">' + miniCards(previewCards) + '</div>' +
-          '<button class="sh-btn" data-act="dex-cards" data-id="' + id + '" data-primary data-label="' + _('Все карточки') + '">' + PL.icon('album') + _('Все карточки с {name}: {n}', { name: esc(p.ru), n: cards.length }) + '</button>' : '') +
+        (cards.length ? '<div class="sh-sub">' + _('Cards') + ' <em>' + cards.length + '</em></div><div class="mini-cards dex-cards">' + miniCards(previewCards) + '</div>' +
+          '<button class="sh-btn" data-act="dex-cards" data-id="' + id + '" data-primary data-label="' + _('All cards') + '">' + PL.icon('album') + _('All {name} cards: {n}', { name: esc(p.ru), n: cards.length }) + '</button>' : '') +
       '</div></div>';
   }
 
@@ -342,10 +342,10 @@ PL.sections = (function () {
   /* ---------- Покедекс ---------- */
   function pokedex(root) {
     var gen = 0, query = '';
-    var chips = '<button class="gi chip-f is-on" data-gen="0">' + _('Все') + '</button>' + ROMAN.slice(1).map(function (r, k) { return '<button class="gi chip-f" data-gen="' + (k + 1) + '">' + r + '</button>'; }).join('');
+    var chips = '<button class="gi chip-f is-on" data-gen="0">' + _('All') + '</button>' + ROMAN.slice(1).map(function (r, k) { return '<button class="gi chip-f" data-gen="' + (k + 1) + '">' + r + '</button>'; }).join('');
     var sec = new Section(root, {
-      head: '<div class="filters">' + chips + '</div><label class="search">' + PL.icon('search') + '<input type="search" placeholder="' + _('Имя или номер') + '" aria-label="' + _('Поиск покемона') + '"></label><span class="sec-count"></span>',
-      xLabel: _('Поиск'),
+      head: '<div class="filters">' + chips + '</div><label class="search">' + PL.icon('search') + '<input type="search" placeholder="' + _('Name or number') + '" aria-label="' + _('Pokémon search') + '"></label><span class="sec-count"></span>',
+      xLabel: _('Search'),
       onX: function () { var inp = root.querySelector('.search input'); inp.focus(); inp.select(); },
       onInput: function (v) { query = v.trim().toLowerCase(); render(); },
       onActivate: function (el) {
@@ -364,8 +364,8 @@ PL.sections = (function () {
         if (!query) return true;
         return p.ru.toLowerCase().indexOf(query) !== -1 || p.en.toLowerCase().indexOf(query) !== -1 || String(p.id) === query.replace(/^0+/, '');
       });
-      sec.scroll.innerHTML = list.length ? '<div class="grid g-dex">' + list.map(function (p) { return dexTile(p); }).join('') + '</div>' : '<p class="empty">' + _('Никого не нашлось.') + '</p>';
-      root.querySelector('.sec-count').textContent = list.length + ' ' + _n(list.length, 'покемон|покемона|покемонов');
+      sec.scroll.innerHTML = list.length ? '<div class="grid g-dex">' + list.map(function (p) { return dexTile(p); }).join('') + '</div>' : '<p class="empty">' + _('No Pokémon found.') + '</p>';
+      root.querySelector('.sec-count').textContent = list.length + ' ' + _n(list.length, 'Pokémon|Pokémon');
       sec.scroll.scrollTop = 0;
     }
     render();
@@ -381,13 +381,13 @@ PL.sections = (function () {
       '<div class="is-body">' +
         '<div class="ds-name"><b>' + esc(m.title) + '</b><span>' + esc(m.kicker) + '</span></div>' +
         '<p class="is-text">' + esc(fillMons(m.text)) + '</p>' +
-        '<div class="sh-sub">' + _('Герои мифа') + '</div>' + monRow(m.mons) +
-        '<p class="ds-flavor"><span>' + _('Откуда это') + '</span>' + esc(m.src) + '</p>' +
+        '<div class="sh-sub">' + _('Heroes of the myth') + '</div>' + monRow(m.mons) +
+        '<p class="ds-flavor"><span>' + _('Where it comes from') + '</span>' + esc(m.src) + '</p>' +
       '</div></div>';
   }
   function dossierExtra(id) {
     var d = (PL.dossiersRu || []).filter(function (x) { return x.id === id; })[0];
-    return d ? '<div class="sh-sub">' + _('Досье · {role}', { role: esc(d.role) }) + '</div><p class="is-text dossier">' + esc(fillMons(d.text)) + '</p>' : '';
+    return d ? '<div class="sh-sub">' + _('Dossier · {role}', { role: esc(d.role) }) + '</div><p class="is-text dossier">' + esc(fillMons(d.text)) + '</p>' : '';
   }
   function theoryCard(t, voted) {
     var k = PL.theoryKinds[t.kind] || PL.theoryKinds.fan;
@@ -396,18 +396,18 @@ PL.sections = (function () {
       '<div class="th-top"><span class="th-kind">' + k.ru + '</span><b>' + esc(t.title) + '</b><i class="th-chev">' + PL.icon('next') + '</i></div>' +
       '<p class="th-teaser">' + esc(t.teaser) + '</p>' +
       '<div class="th-more">' +
-        '<div class="th-block"><span>' + _('Суть') + '</span><p>' + esc(fillMons(t.story)) + '</p></div>' +
-        '<div class="th-block th-truth"><span>' + _('Что известно на самом деле') + '</span><p>' + esc(fillMons(t.truth)) + '</p></div>' +
+        '<div class="th-block"><span>' + _('The story') + '</span><p>' + esc(fillMons(t.story)) + '</p></div>' +
+        '<div class="th-block th-truth"><span>' + _('What we actually know') + '</span><p>' + esc(fillMons(t.truth)) + '</p></div>' +
         (t.mons && t.mons.length ? monRow(t.mons) : '') +
-        '<div class="th-vote">' + _('Как тебе?') +
-          '<button data-act="vote" data-id="' + t.id + '" data-v="1" class="' + (v === 1 ? 'is-on' : '') + '">' + _('Верю') + '</button>' +
-          '<button data-act="vote" data-id="' + t.id + '" data-v="0" class="' + (v === 0 ? 'is-on no' : '') + '">' + _('Не верю') + '</button>' +
+        '<div class="th-vote">' + _('What do you think?') +
+          '<button data-act="vote" data-id="' + t.id + '" data-v="1" class="' + (v === 1 ? 'is-on' : '') + '">' + _('Believe') + '</button>' +
+          '<button data-act="vote" data-id="' + t.id + '" data-v="0" class="' + (v === 0 ? 'is-on no' : '') + '">' + _('Doubt') + '</button>' +
         '</div>' +
       '</div></div>';
   }
 
   function legends(root) {
-    var TABS_L = [['myths', _('Мифы мира')], ['dossier', _('Досье')], ['theories', _('Теории')], ['all', _('Все легенды')]];
+    var TABS_L = [['myths', _('World myths')], ['dossier', _('Dossiers')], ['theories', _('Theories')], ['all', _('All legends')]];
     var cur = takePref('legends') || 'myths', cardsOf = null;
     var leg = D.dex.filter(function (p) { return p.leg; }), myth = D.dex.filter(function (p) { return p.myth; });
     var voted = store('pl-votes', {});
@@ -470,31 +470,31 @@ PL.sections = (function () {
     function render() {
       sec.select(null);
       if (cur === 'myths') {
-        sec.scroll.innerHTML = '<p class="grp-note">' + _('Одиннадцать историй о том, как устроен мир покемонов: от яйца Аркеуса до парадоксов Палдеи.') + '</p>' +
+        sec.scroll.innerHTML = '<p class="grp-note">' + _('Eleven tales about how the Pokémon world works: from Arceus’s egg to the Paradox Pokémon of Paldea.') + '</p>' +
           '<div class="grid g-myth">' + PL.mythsRu.map(function (m) {
             return '<button class="gi mtile" data-myth="' + m.id + '" style="--rc:' + m.c + '"><img src="' + art(m.lead) + '" alt="" loading="lazy"><span class="mt-k">' + esc(m.kicker) + '</span><b>' + esc(m.title) + '</b></button>';
           }).join('') + '</div>';
-        count(PL.mythsRu.length, _n(PL.mythsRu.length, 'миф|мифа|мифов'));
+        count(PL.mythsRu.length, _n(PL.mythsRu.length, 'myth|myths'));
       } else if (cur === 'dossier') {
         var dos = PL.dossiersRu;
         sec.scroll.innerHTML =
-          '<h3 class="grp">' + _('Легенды и главные герои') + ' <em>' + dos.length + '</em><span>' + _('Нажми, чтобы прочитать досье: лор, Покедекс, карточки') + '</span></h3>' +
+          '<h3 class="grp">' + _('Legends and main heroes') + ' <em>' + dos.length + '</em><span>' + _('Tap to read the dossier: lore, Pokédex, cards') + '</span></h3>' +
           '<div class="grid g-big">' + dos.map(function (d) { return dexTile(D.dexById[d.id], true).replace('</button>', '<span class="dt-role">' + esc(d.role) + '</span></button>'); }).join('') + '</div>' +
-          '<h3 class="grp">' + _('Люди') + ' <em>' + HUM.length + '</em><span>' + _('Тренеры, лидеры стадионов, чемпионы и их напарники') + '</span></h3>' +
+          '<h3 class="grp">' + _('People') + ' <em>' + HUM.length + '</em><span>' + _('Trainers, Gym Leaders, Champions and their partners') + '</span></h3>' +
           '<div class="grid g-char">' + HUM.map(function (ch, k) {
             var p = D.dexById[ch.partner], g = GT[p.t[0]] || GT.normal;
             return '<button class="gi ctile" data-ch="' + k + '" style="--tc:' + g.c + '"><img src="' + art(ch.partner) + '" alt="" loading="lazy"><b>' + esc(ch.ru) + '</b><span>' + esc(ch.role) + '</span></button>';
           }).join('') + '</div>';
-        count(dos.length + HUM.length, _n(dos.length + HUM.length, 'досье|досье|досье'));
+        count(dos.length + HUM.length, _n(dos.length + HUM.length, 'dossier|dossiers'));
       } else if (cur === 'theories') {
-        sec.scroll.innerHTML = '<p class="grp-note">' + _('Что обсуждают в интернете: фанатские теории, городские легенды и реальные истории. У каждой есть пометка, канон это или выдумка. Нажми, чтобы раскрыть, и скажи, веришь ли ты.') + '</p>' +
+        sec.scroll.innerHTML = '<p class="grp-note">' + _('What the internet is talking about: fan theories, urban legends and true stories. Each one is tagged as canon or fiction. Tap to expand it and say whether you believe it.') + '</p>' +
           '<div class="theories">' + PL.theoriesRu.map(function (t) { return theoryCard(t, voted); }).join('') + '</div>';
-        count(PL.theoriesRu.length, _n(PL.theoriesRu.length, 'история|истории|историй'));
+        count(PL.theoriesRu.length, _n(PL.theoriesRu.length, 'story|stories'));
       } else {
         sec.scroll.innerHTML =
-          '<h3 class="grp">' + _('Легендарные') + ' <em>' + leg.length + '</em><span>' + _('Редчайшие покемоны, о которых складывают мифы регионов') + '</span></h3><div class="grid g-big">' + leg.map(function (p) { return dexTile(p, true); }).join('') + '</div>' +
-          '<h3 class="grp">' + _('Мифические') + ' <em>' + myth.length + '</em><span>' + _('Их почти невозможно встретить в обычной игре: только на особых событиях') + '</span></h3><div class="grid g-big">' + myth.map(function (p) { return dexTile(p, true); }).join('') + '</div>';
-        count(leg.length + myth.length, _n(leg.length + myth.length, 'покемон|покемона|покемонов'));
+          '<h3 class="grp">' + _('Legendary') + ' <em>' + leg.length + '</em><span>' + _('The rarest Pokémon, the ones regional myths are built around') + '</span></h3><div class="grid g-big">' + leg.map(function (p) { return dexTile(p, true); }).join('') + '</div>' +
+          '<h3 class="grp">' + _('Mythical') + ' <em>' + myth.length + '</em><span>' + _('Almost impossible to find in a regular playthrough: special events only') + '</span></h3><div class="grid g-big">' + myth.map(function (p) { return dexTile(p, true); }).join('') + '</div>';
+        count(leg.length + myth.length, _n(leg.length + myth.length, 'Pokémon|Pokémon'));
       }
       sec.scroll.scrollTop = 0;
       sec.select(sec.scroll.querySelector('.gi'), true);
@@ -507,7 +507,7 @@ PL.sections = (function () {
   function regions(root) {
     var keys = Object.keys(PL.regionsRu);
     var sec = new Section(root, {
-      head: '<span class="sec-title">' + _('Регионы мира покемонов') + '</span><span class="sec-count">' + keys.length + '</span>',
+      head: '<span class="sec-title">' + _('Regions of the Pokémon world') + '</span><span class="sec-count">' + keys.length + '</span>',
       onSelect: function (el) { if (el.dataset.region) ctx.ambient(PL.regionsRu[el.dataset.region].c); },
       onActivate: function (el) {
         if (!el.dataset.region) return;
@@ -520,7 +520,7 @@ PL.sections = (function () {
       var r = PL.regionsRu[k];
       return '<button class="gi rtile" data-region="' + k + '" style="--rc:' + r.c + '">' +
         '<img class="rt-leg" src="' + art(r.legends[0]) + '" alt="" loading="lazy">' +
-        '<span class="rt-gen">' + _('{n} поколение', { n: ROMAN[r.gen] }) + '</span><b>' + r.ru + '</b>' +
+        '<span class="rt-gen">' + _('Generation {n}', { n: ROMAN[r.gen] }) + '</span><b>' + r.ru + '</b>' +
         '<span class="rt-st">' + r.starters.map(function (s) { return '<img src="' + art(s) + '" alt="" loading="lazy">'; }).join('') + '</span></button>';
     }).join('') + '</div>';
     sec.selectFirst();
@@ -539,12 +539,12 @@ PL.sections = (function () {
     return '<div class="info-sheet">' +
       '<div class="is-art"><div class="ds-glow"></div><img src="' + art(r.legends[0]) + '" alt=""><span class="is-cap">' + esc(D.dexById[r.legends[0]].ru) + '</span></div>' +
       '<div class="is-body">' +
-        '<div class="ds-name"><b>' + r.ru + '</b><span>' + _('{n} поколение', { n: ROMAN[r.gen] }) + '</span></div>' +
+        '<div class="ds-name"><b>' + r.ru + '</b><span>' + _('Generation {n}', { n: ROMAN[r.gen] }) + '</span></div>' +
         '<p class="is-text">' + esc(r.text) + '</p>' +
-        '<div class="sh-sub">' + _('Стартовые покемоны') + '</div>' + monRow(r.starters) +
-        '<div class="sh-sub">' + _('Легенды региона') + '</div>' + monRow(r.legends) +
-        (g.games.length ? '<div class="sh-sub">' + _('Игры') + '</div><div class="abils">' + uniq(g.games).map(function (x) { return '<span>Pokémon ' + esc(x) + '</span>'; }).join('') + '</div>' : '') +
-        (natives.length ? '<div class="sh-sub">' + _('Покемоны региона') + ' <em>' + natives.length + '</em></div><div class="grid g-mini">' + natives.map(function (id) { var p = D.dexById[id]; return '<button class="mini" data-act="dex" data-id="' + id + '" data-list="' + natives.join(',') + '" title="' + esc(p.ru) + '"><img src="' + art(id) + '" alt="" loading="lazy"></button>'; }).join('') + '</div>' : '') +
+        '<div class="sh-sub">' + _('Starter Pokémon') + '</div>' + monRow(r.starters) +
+        '<div class="sh-sub">' + _('Legends of the region') + '</div>' + monRow(r.legends) +
+        (g.games.length ? '<div class="sh-sub">' + _('Games') + '</div><div class="abils">' + uniq(g.games).map(function (x) { return '<span>Pokémon ' + esc(x) + '</span>'; }).join('') + '</div>' : '') +
+        (natives.length ? '<div class="sh-sub">' + _('Pokémon of the region') + ' <em>' + natives.length + '</em></div><div class="grid g-mini">' + natives.map(function (id) { var p = D.dexById[id]; return '<button class="mini" data-act="dex" data-id="' + id + '" data-list="' + natives.join(',') + '" title="' + esc(p.ru) + '"><img src="' + art(id) + '" alt="" loading="lazy"></button>'; }).join('') + '</div>' : '') +
       '</div></div>';
   }
 
@@ -554,7 +554,7 @@ PL.sections = (function () {
     var count = {};
     D.dex.forEach(function (p) { p.t.forEach(function (t) { count[t] = (count[t] || 0) + 1; }); });
     var sec = new Section(root, {
-      head: '<span class="sec-title">' + _('18 типов и их сильные и слабые стороны') + '</span>',
+      head: '<span class="sec-title">' + _('18 types and their strengths and weaknesses') + '</span>',
       onSelect: function (el) { if (el.dataset.type) ctx.ambient(GT[el.dataset.type].c); },
       onActivate: function (el) {
         if (!el.dataset.type) return;
@@ -565,7 +565,7 @@ PL.sections = (function () {
     });
     sec.scroll.innerHTML = '<div class="grid g-type">' + order.map(function (t) {
       var g = GT[t];
-      return '<button class="gi ttile" data-type="' + t + '" style="--tc:' + g.c + '">' + PL.icon(g.icon) + '<b>' + g.ru + '</b><span>' + (count[t] || 0) + ' ' + _n(count[t] || 0, 'покемон|покемона|покемонов') + '</span></button>';
+      return '<button class="gi ttile" data-type="' + t + '" style="--tc:' + g.c + '">' + PL.icon(g.icon) + '<b>' + g.ru + '</b><span>' + (count[t] || 0) + ' ' + _n(count[t] || 0, 'Pokémon|Pokémon') + '</span></button>';
     }).join('') + '</div>';
     sec.selectFirst();
     return sec;
@@ -585,12 +585,12 @@ PL.sections = (function () {
     return '<div class="info-sheet">' +
       '<div class="is-art type-art" style="--tc:' + g.c + '"><div class="ds-glow"></div>' + PL.icon(g.icon) + '<span class="is-cap">' + g.ru + '</span></div>' +
       '<div class="is-body">' +
-        '<div class="ds-name"><b>' + _('{type} тип', { type: g.ru }) + '</b><span>' + mons.length + ' ' + _n(mons.length, 'покемон|покемона|покемонов') + '</span></div>' +
-        '<div class="sh-sub">' + _('Атака этого типа') + '</div>' +
-        row(_('×2 по'), groups[2], _('суперэффективно')) + row(_('×½ по'), groups[0.5], _('не очень эффективно')) + row(_('×0 по'), groups[0], _('не действует')) +
-        '<div class="sh-sub">' + _('Защита покемона этого типа') + '</div>' +
-        row(_('×2 от'), defg[2], _('уязвим')) + row(_('×½ от'), defg[0.5], _('устойчив')) + row(_('×0 от'), defg[0], _('иммунитет')) +
-        '<div class="sh-sub">' + _('Покемоны этого типа') + ' <em>' + mons.length + '</em></div><div class="grid g-mini">' + mons.map(function (id) { var p = D.dexById[id]; return '<button class="mini" data-act="dex" data-id="' + id + '" data-list="' + mons.join(',') + '" title="' + esc(p.ru) + '"><img src="' + art(id) + '" alt="" loading="lazy"></button>'; }).join('') + '</div>' +
+        '<div class="ds-name"><b>' + _('{type} type', { type: g.ru }) + '</b><span>' + mons.length + ' ' + _n(mons.length, 'Pokémon|Pokémon') + '</span></div>' +
+        '<div class="sh-sub">' + _('Attacks of this type') + '</div>' +
+        row(_('×2 vs'), groups[2], _('super effective')) + row(_('×½ vs'), groups[0.5], _('not very effective')) + row(_('×0 vs'), groups[0], _('no effect')) +
+        '<div class="sh-sub">' + _('Defense of a Pokémon of this type') + '</div>' +
+        row(_('×2 from'), defg[2], _('weak')) + row(_('×½ from'), defg[0.5], _('resists')) + row(_('×0 from'), defg[0], _('immune')) +
+        '<div class="sh-sub">' + _('Pokémon of this type') + ' <em>' + mons.length + '</em></div><div class="grid g-mini">' + mons.map(function (id) { var p = D.dexById[id]; return '<button class="mini" data-act="dex" data-id="' + id + '" data-list="' + mons.join(',') + '" title="' + esc(p.ru) + '"><img src="' + art(id) + '" alt="" loading="lazy"></button>'; }).join('') + '</div>' +
       '</div></div>';
   }
 
@@ -604,7 +604,7 @@ PL.sections = (function () {
       .concat(Object.keys(series).map(function (k) { return { kind: 'tcg', year: +series[k].d.slice(0, 4), s: series[k] }; }))
       .sort(function (a, b) { return a.year - b.year || (a.kind === 'gen' ? -1 : 1); });
     var sec = new Section(root, {
-      head: '<span class="sec-title">' + _('Хронология игр и карточной игры') + '</span><span class="sec-count">1996 — ' + new Date().getFullYear() + '</span>',
+      head: '<span class="sec-title">' + _('Timeline of the games and the Trading Card Game') + '</span><span class="sec-count">1996 — ' + new Date().getFullYear() + '</span>',
       onSelect: function (el) { if (el.dataset.gen) { var r = regionOfGen(+el.dataset.gen); ctx.ambient(r ? r.c : '#6b7280'); } },
       onActivate: function (el) {
         if (!el.dataset.gen) return;
@@ -615,12 +615,12 @@ PL.sections = (function () {
       },
     });
     sec.scroll.innerHTML = '<div class="tl">' + events.map(function (e) {
-      if (e.kind === 'tcg') return '<div class="tl-row tl-tcg"><span class="tl-year">' + e.year + '</span><span class="tl-dot"></span><div class="tl-tcg-card">' + PL.icon('album') + '<b>' + _('Карточная игра: серия «{name}»', { name: esc(e.s.name) }) + '</b><span>' + e.s.sets + ' ' + _n(e.s.sets, 'набор|набора|наборов') + ' · ' + e.s.cards + ' ' + _n(e.s.cards, 'карта|карты|карт') + '</span></div></div>';
+      if (e.kind === 'tcg') return '<div class="tl-row tl-tcg"><span class="tl-year">' + e.year + '</span><span class="tl-dot"></span><div class="tl-tcg-card">' + PL.icon('album') + '<b>' + _('Trading Card Game: {name} series', { name: esc(e.s.name) }) + '</b><span>' + e.s.sets + ' ' + _n(e.s.sets, 'set|sets') + ' · ' + e.s.cards + ' ' + _n(e.s.cards, 'card|cards') + '</span></div></div>';
       var g = e.g, info = PL.generationsRu[g.id], r = regionOfGen(g.id);
       return '<div class="tl-row"><span class="tl-year">' + e.year + '</span><span class="tl-dot" style="--rc:' + (r ? r.c : '#888') + '"></span>' +
         '<button class="gi tl-gen" data-gen="' + g.id + '" style="--rc:' + (r ? r.c : '#888') + '">' +
           '<span class="tl-roman">' + ROMAN[g.id] + '</span>' +
-          '<div class="tl-mid"><b>' + _('{n} поколение', { n: ROMAN[g.id] }) + ' · ' + (r ? r.ru : '') + '</b><p>' + esc(info.text) + '</p><span class="tl-games">' + uniq(g.games).slice(0, 6).map(esc).join(' · ') + '</span></div>' +
+          '<div class="tl-mid"><b>' + _('Generation {n}', { n: ROMAN[g.id] }) + ' · ' + (r ? r.ru : '') + '</b><p>' + esc(info.text) + '</p><span class="tl-games">' + uniq(g.games).slice(0, 6).map(esc).join(' · ') + '</span></div>' +
           '<span class="tl-mascots">' + info.mascots.map(function (m) { return '<img src="' + art(m) + '" alt="" loading="lazy">'; }).join('') + '</span>' +
           '<em class="tl-count">+' + g.count + '</em>' +
         '</button></div>';
@@ -635,10 +635,10 @@ PL.sections = (function () {
     return '<div class="info-sheet">' +
       '<div class="is-art"><div class="ds-glow"></div><img src="' + art(info.mascots[0]) + '" alt=""><span class="is-cap">' + info.year + '</span></div>' +
       '<div class="is-body">' +
-        '<div class="ds-name"><b>' + _('{n} поколение', { n: ROMAN[g.id] }) + '</b><span>' + info.year + ' · ' + (r ? r.ru : '') + '</span></div>' +
+        '<div class="ds-name"><b>' + _('Generation {n}', { n: ROMAN[g.id] }) + '</b><span>' + info.year + ' · ' + (r ? r.ru : '') + '</span></div>' +
         '<p class="is-text">' + esc(info.text) + '</p>' +
-        '<div class="sh-sub">' + _('Игры') + '</div><div class="abils">' + uniq(g.games).map(function (x) { return '<span>Pokémon ' + esc(x) + '</span>'; }).join('') + '</div>' +
-        '<div class="sh-sub">' + _('Новые покемоны') + ' <em>' + ids.length + '</em></div><div class="grid g-mini">' + ids.map(function (id) { var p = D.dexById[id]; return '<button class="mini" data-act="dex" data-id="' + id + '" data-list="' + ids.join(',') + '" title="' + esc(p.ru) + '"><img src="' + art(id) + '" alt="" loading="lazy"></button>'; }).join('') + '</div>' +
+        '<div class="sh-sub">' + _('Games') + '</div><div class="abils">' + uniq(g.games).map(function (x) { return '<span>Pokémon ' + esc(x) + '</span>'; }).join('') + '</div>' +
+        '<div class="sh-sub">' + _('New Pokémon') + ' <em>' + ids.length + '</em></div><div class="grid g-mini">' + ids.map(function (id) { var p = D.dexById[id]; return '<button class="mini" data-act="dex" data-id="' + id + '" data-list="' + ids.join(',') + '" title="' + esc(p.ru) + '"><img src="' + art(id) + '" alt="" loading="lazy"></button>'; }).join('') + '</div>' +
       '</div></div>';
   }
 
@@ -653,12 +653,12 @@ PL.sections = (function () {
     var p = D.dexById[ch.partner], g = GT[p.t[0]] || GT.normal;
     sec.cardList = [];
     sec.showSheet('<div class="info-sheet">' +
-      '<div class="is-art"><div class="ds-glow"></div><img src="' + art(ch.partner) + '" alt=""><span class="is-cap">' + _('Напарник: {name}', { name: esc(p.ru) }) + '</span></div>' +
+      '<div class="is-art"><div class="ds-glow"></div><img src="' + art(ch.partner) + '" alt=""><span class="is-cap">' + _('Partner: {name}', { name: esc(p.ru) }) + '</span></div>' +
       '<div class="is-body">' +
         '<div class="ds-name"><b>' + esc(ch.ru) + '</b><span>' + esc(ch.role) + '</span></div>' +
         '<p class="is-text">' + esc(ch.bio) + '</p>' +
-        '<div class="sh-sub">' + _('Напарник') + '</div>' + monRow([ch.partner]) +
-        '<div class="sh-sub">' + _('Карточки персонажа') + ' <em>' + ids.length + '</em></div><div class="mini-cards" data-cards>' + (ids.length ? '<p class="empty">' + _('Загружаю карточки…') + '</p>' : '<p class="empty">' + _('Карточек с этим персонажем нет.') + '</p>') + '</div>' +
+        '<div class="sh-sub">' + _('Partner') + '</div>' + monRow([ch.partner]) +
+        '<div class="sh-sub">' + _('Character cards') + ' <em>' + ids.length + '</em></div><div class="mini-cards" data-cards>' + (ids.length ? '<p class="empty">' + _('Loading cards…') + '</p>' : '<p class="empty">' + _('No cards feature this character.') + '</p>') + '</div>' +
       '</div></div>', g.c);
     if (ids.length) {
       sec.cardList = D.lightsByIds(ids);
@@ -710,14 +710,14 @@ PL.sections = (function () {
       '<div class="is-body">' +
         '<div class="ds-name"><b>' + esc(it.n) + '</b><span>' + PL.itemGroupsRu[it.grp].ru + '</span></div>' +
         '<p class="is-text">' + esc(PL.itemGroupsRu[it.grp].text) + '</p>' +
-        (it.fl ? '<p class="ds-flavor"><span>' + _('Описание из игр (англ.)') + '</span>' + esc(it.fl) + '</p>' : '') +
+        (it.fl ? '<p class="ds-flavor"><span>' + _('In-game description') + '</span>' + esc(it.fl) + '</p>' : '') +
       '</div></div>';
   }
 
   /* ---------- Новости: хронология за год ---------- */
-  var MONTHS_N = [_('Январь'), _('Февраль'), _('Март'), _('Апрель'), _('Май'), _('Июнь'), _('Июль'), _('Август'), _('Сентябрь'), _('Октябрь'), _('Ноябрь'), _('Декабрь')];
-  var NK = { game: [_('Игра'), '#7dffaa'], tcg: [_('Карточки'), '#ffd27a'], event: [_('Событие'), '#b28cff'], live: [_('Из сети'), '#5ee0f6'], anime: [_('Сериал'), '#ff7eb8'], merch: [_('Мерч'), '#ff9a4a'] };
-  var NF = [['all', _('Все')], ['game', _('Игры')], ['tcg', _('Карточки')], ['event', _('События')], ['live', _('Из сети')], ['words', _('Слова авторов')]];
+  var MONTHS_N = [_('January'), _('February'), _('March'), _('April'), _('May'), _('June'), _('July'), _('August'), _('September'), _('October'), _('November'), _('December')];
+  var NK = { game: [_('Game'), '#7dffaa'], tcg: [_('Cards'), '#ffd27a'], event: [_('Event'), '#b28cff'], live: [_('Online'), '#5ee0f6'], anime: [_('Anime'), '#ff7eb8'], merch: [_('Merch'), '#ff9a4a'] };
+  var NF = [['all', _('All')], ['game', _('Games')], ['tcg', _('Cards')], ['event', _('Events')], ['live', _('Online')], ['words', _('Creators’ words')]];
 
   function news(root) {
     var f = 'all', games = null, status = { local: 'ok', tcg: 'load', games: 'load', live: 'load' };
@@ -726,8 +726,8 @@ PL.sections = (function () {
 
     var sec = new Section(root, {
       head: '<div class="filters">' + NF.map(function (c, k) { return '<button class="gi chip-f' + (k ? '' : ' is-on') + '" data-nf="' + c[0] + '">' + c[1] + '</button>'; }).join('') + '</div><span class="sec-count"></span>',
-      xLabel: _('Обновить'),
-      onX: function () { ctx.audio('select'); ctx.toast(_('Обновляю новости…')); fetchNews(true); },
+      xLabel: _('Refresh'),
+      onX: function () { ctx.audio('select'); ctx.toast(_('Refreshing news…')); fetchNews(true); },
       onSelect: function (el) { if (el.dataset.nk) ctx.ambient((NK[el.dataset.nk] || NK.event)[1]); },
       onActivate: function (el) {
         if (el.dataset.nf) {
@@ -747,11 +747,11 @@ PL.sections = (function () {
       var local = (PL.tcgSets || []).filter(function (s) { return s.d >= from; });
       local.forEach(function (s) {
         have[s.id] = 1;
-        out.push({ d: s.d, k: 'tcg', t: _('Карточный набор «{name}»', { name: s.n }), x: _('{count} · серия «{series}»', { count: s.c + ' ' + _n(s.c, 'карта|карты|карт'), series: s.se }), mons: [] });
+        out.push({ d: s.d, k: 'tcg', t: _('Card set “{name}”', { name: s.n }), x: _('{count} · {series} series', { count: s.c + ' ' + _n(s.c, 'card|cards'), series: s.se }), mons: [] });
       });
       (remote.tcg || []).forEach(function (s) {
         if (have[s.id] || !s.isNew) return;
-        out.push({ d: s.d, k: 'tcg', t: _('Карточный набор «{name}»', { name: s.n }), x: s.c ? _('{count} · серия «{series}» · из API', { count: s.c + ' ' + _n(s.c, 'карта|карты|карт'), series: s.se }) : _('серия «{series}» · из API', { series: s.se }), mons: [], live: 1 });
+        out.push({ d: s.d, k: 'tcg', t: _('Card set “{name}”', { name: s.n }), x: s.c ? _('{count} · {series} series · via API', { count: s.c + ' ' + _n(s.c, 'card|cards'), series: s.se }) : _('{series} series · via API', { series: s.se }), mons: [], live: 1 });
       });
       PL.newsCurated.forEach(function (n) { if (n.d >= from) out.push({ d: n.d, k: n.k, t: n.t, x: n.x, mons: n.mons || [], soft: n.soft }); });
       (remote.live || []).forEach(function (a) { if (a.d >= from) out.push({ d: a.d, k: 'live', t: a.t, x: a.dom, url: a.url, mons: [] }); });
@@ -763,10 +763,10 @@ PL.sections = (function () {
       var cls = 'gi nw' + (n.url ? ' has-url' : '');
       var attrs = ' data-nk="' + n.k + '"' + (n.url ? ' data-url="' + esc(n.url) + '"' : '') + (n.mons && n.mons[0] && !n.url ? ' data-mon="' + n.mons[0] + '"' : '');
       var dd = n.d.slice(8, 10) + '.' + n.d.slice(5, 7);
-      var soon = n.d > today ? '<em class="nw-soon">' + _('скоро') + '</em>' : '';
+      var soon = n.d > today ? '<em class="nw-soon">' + _('soon') + '</em>' : '';
       return '<div class="tl-row nw-row"><span class="tl-year">' + dd + '</span><span class="tl-dot" style="--rc:' + k[1] + '"></span>' +
         '<div class="' + cls + '"' + attrs + ' style="--kc:' + k[1] + '">' +
-          '<div class="nw-top"><span class="nw-kind">' + k[0] + '</span>' + soon + (n.live ? '<em class="nw-api">API</em>' : '') + (n.soft ? '<em class="nw-api">' + _('уточни') + '</em>' : '') + '</div>' +
+          '<div class="nw-top"><span class="nw-kind">' + k[0] + '</span>' + soon + (n.live ? '<em class="nw-api">API</em>' : '') + (n.soft ? '<em class="nw-api">' + _('verify') + '</em>' : '') + '</div>' +
           '<b>' + esc(n.t) + '</b>' + (n.x ? '<p>' + esc(n.x) + '</p>' : '') +
           (n.mons && n.mons.length ? '<span class="nw-mons">' + n.mons.slice(0, 4).map(function (id) { return '<img src="' + art(id) + '" alt="" loading="lazy">'; }).join('') + '</span>' : '') +
           (n.url ? '<i class="nw-open">' + PL.icon('next') + '</i>' : '') +
@@ -774,16 +774,16 @@ PL.sections = (function () {
     }
 
     function srcBar() {
-      var names = { local: _('архив'), tcg: 'pokemon-tcg-data', games: 'PokéAPI', live: _('GDELT (СМИ)') };
-      return '<div class="nw-src"><span>' + _('Источники:') + '</span>' + Object.keys(names).map(function (k) {
-        return '<i class="' + status[k] + '" title="' + (status[k] === 'ok' ? _('подключено') : status[k] === 'load' ? _('загружаю…') : _('нет ответа')) + '">' + names[k] + '</i>';
+      var names = { local: _('archive'), tcg: 'pokemon-tcg-data', games: 'PokéAPI', live: _('GDELT (media)') };
+      return '<div class="nw-src"><span>' + _('Sources:') + '</span>' + Object.keys(names).map(function (k) {
+        return '<i class="' + status[k] + '" title="' + (status[k] === 'ok' ? _('connected') : status[k] === 'load' ? _('loading…') : _('no response')) + '">' + names[k] + '</i>';
       }).join('') + '</div>';
     }
 
     function render() {
       var html = '', list = [], total = 0;
       if (f === 'words') {
-        html = '<p class="grp-note">' + _('Слова создателей серии в пересказе: по открытым интервью и рассказам разработчиков, без выдуманных цитат.') + '</p><div class="words">' + PL.creatorsRu.map(function (w) {
+        html = '<p class="grp-note">' + _('The series’ creators in their own words, paraphrased from public interviews and developer talks, with no invented quotes.') + '</p><div class="words">' + PL.creatorsRu.map(function (w) {
           return '<div class="gi word"><span class="wd-q">' + _('«') + '</span><p>' + esc(fillMons(w.text)) + '</p><b>' + esc(w.who) + '</b><span>' + esc(w.role) + ' · ' + esc(w.src) + '</span></div>';
         }).join('') + '</div>';
         total = PL.creatorsRu.length;
@@ -791,9 +791,9 @@ PL.sections = (function () {
         list = allItems().filter(function (n) { return f === 'all' || n.k === f; }).sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : 0; });
         total = list.length;
         var cur = '';
-        html = '<p class="grp-note">' + _('Хронология за год: {from} — {to}. Игры и события выбраны вручную, карточные наборы берутся из данных, а свежее подтягивается из сети.', { from: from.split('-').reverse().join('.'), to: today.split('-').reverse().join('.') }) + '</p>' + srcBar();
+        html = '<p class="grp-note">' + _('Timeline for the past year: {from} — {to}. Games and events are hand-picked, card sets come from the data, and the latest news is pulled from the web.', { from: from.split('-').reverse().join('.'), to: today.split('-').reverse().join('.') }) + '</p>' + srcBar();
         if (games && games.length && (f === 'all' || f === 'game')) {
-          html += '<div class="nw-games"><span>' + _('Свежие игры в базе PokéAPI') + '</span>' + games.map(function (g) { return '<b>' + esc(g.ru) + '</b>'; }).join('') + '</div>';
+          html += '<div class="nw-games"><span>' + _('Latest games in the PokéAPI database') + '</span>' + games.map(function (g) { return '<b>' + esc(g.ru) + '</b>'; }).join('') + '</div>';
         }
         html += '<div class="tl nw-tl">';
         list.forEach(function (n) {
@@ -802,8 +802,8 @@ PL.sections = (function () {
           html += row(n);
         });
         html += '</div>';
-        if (!list.length) html += '<p class="empty">' + _('В этой категории за год ничего нет.') + '</p>';
-        if (status.live === 'fail' && (f === 'all' || f === 'live')) html += '<p class="grp-note">' + _('Заголовки из сети не загрузились: нет интернета или сервис не ответил. Архив и вехи редакции работают без сети.') + '</p>';
+        if (!list.length) html += '<p class="empty">' + _('Nothing in this category for the past year.') + '</p>';
+        if (status.live === 'fail' && (f === 'all' || f === 'live')) html += '<p class="grp-note">' + _('Online headlines failed to load: no internet connection, or the service did not respond. The archive and editorial milestones work offline.') + '</p>';
       }
       sec.scroll.innerHTML = html;
       root.querySelector('.sec-count').textContent = total + '';
@@ -828,15 +828,15 @@ PL.sections = (function () {
   /* ---------- Избранное: покемоны · карточки · снимки экрана ---------- */
   function shotDate(t) { var d = new Date(t); return d.toLocaleDateString(PL.loc, { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' · ' + d.toLocaleTimeString(PL.loc, { hour: '2-digit', minute: '2-digit' }); }
   function shotSheet(s) {
-    return '<div class="shot-sheet"><div class="ss-img"><img src="' + s.url + '" alt="' + _('Снимок экрана') + '"></div>' +
+    return '<div class="shot-sheet"><div class="ss-img"><img src="' + s.url + '" alt="' + _('Screenshot') + '"></div>' +
       '<div class="ss-info"><div class="ds-name"><b>' + esc(s.title) + '</b><span>' + esc(s.sub || '') + '</span></div>' +
-      '<p class="is-text">' + shotDate(s.t) + (s.fallback ? '. ' + _('Упрощённый снимок: экран целиком собрать не удалось.') : '') + '</p>' +
-      '<div class="ss-btns"><button class="sh-btn" data-act="shot-dl" data-id="' + s.id + '" data-primary data-label="' + _('Скачать') + '">' + PL.icon('album') + _('Скачать') + '</button>' +
-      '<button class="sh-btn danger" data-act="shot-del" data-id="' + s.id + '" data-secondary data-label="' + _('Удалить') + '">' + PL.icon('close') + _('Удалить') + '</button></div></div></div>';
+      '<p class="is-text">' + shotDate(s.t) + (s.fallback ? '. ' + _('Simplified screenshot: the full screen could not be captured.') : '') + '</p>' +
+      '<div class="ss-btns"><button class="sh-btn" data-act="shot-dl" data-id="' + s.id + '" data-primary data-label="' + _('Download') + '">' + PL.icon('album') + _('Download') + '</button>' +
+      '<button class="sh-btn danger" data-act="shot-del" data-id="' + s.id + '" data-secondary data-label="' + _('Delete') + '">' + PL.icon('close') + _('Delete') + '</button></div></div></div>';
   }
   function favorites(root) {
     var sec = new Section(root, {
-      head: '<span class="sec-title">' + _('Избранное') + '</span><span class="sec-count"></span>',
+      head: '<span class="sec-title">' + _('Favorites') + '</span><span class="sec-count"></span>',
       onSelect: function (el) { if (el.dataset.dex) ctx.ambient((GT[D.dexById[+el.dataset.dex].t[0]] || GT.normal).c); },
       onActivate: function (el) {
         if (el.dataset.mi != null) { var mc = mineList[+el.dataset.mi]; if (mc) { ctx.audio('open'); ctx.openCards(mineList, +el.dataset.mi); } return; }
@@ -850,10 +850,10 @@ PL.sections = (function () {
         }
       },
       onAction: function (act, el) {
-        if (act === 'shot-dl') { PL.shot.download(el.dataset.id); ctx.toast(_('Снимок скачивается')); }
+        if (act === 'shot-dl') { PL.shot.download(el.dataset.id); ctx.toast(_('Downloading screenshot')); }
         if (act === 'shot-del') {
           var id = el.dataset.id;
-          PL.shot.remove(id).then(function () { sec.closeSheet(); ctx.toast(_('Снимок удалён')); ctx.favChanged(); draw(); });
+          PL.shot.remove(id).then(function () { sec.closeSheet(); ctx.toast(_('Screenshot deleted')); ctx.favChanged(); draw(); });
         }
       },
     });
@@ -863,7 +863,7 @@ PL.sections = (function () {
       var host = sec.scroll.querySelector('[data-mine]');
       if (!host) return;
       host.innerHTML = (mineList.length ? mineList.map(function (c, i) { return '<button class="gi mcard" data-mi="' + i + '"><span class="mc-in">' + PL.tcg.html(c) + '</span></button>'; }).join('') : '') +
-        '<button class="gi mcard mc-add" data-scan="1"><span class="mc-in"><b>' + PL.icon('scan') + '</b><em>' + _('Сканировать карточку').replace(' ', '<br>') + '</em></span></button>';
+        '<button class="gi mcard mc-add" data-scan="1"><span class="mc-in"><b>' + PL.icon('scan') + '</b><em>' + _('Scan card').replace(' ', '<br>') + '</em></span></button>';
       var hh = sec.scroll.querySelector('.grp-mine em'); if (hh) hh.textContent = mineList.length;
       root.querySelector('.sec-count').textContent = (dexIds.length + cardIds.length + PL.shot.list().length + mineList.length) + '';
     }
@@ -874,16 +874,16 @@ PL.sections = (function () {
       if (!host) return;
       host.innerHTML = shots.length ? '<div class="grid g-shots">' + shots.map(function (s) {
         return '<button class="gi shot" data-shot="' + s.id + '"><img src="' + s.url + '" alt="" loading="lazy"><span>' + esc(s.title) + (s.sub ? ' · ' + esc(s.sub) : '') + '</span></button>';
-      }).join('') + '</div>' : '<p class="empty">' + _('Пока пусто — нажми ◉ на левом джойконе (клавиша C) в любом месте, и снимок экрана окажется здесь.') + '</p>';
+      }).join('') + '</div>' : '<p class="empty">' + _('Nothing here yet. Press ◉ on the left Joy-Con (key C) anywhere and the screenshot will show up here.') + '</p>';
       var hh = sec.scroll.querySelector('.grp-shots em'); if (hh) hh.textContent = shots.length;
     }
     sec.scroll.innerHTML =
-      '<h3 class="grp">' + _('Покемоны') + ' <em>' + dexIds.length + '</em><span>' + _('Сердечко в карточке покемона или кнопка Y: покемона поймает покебол') + '</span></h3>' +
-      (dexIds.length ? '<div class="grid g-dex">' + dexIds.map(function (id) { return dexTile(D.dexById[id]); }).join('') + '</div>' : '<p class="empty">' + _('Пока пусто — открой Покедекс и отметь любимых покемонов.') + '</p>') +
-      '<h3 class="grp">' + _('Карточки') + ' <em>' + cardIds.length + '</em><span>' + _('Сердечко в окне карточки или кнопка Y') + '</span></h3>' +
-      '<div class="mini-cards fav-cards" data-cards>' + (cardIds.length ? '<p class="empty">' + _('Загружаю карточки…') + '</p>' : '<p class="empty">' + _('Пока пусто — открой Альбом, достань карточку и нажми сердечко.') + '</p>') + '</div>' +
-      '<h3 class="grp grp-mine">' + _('Моя коллекция') + ' <em>0</em><span>' + _('Карточки, которые ты отсканировал или загрузил с устройства') + '</span></h3><div class="mini-cards fav-cards" data-mine></div>' +
-      '<h3 class="grp grp-shots">' + _('Снимки экрана') + ' <em>0</em><span>' + _('Кнопка ◉ на джойконе делает снимок того, что на экране') + '</span></h3><div data-shots></div>';
+      '<h3 class="grp">' + _('Pokémon') + ' <em>' + dexIds.length + '</em><span>' + _('Heart on a Pokémon card or the Y button: a Poké Ball will catch the Pokémon') + '</span></h3>' +
+      (dexIds.length ? '<div class="grid g-dex">' + dexIds.map(function (id) { return dexTile(D.dexById[id]); }).join('') + '</div>' : '<p class="empty">' + _('Nothing here yet. Open the Pokédex and mark your favorite Pokémon.') + '</p>') +
+      '<h3 class="grp">' + _('Cards') + ' <em>' + cardIds.length + '</em><span>' + _('Heart in the card window or the Y button') + '</span></h3>' +
+      '<div class="mini-cards fav-cards" data-cards>' + (cardIds.length ? '<p class="empty">' + _('Loading cards…') + '</p>' : '<p class="empty">' + _('Nothing here yet. Open the Album, pull out a card and tap the heart.') + '</p>') + '</div>' +
+      '<h3 class="grp grp-mine">' + _('My collection') + ' <em>0</em><span>' + _('Cards you scanned or uploaded from your device') + '</span></h3><div class="mini-cards fav-cards" data-mine></div>' +
+      '<h3 class="grp grp-shots">' + _('Screenshots') + ' <em>0</em><span>' + _('The ◉ button on the Joy-Con captures what is on the screen') + '</span></h3><div data-shots></div>';
     if (cardIds.length) {
       sec.scroll.querySelector('[data-cards]').innerHTML = sec.cardList.map(function (c, i) { return '<button class="gi mcard" data-i="' + i + '"><span class="mc-in">' + PL.tcg.html(c) + '</span></button>'; }).join('');
     }

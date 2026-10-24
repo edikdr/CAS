@@ -144,18 +144,18 @@
   }
   function updateHints() {
     var h = [];
-    if (S.help) h = [hint(['b'], _('Закрыть'))];
-    else if (S.modal && S.modal.editing) h = [hint(['a'], _('Сохранить')), hint(['b'], _('Отмена'))];
-    else if (S.modal) h = [hint(['l', 'r'], _('Карта')), hint(['up', 'down'], _('Пункт')), hint(['y'], dk(S.modal.i) && dk(S.modal.i).mine ? _('Править') : _('Избранное')), hint(['b'], _('Закрыть'))];
-    else if (S.picker) h = [hint(['b'], _('Закрыть')), hint(['a'], _('Выбрать набор'))];
+    if (S.help) h = [hint(['b'], _('Close'))];
+    else if (S.modal && S.modal.editing) h = [hint(['a'], _('Save')), hint(['b'], _('Cancel'))];
+    else if (S.modal) h = [hint(['l', 'r'], _('Card')), hint(['up', 'down'], _('Detail')), hint(['y'], dk(S.modal.i) && dk(S.modal.i).mine ? _('Edit') : _('Favorites')), hint(['b'], _('Close'))];
+    else if (S.picker) h = [hint(['b'], _('Close')), hint(['a'], _('Select set'))];
     else if (S.view === 'quiz') h = PL.quiz.hints().map(function (x) { return hint(x[0], x[1]); });
     else if (S.view === 'catch') h = PL.catcher.hints().map(function (x) { return hint(x[0], x[1]); });
     else if (S.view === 'scan') h = PL.scan.hints().map(function (x) { return hint(x[0], x[1]); });
-    else if (S.view === 'album') h = [hint(['l', 'r'], _('Страница')), hint(['x'], _('Наборы')), hint(['y'], _('Скан')), hint(['b'], _('Назад')), hint(['a'], _('Достать'))];
-    else if (S.view === 'home' && S.row === 'top') h = [hint(['b'], _('К плиткам')), hint(['a'], S.top === 2 ? _('Открыть сканер') : S.top ? _('Открыть избранное') : _('Открыть альбом'))];
+    else if (S.view === 'album') h = [hint(['l', 'r'], _('Page')), hint(['x'], _('Sets')), hint(['y'], _('Scan')), hint(['b'], _('Back')), hint(['a'], _('Pull out'))];
+    else if (S.view === 'home' && S.row === 'top') h = [hint(['b'], _('To tiles')), hint(['a'], S.top === 2 ? _('Open scanner') : S.top ? _('Open favorites') : _('Open album'))];
     else if (S.view === 'home') h = S.row === 'tiles'
-      ? [hint(['plus'], _('Справка')), hint(['a'], _('Открыть'))]
-      : [hint(['b'], _('К плиткам')), hint(['a'], _('Выбрать'))];
+      ? [hint(['plus'], _('Help')), hint(['a'], _('Open'))]
+      : [hint(['b'], _('To tiles')), hint(['a'], _('Select'))];
     else if (S.view === 'section') h = (secCtrl ? secCtrl.hints() : []).map(function (x) { return hint(x[0], x[1]); });
     hintsRight.innerHTML = h.join('');
   }
@@ -414,8 +414,8 @@
   function bootCart(id) {
     var cd = C.carts.filter(function (x) { return x.id === id; })[0];
     if (!cd || launching) return;
-    if (!S.power) { toast(_('Картридж в слоте. Дотяни кабель до USB-C')); return; }
-    if (!S.connected) { toast(_('Картридж в слоте. Нажми PLAY')); return; }
+    if (!S.power) { toast(_('Cartridge is in the slot. Drag the cable to the USB-C port')); return; }
+    if (!S.connected) { toast(_('Cartridge is in the slot. Press PLAY')); return; }
     launching = true;
     PL.carts.hold(true);
     function finish() { launching = false; PL.carts.hold(false); }
@@ -620,8 +620,8 @@
 
   /* ---------- раздел (содержимое — js/sections.js) ---------- */
   var TABS = C.sections.concat([
-    { id: 'news', title: _('Новости'), subtitle: _('Что нового за год'), icon: 'news', c1: '#ff6a52', c2: '#a8321e' },
-    { id: 'favorites', title: _('Избранное'), subtitle: _('Любимые покемоны, карточки и снимки'), icon: 'heart', c1: '#ff5f8f', c2: '#a3204f' },
+    { id: 'news', title: _('News'), subtitle: _('What’s new this year'), icon: 'news', c1: '#ff6a52', c2: '#a8321e' },
+    { id: 'favorites', title: _('Favorites'), subtitle: _('Favorite Pokémon, cards and screenshots'), icon: 'heart', c1: '#ff5f8f', c2: '#a3204f' },
   ]);
 
   function renderSection(animate) {
@@ -724,7 +724,7 @@
   });
   /* перетащил картинки на сайт — сканер откроется сам */
   PL.scan.on('drop', function (e) {
-    if (!S.power || S.modal || S.help) { toast(_('Включи консоль, чтобы добавлять карточки')); return; }
+    if (!S.power || S.modal || S.help) { toast(_('Turn on the console to add cards')); return; }
     if (S.view === 'scan') return PL.scan.addFiles(e.files);
     if (S.view === 'home' || S.view === 'album' || S.view === 'section') openScan({ files: e.files });
   });
@@ -903,8 +903,8 @@
     var f = spec.search || {};
     return Promise.resolve(f.q || f.type != null || f.rarity || f.sup != null ? D.search(f.q, f) : D.allRows());
   }
-  var RAR_RU = { common: _('обычные'), uncommon: _('необычные'), rare: _('редкие'), ultra: _('ультра'), special: _('особые') };
-  var SUP_RU = [_('покемоны'), _('тренеры'), _('энергия')];
+  var RAR_RU = { common: _('common'), uncommon: _('uncommon'), rare: _('rare'), ultra: _('ultra'), special: _('special') };
+  var SUP_RU = [_('Pokémon'), _('trainers'), _('energy')];
   function filterText(f) {
     var out = [];
     if (f.type != null) out.push((PL.types[D.typeIdx[f.type]] || {}).name || '');
@@ -913,18 +913,18 @@
     return out.filter(Boolean).join(', ');
   }
   function albumHeader() {
-    var spec = albumSpec, title = _('Альбом тренера'), sub;
-    var n = albumList.length + ' ' + _n(albumList.length, 'карта|карты|карт');
+    var spec = albumSpec, title = _('Trainer’s Album'), sub;
+    var n = albumList.length + ' ' + _n(albumList.length, 'card|cards');
     if (spec.set) {
       var m = D.setMeta[spec.set] || {};
       sub = m.n + ' · ' + m.se + ' · ' + (m.d || '').slice(0, 4) + ' · ' + n;
-    } else if (spec.fav) { title = _('Избранные карточки'); sub = n; }
-    else if (spec.mine) { title = _('Моя коллекция'); sub = n + ' · ' + _('твои сканы и фото'); }
-    else if (spec.dex) { var p = D.dexById[spec.dex]; title = _('Карточки: {name}', { name: p ? p.ru : '' }); sub = _('{n} из всех наборов', { n: n }); }
+    } else if (spec.fav) { title = _('Favorite cards'); sub = n; }
+    else if (spec.mine) { title = _('My collection'); sub = n + ' · ' + _('your scans and photos'); }
+    else if (spec.dex) { var p = D.dexById[spec.dex]; title = _('{name} cards', { name: p ? p.ru : '' }); sub = _('{n} from all sets', { n: n }); }
     else {
       var f = spec.search || {};
-      title = f.q ? _('Поиск: «{q}»', { q: f.q }) : _('Все карточки');
-      sub = n + (filterText(f) ? ' · ' + filterText(f) : '') + ' · ' + _('от новых к старым');
+      title = f.q ? _('Search: “{q}”', { q: f.q }) : _('All cards');
+      sub = n + (filterText(f) ? ' · ' + filterText(f) : '') + ' · ' + _('newest first');
     }
     $('#albumTitle').textContent = title;
     $('#albumSub').textContent = sub;
@@ -939,7 +939,7 @@
         ? '<div class="pocket" data-i="' + i + '" style="--i:' + k + '"><div class="pk-card">' + PL.tcg.html(c) + '</div><div class="pk-sleeve"></div></div>'
         : '<div class="pocket is-empty" data-i="' + i + '" style="--i:' + k + '"><div class="pk-card"><span class="pk-empty"></span></div><div class="pk-sleeve"></div></div>';
     }
-    return html + '</div><span class="page-num">' + _('СТР. {n}', { n: pad2(page + 1) }) + '</span>';
+    return html + '</div><span class="page-num">' + _('PAGE {n}', { n: pad2(page + 1) }) + '</span>';
   }
 
   function renderSpread() {
@@ -959,7 +959,7 @@
     binderEl.querySelectorAll('.binder-page .pocket').forEach(function (p) {
       p.classList.toggle('is-selected', +p.dataset.i === S.card);
     });
-    $('#albumSpread').innerHTML = _('РАЗВОРОТ {n} / {total}', { n: '<b>' + (S.spread + 1) + '</b>', total: spreads() });
+    $('#albumSpread').innerHTML = _('SPREAD {n} / {total}', { n: '<b>' + (S.spread + 1) + '</b>', total: spreads() });
     updateHints();
     updateAmbient();
   }
@@ -984,7 +984,7 @@
     PL.audio.play('open');
     spec = spec || albumSpec;
     if (S.view === 'home' || S.view === 'section') albumReturn = S.view;
-    withHint(loadAlbum(spec), _('Загружаю набор…')).then(function (cards) {
+    withHint(loadAlbum(spec), _('Loading set…')).then(function (cards) {
       albumSpec = spec;
       if (spec.set) store.set('pl-album-set', spec);
       albumList = cards;
@@ -1002,14 +1002,14 @@
       setView('album');
       updateAlbum();
       S.busy = false;
-      if (!cards.length) toast(spec.fav ? _('Избранных карточек пока нет — нажми сердечко у карточки') : spec.mine ? _('Здесь пока пусто. Нажми Y или «Скан» и добавь первую карточку') : _('Карточек нет'));
+      if (!cards.length) toast(spec.fav ? _('No favorite cards yet — tap the heart on a card') : spec.mine ? _('Nothing here yet. Press Y or “Scan” to add your first card') : _('No cards'));
     }).catch(function () {
       S.busy = false;
       if (spec.set) {   // данные набора недоступны — показываем каталог по локальному индексу (он работает без интернета)
-        toast(_('Не удалось загрузить набор (нужен интернет). Показан каталог всех карточек'));
+        toast(_('Couldn’t load the set (internet required). Showing the catalog of all cards'));
         return openAlbum({ search: {} });
       }
-      toast(_('Не удалось загрузить данные: нужен интернет (jsDelivr / GitHub)'));
+      toast(_('Couldn’t load data: internet required (jsDelivr / GitHub)'));
     });
   }
 
@@ -1025,15 +1025,15 @@
   /* ---------- выбор набора и поиск по всем карточкам ---------- */
   var pickerEl = $('#picker'), pickerSel = null;
   var pf = { q: '', type: null, rarity: null, sup: null };
-  var RARS = [['common', _('Обычные')], ['uncommon', _('Необычные')], ['rare', _('Редкие')], ['ultra', _('Ультра')], ['special', _('Особые')]];
-  var SUPS = [['0', _('Покемоны')], ['1', _('Тренеры')], ['2', _('Энергия')]];
+  var RARS = [['common', _('Common')], ['uncommon', _('Uncommon')], ['rare', _('Rare')], ['ultra', _('Ultra')], ['special', _('Special')]];
+  var SUPS = [['0', _('Pokémon')], ['1', _('Trainers')], ['2', _('Energy')]];
 
   function pickerFilter() { return { q: pf.q.trim(), type: pf.type, rarity: pf.rarity, sup: pf.sup }; }
   function pickerActive() { return !!(pf.q.trim() || pf.type != null || pf.rarity || pf.sup != null); }
   function refreshPickerGo() {
     var go = $('#pkGo');
     var n = pickerActive() ? D.search(pf.q, pickerFilter()).length : D.rowCount;
-    go.innerHTML = PL.icon('album') + (pickerActive() ? _('Показать карточки') : _('Все карточки')) + '<em>' + n.toLocaleString(PL.loc) + '</em>';
+    go.innerHTML = PL.icon('album') + (pickerActive() ? _('Show cards') : _('All cards')) + '<em>' + n.toLocaleString(PL.loc) + '</em>';
     go.classList.toggle('is-zero', n === 0);
   }
   function renderPickerChips() {
@@ -1053,14 +1053,14 @@
     D.sets.slice().reverse().forEach(function (s) { if (!seen[s.se]) { seen[s.se] = []; bySeries.push(s.se); } seen[s.se].push(s); });
     var cur = albumSpec.set;
     pickerEl.querySelector('.picker-grid').innerHTML =
-      '<button class="gi pset pset-fav" data-fav="1">' + PL.icon('heart') + '<b>' + _('Избранные карточки') + '</b><span>' + PL.fav.list('cards').length + ' ' + _n(PL.fav.list('cards').length, 'карта|карты|карт') + '</span></button>' +
-      '<button class="gi pset pset-mine" data-mine="1">' + PL.icon('scan') + '<b>' + _('Моя коллекция') + '</b><span>' + PL.mine.count() + ' ' + _n(PL.mine.count(), 'карта|карты|карт') + ' · ' + _('свои сканы') + '</span></button>' +
+      '<button class="gi pset pset-fav" data-fav="1">' + PL.icon('heart') + '<b>' + _('Favorite cards') + '</b><span>' + PL.fav.list('cards').length + ' ' + _n(PL.fav.list('cards').length, 'card|cards') + '</span></button>' +
+      '<button class="gi pset pset-mine" data-mine="1">' + PL.icon('scan') + '<b>' + _('My collection') + '</b><span>' + PL.mine.count() + ' ' + _n(PL.mine.count(), 'card|cards') + ' · ' + _('your scans') + '</span></button>' +
       bySeries.map(function (se) {
         return '<h4>' + PL.tcg.esc(se) + '</h4>' + seen[se].map(function (s) {
           var lg = PL.img.logoUrls(s.id);
           return '<button class="gi pset' + (s.id === cur ? ' is-cur' : '') + '" data-set="' + s.id + '">' +
             '<img src="' + PL.tcg.esc(lg[0]) + '" data-chain="' + PL.tcg.esc(lg.join('|')) + '" data-ci="0" alt="" loading="lazy" referrerpolicy="no-referrer">' +
-            '<b>' + PL.tcg.esc(s.n) + '</b><span>' + s.d.slice(0, 4) + ' · ' + s.c + ' ' + _n(s.c, 'карта|карты|карт') + '</span></button>';
+            '<b>' + PL.tcg.esc(s.n) + '</b><span>' + s.d.slice(0, 4) + ' · ' + s.c + ' ' + _n(s.c, 'card|cards') + '</span></button>';
         }).join('');
       }).join('');
     renderPickerChips();
@@ -1248,12 +1248,12 @@
     if (!c || !c.light) return Promise.resolve(c);
     return D.fullCard(c).then(function (f) { deck[i] = f; return f; });
   }
-  function loadFail() { S.busy = false; toast(_('Не удалось загрузить данные карточки: нужен интернет')); }
+  function loadFail() { S.busy = false; toast(_('Couldn’t load card data: internet required')); }
   function showCard(i, dir) {
     var c = dk(i);
     S.modal = { i: i, item: 0 };
     cmItems = PL.tcg.items(c);
-    if (c.mine) cmItems.unshift({ id: 'mynote', label: _('Моё'), tag: _('Моё'), mine: true, title: _('Моё описание'), value: '', text: c.note || _('Описания пока нет. Нажми ✎ и запиши заметку: где достал, в каком состоянии, чем запомнилась.'), note: '' });
+    if (c.mine) cmItems.unshift({ id: 'mynote', label: _('Mine'), tag: _('Mine'), mine: true, title: _('My notes'), value: '', text: c.note || _('No notes yet. Tap ✎ and jot down where you got it, what condition it’s in and what makes it special.'), note: '' });
     cmStage.innerHTML = PL.tcg.html(c, { big: true });
     var card = cmStage.querySelector('.tcg');
     card.classList.add('is-live');
@@ -1286,7 +1286,7 @@
     cmChips.querySelectorAll('.chip-btn').forEach(function (b, j) { b.classList.toggle('is-on', j === k); });
     cmStage.querySelectorAll('[data-part]').forEach(function (el) { el.classList.toggle('is-on', el.dataset.part === it.id); });
     cmBox.innerHTML =
-      '<div class="cm-tt"><span class="cm-tag' + (it.tag === _('В лоре') ? ' lore' : '') + (it.mine ? ' mine' : '') + '">' + it.tag + '</span><b>' + PL.tcg.esc(it.title) + '</b><em>' + PL.tcg.esc(it.value) + '</em></div>' +
+      '<div class="cm-tt"><span class="cm-tag' + (it.tag === _('Lore') ? ' lore' : '') + (it.mine ? ' mine' : '') + '">' + it.tag + '</span><b>' + PL.tcg.esc(it.title) + '</b><em>' + PL.tcg.esc(it.value) + '</em></div>' +
       '<p class="cm-text' + (it.mine ? ' is-note' : '') + '">' + PL.tcg.esc(it.text) + '</p>' +
       (it.note ? '<p class="cm-note">' + PL.tcg.esc(it.note) + '</p>' : '');
     cmBox.classList.remove('swap'); void cmBox.offsetWidth; cmBox.classList.add('swap');
@@ -1303,9 +1303,9 @@
     cmChips.querySelectorAll('.chip-btn').forEach(function (b) { b.classList.remove('is-on'); });
     var P = PL.tcg.esc;
     cmBox.innerHTML = '<div class="cm-edit">' +
-      '<label><span>' + P(_('Название')) + '</span><input id="cmEdName" type="text" maxlength="40" value="' + P(c.name) + '" placeholder="' + P(c.baseName || _('Моя карточка')) + '" autocomplete="off"></label>' +
-      '<label><span>' + P(_('Описание')) + '</span><textarea id="cmEdNote" maxlength="600" rows="4" placeholder="' + P(_('Где достал, в каком состоянии, чем запомнилась…')) + '">' + P(c.note || '') + '</textarea></label>' +
-      '<div class="cm-edit-acts"><button class="chip-btn is-on" data-ed="save">' + P(_('Сохранить')) + '</button><button class="chip-btn" data-ed="cancel">' + P(_('Отмена')) + '</button></div></div>';
+      '<label><span>' + P(_('Name')) + '</span><input id="cmEdName" type="text" maxlength="40" value="' + P(c.name) + '" placeholder="' + P(c.baseName || _('My card')) + '" autocomplete="off"></label>' +
+      '<label><span>' + P(_('Description')) + '</span><textarea id="cmEdNote" maxlength="600" rows="4" placeholder="' + P(_('Where you got it, its condition, what makes it special…')) + '">' + P(c.note || '') + '</textarea></label>' +
+      '<div class="cm-edit-acts"><button class="chip-btn is-on" data-ed="save">' + P(_('Save')) + '</button><button class="chip-btn" data-ed="cancel">' + P(_('Cancel')) + '</button></div></div>';
     cmBox.classList.remove('swap'); void cmBox.offsetWidth; cmBox.classList.add('swap');
     PL.audio.play('open');
     updateHints();
@@ -1330,10 +1330,10 @@
       S.modal.editing = false;
       $('#cmPanel').classList.remove('is-editing');
       PL.audio.play('select');
-      toast(_('Сохранено'));
+      toast(_('Saved'));
       showCard(S.modal.i, 0);
       updateHints();
-    }, function () { toast(_('Не удалось сохранить')); PL.audio.play('error'); });
+    }, function () { toast(_('Couldn’t save')); PL.audio.play('error'); });
   }
   $('#cmEditBtn').addEventListener('click', function () { startEdit(); });
   cmBox.addEventListener('click', function (e) {
@@ -1354,7 +1354,7 @@
     deck = cards;
     deckFromAlbum = false;
     S.busy = true;
-    withHint(ensureFull(i), _('Загружаю карточку…')).then(function () {
+    withHint(ensureFull(i), _('Loading card…')).then(function () {
       S.busy = false;
       PL.audio.play('open');
       openModalShell(i);
@@ -1366,7 +1366,7 @@
     var on = PL.fav.toggle('cards', c.id);
     $('#cmFav').classList.toggle('is-on', on);
     PL.audio.play(on ? 'select' : 'back');
-    toast(on ? _('Карточка в избранном') : _('Убрано из избранного'));
+    toast(on ? _('Card added to favorites') : _('Removed from favorites'));
     updateFavCount();
     favDirty = true;
   }
@@ -1374,12 +1374,12 @@
   $('#cmFav').addEventListener('click', function () { if (S.modal && !S.busy) toggleFavCard(); });
 
   function openCard(i) {
-    if (!albumGet(i)) { PL.audio.play('error'); return toast(_('Этот кармашек пока пуст')); }
+    if (!albumGet(i)) { PL.audio.play('error'); return toast(_('This pocket is empty')); }
     deck = albumList;
     deckFromAlbum = true;
     if (dk(i).light) {
       S.busy = true;
-      return withHint(ensureFull(i), _('Загружаю карточку…')).then(function () { S.busy = false; openCard(i); }, loadFail);
+      return withHint(ensureFull(i), _('Loading card…')).then(function () { S.busy = false; openCard(i); }, loadFail);
     }
     var p = pocketEl(i);
     if (reduceMotion || !p) { PL.audio.play('open'); openModalShell(i); markOut(i, true); return; }
@@ -1455,7 +1455,7 @@
     if (i < 0 || i >= n) return PL.audio.play('error');
     var from = S.modal.i;
     S.busy = true;
-    withHint(ensureFull(i), _('Загружаю карточку…')).then(function () {
+    withHint(ensureFull(i), _('Loading card…')).then(function () {
       S.busy = false;
       if (!S.modal) return;
       if (deckFromAlbum) {
@@ -1553,20 +1553,20 @@
 
   /* ---------- справка ---------- */
   var HELP = [
-    [['✚', 'LS'], _('Навигация'), '← ↑ → ↓'],
-    [['A'], _('Выбрать / открыть'), 'Enter'],
-    [['B'], _('Назад'), 'Esc'],
-    [['L', 'R'], _('Соседний раздел'), 'Q / E'],
-    [['RS'], _('Прокрутка · поворот карты'), _('колесо')],
-    [['X'], _('Поиск'), 'X'],
-    [['Y'], _('Ретро-фильтр'), 'Y'],
-    [['+'], _('Эта справка'), '+'],
-    [['−'], _('Звук вкл / выкл'), 'M'],
-    [['⌂'], _('Главное меню'), 'H'],
-    [['◉'], _('Снимок экрана (в Избранное)'), 'C'],
-    [['⏻'], _('Питание (сверху)'), 'P'],
-    [['−', '+'], _('Громкость (сверху)'), '[ ]'],
-    [['🎮'], _('Геймпад'), 'USB / BT'],
+    [['✚', 'LS'], _('Navigate'), '← ↑ → ↓'],
+    [['A'], _('Select / open'), 'Enter'],
+    [['B'], _('Back'), 'Esc'],
+    [['L', 'R'], _('Previous / next section'), 'Q / E'],
+    [['RS'], _('Scroll · rotate card'), _('wheel')],
+    [['X'], _('Search'), 'X'],
+    [['Y'], _('Retro filter'), 'Y'],
+    [['+'], _('This help'), '+'],
+    [['−'], _('Sound on / off'), 'M'],
+    [['⌂'], _('Main menu'), 'H'],
+    [['◉'], _('Screenshot (saved to Favorites)'), 'C'],
+    [['⏻'], _('Power (top)'), 'P'],
+    [['−', '+'], _('Volume (top)'), '[ ]'],
+    [['🎮'], _('Gamepad'), 'USB / BT'],
   ];
   $('#helpGrid').innerHTML = HELP.map(function (r) {
     return '<div class="help-row"><span class="hb">' +
@@ -1616,7 +1616,7 @@
   function toggleSound() {
     var muted = PL.audio.toggleMute();
     if (!muted) PL.audio.play('select');
-    toast(muted ? _('Звук выключен') : _('Звук включён'));
+    toast(muted ? _('Sound off') : _('Sound on'));
     showVolume();
     renderDock();
   }
@@ -1625,18 +1625,18 @@
     var off = body.classList.toggle('retro-off');
     store.set('pl-retro', !off);
     PL.audio.play('select');
-    toast(off ? _('Ретро-фильтр выключен') : _('Ретро-фильтр включён'));
+    toast(off ? _('Retro filter off') : _('Retro filter on'));
     renderDock();
   }
 
   /* подпись снимка: что сейчас на экране */
   function captureMeta() {
-    var t = _('Главное меню'), sub = '';
-    if (S.view === 'static') t = _('Экран PLAY');
-    else if (S.view === 'quiz') { var q = PL.quiz.status(); t = _('Викторина «{t}»', { t: q.title }); sub = q.line; }
+    var t = _('Main menu'), sub = '';
+    if (S.view === 'static') t = _('PLAY screen');
+    else if (S.view === 'quiz') { var q = PL.quiz.status(); t = _('Quiz “{t}”', { t: q.title }); sub = q.line; }
     else if (S.view === 'catch') { var cq = PL.catcher.status(); t = cq.title; sub = cq.line; }
     else if (S.view === 'scan') { var sq = PL.scan.status(); t = sq.title; sub = sq.line; }
-    else if (S.view === 'album') t = _('Альбом карточек');
+    else if (S.view === 'album') t = _('Card album');
     else if (S.view === 'section') {
       t = TABS[S.section].title;
       var nm = sectionView.querySelector('.sheet.is-open .ds-name b');
@@ -1653,14 +1653,14 @@
     meta.onBuilt = function () { flash(); PL.audio.play('shutter'); };      // вспышка уже после того, как экран «сфотографирован»
     PL.shot.take(meta).then(function (rec) {
       shooting = false;
-      toast(rec.fallback ? _('Снимок сохранён (упрощённый)') : _('Снимок сохранён в Избранном'));
+      toast(rec.fallback ? _('Screenshot saved (simplified)') : _('Screenshot saved to Favorites'));
       updateFavCount();
-    }, function () { shooting = false; toast(_('Не удалось сохранить снимок')); });
+    }, function () { shooting = false; toast(_('Couldn’t save the screenshot')); });
   }
 
   function searchToast() {
     PL.audio.play('select');
-    toast(_('Поиск появится вместе с контентом'));
+    toast(_('Search is coming with more content'));
   }
 
   /* ---------- главный обработчик кнопок ---------- */
@@ -1781,7 +1781,7 @@
   });
 
   PL.bus.on('gamepad', function (g) {
-    toast(g.connected ? _('🎮 Геймпад подключён') : _('Геймпад отключён'));
+    toast(g.connected ? _('🎮 Gamepad connected') : _('Gamepad disconnected'));
   });
 
   playBtn.addEventListener('click', startPlay);
@@ -1812,9 +1812,9 @@
     $('#skinName').textContent = sk.name;
     if (announce) PL.audio.play('snap');
   }
-  skinsEl.innerHTML = '<div class="skins-title">' + _('Раскраска') + '</div><div class="skins-row">' + C.skins.map(function (sk) {
-    return '<button class="skin" data-id="' + sk.id + '" style="--l:' + sk.l + ';--r:' + sk.r + ';--b:' + sk.b + '" aria-label="' + _('Раскраска: {name}', { name: sk.name }) + '"></button>';
-  }).join('') + '</div><div class="skins-label">' + _('Корпус: {name}', { name: '<b id="skinName"></b>' }) + '</div>';
+  skinsEl.innerHTML = '<div class="skins-title">' + _('Skin') + '</div><div class="skins-row">' + C.skins.map(function (sk) {
+    return '<button class="skin" data-id="' + sk.id + '" style="--l:' + sk.l + ';--r:' + sk.r + ';--b:' + sk.b + '" aria-label="' + _('Skin: {name}', { name: sk.name }) + '"></button>';
+  }).join('') + '</div><div class="skins-label">' + _('Shell: {name}', { name: '<b id="skinName"></b>' }) + '</div>';
   skinsEl.addEventListener('click', function (e) {
     var b = e.target.closest('.skin');
     if (b) changeSkin(b.dataset.id);

@@ -576,7 +576,7 @@ PL.cable = (function () {
   var hintEl = document.createElement('div');
   hintEl.className = 'cable-hint';
   hintEl.setAttribute('aria-hidden', 'true');
-  hintEl.innerHTML = '<i></i><b>' + _('Потяни кабель к USB-C') + '</b>';
+  hintEl.innerHTML = '<i></i><b>' + _('Pull the cable to USB-C') + '</b>';
   document.body.appendChild(hintEl);
   function updateHint() {
     var show = state === 'dangle' && !hot && performance.now() - idleSince > 1400 && !document.body.classList.contains('is-on');

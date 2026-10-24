@@ -84,7 +84,7 @@ PL.mine = (function () {
       Object.keys(base).forEach(function (k) { c[k] = base[k]; });
     } else {
       c = {
-        setId: '', set: _('Моя коллекция'), series: '', date: '', localId: rec.localId || '', total: 0, en: rec.name || _('Карточка'), name: rec.name || _('Моя карточка'),
+        setId: '', set: _('My collection'), series: '', date: '', localId: rec.localId || '', total: 0, en: rec.name || _('Card'), name: rec.name || _('My card'),
         super: 'P', sub: [], num: 0, dex: [], hp: 0, type: 'colorless', rarityName: '', rarity: 'common', attacks: [], ability: null, weak: null, resist: null,
         retreat: 0, rules: [], from: null, illus: '', stage: 0, kind: '', lore: '', imgs: null, art: null, scan: true, light: false,
       };

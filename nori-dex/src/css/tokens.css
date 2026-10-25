@@ -1,0 +1,59 @@
+/* ==========================================================================
+   Design tokens for everything shown on the device screen (owner: Sonnet).
+
+   One spacing scale: padding, margins and gaps on the screens use ONLY these values.
+   Keep it that way: if a layout does not fit, remove or stack content, never use an in-between number.
+   Sizes are design px (the device is scaled to the window; see style.css).
+   ========================================================================== */
+:root {
+  /* spacing scale */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* corner radii: tags and small badges / controls and rows / cards and panels / pills and circles */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* the round close button (44 px; its touch area is 52) */
+  --btn: 44px;
+
+  /* icon sizes */
+  --ico-sm: 16px;
+  --ico-md: 20px;
+  --ico-lg: 24px;
+
+  /* type roles: one title, one body, one caption (a display size for the countdown only).
+     13 px is the floor: it renders at 11.3 real px on the smallest supported phone (0.87 scale). */
+  --fs-title: 24px;
+  --fs-body: 14px;
+  --fs-caption: 13px;
+  --fs-display: 40px;
+  --lh-title: 1.15;
+  --lh-body: 1.4;
+  --lh-caption: 1.3;
+
+  /* outlines and shadows: one neutral hairline, one accent ring, one soft drop shadow */
+  --ring: inset 0 0 0 1px rgba(255, 255, 255, .14);
+  --ring-gold: inset 0 0 0 2px rgba(232, 185, 58, .6);
+  --lift: 0 12px 24px rgba(0, 0, 0, .4);
+
+  /* bars on the screen (tabs at the top, hints at the bottom) */
+  --bar-h: 48px;
+  --hints-h: 40px;
+}
+
+/* The frame: nothing on a screen sits closer than this to the edge of the glass.
+   24 on the desktop screen (768 x 432), 16 on the phone screen (368 x 404). */
+.screen { --frame: var(--sp-5); }
+html[data-layout="tall"] .screen { --frame: var(--sp-4); --bar-h: 56px; --hints-h: 32px; --fs-display: 32px; }
+
+/* the three text roles, as classes the screens share */
+.t-title { font-size: var(--fs-title); font-weight: 900; line-height: var(--lh-title); }
+.t-body { font-size: var(--fs-body); font-weight: 700; line-height: var(--lh-body); }
+.t-caption { font-size: var(--fs-caption); font-weight: 700; line-height: var(--lh-caption); }

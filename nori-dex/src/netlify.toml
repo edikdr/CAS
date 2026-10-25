@@ -1,0 +1,6 @@
+# Netlify build settings (Vercel reads vercel.json). In Netlify set "Base directory" to nori-dex/src;
+# the commands below are relative to it. The headers are in _headers (copied to dist/ by the build).
+[build]
+  command = "npm run build"
+  publish = "dist"
+  environment = { NODE_VERSION = "20" }

@@ -69,6 +69,22 @@ first paint of the console. Ideas, in order of expected gain:
 3. `contain: layout paint` on the big static subtrees of the console, so the first layout does not
    cover the whole scene.
 
+### Final pass: views that have not been shown yet are not laid out
+
+The altar, the relic screen and the boot sequence are built at start-up but are not seen for seconds, and the
+first style and layout pass over the whole 3D console was the most expensive thing the page does. Now a view that
+has never been active is `content-visibility: hidden` (`.view:not(.is-active):not(.has-shown)` in `style.css`;
+`setView` in `app.js` adds `has-shown` the first time a view is shown, so later fade-outs are unchanged).
+
+| Chrome trace, 4x CPU slowdown, phone viewport (3 runs each) | Blocking time at load |
+|---|---|
+| before | 1245, 910, 990 ms |
+| after | 718, 711, 689 ms |
+
+Lighthouse mobile on the same sandbox and day: before 75 to 80 (LCP 3.7 s); after 76, 89, 93 (LCP 2.6 s, CLS 0 to 0.02).
+Accessibility and best practices stay 100. The SEO score is 66 because the prototype is deliberately not indexable
+(`is-crawlable` fails); it goes back to 100 when the site is made public.
+
 ## What O5 fixed
 
 1. **Animations in hidden views ticked the main thread.** The Awaken prompt's halo and crystal loop

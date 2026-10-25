@@ -98,6 +98,11 @@ const copyDir = (from, to, skip = () => false) => {
 };
 copyDir('assets', 'assets', (n) => n === 'src');
 copyDir('fonts', 'fonts');
+/* files that must sit at the root of the site: robots.txt, and the Netlify headers (Vercel reads vercel.json) */
+for (const f of ['robots.txt', '_headers']) {
+  if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(OUT, f));
+  else fail(`${f} is missing (it must be shipped at the root of dist/)`);
+}
 
 /* every assets/... or fonts/... reference -> must exist; gets ?v=<file hash> */
 const fileHash = {};
@@ -149,6 +154,12 @@ html = html.replace('</head>', head + '</head>');
 html = await minifyHtml(html, { collapseWhitespace: true, conservativeCollapse: true, removeComments: true, minifyCSS: false, minifyJS: false, keepClosingSlash: true, caseSensitive: true });
 html = stamp(html, 'index.html');
 write('index.html', html);
+
+/* ---------- gate: the prototype must not be indexable (meta, both header files, robots.txt) ---------- */
+if (!/<meta name="robots" content="noindex,\s*nofollow">/.test(html)) fail('dist/index.html lacks <meta name="robots" content="noindex,nofollow">');
+if (!/User-agent:\s*\*\s*[\r\n]+\s*Disallow:\s*\/\s*$/m.test(fs.readFileSync(path.join(OUT, 'robots.txt'), 'utf8'))) fail('dist/robots.txt must disallow everything ("User-agent: *" then "Disallow: /")');
+if (!/^\s*X-Robots-Tag:\s*noindex,\s*nofollow\s*$/m.test(fs.readFileSync(path.join(OUT, '_headers'), 'utf8'))) fail('dist/_headers (Netlify) lacks "X-Robots-Tag: noindex, nofollow"');
+if (!/"X-Robots-Tag",\s*"value":\s*"noindex,\s*nofollow"/.test(read('vercel.json'))) fail('vercel.json lacks the X-Robots-Tag: noindex, nofollow header');
 
 /* ---------- gates on the output ---------- */
 const shipped = { 'index.html': html, [jsName]: appJs, [cssName]: cssMin };

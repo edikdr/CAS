@@ -9,6 +9,11 @@ PL.config = {
   siteName: 'NORI-DEX',
   tagline: _('Bestiary of the Land of Noris'),
 
+  /* Show each Nori's playtest snapshot (Lv / HP, from data/sky.js) on its card. Off by default: the
+     values come from an early playtest save and are not base stats. The data stays in sky.js; set
+     this to true to show the "Playtest snapshot" row again. */
+  showSnapshot: false,
+
   /* Screens a relic can open. 'spirit' has no relic of its own: the bestiary
      opens it with a button (ctx.go('spirit')). */
   sections: [

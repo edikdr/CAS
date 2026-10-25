@@ -110,6 +110,7 @@
   /* ---------- views ---------- */
   function setView(name) {
     Object.keys(views).forEach(function (k) { views[k].classList.toggle('is-active', k === name); });
+    views[name].classList.add('has-shown');   // see .view in style.css
     S.view = name;
     screen.classList.toggle('is-content', name === 'home' || name === 'section');
     updateHints();

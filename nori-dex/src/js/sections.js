@@ -147,7 +147,8 @@ PL.sections = (function () {
   /* ==========================================================================
      NORI-DEX
        list:  Kael's hero panel (he is a character, not a Nori), the five Noris, and the Spirit Quiz tile
-       card:  portrait with a nudge reaction, Regular / Alternate palette, Playtest snapshot, Placeholder tags,
+       card:  portrait with a nudge reaction, Regular / Alternate palette, Playtest snapshot (only when
+             PL.config.showSnapshot), Placeholder tags,
               and a "Fallen" memorial that is remembered in localStorage
      ========================================================================== */
   /* UI accent from each portrait's dominant colour. It is not a type (the types are not public). */
@@ -233,7 +234,7 @@ PL.sections = (function () {
       var i = noris.indexOf(n), acc = ACCENT[n.id] || '#7FD6DF';
       var rows = isHero
         ? '<div><dt>' + _('Who') + '</dt><dd>' + _('Kael is a character, not a Nori.') + '</dd></div>'
-        : '<div><dt>' + _('Playtest snapshot') + '</dt><dd>' + _('Lv {lv} · HP {hp}', n.snapshot) + '<small>' + _('From an early playtest save. Not base stats.') + '</small></dd></div>' +
+        : (PL.config.showSnapshot && n.snapshot ? '<div><dt>' + _('Playtest snapshot') + '</dt><dd>' + _('Lv {lv} · HP {hp}', n.snapshot) + '<small>' + _('From an early playtest save. Not base stats.') + '</small></dd></div>' : '') +
           '<div><dt>' + _('Type') + '</dt><dd>' + tag() + '<small>' + _('Six types exist. The names are not public yet.') + '</small></dd></div>';
       rows += '<div><dt>' + _('Portrait') + '</dt><dd>' + tag() + '<small>' + _('A HUD portrait. The studio sends the real sprite.') + '</small></dd></div>';
       var seg = isHero ? '' :

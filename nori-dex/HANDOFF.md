@@ -14,6 +14,8 @@ Three relics sit in the rack under the console. Seat one in the slot and its scr
 | **Celestia** | **Worlds** at plane 1 | a working title, so it carries a Placeholder tag |
 | **Abyssal Plane** | **Worlds** at plane 4 | official name; no official art yet, so the label shows a clean "Art pending" state |
 
+**This is a prototype and it is not indexable** (meta tag, `X-Robots-Tag` header in `vercel.json` and in the Netlify `_headers`, `robots.txt`; the build fails if one is missing; `docs/HANDOVER.md` says how to go public). The playtest Lv / HP values are hidden (`showSnapshot: false` in `js/config.js`).
+
 The **Join & follow hub** (Kickstarter, Steam wishlist, Steam playtest, Discord, the game's and the studio's social links, language, platforms, credits) opens from the first button of the altar's dock. The campaign panel with the countdown sits on the altar itself. The Spirit Quiz is a button inside the Nori-Dex.
 
 ## Phases
@@ -30,6 +32,8 @@ The **Join & follow hub** (Kickstarter, Steam wishlist, Steam playtest, Discord,
 | Phone console | The phone console got a symmetric deck: compass on the left grip, a matching dial of four buttons on the right, 44 px buttons with room between them. |
 | Lobby | The relic altar in the studio's look: drifting sky (light shafts, clouds, gold halos), logo-style lettering, studio-style link icons. Everything animated is `transform` or `opacity`, paused for reduced motion and low-power mode. |
 | Spanish | Second language, see "Languages". |
+| Layout and harmony | All screens on one token scale (`css/tokens.css`): spacing 4 / 8 / 12 / 16 / 24 / 32 only, three radii, three text roles, three icon sizes, one neutral hairline and one gold ring. The altar, dex, cards, worlds, hub and help are grids of equal columns on a shared frame (24 px at the sides on the desktop screen, 16 px on the phone, 16 px above and below). See "Layout rules". |
+| Final pass | Not indexable; the playtest snapshot hidden behind a flag; Netlify `_headers`, `netlify.toml`; `HANDOVER.md` has a Prototype note. The HUD portraits are re-centred on their round rim by the bake script (the studio's crops left the rim about 2 % right of centre, so every avatar looked shifted inside its frame). Start-up work: views that have not been shown yet are not laid out (`content-visibility`). |
 | S6, S7 | Copy pass (no unsourced claims, nothing about Kael's gender, plain words); responsive and accessibility pass (below). |
 
 ## What the Sonnet phase changed in files Opus owned
@@ -47,7 +51,9 @@ All changes are small or additive. Look at `git diff cd87ea0..HEAD -- nori-dex` 
 | `js/carts.js` | empty-state art, countdown through `PL.hub.daysLeft`, `change` event |
 | `js/device.js` | phone console redesign (`L.tall`, `phoneArt()`, `dial()`), wing gradients get unique ids |
 | `js/i18n.js` | `set()` (cleans `?lang=`), `current()`, `page()` for the static text of `index.html` |
-| `css/style.css`, `css/console3d.css`, `css/stage.css` | phone console placements, text floor, hit areas |
+| `css/style.css`, `css/console3d.css`, `css/stage.css` | phone console placements, text floor, hit areas; in `style.css` the altar became a grid and the bars, help, toast and phone blocks use the tokens |
+| `css/tokens.css` (new), `css/quiz.css` | tokens; the dialog kit's box sits on the frame |
+| `index.html`, `vercel.json`, `_headers` (new), `robots.txt` (new), `netlify.toml` (new), `scripts/build.mjs`, `scripts/serve.mjs` | noindex in four places, the Netlify files copied to `dist/`, a build gate that fails if any is missing |
 
 Owned by Sonnet and now the studio's: `data/sky.js`, `js/sections.js`, `js/spirit.js`, `js/quiz-data.js`, `js/hub.js`, `css/sections.css`, `css/hub.css`, `css/lobby.css`, `js/i18n/es.js`. `js/quiz.js` (dialog kit) is Opus's and unchanged.
 
@@ -82,6 +88,29 @@ PL.sections.register(id, builder)   // spirit.js registers 'spirit'; sections.js
 - `PL.hub` (`js/hub.js`): `daysLeft(endsOn, now)`, `fmtDate`, `fmtNum`, `linkHTML(url, opts)` (one link, or a disabled "link pending" button when the URL is `null`), `icon(name)`, `decorate(view)` (the lobby's sky), and the panel (`init`, `open`, `close`, `press`, `hints`, `isOpen`).
 - Stored in `localStorage` (all optional, all wrapped in try/catch): `nd-fallen` (Noris marked as fallen), `nd-spirit` (the quiz result), `nd-lang`, `nd-audio`, `nd-glass`. Nothing leaves the browser. There is no analytics and no network call.
 
+## Layout rules (`css/tokens.css`)
+
+Every screen on the device follows these. A change that needs a value outside them means the layout is wrong:
+remove content or stack it, do not squeeze the spacing.
+
+- **Spacing**: padding, margins and gaps use only `var(--sp-1)` to `var(--sp-6)` = 4, 8, 12, 16, 24, 32 px.
+- **The frame**: `--frame` is 24 px at the sides of the desktop screen (768 × 432) and 16 px on the phone screen
+  (368 × 404); nothing is closer than 16 px to the top or bottom edge. The tab bar, the hint bar and the altar's
+  top bar run edge to edge: their content is inset by the frame at the sides and centred in the bar.
+- **Columns**: the altar is two equal columns (relic tiles | campaign card) with the buttons centred under both;
+  the dex is four equal columns (Kael takes one, two rows tall; the five Noris and the quiz tile fill the other
+  three, two rows of equal height); a card is two equal columns (portrait and palette | name, description, facts)
+  with the buttons and the note centred across; an open plane in Worlds and the Join & follow panel are two equal
+  columns. On the phone the same pieces stack in one column (Kael and the quiz as strips, then two columns of Noris).
+- **Cards** in a row have the same height; radii are 8 (tags), 12 (buttons and rows), 16 (cards and panels) and
+  pills; icons are 16, 20 or 24 px; outlines are one neutral hairline or one 2 px gold ring.
+- **Text**: one title (24 px), one body (14), one caption (13, which is also the phone floor: 11.3 real px on a
+  360 px wide phone). The countdown has its own display size (40, 32 on the phone).
+- **Touch targets** on the phone are 44 px visible with a 52 px hit area (the dock and the tab keys reach out with an
+  invisible `::after`), 52 px for buttons inside cards.
+- **Text never sits on art**: names go under the picture on a flat plate, the option list of the Spirit Quiz hides
+  the five Noris while it is open.
+
 ## Placeholders in the product (each is labelled on screen)
 
 Nothing below is presented as fact. Each one shows a **Placeholder**, **Working title**, **Description pending**, **Art pending**, **Rare palette (demo)** or **link pending** label.
@@ -89,7 +118,7 @@ Nothing below is presented as fact. Each one shows a **Placeholder**, **Working 
 | Where | What is a placeholder | Becomes real when |
 |---|---|---|
 | Nori cards, "Type" | Six generic type slots (Type I to VI); no Nori has a type | the studio sends the type names and each Nori's type (`data/sky.js`: `types[].label`, `verified: true`, `noris[].type`) |
-| Nori cards, "Playtest snapshot" | Level and HP are a reading from an early playtest save, labelled "Not base stats" | real stats exist, then remove `snapshot` |
+| Nori cards, "Playtest snapshot" | Level and HP are a reading from an early playtest save. **Hidden**: `showSnapshot: false` in `js/config.js`; the values stay in `sky.js`. With the flag on, the row says "Not base stats" | real stats exist, then remove `snapshot` |
 | Nori cards, portrait | The HUD portrait stands in for the real sprite | the studio sends sprites (`art.regular`) |
 | Nori cards, Alternate | A hue-shifted effect labelled "Rare palette (demo)", because no alternate art exists | the studio sends alternate-palette art (`art.alternate`) |
 | Worlds, plane names | Celestia, Noreth, Infernia are working titles ("Working title"); only the Abyssal Plane's name is official | official names (`nameStatus: 'confirmed'`) |
@@ -123,24 +152,28 @@ Nothing below is presented as fact. Each one shows a **Placeholder**, **Working 
 | Brand sweep | Pass. The build gate finds no `pok[eé]|pikachu|arceus|joy-?con|tcg` in `src/` or `dist/` (one `tcg` appears by chance inside a base64 font string, which the gate skips). "Nintendo" appears only in the platform line: in `sky.js` and, because the Spanish dictionary repeats the line as key and translation, twice more in `es.js` (the build prints 6 mentions: three copies of "Nintendo Switch, Nintendo Switch 2"). |
 | Every unverified item shows a Placeholder tag; nothing invented | Pass. See the table above. Every statement the screens make about the game lives in `sky.js` `facts` with its source. |
 | Only official art ships | Pass. `dist/assets` holds the 20 WebP files baked from the studio pack; nothing from `reference/`. The relics' stone, brass and vines are drawn in SVG/CSS as UI chrome. |
-| Usable at 360 × 800: 44 px targets, visible focus, reduced motion, keys | Pass. Every control is at least 44 CSS px (the phone's buttons are 44 px with a 58 px invisible hit disc; checked with a 44 px circle hit test); the focus ring is a 3 px gold outline everywhere; `prefers-reduced-motion` stops every loop; keys 1 to 3 and Enter work, and 1 to 4 pick quiz answers. |
+| Usable at 360 × 800: 44 px targets, visible focus, reduced motion, keys | Pass, with two exceptions. Buttons are drawn 44 px and touch at 52 px (design px; 44 real px on a 360 px wide phone, checked by hit-testing the edges of a 44 px square around each control); the focus ring is a 3 px gold outline everywhere; `prefers-reduced-motion` stops every loop; keys 1 to 3 and Enter work, and 1 to 4 pick quiz answers. **Exceptions**: the entries of the hint bar at the bottom of the screen (22 px tall; they are a legend that repeats the device's own buttons) and the Spirit Quiz's answer rows (42 px tall, because four of them must fit above the dialog; the console's A button and keys 1 to 4 also answer). |
 | Dex list and card, Regular / Alternate, Worlds, Spirit Quiz, Join hub work | Pass, by keyboard, mouse and touch, in both languages. |
 | Steam and Discord disabled while `null`; countdown hides itself after 12 Nov 2026 | Pass. Tested with a fixed "now" in six time zones. |
 | New copy is English, short, warm | Pass, plus the Spanish. |
-| sky.js under 20 KB; images under 250 KB; first load under 250 KB | Pass: 6.9 KB, 20 WebP files (largest under 250 KB), first load 76.7 KB gzip (html 2.8 + css 19.8 + js 54). |
-| Lighthouse mobile: Performance 90+, Accessibility 95+ | **Accessibility 100, best practices 100, SEO 100: pass. Performance does not reach 90**: in this sandbox mobile is 75 to 80 (LCP 3.4 to 3.8 s, TBT 380 to 540 ms); the Opus build (`cd87ea0`) measured 75 to 80 in the same sandbox on the same day, so the Sonnet phase did not change it (Opus measured 86 in its own earlier sessions; the sandbox's speed varies). Desktop: 99 to 100. The cause is the first layout of the 3D console and the first script run; see `docs/PERF.md`. |
+| sky.js under 20 KB; images under 250 KB; first load under 250 KB | Pass: 6.9 KB, 20 WebP files (largest under 250 KB), first load 76.7 KB gzip (html 2.8 + css 19.7 + js 54). |
+| Lighthouse mobile: Performance 90+, Accessibility 95+ | Accessibility 100, best practices 100. **Performance: 76, 89, 93 in three runs (median 89), LCP 2.6 s**, in this sandbox, where the Opus build measured 75 to 80 (LCP 3.7 s) on the same day. The gain comes from not laying out and painting the views that have not been shown yet (`content-visibility`, see `docs/PERF.md`); blocking time at load fell by a third. A real phone may differ. Desktop 99. **SEO shows 66 on purpose**: the one failing audit is "Page is blocked from indexing" (the site is not indexable); it returns to 100 when the site goes public. |
+| Not indexable | Pass. Meta tag, `X-Robots-Tag` in `vercel.json` and `_headers`, `robots.txt`; checked in the served response and by the build. |
+| Layout rules (`css/tokens.css`) | Pass. An automated audit of every screen (static, altar, Join & follow, help, dex, both kinds of card, quiz question, options and result, Worlds closed and open, Abyssal) at 360 × 800, 390 × 844, 768 × 1024, 800 × 360, 844 × 390, 1024 × 768 and 1280 × 800, in English and in Spanish at the two common sizes, finds no element closer than the frame to the glass and no overlap. |
 | Touch drag at 60 fps | Not measurable without a device. Test on a real phone. |
 
 ## How it was checked
 
-- `npm test`: 21 checks, repeated in six time zones (Madrid, London, Los Angeles, Tokyo, Auckland, UTC): the countdown on 25 Oct 2026 and on DST days, the shape of `sky.js`, the quiz scoring for all 64 answer sets (every Nori can win; none wins more than 21 of 64), and the Spanish completeness checks.
+- `npm test`: 23 checks, repeated in six time zones (Madrid, London, Los Angeles, Tokyo, Auckland, UTC): the countdown on 25 Oct 2026 and on DST days, the shape of `sky.js`, the quiz scoring for all 64 answer sets (every Nori can win; none wins more than 21 of 64), and the Spanish completeness checks.
 - Headless Chromium runs, on desktop (1280 × 800) and phone (360 × 800, 390 × 844, 412 × 915, also 320 × 568, 768 × 1024, 844 × 390, 1024 × 600, 1440 × 900, 1920 × 1080): power, seating, swapping relics, dragging, grips, the dex by keyboard, cards, the quiz end to end, Worlds, the hub, the language chips. 0 console errors, 0 third-party requests, no horizontal scroll at any size. An automated scan finds no text below 11 real px in the screens, no control without an accessible name, no focusable element inside `aria-hidden`, no duplicate id, and the card dialog has a name.
+- Layout audit (a script run in headless Chromium, not part of the repo because it needs Playwright): for every state it measures each text line, picture, icon, button and card in design px; reports any closer than the frame to the glass (24 px at the sides on the desktop screen, 16 px on the phone, 16 px above and below; the top bar, tab bar and hint bar are exempt vertically), any overlap, and any group of equal columns or cards whose widths or heights differ. Everything under an overlay or scrolled out of its box is ignored.
 - Not done: a real phone, a screen reader, Safari and Firefox. Chrome's engine only.
 
 ## Known limits
 
 - **Landscape phones** get the desktop layout at about 0.45 scale (844 × 390). It works, but small. The phone layout targets portrait.
-- **Performance on mid-range phones** is below the brief's 90 (see the checklist). Ideas, in order: a small same-origin script in `<head>` that sets `data-layout` and `--scale` before the first paint (removes the layout jump, so the console can show at once); splitting `app.js`'s start-up into chunks under 50 ms; building the three relic labels after the first paint.
+- **Performance on mid-range phones** is about at the brief's 90 in this sandbox (median 89) but varies between runs (76 to 93); a real-device run is still owed. Ideas for more: a small same-origin script in `<head>` that sets `data-layout` and `--scale` before the first paint; splitting `app.js`'s start-up into chunks under 50 ms.
+- **The Join & follow panel scrolls**: 458 design px of content for 400 px of room on the desktop screen, about 960 for 372 on the phone (one column). Cut a group or put the credits in the help panel if it should fit.
 - **Switching language reloads the page.** The device goes back to its off state.
 - **Photo mode** (`C`) is a JPEG download of the screen, basic.
 - Sprites: the five Noris use HUD portraits (they look soft when large).

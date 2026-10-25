@@ -27,12 +27,12 @@
 
 /* ---------- chunky lettering, like the logo ---------- */
 .home-title b {
-  font-size: 25px; letter-spacing: .02em; text-transform: uppercase; color: #dffcff;
+  letter-spacing: .02em; text-transform: uppercase; color: #dffcff;
   text-shadow: -2px -2px 0 #0b1530, 2px -2px 0 #0b1530, -2px 2px 0 #0b1530, 2px 2px 0 #0b1530, 0 -2px 0 #0b1530, 0 2px 0 #0b1530, -2px 0 0 #0b1530, 2px 0 0 #0b1530, 0 4px 0 #0b1530, 0 6px 8px rgba(0, 0, 0, .4);
 }
 .home-title span { color: #c9e3ee; text-shadow: 0 1px 2px rgba(5, 9, 22, .95), 0 0 6px rgba(5, 9, 22, .7); }
 .cp-count b {
-  color: #ffeaa8; font-size: 44px;
+  color: #ffeaa8;
   text-shadow: -2px -2px 0 #0b1530, 2px -2px 0 #0b1530, -2px 2px 0 #0b1530, 2px 2px 0 #0b1530, 0 -2px 0 #0b1530, 0 2px 0 #0b1530, -2px 0 0 #0b1530, 2px 0 0 #0b1530, 0 4px 0 #0b1530, 0 0 20px rgba(244, 207, 106, .5);
 }
 .cp-count .cp-last { color: #ffeaa8; text-shadow: -2px -2px 0 #0b1530, 2px -2px 0 #0b1530, -2px 2px 0 #0b1530, 2px 2px 0 #0b1530, 0 3px 0 #0b1530; }
@@ -45,18 +45,18 @@
 /* ---------- cards with hard cartoon shadows ---------- */
 .tile { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--gold) 80%, transparent), 0 0 0 3px #0a1229, 3px 7px 0 3px rgba(5, 9, 22, .55); }
 .tile.is-selected, .tile:hover { box-shadow: inset 0 0 0 2px var(--gold-hi), 0 0 0 3px #0a1229, 0 0 0 5px var(--c1), 0 0 24px color-mix(in srgb, var(--c1) 60%, transparent), 3px 10px 0 4px rgba(5, 9, 22, .55); }
-.tile::before { content: ''; position: absolute; z-index: 3; left: 50%; top: 3px; width: 50px; height: 14px; margin-left: -25px; border-radius: 50%; border: 3px solid #f4cf6a; box-shadow: 0 0 10px rgba(244, 207, 106, .7); opacity: 0; transform: translateY(8px) scale(.7); transition: opacity .25s, transform .35s cubic-bezier(.3, 1.7, .5, 1); pointer-events: none; }
+.tile::before { content: ''; position: absolute; z-index: 3; left: 50%; top: 3px; width: 50px; height: 14px; margin-left: calc(-1 * var(--sp-5)); border-radius: 50%; border: 3px solid #f4cf6a; box-shadow: 0 0 10px rgba(244, 207, 106, .7); opacity: 0; transform: translateY(8px) scale(.7); transition: opacity .25s, transform .35s cubic-bezier(.3, 1.7, .5, 1); pointer-events: none; }
 .tile.is-selected::before { opacity: 1; transform: none; animation: loBob 2.6s ease-in-out infinite .35s; }
 @keyframes loBob { 50% { transform: translateY(-3px) scale(1.04); } }
 .tile:hover:not(.is-selected) { animation: loWobble .5s ease-in-out; }
 @keyframes loWobble { 25% { rotate: -1.6deg; } 75% { rotate: 1.6deg; } }
-.campaign { box-shadow: inset 0 0 0 1.5px rgba(232, 185, 58, .6), 0 0 0 3px #0a1229, 4px 9px 0 3px rgba(5, 9, 22, .5); background: linear-gradient(170deg, rgba(30, 52, 108, .94), rgba(12, 22, 52, .96)); }
+.campaign { box-shadow: var(--ring-gold), 0 0 0 3px #0a1229, 4px 9px 0 3px rgba(5, 9, 22, .5); background: linear-gradient(170deg, rgba(30, 52, 108, .94), rgba(12, 22, 52, .96)); }
 .cp-kicker { color: #bff3f6; }
 
 /* ---------- link buttons and their icons ---------- */
-.lk { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
-.lt { min-width: 0; overflow-wrap: anywhere; }
-.si { width: 24px; height: 24px; flex: none; overflow: visible; filter: drop-shadow(1.2px 1.8px 0 rgba(5, 9, 22, .85)); transition: transform .3s cubic-bezier(.3, 1.8, .5, 1); }
+.lk { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.lt { min-width: 0; white-space: nowrap; }
+.si { width: var(--ico-md); height: var(--ico-md); flex: none; overflow: visible; filter: drop-shadow(1.2px 1.8px 0 rgba(5, 9, 22, .85)); transition: transform .3s cubic-bezier(.3, 1.8, .5, 1); }
 .si .c { fill: url(#si-cyan); stroke: #0f1b3d; stroke-width: 2.3; stroke-linejoin: round; stroke-linecap: round; }
 .si .g { fill: url(#si-gold); stroke: #0f1b3d; stroke-width: 2.3; stroke-linejoin: round; stroke-linecap: round; }
 .si .n { fill: #0f1b3d; stroke: none; }
@@ -79,16 +79,10 @@
 @keyframes loDrop { from { opacity: 0; transform: translate3d(0, -14px, 0); } }
 .dock-btn:hover { animation: none; }
 
-/* ---------- phone: the quick buttons keep their label on one line, with the icon beside it ---------- */
+/* ---------- phone ---------- */
 @container screen (max-width: 480px) {
-  .home-title b { font-size: 22px; }
-  .cp-count b { font-size: 32px; }
   .cp-count::before { left: 34px; top: -6px; }
   .cp-count::after { left: 2px; top: 16px; }
-  .cp-link { padding: 4px 4px; gap: 1px; }
-  .cp-link .lk { gap: 4px; }
-  .cp-link .si { width: 20px; height: 20px; }
-  .cp-link > i { margin: 0; }
   .home-halos i:nth-child(n+5) { display: none; }
 }
 
@@ -103,3 +97,7 @@
   .home-cloud { transform: translate3d(120px, 0, 0); }
   .si, .tile::before { transition: none; }
 }
+
+/* ---------- the campaign's quick buttons: icon above the label, the same on every screen size ---------- */
+.cp-link .lk { flex-direction: column; gap: var(--sp-1); }
+.cp-link:not(.is-pending) > i { display: none; }

@@ -116,12 +116,16 @@ PL.hub = (function () {
         linkHTML(L.steam, { label: _('Wishlist on Steam'), name: _('Wishlist on Steam'), icon: 'heart' }) +
         linkHTML(L.steamPlaytest, { label: _('Join Steam Playtest'), name: _('Join the Steam playtest'), icon: 'pad' }) +
         linkHTML(L.discord, { label: _('Discord'), name: _('Discord'), icon: 'chat' }), 'hub-buttons') +
-      group(_('Follow the game'), chips(L.game)) +
-      group(_('Follow the studio'), chips(L.studio, L.studioSite ? [{ url: L.studioSite, label: _('Website'), name: _('Enthariel Games website'), icon: 'globe' }] : [])) +
-      group(_('Language'), langChips()) +
-      '<dl class="hub-info">' +
-        (sky.facts && sky.facts.platforms ? '<div><dt>' + _('Platforms') + '</dt><dd>' + esc(sky.facts.platforms.text) + '</dd></div>' : '') + credits +
-      '</dl>';
+      '<div class="hub-cols">' +
+        group(_('Follow the game'), chips(L.game)) +
+        group(_('Follow the studio'), chips(L.studio, L.studioSite ? [{ url: L.studioSite, label: _('Website'), name: _('Enthariel Games website'), icon: 'globe' }] : []))  +
+      '</div>' +
+      '<div class="hub-cols">' +
+        group(_('Language'), langChips()) +
+        '<dl class="hub-info">' +
+          (sky.facts && sky.facts.platforms ? '<div><dt>' + _('Platforms') + '</dt><dd>' + esc(sky.facts.platforms.text) + '</dd></div>' : '') + credits +
+        '</dl>' +
+      '</div>';
   }
   function items() { return Array.prototype.slice.call(panel.querySelectorAll('.gi')); }
   /* row by row: left / right stay in the row, up / down go to the next row and land on the nearest item in it */

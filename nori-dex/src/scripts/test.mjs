@@ -139,6 +139,33 @@ test('quiz: a clear favourite wins (the same Nori three times)', () => {
   assert.equal(QZ.outcome([1, 1, 0]).winner, 'saltu');
 });
 
+/* ---------- prototype switches: not indexable, no snapshot values on screen ---------- */
+const CFG = load(['js/config.js']).config;
+test('config: showSnapshot is off by default (Lv / HP stay in sky.js, hidden from every screen)', () => {
+  assert.equal(CFG.showSnapshot, false);
+  for (const n of SKY.noris) assert.ok(n.snapshot && n.snapshot.lv > 0 && n.snapshot.hp > 0, n.id + ' keeps its snapshot data');
+  const sec = fs.readFileSync(path.join(ROOT, 'js/sections.js'), 'utf8');
+  const uses = sec.split('\n').filter((l) => /n\.snapshot|\{lv\}/.test(l) && !/^\s*(\/\*|\*|\/\/)/.test(l));
+  assert.ok(uses.length > 0 && uses.every((l) => /PL\.config\.showSnapshot/.test(l)), 'every place that reads the snapshot must check PL.config.showSnapshot: ' + uses.join(' | ').slice(0, 160));
+  for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter((f) => f.endsWith('.js') && f !== 'sections.js' && f !== 'i18n.js')) {
+    assert.ok(!/\.snapshot\b|\blv\b.*\bhp\b/i.test(fs.readFileSync(path.join(ROOT, 'js', f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')), f + ' must not display the snapshot');
+  }
+});
+test('not indexable: meta robots, X-Robots-Tag in vercel.json and _headers, robots.txt disallows all', () => {
+  assert.match(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), /<meta name="robots" content="noindex,\s*nofollow">/);
+  const vj = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+  const all = vj.headers.find((h) => h.source === '/(.*)').headers;
+  assert.deepEqual(plain(all.filter((h) => h.key === 'X-Robots-Tag').map((h) => h.value)), ['noindex, nofollow']);
+  const hd = fs.readFileSync(path.join(ROOT, '_headers'), 'utf8');
+  assert.match(hd, /^\/\*\s*$[\s\S]*?^\s+X-Robots-Tag: noindex, nofollow\s*$/m);
+  /* the two header files carry the same security policy */
+  for (const key of ['Content-Security-Policy', 'X-Content-Type-Options', 'Referrer-Policy', 'Permissions-Policy']) {
+    const v = all.find((h) => h.key === key).value;
+    assert.ok(hd.includes(`${key}: ${v}`), `${key} differs between vercel.json and _headers`);
+  }
+  assert.match(fs.readFileSync(path.join(ROOT, 'robots.txt'), 'utf8'), /^User-agent: \*\s*\nDisallow: \/\s*$/m);
+});
+
 /* ---------- Spanish (js/i18n/es.js) ---------- */
 const ES = (() => {
   let dict = null;

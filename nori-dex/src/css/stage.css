@@ -243,7 +243,7 @@ html[data-layout="tall"] .cart-info { left: 8px; right: 8px; top: 140px; width: 
 html[data-layout="tall"] .ci-card { padding: 8px 12px; gap: 3px; }
 html[data-layout="tall"] .ci-blurb, html[data-layout="tall"] .ci-chips, html[data-layout="tall"] .ci-sub, html[data-layout="tall"] .ci-pick, html[data-layout="tall"] .ci-top { display: none; }
 html[data-layout="tall"] .ci-title b { font-size: 16px; }
-html[data-layout="tall"] .ci-hint { min-height: 30px; font-size: 12px; }
+html[data-layout="tall"] .ci-hint { min-height: 30px; font-size: var(--fs-caption); }
 
 @media (prefers-reduced-motion: reduce) {
   .cart-3d, .cart.is-seated .cart-gem, .ci-arrow { animation: none; }

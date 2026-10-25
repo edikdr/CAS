@@ -10,7 +10,7 @@
   --q-ring: color-mix(in srgb, var(--qa) 80%, #fff);
   --q-sh: #142449;
   position: absolute;
-  left: 14px; right: 14px; bottom: 12px;
+  left: calc(var(--frame, var(--sp-4)) + var(--sp-2)); right: calc(var(--frame, var(--sp-4)) + var(--sp-2)); bottom: var(--sp-4);   /* the 3 + 3 px outer ring stays inside the frame */
   z-index: 6;
   font-family: 'Tiny5', ui-monospace, monospace;
   color: #f4f7ff;
@@ -20,14 +20,14 @@
 .q-dialog {
   position: relative;
   min-height: 108px;
-  padding: 14px 22px 10px;
-  border-radius: 6px;
+  padding: var(--sp-4) var(--sp-5) var(--sp-3);
+  border-radius: var(--r-sm);
   background: linear-gradient(180deg, #15244f 0%, #0f1b3d 60%, #0a1430 100%);
   box-shadow: 0 0 0 3px var(--q-ring), 0 0 0 6px var(--q-dark), inset 0 0 0 2px rgba(255, 255, 255, .06), 0 0 24px color-mix(in srgb, var(--qa) 30%, transparent);
   cursor: pointer;
 }
 .q-who {
-  position: absolute; left: 18px; top: -17px; padding: 4px 12px 3px; background: var(--qa); color: #0a0f26;
+  position: absolute; left: var(--sp-4); top: -17px; padding: var(--sp-1) var(--sp-3) var(--sp-1); background: var(--qa); color: #0a0f26;
   font-size: 13px; line-height: 1.2; letter-spacing: 1px; white-space: nowrap;
   box-shadow: 0 0 0 3px var(--q-dark); text-transform: uppercase;
 }
@@ -36,11 +36,11 @@
   text-shadow: 2px 2px 0 var(--q-sh);
 }
 .tw-b { visibility: hidden; }
-.q-text.q-meas { position: absolute; left: 22px; right: 22px; top: 14px; visibility: hidden; pointer-events: none; }
-.is-typing .tw-a::after { content: ''; display: inline-block; width: 10px; height: 3px; margin-left: 3px; background: var(--qa); animation: qblink .36s steps(2, jump-none) infinite; }
+.q-text.q-meas { position: absolute; left: var(--sp-5); right: var(--sp-5); top: var(--sp-4); visibility: hidden; pointer-events: none; }
+.is-typing .tw-a::after { content: ''; display: inline-block; width: 10px; height: 3px; margin-left: var(--sp-1); background: var(--qa); animation: qblink .36s steps(2, jump-none) infinite; }
 @keyframes qblink { 50% { opacity: .25; } }
 .q-more {
-  position: absolute; right: 22px; bottom: 10px; width: 0; height: 0; opacity: 0;
+  position: absolute; right: var(--sp-5); bottom: var(--sp-3); width: 0; height: 0; opacity: 0;
   border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid var(--qa);
 }
 .q-more.is-on { opacity: 1; animation: qmore .62s steps(2, jump-none) infinite; }
@@ -48,10 +48,10 @@
 
 /* ---------- ▶ menu ---------- */
 .q-menu {
-  position: absolute; right: 8px; bottom: calc(100% + 16px);
-  min-width: 220px; max-width: calc(100% - 16px);
-  padding: 8px 12px 8px 10px;
-  border-radius: 6px;
+  position: absolute; right: 0; bottom: calc(100% + var(--sp-4));
+  min-width: 220px; max-width: 100%;
+  padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
   background: linear-gradient(180deg, #17295c, #0f1b3d);
   box-shadow: 0 0 0 3px var(--q-ring), 0 0 0 6px var(--q-dark), 0 0 22px color-mix(in srgb, var(--qa) 28%, transparent);
   opacity: 0; visibility: hidden; transform: translateY(10px);
@@ -59,10 +59,10 @@
 }
 .q-menu.is-open { opacity: 1; visibility: visible; transform: none; transition: opacity .12s, transform .14s steps(3, end), visibility 0s; }
 .q-opt {
-  display: flex; align-items: flex-start; gap: 6px; width: 100%; min-height: 44px; padding: 6px 2px; text-align: left; cursor: pointer;
+  display: flex; align-items: flex-start; gap: var(--sp-2); width: 100%; min-height: 44px; padding: var(--sp-2) var(--sp-1); text-align: left; cursor: pointer;
   font-family: inherit; font-size: 22px; line-height: 28px; color: #cfdcff; text-shadow: 2px 2px 0 var(--q-sh);
 }
-.q-cur { flex: 0 0 13px; height: 13px; margin-top: 8px; clip-path: polygon(0 0, 100% 50%, 0 100%); background: transparent; }
+.q-cur { flex: 0 0 13px; height: 13px; margin-top: var(--sp-2); clip-path: polygon(0 0, 100% 50%, 0 100%); background: transparent; }
 .q-num { flex: 0 0 14px; font-size: 16px; line-height: 28px; color: #7f8fc0; }
 .q-opt.is-sel { color: #fff; }
 .q-opt.is-sel .q-cur { background: var(--qa); animation: qcur .5s steps(2, jump-none) infinite; }
@@ -75,7 +75,7 @@
 @container screen (max-width: 480px) {
   .q-text { font-size: 20px; line-height: 24px; }
   .q-opt { font-size: 19px; line-height: 24px; }
-  .q-menu { left: 8px; right: 8px; min-width: 0; }
+  .q-menu { left: 0; min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .is-typing .tw-a::after, .q-more.is-on, .q-opt.is-sel .q-cur, .q-opt.is-pick .q-ot { animation: none; }

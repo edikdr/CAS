@@ -178,8 +178,9 @@ PL.device = (function () {
     if (layout === 'tall') return 'M164 0V168H50Q0 168 0 118V40Q0 26 14 22C58 10 114 2 164 0Z';   // its top rises towards the spine
     return 'M170 0H72Q14 0 9 62Q4 150 20 255Q4 360 9 448Q14 510 72 510H170Z';
   }
+  var wingSeq = 0;   // every wing (and every drag ghost) gets its own gradient ids: an id must be unique in the page
   function wingArt(side, layout) {
-    var g = L[layout] || L.wide, W = g.wing.w, H = g.wing.h, P = wingPath(layout), tall = layout === 'tall';
+    var k = ++wingSeq, g = L[layout] || L.wide, W = g.wing.w, H = g.wing.h, P = wingPath(layout), tall = layout === 'tall';
     var flip = side === 'r' ? ' transform="translate(' + W + ' 0) scale(-1 1)"' : '';
     var dark = function (k) { return 'fill:color-mix(in srgb, var(--gl) ' + k + '%, #000)'; };
     var screws = tall ? [[14, 56], [52, 158], [152, 12], [154, 158]] : [[46, 48], [46, 462], [150, 26], [150, 484]];
@@ -187,9 +188,9 @@ PL.device = (function () {
       ? '<path d="M26 32C68 20 118 12 144 10M8 70Q4 96 8 122"/>'
       : '<path d="M24 120Q12 190 30 255M36 140Q26 195 40 250M24 390Q12 320 30 255M36 370Q26 315 40 260"/>';
     return '<svg viewBox="0 0 ' + W + ' ' + (H + 14) + '" width="' + W + '" height="' + (H + 14) + '" aria-hidden="true">' +
-      '<defs><linearGradient id="wgSheen" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".35" stop-color="#fff" stop-opacity=".06"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>' +
-      '<linearGradient id="wgBrass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8e19a"/><stop offset=".45" stop-color="#d4a341"/><stop offset="1" stop-color="#7d5216"/></linearGradient>' +
-      '<clipPath id="wgClip-' + layout + '"><path d="' + P + '"/></clipPath></defs>' +
+      '<defs><linearGradient id="wgSheen' + k + '" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".35" stop-color="#fff" stop-opacity=".06"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>' +
+      '<linearGradient id="wgBrass' + k + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8e19a"/><stop offset=".45" stop-color="#d4a341"/><stop offset="1" stop-color="#7d5216"/></linearGradient>' +
+      '<clipPath id="wgClip' + k + '"><path d="' + P + '"/></clipPath></defs>' +
       '<g' + flip + '>' +
         /* thickness: the silhouette stacked downwards in darker tones, then a soft contact shadow */
         '<path d="' + P + '" transform="translate(0 13)" fill="#000" opacity=".28"/>' +
@@ -198,35 +199,35 @@ PL.device = (function () {
         '<path d="' + P + '" transform="translate(0 3)" style="' + dark(85) + '"/>' +
         /* enamel face with a sheen from the top left */
         '<path d="' + P + '" style="fill:var(--gm)"/>' +
-        '<g clip-path="url(#wgClip-' + layout + ')">' +
-          '<path d="' + P + '" fill="url(#wgSheen)"/>' +
+        '<g clip-path="url(#wgClip' + k + ')">' +
+          '<path d="' + P + '" fill="url(#wgSheen' + k + ')"/>' +
           '<ellipse cx="' + (W * 0.35) + '" cy="' + (H * 0.12) + '" rx="' + (W * 0.5) + '" ry="' + (H * 0.12) + '" style="fill:var(--gh)" opacity=".45"/>' +
           /* rail strip on the inner edge */
           '<rect x="' + (W - 10) + '" y="0" width="10" height="' + H + '" fill="#03060f" opacity=".85"/>' +
-          '<rect x="' + (W - 11) + '" y="0" width="1.6" height="' + H + '" fill="url(#wgBrass)"/>' +
+          '<rect x="' + (W - 11) + '" y="0" width="1.6" height="' + H + '" fill="url(#wgBrass' + k + ')"/>' +
           /* brass trim along the silhouette (inner half of a wide stroke, clipped) */
-          '<path d="' + P + '" fill="none" stroke="url(#wgBrass)" stroke-width="7"/>' +
+          '<path d="' + P + '" fill="none" stroke="url(#wgBrass' + k + ')" stroke-width="7"/>' +
         '</g>' +
         /* phone, right grip: an engraved dial under the four buttons, the counterpart of the left grip's compass */
-        (tall && side === 'r' ? dial(79, 90) : '') +
+        (tall && side === 'r' ? dial(79, 90, k) : '') +
         /* engraved feathers along the outer edge */
         '<g fill="none" stroke-linecap="round" stroke-width="2.2" style="stroke:color-mix(in srgb, var(--gl) 70%, #000)" opacity=".7">' + feathers + '</g>' +
         '<g fill="none" stroke-linecap="round" stroke-width=".9" style="stroke:var(--gh)" opacity=".55" transform="translate(-.8 -.8)">' + feathers + '</g>' +
         /* screws */
         screws.map(function (c) {
-          return '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="4.6" fill="url(#wgBrass)" stroke="#3b2506" stroke-width=".8"/>' +
+          return '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="4.6" fill="url(#wgBrass' + k + ')" stroke="#3b2506" stroke-width=".8"/>' +
             '<path d="M' + (c[0] - 2.6) + ' ' + (c[1] - 1.4) + 'L' + (c[0] + 2.6) + ' ' + (c[1] + 1.4) + '" stroke="#3b2506" stroke-width="1.1"/>';
         }).join('') +
       '</g></svg>';
   }
   /* a ring and a small crystal hub, centred at (cx, cy) in grip coordinates; the four buttons sit on the ring */
-  function dial(cx, cy) {
+  function dial(cx, cy, k) {
     return '<g transform="translate(' + cx + ' ' + cy + ')" fill="none">' +
       '<circle r="46" stroke="#000" stroke-opacity=".4" stroke-width="7"/>' +
-      '<circle r="46" stroke="url(#wgBrass)" stroke-width="2.2"/>' +
+      '<circle r="46" stroke="url(#wgBrass' + k + ')" stroke-width="2.2"/>' +
       '<circle r="46" stroke="#fff" stroke-opacity=".25" stroke-width=".7" transform="translate(-.6 -.6)"/>' +
       '<path d="M0-46V46M-46 0H46" stroke="#000" stroke-opacity=".28" stroke-width="2"/>' +
-      '<path d="M0-13 8 0 0 13-8 0Z" fill="url(#wgBrass)" stroke="#3b2506" stroke-width=".8"/>' +
+      '<path d="M0-13 8 0 0 13-8 0Z" fill="url(#wgBrass' + k + ')" stroke="#3b2506" stroke-width=".8"/>' +
       '<path d="M0-8 4 0 0 8-4 0Z" fill="#fff" fill-opacity=".55"/></g>';
   }
   function buildWings(layout) {

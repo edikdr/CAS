@@ -102,6 +102,8 @@ PL.sections = (function () {
   };
   Section.prototype.showSheet = function (html, color) {
     this.sheetIn.innerHTML = html;
+    var h = this.sheetIn.querySelector('h3');
+    if (h) this.sheet.setAttribute('aria-label', h.textContent);     // the dialog is named after its card
     this.sheet.style.setProperty('--sc', color || '#7FD6DF');
     this.sheetIn.scrollTop = 0;
     if (!this.sheetOpen) { this.sheet.classList.add('is-open'); this.sheetOpen = true; }
@@ -202,7 +204,7 @@ PL.sections = (function () {
     }
     sec.scroll.innerHTML =
       '<div class="dx-wrap">' +
-        (hero ? '<button class="gi dx-hero" data-hero="1" style="--dc:' + ACCENT.kael + '" aria-label="' + esc(_('{name}, the hero: open his card', { name: hero.name })) + '">' +
+        (hero ? '<button class="gi dx-hero" data-hero="1" style="--dc:' + ACCENT.kael + '" aria-label="' + esc(_('{name}, the hero: open the card', { name: hero.name })) + '">' +
           '<span class="dx-hero-ring"><img src="' + esc(hero.art) + '" alt="" width="96" height="96" decoding="async"></span>' +
           '<span class="dx-hero-tag">' + _('Hero') + '</span><b>' + esc(hero.name) + '</b>' +
           '<span class="dx-hero-note">' + _('A character, not a Nori.') + '</span>' +

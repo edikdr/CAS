@@ -1,0 +1,47 @@
+/* ==========================================================================
+   Join & follow panel (js/hub.js). It reuses the help overlay's frame (.help / .help-panel);
+   this file only adds its content. Phone: one column, 52 px targets, 13 px text.
+   ========================================================================== */
+.hub-panel { width: min(680px, 94%); max-height: calc(100cqh - 14px); padding: 10px 18px 10px; }   /* a % max-height cannot resolve inside the overlay's grid: bound it by the screen's own height */
+.hub-head { display: flex; align-items: center; gap: 10px; }
+.hub-head b { font-size: 20px; font-weight: 900; }
+.hub-days { padding: 3px 10px; border-radius: 999px; font: 900 13px/1.2 var(--round); color: #1b1204; background: var(--gold); }
+.hub-x { margin-left: auto; width: 44px; height: 44px; border-radius: 50%; font-size: 26px; line-height: 1; color: #fff; background: rgba(255, 255, 255, .1); }
+.hub-sub { margin: 0 0 4px; font-size: 12px; font-weight: 700; color: var(--ui-dim); }
+.hub-group { margin-top: 6px; }
+.hub-group h4 { margin: 0 0 5px; font: 800 12px/1 var(--round); letter-spacing: .08em; text-transform: uppercase; color: var(--ui-dim); }
+.hub-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.hub-link {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 10px;
+  font-size: 14px; font-weight: 900; text-decoration: none; color: #e6f8fb;
+  background: linear-gradient(180deg, #2a4a8a, #1b2f60); box-shadow: inset 0 0 0 1px rgba(127, 214, 223, .45);
+}
+.hub-link i { font-style: normal; font-size: 12px; opacity: .8; }
+.hub-buttons .hub-link:first-child { color: #1b1204; background: linear-gradient(180deg, var(--gold-hi), var(--gold) 55%, #c08a26); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .25); }
+.hub-link.is-pending, .hub-chip.is-pending { color: var(--ui-dim); background: rgba(255, 255, 255, .05); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); cursor: default; }
+.hub-link.is-pending i, .hub-chip.is-pending i { color: var(--gold); opacity: 1; }
+.hub-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.hub-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 800; text-decoration: none; color: #e6f8fb; background: rgba(255, 255, 255, .07); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15); }
+.hub-chip i { font-style: normal; opacity: .7; }
+.hub .gi.is-sel { outline: 3px solid var(--cyan); outline-offset: 2px; }
+.hub-info { margin: 8px 0 0; padding-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 18px; border-top: 1px solid rgba(255, 255, 255, .08); }
+.hub-info > div { display: grid; grid-template-columns: 82px 1fr; gap: 8px; font-size: 12.5px; }
+.hub-info > div:first-child { grid-column: 1 / -1; }
+.hub-info dt { font-weight: 800; color: var(--ui-dim); }
+.hub-info dd { margin: 0; font-weight: 800; color: #dbe3f5; }
+
+@container screen (max-width: 480px) {
+  .hub-panel { width: 96%; padding: 10px 12px 10px; }
+  .hub-head b { font-size: 20px; }
+  .hub-sub { font-size: 13px; }
+  .hub-group h4 { font-size: 13px; }
+  .hub-buttons { grid-template-columns: 1fr; gap: 6px; }
+  .hub-link { min-height: 52px; font-size: 15px; }
+  .hub-link i { font-size: 13px; }
+  .hub-chip { min-height: 52px; font-size: 14px; flex: 1 1 28%; justify-content: center; padding: 0 8px; }
+  .hub-info { grid-template-columns: 1fr; }
+  .hub-info > div { grid-template-columns: 1fr; gap: 0; font-size: 13px; }
+}
+
+/* the altar's campaign card: a little more air under the last button (desktop; the phone card sizes itself) */
+@container screen (min-width: 481px) { .campaign { height: 284px; } }

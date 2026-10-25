@@ -460,7 +460,6 @@ html[data-layout="tall"] .floor-glow { top: 650px; left: 0; right: 0; }
 .help-row .hb { display: flex; gap: 3px; flex-wrap: wrap; }
 .help-row .hk { font-size: 11px; color: var(--ui-dim); font-weight: 800; white-space: nowrap; }
 .help-foot { margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--ui-dim); display: flex; align-items: center; gap: 6px; justify-content: center; }
-.help-credits { margin-top: 8px; font-size: 11px; font-weight: 700; color: var(--ui-dim); text-align: center; }
 
 /* ---------- glass effects ---------- */
 .fx { position: absolute; inset: 0; pointer-events: none; }

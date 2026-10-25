@@ -144,7 +144,8 @@
   }
   function updateHints() {
     var h = [];
-    if (S.help) h = [hint(['b'], _('Close'))];
+    if (PL.hub.isOpen()) h = PL.hub.hints().map(function (x) { return hint(x[0], x[1]); });
+    else if (S.help) h = [hint(['b'], _('Close'))];
     else if (S.view === 'home') {
       if (S.row === 'tiles') h = [hint(['plus'], _('Help')), hint(['a'], _('Seat relic'))];
       else if (S.row === 'links') h = [hint(['up'], _('Relics')), hint(['a'], _('Open link'))];
@@ -496,10 +497,8 @@
     var L = sky.links || {}, c = sky.campaign || {}, d = PL.hub.daysLeft(c.endsOn);
     if (d === null) d = -1;
     var ends = c.endsOn ? fmtDate(c.endsOn) : '';
-    function link(label, url, alt) {
-      return url
-        ? '<a class="cp-link' + (alt ? ' is-alt' : '') + '" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(label) + '<i>↗</i></a>'
-        : '<span class="cp-link is-pending" role="link" aria-disabled="true">' + esc(label) + '<i>' + _('link pending') + '</i></span>';
+    function link(label, url, alt, name) {
+      return PL.hub.linkHTML(url, { cls: 'cp-link' + (alt ? ' is-alt' : ''), label: label, name: name });
     }
     campaignEl.innerHTML =
       '<div class="cp-head"><span class="cp-kicker">KICKSTARTER</span>' +
@@ -507,7 +506,7 @@
         : d === 0 ? '<div class="cp-count"><span class="cp-last">' + _('Last day') + '</span></div>' : '') + '</div>' +
       '<p class="cp-note">' + (d >= 0 ? _('Campaign ends {date}. Goal EUR {goal}, funded within hours.', { date: ends, goal: fmtNum(c.goalEUR || 0) })
         : _('Goal EUR {goal}, funded within hours.', { goal: fmtNum(c.goalEUR || 0) })) + '</p>' +
-      '<div class="cp-links">' + link('Kickstarter', L.kickstarter) + link('Steam', L.steam, true) + link('Discord', L.discord, true) + '</div>';
+      '<div class="cp-links">' + link(_('Kickstarter'), L.kickstarter, false, _('Kickstarter campaign')) + link(_('Wishlist'), L.steam, true, _('Wishlist on Steam')) + link(_('Discord'), L.discord, true) + '</div>';
     campaignEl.querySelectorAll('.cp-link').forEach(function (el, i) {
       el.addEventListener('pointermove', function (e) {
         if (e.pointerType !== 'mouse' || S.view !== 'home' || S.busy || S.help) return;
@@ -594,6 +593,7 @@
 
   function activateDock(i) {
     switch (C.dock[i].id) {
+      case 'join': PL.hub.open(); break;
       case 'controls': openHelp(); break;
       case 'grips': nextGrips(); break;
       case 'retro': toggleRetro(); break;
@@ -700,12 +700,6 @@
       r[0].map(function (b) { return '<b class="badge' + (i === 1 ? ' badge--a' : i === 2 ? ' badge--b' : '') + '">' + b + '</b>'; }).join('') +
       '</span><span>' + r[1] + '</span><span class="hk">' + r[2] + '</span></div>';
   }).join('');
-  if (sky.credits) {
-    var cr = document.createElement('div');
-    cr.className = 'help-credits';
-    cr.textContent = (sky.meta ? sky.meta.game + ' · ' + sky.meta.studio + ' · ' : '') + sky.credits.map(function (c) { return c.role + ': ' + c.name; }).join(' · ');
-    $('.help-panel').appendChild(cr);
-  }
 
   function openHelp() {
     S.help = true;
@@ -715,6 +709,7 @@
     updateHints();
   }
   function closeHelp(silent) {
+    PL.hub.close(true);                       // the Join & follow panel closes with it (power off, going home, ...)
     if (!S.help) return;
     S.help = false;
     helpEl.classList.remove('is-open');
@@ -723,6 +718,7 @@
     updateHints();
   }
   helpEl.addEventListener('click', function (e) { if (e.target === helpEl) closeHelp(); });
+  PL.hub.init(helpEl, { audio: function (n) { PL.audio.play(n); }, toast: function (m) { toast(m); }, hints: function () { updateHints(); } });
 
   /* ---------- system actions ---------- */
   var volTimer = 0;
@@ -788,6 +784,7 @@
     if (name === 'capture') return capture();
     if (name === 'grip') return nextGrips();
     if (S.busy) return;
+    if (PL.hub.isOpen()) { PL.hub.press(name); return; }       // the Join & follow panel (js/hub.js) owns the keys while it is open
 
     if (S.help) {
       if (name === 'b' || name === 'plus' || name === 'a') closeHelp();

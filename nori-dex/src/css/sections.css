@@ -395,4 +395,5 @@ html[data-layout="tall"] .hints { font-size: var(--min-text); }
 html[data-layout="tall"] .hints .badge { font-size: var(--min-text); min-width: 22px; height: 22px; }
 html[data-layout="tall"] .ci-card .ci-hint { font-size: var(--min-text); }
 html[data-layout="tall"] .tab { font-size: var(--min-text); }
+html[data-layout="tall"] .dock-btn .dock-label { font-size: var(--min-text); padding: 4px 9px; }
 html[data-layout="tall"] .dx-hero-tag { font-size: var(--min-text); }

@@ -68,6 +68,7 @@ PL.config = {
 
   /* Round system buttons on the altar */
   dock: [
+    { id: 'join',     label: _('Join & follow'), icon: 'star', color: '#E8B93A' },
     { id: 'controls', label: _('Controls'), icon: 'gamepad', color: '#7FD6DF' },
     { id: 'grips',    label: _('Grips'),    icon: 'swap',    color: '#E8B93A' },
     { id: 'retro',    label: _('Glass effect'), icon: 'tv',  color: '#A98BE0' },

@@ -497,8 +497,8 @@
     var L = sky.links || {}, c = sky.campaign || {}, d = PL.hub.daysLeft(c.endsOn);
     if (d === null) d = -1;
     var ends = c.endsOn ? fmtDate(c.endsOn) : '';
-    function link(label, url, alt, name) {
-      return PL.hub.linkHTML(url, { cls: 'cp-link' + (alt ? ' is-alt' : ''), label: label, name: name });
+    function link(label, url, alt, name, icon) {
+      return PL.hub.linkHTML(url, { cls: 'cp-link' + (alt ? ' is-alt' : ''), label: label, name: name, icon: icon });
     }
     campaignEl.innerHTML =
       '<div class="cp-head"><span class="cp-kicker">KICKSTARTER</span>' +
@@ -506,7 +506,7 @@
         : d === 0 ? '<div class="cp-count"><span class="cp-last">' + _('Last day') + '</span></div>' : '') + '</div>' +
       '<p class="cp-note">' + (d >= 0 ? _('Campaign ends {date}. Goal EUR {goal}, funded within hours.', { date: ends, goal: fmtNum(c.goalEUR || 0) })
         : _('Goal EUR {goal}, funded within hours.', { goal: fmtNum(c.goalEUR || 0) })) + '</p>' +
-      '<div class="cp-links">' + link(_('Kickstarter'), L.kickstarter, false, _('Kickstarter campaign')) + link(_('Wishlist'), L.steam, true, _('Wishlist on Steam')) + link(_('Discord'), L.discord, true) + '</div>';
+      '<div class="cp-links">' + link(_('Kickstarter'), L.kickstarter, false, _('Kickstarter campaign'), 'flag') + link(_('Wishlist'), L.steam, true, _('Wishlist on Steam'), 'heart') + link(_('Discord'), L.discord, true, null, 'chat') + '</div>';
     campaignEl.querySelectorAll('.cp-link').forEach(function (el, i) {
       el.addEventListener('pointermove', function (e) {
         if (e.pointerType !== 'mouse' || S.view !== 'home' || S.busy || S.help) return;
@@ -718,6 +718,7 @@
     updateHints();
   }
   helpEl.addEventListener('click', function (e) { if (e.target === helpEl) closeHelp(); });
+  PL.hub.decorate(document.querySelector('.view-home'));      // the lobby's sky: clouds, halos, light (css/lobby.css)
   PL.hub.init(helpEl, { audio: function (n) { PL.audio.play(n); }, toast: function (m) { toast(m); }, hints: function () { updateHints(); } });
 
   /* ---------- system actions ---------- */

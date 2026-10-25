@@ -139,6 +139,66 @@ test('quiz: a clear favourite wins (the same Nori three times)', () => {
   assert.equal(QZ.outcome([1, 1, 0]).winner, 'saltu');
 });
 
+/* ---------- Spanish (js/i18n/es.js) ---------- */
+const ES = (() => {
+  let dict = null;
+  const ctx = { PL: { i18n: { add: (l, d) => { if (l === 'es') dict = d; }, page() {} } } };
+  ctx.window = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/i18n/es.js'), 'utf8'), ctx, { filename: 'js/i18n/es.js' });
+  return plain(dict);
+})();
+const unq = (s) => s.replace(/\\(['"\\])/g, '$1').replace(/\\n/g, '\n');
+/* every _('...') and _n(n, '...') in the code (the English text is the key) */
+function codeKeys() {
+  const files = [...fs.readdirSync(path.join(ROOT, 'js')).filter((f) => f.endsWith('.js') && !/^(i18n|shot-fonts)\.js$/.test(f)).map((f) => 'js/' + f), 'data/sky.js'];
+  const keys = [];
+  for (const f of files) {
+    const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    for (const m of src.matchAll(/(?<![\w$.])_\(\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/g)) keys.push({ f, key: unq(m[1] != null ? m[1] : m[2]), plural: false });
+    for (const m of src.matchAll(/(?<![\w$.])_n\(\s*[^,()]+(?:\([^()]*\))?[^,()]*,\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/g)) keys.push({ f, key: unq(m[1] != null ? m[1] : m[2]), plural: true });
+  }
+  return keys;
+}
+/* text that stays the same in every language: names, key labels, symbols */
+const SAME = new Set(['NORI-DEX', 'ENTHARIEL GAMES', 'Enthariel Games', 'Nori-Dex']);
+function pageKeys() {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style)[\s\S]*?<\/\1>/g, '');
+  const out = new Set();
+  const norm = (t) => t.replace(/\s+/g, ' ').trim();
+  for (const m of html.matchAll(/>([^<>]+)</g)) { const t = norm(m[1]); if (/[A-Za-z]{2}/.test(t)) out.add(t); }
+  for (const m of html.matchAll(/\s(?:aria-label|data-tip|alt|title)="([^"]*)"/g)) { const t = norm(m[1]); if (/[A-Za-z]{2}/.test(t)) out.add(t); }
+  const d = /<meta name="description" content="([^"]*)"/.exec(html); if (d) out.add(norm(d[1]));
+  const ti = /<title>([^<]*)<\/title>/.exec(html); if (ti) out.add(norm(ti[1]));
+  return [...out].filter((t) => !SAME.has(t));
+}
+const holes = (s) => (s.match(/\{\w+\}/g) || []).sort().join();
+test('es: every string in the code has a Spanish entry', () => {
+  const miss = [...new Set(codeKeys().filter((k) => ES[k.key] == null).map((k) => `${k.f}: ${k.key}`))];
+  assert.deepEqual(miss, [], `${miss.length} missing: ` + miss.slice(0, 6).join(' | '));
+});
+test('es: every static string of index.html has a Spanish entry', () => {
+  const miss = pageKeys().filter((t) => ES[t] == null);
+  assert.deepEqual(miss, [], `${miss.length} missing: ` + miss.slice(0, 6).join(' | '));
+});
+test('es: same {placeholders} and same number of plural forms as the English', () => {
+  for (const [k, v] of Object.entries(ES)) {
+    assert.equal(holes(v), holes(k), `placeholders differ: ${k}`);
+  }
+  for (const k of codeKeys().filter((x) => x.plural)) assert.equal(ES[k.key].split('|').length, k.key.split('|').length, `plural forms differ: ${k.key}`);
+});
+test('es: no entry is an unused leftover (every key is used in the code or the page)', () => {
+  const used = new Set([...codeKeys().map((k) => k.key), ...pageKeys()]);
+  const dead = Object.keys(ES).filter((k) => !used.has(k));
+  assert.deepEqual(dead, [], 'unused: ' + dead.slice(0, 6).join(' | '));
+});
+test('es: Latin letters only, and the quiz still fits the phone dialog', () => {
+  for (const v of Object.values(ES)) assert.ok(!/[\u0400-\u04FF]/.test(v), v);
+  const tr = (key) => ES[key] != null ? ES[key] : key;
+  const qz = (() => { const ctx = { _: tr }; ctx.window = ctx; vm.createContext(ctx); vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/quiz-data.js'), 'utf8'), ctx); return ctx.PL.quizData; })();
+  for (const q of qz.questions) { assert.ok(q.q.length <= 50, q.q); for (const o of q.options) assert.ok(o.t.length <= 28, `${o.t} (${o.t.length})`); }
+});
+
 /* ---------- run ---------- */
 let bad = 0;
 for (const [name, fn] of tests) {

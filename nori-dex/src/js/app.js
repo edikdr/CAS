@@ -131,7 +131,7 @@
   /* relic status on the idle screen */
   function updateOsd() {
     var ins = PL.carts.inserted(), cd = ins && cartById(ins);
-    $('#osdRelic').innerHTML = cd ? esc(cd.title) : '<span class="blink">NO RELIC</span>';
+    $('#osdRelic').innerHTML = cd ? esc(cd.title) : '<span class="blink">' + _('NO RELIC') + '</span>';
   }
 
   /* ---------- bottom hint bar ---------- */
@@ -725,7 +725,7 @@
   var volTimer = 0;
   function showVolume() {
     var v = PL.audio.getVolume(), muted = PL.audio.isMuted();
-    $('#osdVolLabel').textContent = muted ? 'MUTE' : 'VOL';
+    $('#osdVolLabel').textContent = muted ? _('MUTE') : _('VOL');
     var bars = '';
     for (var i = 0; i < 10; i++) bars += '<i class="' + (!muted && i < v ? 'on' : '') + '"></i>';
     $('#osdVolBars').innerHTML = bars;

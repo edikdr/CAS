@@ -12,7 +12,7 @@
 window.PL = window.PL || {};
 
 PL.hub = (function () {
-  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function monthName(i) { return [_('Jan'), _('Feb'), _('Mar'), _('Apr'), _('May'), _('Jun'), _('Jul'), _('Aug'), _('Sep'), _('Oct'), _('Nov'), _('Dec')][i]; }
 
   /* Whole calendar days from the viewer's today to the campaign's last day ('YYYY-MM-DD').
      18 on 25 Oct for a 12 Nov end; 0 on the last day itself; negative afterwards; null for a bad date.
@@ -29,9 +29,9 @@ PL.hub = (function () {
   /* '2026-11-12' -> '12 Nov 2026'. By hand: the first Intl call costs ~80 ms on a slow phone. */
   function fmtDate(iso) {
     var p = String(iso || '').split('-');
-    return p.length === 3 ? +p[2] + ' ' + MONTHS[+p[1] - 1] + ' ' + p[0] : '';
+    return p.length === 3 ? +p[2] + ' ' + monthName(+p[1] - 1) + ' ' + p[0] : '';
   }
-  function fmtNum(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function fmtNum(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, window.PL && PL.lang === 'es' ? '.' : ','); }
 
   /* ---------- studio-style icons ----------
      Drawn for this site, in the look of the game's logo: chunky shapes with a deep navy outline, a cyan
@@ -94,6 +94,15 @@ PL.hub = (function () {
     var out = (extra || []).concat(SOCIAL.filter(function (k) { return map && map[k[0]]; }).map(function (k) { return { url: map[k[0]], label: k[1], name: k[1], icon: k[2] }; }));
     return out.map(function (c) { return linkHTML(c.url, { cls: 'hub-chip', label: c.label, name: c.name, icon: c.icon }); }).join('');
   }
+  /* the languages with a dictionary; the names are written in their own language and never translated */
+  var LANGS = [['en', 'English'], ['es', 'Español']];
+  function langChips() {
+    var cur = PL.i18n && PL.i18n.current ? PL.i18n.current() : 'en';
+    return LANGS.map(function (l) {
+      var on = l[0] === cur;
+      return '<button type="button" class="gi hub-chip hub-lang' + (on ? ' is-current' : '') + '" data-lang="' + l[0] + '" lang="' + l[0] + '" aria-pressed="' + on + '">' + esc(l[1]) + (on ? '<i>✓</i>' : '') + '</button>';
+    }).join('');
+  }
   function html() {
     var sky = PL.sky || {}, L = sky.links || {}, c = sky.campaign || {}, d = daysLeft(c.endsOn);
     var days = d === null || d < 0 ? '' : d === 0 ? _('Last day') : _n(d, '{n} day left|{n} days left').replace('{n}', d);
@@ -109,6 +118,7 @@ PL.hub = (function () {
         linkHTML(L.discord, { label: _('Discord'), name: _('Discord'), icon: 'chat' }), 'hub-buttons') +
       group(_('Follow the game'), chips(L.game)) +
       group(_('Follow the studio'), chips(L.studio, L.studioSite ? [{ url: L.studioSite, label: _('Website'), name: _('Enthariel Games website'), icon: 'globe' }] : [])) +
+      group(_('Language'), langChips()) +
       '<dl class="hub-info">' +
         (sky.facts && sky.facts.platforms ? '<div><dt>' + _('Platforms') + '</dt><dd>' + esc(sky.facts.platforms.text) + '</dd></div>' : '') + credits +
       '</dl>';
@@ -138,6 +148,12 @@ PL.hub = (function () {
     if (!quiet && PL.sections && PL.sections.ensureVisible) PL.sections.ensureVisible(panel, node);
   }
 
+  function chooseLang(l) {
+    if (PL.i18n.current() === l) { if (api.audio) api.audio('tick'); return; }
+    if (api.audio) api.audio('select');
+    PL.i18n.set(l);      // reloads the page in the new language
+  }
+
   function init(after, a) {
     api = a || {};
     host = after;
@@ -153,6 +169,8 @@ PL.hub = (function () {
     after.parentNode.insertBefore(el, after.nextSibling);
     el.addEventListener('click', function (e) {
       if (e.target === el || e.target.closest('[data-hub="close"]')) return close();
+      var g = e.target.closest('[data-lang]');
+      if (g) { select(g, true); return chooseLang(g.getAttribute('data-lang')); }
       var p = e.target.closest('.is-pending');
       if (p) { select(p, true); if (api.audio) api.audio('error'); if (api.toast) api.toast(_('Link pending: the studio will add it soon')); return; }
       var a = e.target.closest('a.gi'); if (a) { select(a, true); if (api.audio) api.audio('select'); }
@@ -200,6 +218,7 @@ PL.hub = (function () {
       case 'a':
         if (sel) {
           if (sel.tagName === 'A') { if (api.audio) api.audio('select'); sel.click(); }
+          else if (sel.hasAttribute('data-lang')) chooseLang(sel.getAttribute('data-lang'));
           else { if (api.audio) api.audio('error'); if (api.toast) api.toast(_('Link pending: the studio will add it soon')); }
         }
         return true;

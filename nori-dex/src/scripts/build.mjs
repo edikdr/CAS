@@ -43,7 +43,7 @@ const fail = (msg) => problems.push(msg);
 
 /* ---------- bundle contents (must match the <script> order in index.html) ---------- */
 const CORE = [
-  'js/i18n.js', 'data/sky.js',
+  'js/i18n.js', 'js/i18n/es.js', 'data/sky.js',
   'js/motion.js', 'js/config.js', 'js/icons.js', 'js/audio.js', 'js/static.js', 'js/input.js',
   'js/device.js', 'js/cable.js', 'js/carts.js', 'js/sections.js', 'js/quiz-data.js', 'js/quiz.js', 'js/spirit.js', 'js/hub.js', 'js/shot.js',
   'js/app.js',

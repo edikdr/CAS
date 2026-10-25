@@ -91,8 +91,8 @@ PL.carts = (function () {
         runeUse(seed, 31.5, 47.4, r[0], 'rc-rune') + runeUse(seed + 5, 72.5, 47.4, r[1], 'rc-rune') +
         '<path d="M52 39 59.5 51 52 66 44.5 51Z" fill="' + d.crystal + '" opacity=".85"/><path d="M52 39 52 66M44.5 51H59.5" stroke="#fff" stroke-opacity=".4" stroke-width=".5"/>' +
         '<path d="M30 73.2H74" stroke="' + r[0] + '" stroke-opacity=".4" stroke-width=".5" stroke-dasharray="1.6 1.6"/>' +
-        '<text x="52" y="80.6" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="900" font-size="5.4" letter-spacing="1.1" fill="' + r[1] + '">ART PENDING</text>' +
-        '<text x="52" y="86.8" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="700" font-size="3.6" letter-spacing=".5" fill="#f4d9c8" opacity=".7">FROM THE STUDIO</text>';
+        '<text x="52" y="80.6" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="900" font-size="5.4" letter-spacing="1.1" fill="' + r[1] + '">' + _('ART PENDING') + '</text>' +
+        '<text x="52" y="86.8" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="700" font-size="3.6" letter-spacing=".5" fill="#f4d9c8" opacity=".7">' + _('FROM THE STUDIO') + '</text>';
     }
     var sz = d.artSize || [1, 1], c = d.crop || [0, 0, sz[0], sz[1]];
     var k2 = Math.max(WBOX.w / c[2], WBOX.h / c[3]);
@@ -128,7 +128,7 @@ PL.carts = (function () {
     var titleLen = d.title.length * 0.7 * 6.6, tl = titleLen > 70 ? ' textLength="70" lengthAdjust="spacingAndGlyphs"' : '';
     var sub = d.placeholder
       ? '<rect class="rc-ph" x="29" y="111.2" width="46" height="7.6" rx="1.6" fill="rgba(10,14,30,.55)" stroke="#E8B93A" stroke-width=".6" stroke-dasharray="1.6 1.1"/>' +
-        '<text x="52" y="116.9" text-anchor="middle" font-family="' + FONT + '" font-weight="900" font-size="4.6" letter-spacing=".9" fill="#E8B93A">PLACEHOLDER</text>'
+        '<text x="52" y="116.9" text-anchor="middle" font-family="' + FONT + '" font-weight="900" font-size="4.6" letter-spacing=".9" fill="#E8B93A">' + _('PLACEHOLDER') + '</text>'
       : '<text x="52" y="117" text-anchor="middle" font-family="' + FONT + '" font-weight="800" font-size="4.4" letter-spacing=".9" fill="#f6efe0" opacity=".78">' + esc(d.sub || '') + '</text>';
     var rust = '';
     if (t.thorns) for (i = 0; i < 9; i++) { var h = (seed * (i + 3) * 2654435761) >>> 0; rust += '<ellipse cx="' + (6 + h % 92) + '" cy="' + (30 + (h >>> 8) % 112) + '" rx="' + (2 + (h >>> 4) % 5) + '" ry="' + (1.4 + (h >>> 6) % 3) + '" fill="#c4622c" opacity=".22"/>'; }

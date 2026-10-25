@@ -13,6 +13,8 @@
      shows it; until then the toggle shows a labelled "Rare palette (demo)" effect.
    • Image paths are the optimised WebP files in assets/ (scripts/bake-images.py bakes them from
      assets/src/). The build fails if a path here does not exist. Write full literal paths.
+   • Text the player reads is wrapped in _() so it can be translated (js/i18n/es.js). Names and
+     numbers are not wrapped.
    ========================================================================== */
 window.PL = window.PL || {};
 
@@ -22,31 +24,31 @@ PL.sky = {
   /* Kael is a character, not a Nori: he never appears in noris[] */
   hero: {
     id: 'kael', name: 'Kael',
-    blurb: 'A Celestial Soulbonded to Aeris for hundreds of years. When Aeris disappears, Kael\'s calm life is turned upside down.',
+    blurb: _('A Celestial Soulbonded to Aeris for hundreds of years. When Aeris disappears, Kael\'s calm life is turned upside down.'),
     art: 'assets/nori/hud-kael.webp', verified: true,
   },
 
   /* six type slots exist; the names are not public, so the labels stay generic */
   types: [
-    { id: 't1', label: 'Type I', color: '#E8B93A', verified: false },
-    { id: 't2', label: 'Type II', color: '#5FB6D9', verified: false },
-    { id: 't3', label: 'Type III', color: '#5E9E4A', verified: false },
-    { id: 't4', label: 'Type IV', color: '#C9553A', verified: false },
-    { id: 't5', label: 'Type V', color: '#8E6BBF', verified: false },
-    { id: 't6', label: 'Type VI', color: '#3C4A66', verified: false },
+    { id: 't1', label: _('Type I'), color: '#E8B93A', verified: false },
+    { id: 't2', label: _('Type II'), color: '#5FB6D9', verified: false },
+    { id: 't3', label: _('Type III'), color: '#5E9E4A', verified: false },
+    { id: 't4', label: _('Type IV'), color: '#C9553A', verified: false },
+    { id: 't5', label: _('Type V'), color: '#8E6BBF', verified: false },
+    { id: 't6', label: _('Type VI'), color: '#3C4A66', verified: false },
   ],
 
   /* five Noris from the studio's screenshots (the full game has 200+) */
   noris: [
-    { id: 'zer', name: 'Zer', appearance: 'A spirit of blue flame that floats over drifting rune stones.',
+    { id: 'zer', name: 'Zer', appearance: _('A spirit of blue flame that floats over drifting rune stones.'),
       snapshot: { lv: 7, hp: 294 }, type: null, art: { regular: 'assets/nori/hud-zer.webp', alternate: null }, verified: true },
-    { id: 'saltu', name: 'Saltu', appearance: 'A small leaf-sprout creature with a leaf hood and a calm face.',
+    { id: 'saltu', name: 'Saltu', appearance: _('A small leaf-sprout creature with a leaf hood and a calm face.'),
       snapshot: { lv: 8, hp: 105 }, type: null, art: { regular: 'assets/nori/hud-saltu.webp', alternate: null }, verified: true },
-    { id: 'corivel', name: 'Corivel', appearance: 'A blue-green horned creature with a pale skull-like face and trailing vines.',
+    { id: 'corivel', name: 'Corivel', appearance: _('A blue-green horned creature with a pale skull-like face and trailing vines.'),
       snapshot: { lv: 6, hp: 173 }, type: null, art: { regular: 'assets/nori/hud-corivel.webp', alternate: null }, verified: true },
-    { id: 'denal', name: 'Denal', appearance: 'A fluffy cream-colored creature with big ears and two orange ring-shaped horns.',
+    { id: 'denal', name: 'Denal', appearance: _('A fluffy cream-colored creature with big ears and two orange ring-shaped horns.'),
       snapshot: { lv: 6, hp: 212 }, type: null, art: { regular: 'assets/nori/hud-denal.webp', alternate: null }, verified: true },
-    { id: 'garnia', name: 'Garnia', appearance: 'A purple winged creature, part bat and part tiny dragon, with glowing yellow eyes.',
+    { id: 'garnia', name: 'Garnia', appearance: _('A purple winged creature, part bat and part tiny dragon, with glowing yellow eyes.'),
       snapshot: { lv: 9, hp: 168 }, type: null, art: { regular: 'assets/nori/hud-garnia.webp', alternate: null }, verified: true },
   ],
 
@@ -57,8 +59,8 @@ PL.sky = {
     { id: 'p1', order: 1, name: 'Celestia', nameStatus: 'working', blurb: '', art: 'assets/shots/celestial-observatory-960.webp', artStatus: 'unverified' },
     { id: 'p2', order: 2, name: 'Noreth', nameStatus: 'working', blurb: '', art: 'assets/shots/overgrown-ruins-960.webp', artStatus: 'unverified' },
     { id: 'p3', order: 3, name: 'Infernia', nameStatus: 'working', blurb: '', art: null, artStatus: 'pending' },
-    { id: 'p4', order: 4, name: 'Abyssal Plane', nameStatus: 'confirmed',
-      blurb: 'The deepest of the four planes: caves and depths, alien vegetation.', art: null, artStatus: 'pending' },
+    { id: 'p4', order: 4, name: _('Abyssal Plane'), nameStatus: 'confirmed',
+      blurb: _('The deepest of the four planes: caves and depths, alien vegetation.'), art: null, artStatus: 'pending' },
   ],
 
   /* the countdown is computed locally from endsOn and hides itself after that date (js/hub.js) */
@@ -85,19 +87,19 @@ PL.sky = {
   },
 
   credits: [
-    { role: 'Soundtrack', name: 'Elena Loredo (Elesky)' },
-    { role: 'Cinematics', name: 'Liners (Kevin Soria)' },
+    { role: _('Soundtrack'), name: 'Elena Loredo (Elesky)' },
+    { role: _('Cinematics'), name: 'Liners (Kevin Soria)' },
   ],
 
   /* every statement the screens make about the game, with its source (the brief's ground truth).
      Screens print these and nothing else about the game. */
   facts: {
-    genre: { text: 'A hand-drawn 2D monster-collector RPG with a semi-open world and side-scrolling platform exploration.', source: 'Studio press kit' },
-    studio: { text: 'Made by Enthariel Games in Sevilla, Spain: nine developers, self-funded until the Kickstarter.', source: 'Press kit, press release' },
-    combat: { text: 'Turn-based 3v3 combat with permadeath: a Nori lost in battle is gone for good.', source: 'Press kit, store copy' },
-    scale: { text: '200+ Noris, 6 types, 300+ abilities, evolutions, and legendary and rare alternate-color Noris.', source: 'Store copy' },
-    planes: { text: 'Four planes joined by the eternal stream of mana.', source: 'Press kit, press release' },
-    stretch: { text: 'Stretch goals include extra songs, legendary-creature side quests and shiny (alternate-color) versions of every Nori.', source: 'Kickstarter tracker, press release' },
-    platforms: { text: 'Steam (public playtest live), Nintendo Switch, Nintendo Switch 2', source: 'Press kit, Kickstarter updates' },
+    genre: { text: _('A hand-drawn 2D monster-collector RPG with a semi-open world and side-scrolling platform exploration.'), source: 'Studio press kit' },
+    studio: { text: _('Made by Enthariel Games in Sevilla, Spain: nine developers, self-funded until the Kickstarter.'), source: 'Press kit, press release' },
+    combat: { text: _('Turn-based 3v3 combat with permadeath: a Nori lost in battle is gone for good.'), source: 'Press kit, store copy' },
+    scale: { text: _('200+ Noris, 6 types, 300+ abilities, evolutions, and legendary and rare alternate-color Noris.'), source: 'Store copy' },
+    planes: { text: _('Four planes joined by the eternal stream of mana.'), source: 'Press kit, press release' },
+    stretch: { text: _('Stretch goals include extra songs, legendary-creature side quests and shiny (alternate-color) versions of every Nori.'), source: 'Kickstarter tracker, press release' },
+    platforms: { text: _('Steam (public playtest live), Nintendo Switch, Nintendo Switch 2'), source: 'Press kit, Kickstarter updates' },
   },
 };

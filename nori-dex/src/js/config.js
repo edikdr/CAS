@@ -30,8 +30,8 @@ PL.config = {
        crystal       colour of the pommel crystal and the device glow when seated
        chord         notes (Hz) of the attunement chime for this relic */
   carts: [
-    { id: 'sky', title: 'THE SKY PROJECT', sub: 'NORI-DEX · BESTIARY',
-      name: _('The Sky Project'), blurb: _('The Nori-Dex bestiary: every Nori the studio has shown, plus the Spirit Quiz.'),
+    { id: 'sky', title: 'THE SKY PROJECT', sub: _('NORI-DEX · BESTIARY'),
+      name: _('The Sky Project'), blurb: _('The bestiary: the Noris from the studio\'s screenshots, plus the Spirit Quiz.'),
       opens: 'dex', art: 'assets/art/splash-with-logo-960.webp', artSize: [960, 540], crop: [24, 30, 560, 500],
       tint: { stone: ['#a3a39f', '#74746f', '#45454a'], runes: ['#ffd36b', '#ffd36b'], vine: '#6f9a3e', thorns: false },
       crystal: '#ffcf4a', chord: [523.25, 659.25, 783.99, 1046.5, 1318.5], facts: ['noris'] },
@@ -40,7 +40,7 @@ PL.config = {
       opens: 'worlds', tab: 'p1', art: 'assets/shots/celestial-observatory-960.webp', artSize: [960, 538], crop: [230, 16, 540, 490],
       tint: { stone: ['#9aa9bb', '#64758c', '#38475d'], runes: ['#6fd2ff', '#7dffb0'], vine: '#6f9a3e', thorns: false },
       crystal: '#6fe4ff', chord: [587.33, 739.99, 880, 1108.73, 1318.5], facts: ['planes'] },
-    { id: 'abyssal', title: 'ABYSSAL PLANE', sub: 'THE DEEPEST PLANE',
+    { id: 'abyssal', title: _('ABYSSAL PLANE'), sub: _('THE DEEPEST PLANE'),
       name: _('Abyssal Plane'), blurb: _('The deepest of the four planes: caves and depths, alien vegetation.'),
       opens: 'worlds', tab: 'p4', art: null,
       tint: { stone: ['#a0705a', '#6e3f2b', '#3a1f17'], runes: ['#ff5a3c', '#ffa040'], vine: '#4a2e1e', thorns: true },

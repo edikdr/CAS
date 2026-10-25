@@ -67,7 +67,30 @@ window.PL = window.PL || {};
     },
     set: function (l) {
       try { localStorage.setItem('nd-lang', l); } catch (e) {}
+      try {                                   // a ?lang= in the address would win over the choice just made
+        var u = new URL(location.href);
+        if (u.searchParams.has('lang')) { u.searchParams.delete('lang'); location.replace(u.toString()); return; }
+      } catch (e) {}
       location.reload();
+    },
+    current: function () { return lang; },
+    /* Translate the static text of the page (index.html is not wrapped in _()): text nodes, and the labels,
+       tooltips, alt texts, the title and the description. An exact match with a dictionary key is replaced;
+       anything else is left alone. Runs once, from the dictionary file, when the language is not English. */
+    page: function (root) {
+      if (lang === 'en') return;
+      var d = dicts[lang] || {}, ATTRS = ['aria-label', 'data-tip', 'alt', 'title'];
+      function tr(t) { var k = t.replace(/\s+/g, ' ').trim(); return k && d[k] != null ? t.replace(k, d[k]) : t; }
+      var el = root || document.body, w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n, list = [];
+      while ((n = w.nextNode())) { if (!/^(SCRIPT|STYLE)$/.test(n.parentNode.nodeName)) list.push(n); }
+      list.forEach(function (t) { var v = tr(t.nodeValue); if (v !== t.nodeValue) t.nodeValue = v; });
+      el.querySelectorAll('[aria-label],[data-tip],[alt],[title]').forEach(function (e) {
+        ATTRS.forEach(function (a) { if (e.hasAttribute(a)) { var v = tr(e.getAttribute(a)); if (v !== e.getAttribute(a)) e.setAttribute(a, v); } });
+      });
+      if (!root) {
+        document.title = tr(document.title);
+        var m = document.querySelector('meta[name="description"]'); if (m) m.setAttribute('content', tr(m.getAttribute('content')));
+      }
     },
   };
   PL.i18n.use('en');

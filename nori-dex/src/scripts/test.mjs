@@ -36,6 +36,7 @@ function load(files) {
 }
 const PL = load(['js/hub.js']);
 const at = (y, m, d, h = 12, mi = 0, s = 0) => new Date(y, m - 1, d, h, mi, s);   // local time, like the visitor's clock
+const plain = (x) => JSON.parse(JSON.stringify(x));   // arrays made inside the vm sandbox have another realm's prototype
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
 
@@ -67,6 +68,39 @@ test('formatting', () => {
   assert.equal(PL.hub.fmtDate('2026-01-05'), '5 Jan 2026');
   assert.equal(PL.hub.fmtNum(15000), '15,000');
   assert.equal(PL.hub.fmtNum(999), '999');
+});
+
+/* ---------- data contract (data/sky.js) ---------- */
+const SKY = load(['data/sky.js']).sky;
+const assetPaths = (o, out = []) => { if (typeof o === 'string') { if (/^assets\//.test(o)) out.push(o); } else if (o && typeof o === 'object') Object.values(o).forEach((v) => assetPaths(v, out)); return out; };
+test('sky.js: under 20 KB, and every image path exists', () => {
+  assert.ok(fs.statSync(path.join(ROOT, 'data/sky.js')).size < 20 * 1024);
+  for (const p of assetPaths(SKY)) assert.ok(fs.existsSync(path.join(ROOT, p)), p);
+});
+test('sky.js: Kael is the hero, not a Nori; five Noris with the contract fields', () => {
+  assert.equal(SKY.hero.id, 'kael');
+  assert.deepEqual(plain(SKY.noris.map((n) => n.id)), ['zer', 'saltu', 'corivel', 'denal', 'garnia']);
+  for (const n of SKY.noris) {
+    assert.ok(n.name && n.appearance && n.art && n.art.regular, n.id);
+    assert.ok('alternate' in n.art, n.id + ' needs art.alternate (null until the studio sends it)');
+    assert.ok(n.snapshot && n.snapshot.lv > 0 && n.snapshot.hp > 0, n.id + ' snapshot');
+    assert.equal(typeof n.verified, 'boolean');
+  }
+});
+test('sky.js: six generic, unverified type slots; no Nori has a type yet', () => {
+  assert.equal(SKY.types.length, 6);
+  for (const t of SKY.types) assert.equal(t.verified, false, t.id);
+  for (const n of SKY.noris) if (n.type !== null) assert.ok(SKY.types.some((t) => t.id === n.type && t.verified), n.id + ' has an unconfirmed type');
+});
+test('sky.js: four planes in order; only the Abyssal Plane name is confirmed', () => {
+  assert.deepEqual(plain(SKY.planes.map((p) => p.order)), [1, 2, 3, 4]);
+  assert.deepEqual(plain(SKY.planes.map((p) => p.nameStatus)), ['working', 'working', 'working', 'confirmed']);
+  assert.equal(SKY.planes[3].name, 'Abyssal Plane');
+});
+test('sky.js: every fact has a source; campaign dates are valid and ordered', () => {
+  for (const [k, f] of Object.entries(SKY.facts)) assert.ok(f.text && f.source, k);
+  assert.ok(PL.hub.daysLeft(SKY.campaign.endsOn, new Date(2026, 9, 25)) !== null);
+  assert.ok(SKY.campaign.startsOn < SKY.campaign.endsOn);
 });
 
 /* ---------- run ---------- */

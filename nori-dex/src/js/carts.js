@@ -53,7 +53,7 @@ PL.carts = (function () {
     noris: function () { var n = ((PL.sky || {}).noris || []).length; return n ? [n, _n(n, 'Nori|Noris')] : null; },
     planes: function () { var n = ((PL.sky || {}).planes || []).length; return n ? [n, _n(n, 'plane|planes')] : null; },
     days: function () {
-      var c = (PL.sky || {}).campaign, d = c && Math.ceil((new Date(c.endsOn + 'T23:59:59') - Date.now()) / 864e5);
+      var c = (PL.sky || {}).campaign, d = c && PL.hub.daysLeft(c.endsOn);   // calendar days (js/hub.js), not elapsed milliseconds
       return d > 0 ? [d, _n(d, 'day left|days left')] : null;
     },
   };

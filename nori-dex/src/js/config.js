@@ -41,7 +41,7 @@ PL.config = {
       tint: { stone: ['#9aa9bb', '#64758c', '#38475d'], runes: ['#6fd2ff', '#7dffb0'], vine: '#6f9a3e', thorns: false },
       crystal: '#6fe4ff', chord: [587.33, 739.99, 880, 1108.73, 1318.5], facts: ['planes'] },
     { id: 'abyssal', title: 'ABYSSAL PLANE', sub: 'THE DEEPEST PLANE',
-      name: _('Abyssal Plane'), blurb: _('The deepest and darkest of the four planes: caves and depths, alien vegetation.'),
+      name: _('Abyssal Plane'), blurb: _('The deepest of the four planes: caves and depths, alien vegetation.'),
       opens: 'worlds', tab: 'p4', art: null,
       tint: { stone: ['#a0705a', '#6e3f2b', '#3a1f17'], runes: ['#ff5a3c', '#ffa040'], vine: '#4a2e1e', thorns: true },
       crystal: '#ff7a3a', chord: [220, 261.63, 329.63, 392, 493.88], facts: ['planes'] },

@@ -140,7 +140,7 @@
 @keyframes dxGem { 50% { transform: translateY(-3px) scale(1.08); } }
 
 /* ---------- the card (in the detail sheet) ---------- */
-.sheet:has(.dx-in) { background: #0a1022; }   /* opaque: no ghost of the list behind the card */
+.sheet { background: #0a1022; }   /* opaque: no ghost of the list behind a card */
 .sheet-in.dx-in { padding: 14px 62px 14px 18px; }
 .dx-card { --dc: #7FD6DF; display: grid; grid-template-columns: 206px 1fr; gap: 20px; align-items: start; color: #fff; }
 .dx-card.go-next { animation: dxNext .32s cubic-bezier(.2, .9, .3, 1.05) both; }
@@ -266,6 +266,76 @@
   .dx-art, .dx-art.is-rare .dx-star, .dx-quiz.is-sel .dx-quiz-gem, .dx-card.go-next, .dx-card.go-prev, .dx-ash.is-on i, .dx-art.is-ashing img { animation: none !important; }
   .dx-art.is-rare .dx-star { opacity: .8; }
   .dx-ph { transition: none; }
+}
+
+/* ==========================================================================
+   WORLDS (js/sections.js): a mana rail down the left, the selected plane unfolds.
+   ========================================================================== */
+.wl-wrap { max-width: 720px; margin: 0 auto; }
+.wl-intro { margin: 0 0 8px; font-size: 14px; font-weight: 800; line-height: 1.35; color: #e3eaf8; }
+.wl-intro span { display: block; font-size: 12px; font-weight: 700; color: var(--ui-dim); }
+.wl-list { list-style: none; margin: 0; padding: 0; }
+.wl-stop { --wc: #E8B93A; position: relative; padding-left: 38px; }
+.wl-rail { position: absolute; left: 0; top: 0; bottom: 0; width: 28px; }
+.wl-line { position: absolute; left: 12px; top: 22px; bottom: -22px; width: 4px; border-radius: 2px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.wl-line::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, #fff, var(--wc)); box-shadow: 0 0 10px var(--wc); transform: scaleY(0); transform-origin: 50% 0; transition: transform .45s cubic-bezier(.3, .7, .3, 1); transition-delay: calc(var(--i) * 70ms); }
+.wl-stop.is-passed .wl-line::after { transform: scaleY(1); }
+.wl-stop:last-child .wl-line { display: none; }
+.wl-node { position: absolute; left: 6px; top: 8px; width: 16px; height: 28px; clip-path: polygon(50% 0, 100% 42%, 50% 100%, 0 42%); background: #3a4157; transition: background .3s, transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+.wl-stop.is-lit .wl-node { background: linear-gradient(135deg, #fff, var(--wc) 55%, #1d2a3f); }
+.wl-stop.is-open .wl-node { transform: scale(1.25); filter: drop-shadow(0 0 6px var(--wc)); }
+
+.wl-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 12px; text-align: left; color: #fff; background: rgba(255, 255, 255, .04); }
+.wl-head b { font-size: 17px; font-weight: 900; }
+.wl-head small { margin-left: auto; font: 800 12px/1 var(--round); color: var(--ui-dim); }
+.wl-head .ph-tag { margin-left: 0; }
+.wl-ok { padding: 2px 7px; border-radius: 4px; font: 800 11px/1.3 var(--round); letter-spacing: .1em; text-transform: uppercase; color: #9fe3b5; background: rgba(120, 220, 160, .12); box-shadow: inset 0 0 0 1px rgba(120, 220, 160, .45); }
+.wl-stop.is-open .wl-head { background: linear-gradient(90deg, color-mix(in srgb, var(--wc) 22%, transparent), rgba(255, 255, 255, .04)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wc) 55%, transparent); }
+
+.wl-body { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .32s cubic-bezier(.3, .7, .3, 1), opacity .25s; }
+.wl-stop.is-open .wl-body { grid-template-rows: 1fr; opacity: 1; }
+.wl-in { min-height: 0; overflow: hidden; display: grid; grid-template-columns: 200px 1fr; gap: 14px; }
+.wl-stop.is-open .wl-in { padding: 10px 0 12px; }
+.wl-art { position: relative; width: 200px; height: 112px; border-radius: 10px; overflow: hidden; background: #070b18; box-shadow: 0 0 0 2px color-mix(in srgb, var(--wc) 60%, transparent); }
+.wl-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.wl-text { min-width: 0; }
+.wl-blurb { margin: 0; font-size: 14px; font-weight: 700; line-height: 1.4; color: #dbe3f5; }
+.wl-note { margin: 8px 0 0; font-size: 12px; font-weight: 700; line-height: 1.35; color: var(--ui-dim); }
+
+/* the intentional empty state: a crystal, then the caption under it (nothing overlaps) */
+.wl-void { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; background: radial-gradient(ellipse at 50% 38%, color-mix(in srgb, var(--wc) 22%, #0b0d16), #07090f 75%); }
+.wl-gem { width: 22px; height: 34px; clip-path: polygon(50% 0, 100% 42%, 50% 100%, 0 42%); background: linear-gradient(135deg, #fff, var(--wc) 50%, #2a1812); opacity: .9; }
+.wl-void b { margin-top: 2px; font: 900 12px/1 var(--round); letter-spacing: .14em; text-transform: uppercase; color: var(--wc); }
+.wl-void span { font-size: 12px; font-weight: 700; color: #cdd5e6; opacity: .75; }
+.wl-void.is-big { min-height: 200px; border-radius: 10px; }
+.wl-void.is-big .wl-gem { width: 34px; height: 52px; }
+
+.wl-end { min-height: 22px; margin: 6px 0 0 38px; font: 800 13px/1.3 var(--round); color: #ff9a6a; }
+.wl-end.is-pop { animation: wlPop .5s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes wlPop { from { opacity: 0; transform: translateY(6px); } }
+
+.wl-look h3 { margin: 0 0 8px; font-size: 24px; font-weight: 900; }
+.wl-look img { display: block; width: 100%; max-height: 210px; object-fit: cover; border-radius: 10px; box-shadow: 0 0 0 2px color-mix(in srgb, var(--wc) 60%, transparent); }
+.wl-look p { margin: 10px 0 0; font-size: 14px; font-weight: 700; line-height: 1.4; color: #dbe3f5; }
+
+@container screen (max-width: 480px) {
+  .wl-intro { font-size: 14px; }
+  .wl-intro span { font-size: 13px; }
+  .wl-stop { padding-left: 34px; }
+  .wl-head { min-height: 52px; }
+  .wl-head b { font-size: 17px; }
+  .wl-head small { font-size: 13px; }
+  .wl-ok { font-size: 13px; letter-spacing: .04em; }
+  .wl-in { grid-template-columns: 1fr; gap: 8px; }
+  .wl-art { width: 100%; height: 108px; }
+  .wl-blurb { font-size: 14px; }
+  .wl-note, .wl-void b, .wl-void span { font-size: 13px; }
+  .wl-end { margin-left: 34px; font-size: 13px; }
+  .wl-look h3 { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wl-line::after, .wl-node, .wl-body { transition: none; }
+  .wl-end.is-pop { animation: none; }
 }
 
 /* ==========================================================================

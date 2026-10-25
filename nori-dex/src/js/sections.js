@@ -398,14 +398,107 @@ PL.sections = (function () {
     return sec;
   }
 
+  /* ==========================================================================
+     WORLDS: the four planes as a vertical journey (Celestia at the top, the Abyssal Plane, the deepest, at the
+     bottom). A mana rail runs down the left; moving down lights the stream up to the plane you are at, and
+     that plane unfolds. A opens a closer look. Honest by construction: working titles, unconfirmed art and
+     missing descriptions all carry a Placeholder tag, and a plane without art gets an intentional empty state.
+     ========================================================================== */
+  /* UI tint per plane: the two relic colours the client chose, and a neutral gold for the unconfirmed ones */
+  var PLANE_TINT = { p1: '#7FD6DF', p4: '#FF7A3A' };
+
+  function voidHTML(p, big) {
+    return '<div class="wl-void' + (big ? ' is-big' : '') + '" style="--wc:' + (PLANE_TINT[p.id] || '#E8B93A') + '">' +
+      '<i class="wl-gem"></i><b>' + _('Art pending') + '</b><span>' + _('The studio supplies it.') + '</span></div>';
+  }
+
   function worlds(root, opts) {
-    var sec = new Section(root, { head: '<b class="sec-title">' + _('Worlds') + '</b><span class="sec-count">' + (sky.planes || []).length + ' ' + _('planes') + '</span>' });
-    sec.scroll.innerHTML = '<div class="stub-list">' + (sky.planes || []).map(function (p) {
-      return '<div class="gi stub-row" data-plane="' + esc(p.id) + '" tabindex="-1"><b>' + esc(p.name) + '</b>' + (p.nameStatus === 'confirmed' ? '' : tag(_('Working title'))) +
-        '<p>' + (p.blurb ? esc(p.blurb) : tag(_('Description pending'))) + '</p></div>';
-    }).join('') + '</div>';
-    var at = opts.tab && sec.scroll.querySelector('[data-plane="' + opts.tab + '"]');
-    if (at) { sec.select(at, false); } else sec.selectFirst();
+    var planes = (sky.planes || []).slice().sort(function (a, b) { return a.order - b.order; });
+    var sec = new Section(root, { head: '<b class="sec-title">' + _('Worlds') + '</b><span class="dx-count">' + planes.length + ' ' + _n(planes.length, 'plane|planes') + '</span>' });
+    var timers = [], prevSel = null, capTimer = 0;
+    function tint(p) { return PLANE_TINT[p.id] || '#E8B93A'; }
+
+    function stopHTML(p, i) {
+      var working = p.nameStatus !== 'confirmed';
+      var artNote = p.art && p.artStatus !== 'confirmed' ? '<p class="wl-note">' + _('Placeholder art: an in-game screenshot, not yet confirmed for this plane.') + '</p>' : '';
+      return '<li class="wl-stop" data-id="' + esc(p.id) + '" style="--wc:' + tint(p) + ';--i:' + i + '">' +
+        '<span class="wl-rail" aria-hidden="true"><i class="wl-line"></i><i class="wl-node"></i></span>' +
+        '<button class="gi wl-head" data-id="' + esc(p.id) + '" aria-expanded="false" aria-label="' + esc(_('Plane {i} of {n}: {name}', { i: i + 1, n: planes.length, name: p.name })) + '">' +
+          '<b>' + esc(p.name) + '</b>' + (working ? tag(_('Working title')) : '<span class="wl-ok">' + _('Official name') + '</span>') +
+          '<small>' + _('Plane {i} of {n}', { i: i + 1, n: planes.length }) + '</small></button>' +
+        '<div class="wl-body"><div class="wl-in">' +
+          '<div class="wl-art">' + (p.art ? '<img class="wl-img" src="' + esc(p.art) + '" alt="" width="320" height="180" loading="lazy" decoding="async">' : voidHTML(p)) + '</div>' +
+          '<div class="wl-text"><p class="wl-blurb">' + (p.blurb ? esc(p.blurb) : tag(_('Description pending'))) + '</p>' + artNote + '</div>' +
+        '</div></div></li>';
+    }
+    sec.scroll.innerHTML = '<div class="wl-wrap"><p class="wl-intro">' + esc(sky.facts.planes.text) + ' <span>' + _('Only the Abyssal Plane\'s name is official.') + '</span></p>' +
+      '<ol class="wl-list">' + planes.map(stopHTML).join('') + '</ol><p class="wl-end" aria-live="polite"></p></div>';
+
+    var stops = Array.prototype.slice.call(sec.scroll.querySelectorAll('.wl-stop'));
+    function idx(el) { return stops.indexOf(el.closest('.wl-stop')); }
+
+    /* the selected plane unfolds; the rail is lit down to it */
+    function refresh() {
+      var at = sec.sel ? idx(sec.sel) : -1;
+      stops.forEach(function (st, k) {
+        var open = k === at;
+        st.classList.toggle('is-open', open);
+        st.classList.toggle('is-lit', k <= at);
+        st.classList.toggle('is-passed', k < at);
+        var head = st.querySelector('.wl-head'), body = st.querySelector('.wl-body');
+        head.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) body.removeAttribute('inert'); else body.setAttribute('inert', '');
+      });
+      if (at > -1) { ctx.ambient(tint(planes[at])); }
+    }
+    var baseSelect = sec.select;
+    sec.select = function (el, quiet) {
+      prevSel = sec.sel;
+      baseSelect.call(sec, el, quiet);
+      refresh();
+      if (el && prevSel !== el) timers.push(setTimeout(function () { if (sec.sel === el) ensureVisible(sec.scroll, el.closest('.wl-stop')); }, 340));
+    };
+    function caption(text) {
+      var c = sec.scroll.querySelector('.wl-end'); c.textContent = text;
+      c.classList.remove('is-pop'); void c.offsetWidth; c.classList.add('is-pop');
+      clearTimeout(capTimer); capTimer = setTimeout(function () { c.classList.remove('is-pop'); c.textContent = ''; }, 2600);
+    }
+    function look(p) {
+      ctx.audio('open');
+      sec.showSheet('<div class="wl-look" style="--wc:' + tint(p) + '"><h3>' + esc(p.name) + '</h3>' +
+        (p.art ? '<img src="' + esc(p.art) + '" alt="" width="640" height="360" decoding="async">' : voidHTML(p, true)) +
+        '<p>' + (p.blurb ? esc(p.blurb) : tag(_('Description pending'))) + '</p>' +
+        (p.art && p.artStatus !== 'confirmed' ? '<p class="wl-note">' + _('Placeholder art: an in-game screenshot, not yet confirmed for this plane.') + '</p>' : '') + '</div>', tint(p));
+    }
+    sec.opts.onActivate = function (el) {
+      var p = planes[idx(el)]; if (!p) return;
+      if (prevSel === el) look(p);                    // a tap on the plane that is already open; a tap on another one only unfolds it
+    };
+
+    var basePress = sec.press;
+    sec.press = function (name) {
+      if (sec.sheetOpen) return basePress.call(sec, name);
+      if (name === 'up' || name === 'down') {
+        var at = idx(sec.sel), to = at + (name === 'down' ? 1 : -1);
+        if (to < 0) { ctx.audio('error'); return true; }
+        if (to >= stops.length) { ctx.audio('error'); caption(_('No deeper than this.')); return true; }
+        sec.select(stops[to].querySelector('.wl-head'));
+        ctx.audio(name === 'down' ? 'swoosh' : 'tick');
+        return true;
+      }
+      if (name === 'a') { var p = planes[idx(sec.sel)]; if (p) look(p); return true; }
+      return name === 'left' || name === 'right' ? true : basePress.call(sec, name);
+    };
+    sec.hints = function () {
+      if (sec.sheetOpen) return [[['b'], _('Back')]];
+      return [[['l', 'r'], _('Relics')], [['up', 'down'], _('Journey')], [['a'], _('Look closer')], [['b'], _('Draw out')]];
+    };
+    var baseDestroy = sec.destroy;
+    sec.destroy = function () { timers.forEach(clearTimeout); clearTimeout(capTimer); baseDestroy.call(sec); };
+
+    var startAt = (opts.tab && sec.scroll.querySelector('.wl-head[data-id="' + opts.tab + '"]')) || stops[0].querySelector('.wl-head');
+    sec.select(startAt, true);
+    if (opts.tab) timers.push(setTimeout(function () { ensureVisible(sec.scroll, startAt.closest('.wl-stop')); }, 60));
     return sec;
   }
 

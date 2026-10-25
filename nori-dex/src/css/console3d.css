@@ -1,72 +1,108 @@
 /* ==========================================================================
-   The Mana Communicator (device body, crest, controls, glass, socket, slot).
-   Night-navy enamel slab, brass rim and filigree (body art: js/device.js), a crest
-   that holds the game logo and the device's mana crystal, a rune compass instead of a
-   direction pad, crystal gems for select / back, brass studs. Buttons are a socket
-   plus a moving cap: they sink when pressed and spring back.
+   The Mana Communicator: body, the two interchangeable grips, crest, controls,
+   glass, socket and slot.
+   • Body: night-navy enamel slab with a brass rim (art: js/device.js) holding the
+     glass, the crest with the game logo and mana crystal, and the maker's plate.
+   • Grips: carved enamel halves that slide onto the body's rails. Their colours are
+     CSS variables (--gh --gm --gl --gt) set from PL.config.grips; swapping a set plays
+     the rail choreography in app.js.
+   • Controls have volume: a socket, a side wall and a cap that travels down when
+     pressed and springs back. Studs have knurled brass rims and domed caps, gems sit in
+     prong settings with cut facets, compass petals carry engraved runes.
    Two layouts: html[data-layout="wide"] (default) and html[data-layout="tall"].
    ========================================================================== */
 
 /* ---------- placement: wide (1200 x 848) ---------- */
-.console { position: absolute; left: 50px; top: 112px; width: 1100px; height: 510px; }
-.body { position: absolute; inset: 0; z-index: 3; }
-.glass { position: absolute; left: 142px; top: 22px; width: 816px; height: 466px; z-index: 2; border-radius: 16px; background: #04060e; }
+.console { position: absolute; left: 0; top: 112px; width: 1200px; height: 510px; }
+.body { position: absolute; left: 170px; top: 0; width: 860px; height: 510px; z-index: 3; }
+.wing { position: absolute; top: 0; width: 170px; height: 510px; z-index: 5; }
+.wing--l { left: 0; }
+.wing--r { left: 1030px; }
+.glass { position: absolute; left: 22px; top: 22px; width: 816px; height: 466px; z-index: 2; border-radius: 12px; background: #04060e; }
 .screen { left: 24px; top: 17px; width: 768px; height: 432px; }
-.crest { left: 400px; top: -74px; width: 300px; height: 90px; }
-.port { left: 790px; }
-.cart-slot { left: 550px; }
-.stud--power { left: 150px; }
-.stud--vdown { left: 202px; }
-.stud--vup { left: 246px; }
-.lever--l { left: 24px; }
-.lever--r { right: 24px; }
-.panel--l { left: 0; top: 0; width: 142px; height: 510px; }
-.panel--r { right: 0; top: 0; width: 142px; height: 510px; }
-.compass { left: 71px; top: 190px; }
-.stud--help { left: 40px; top: 318px; }
-.stud--photo { left: 102px; top: 318px; }
-.medallion { left: 71px; top: 420px; width: 62px; height: 62px; }
-.gem--a { left: 71px; top: 160px; width: 72px; height: 72px; }
-.gem--b { left: 71px; top: 258px; width: 56px; height: 56px; }
-.stud--home { left: 71px; top: 338px; }
-.stud--glass { left: 40px; top: 420px; }
-.stud--sound { left: 102px; top: 420px; }
+.crest { left: 280px; top: -74px; width: 300px; height: 90px; }
+.maker { left: 62px; top: 494px; }
+.port { left: 640px; }
+.cart-slot { left: 430px; }
+.stud--power { left: 44px; }
+.stud--vdown { left: 92px; }
+.stud--vup { left: 134px; }
+.seam { position: absolute; top: 34px; width: 8px; height: 442px; z-index: 6; border-radius: 4px; pointer-events: none; opacity: 0; background: radial-gradient(closest-side, #fff, color-mix(in srgb, var(--plane) 70%, transparent) 50%, transparent); }
+.seam--l { left: 166px; }
+.seam--r { left: 1026px; }
+
+/* controls on the left grip (centres) */
+.lever--l { left: 60px; }
+.wing--l .stud--sound { left: 128px; top: 50px; }
+.wing--l .compass { left: 88px; top: 196px; }
+.wing--l .stud--help { left: 60px; top: 334px; }
+.wing--l .stud--photo { left: 112px; top: 414px; }
+/* controls on the right grip */
+.lever--r { left: 30px; }
+.wing--r .stud--glass { left: 42px; top: 50px; }
+.wing--r .gem--a { left: 104px; top: 168px; }
+.wing--r .gem--b { left: 60px; top: 262px; }
+.wing--r .stud--home { left: 84px; top: 390px; }
 
 /* ---------- placement: tall (400 x 920, phones in portrait) ---------- */
 html[data-layout="tall"] .console { left: 4px; top: 64px; width: 392px; height: 620px; }
-html[data-layout="tall"] .glass { left: 8px; top: 26px; width: 376px; height: 412px; border-radius: 12px; }
+html[data-layout="tall"] .body { left: 0; width: 392px; height: 620px; }
+html[data-layout="tall"] .wing { top: 445px; width: 184px; height: 146px; z-index: 5; }
+html[data-layout="tall"] .wing--l { left: 8px; }
+html[data-layout="tall"] .wing--r { left: 200px; }
+html[data-layout="tall"] .glass { left: 8px; top: 26px; width: 376px; height: 412px; }
 html[data-layout="tall"] .screen { left: 4px; top: 4px; width: 368px; height: 404px; }
 html[data-layout="tall"] .crest { left: 76px; top: -60px; width: 240px; height: 74px; }
+html[data-layout="tall"] .maker { left: 20px; top: 601px; height: 16px; gap: 5px; padding-right: 7px; }   /* on the lower lip, left of the slot */
+html[data-layout="tall"] .maker img { width: 13px; height: 13px; }
+html[data-layout="tall"] .maker span { font-size: 7px; letter-spacing: .7px; }
 html[data-layout="tall"] .port { left: 330px; }
 html[data-layout="tall"] .cart-slot { left: 196px; }
 html[data-layout="tall"] .stud--power { left: 44px; }
 html[data-layout="tall"] .stud--vdown { left: 92px; }
 html[data-layout="tall"] .stud--vup { left: 134px; }
-html[data-layout="tall"] .lever { display: none; }   /* on phones the screen's ‹ › tab keys do this */
-html[data-layout="tall"] .panel--l, html[data-layout="tall"] .panel--r { top: 440px; height: 180px; width: 196px; }
-html[data-layout="tall"] .compass { left: 84px; top: 88px; width: 150px; height: 150px; }
-html[data-layout="tall"] .stud--help { left: 182px; top: 34px; }
-html[data-layout="tall"] .stud--photo { left: 182px; top: 94px; }
-html[data-layout="tall"] .medallion { left: 182px; top: 150px; width: 34px; height: 34px; }
-html[data-layout="tall"] .gem--a { left: 128px; top: 62px; width: 70px; height: 70px; }
-html[data-layout="tall"] .gem--b { left: 62px; top: 126px; width: 58px; height: 58px; }
-html[data-layout="tall"] .stud--home { left: 156px; top: 148px; }
-html[data-layout="tall"] .stud--glass, html[data-layout="tall"] .stud--sound { display: none; }
+html[data-layout="tall"] .seam { top: 452px; height: 132px; }
+html[data-layout="tall"] .seam--l { left: 4px; }
+html[data-layout="tall"] .seam--r { left: 380px; }
+html[data-layout="tall"] .lever, html[data-layout="tall"] .stud--sound, html[data-layout="tall"] .stud--glass { display: none; }   /* on phones: the screen's tab keys and the altar dock */
+html[data-layout="tall"] .wing--l .compass { left: 78px; top: 73px; }
+html[data-layout="tall"] .wing--l .stud--help { left: 156px; top: 38px; }
+html[data-layout="tall"] .wing--l .stud--photo { left: 156px; top: 108px; }
+html[data-layout="tall"] .wing--r .gem--a { left: 124px; top: 48px; }
+html[data-layout="tall"] .wing--r .gem--b { left: 56px; top: 90px; }
+html[data-layout="tall"] .wing--r .stud--home { left: 150px; top: 114px; }
 
 /* ==========================================================================
    BODY: slab with thickness under the body art
    ========================================================================== */
-.body-shell { /* thickness: stacked offsets of the enamel edge plus a soft contact shadow */
+.body-shell {
   position: absolute;
   inset: 0;
-  border-radius: 46px;
+  border-radius: 16px;
   background: #0b1430;
   box-shadow:
-    0 2px 0 #0a1229, 0 4px 0 #091027, 0 6px 0 #080e22, 0 8px 0 #070c1e, 0 10px 0 #5c3d0e,
-    0 12px 0 #3e290a, 0 40px 46px -14px rgba(0, 0, 0, .75);
+    0 2px 0 #0a1229, 0 4px 0 #091027, 0 6px 0 #080e22, 0 8px 0 #070c1e, 0 10px 0 #060b1a,
+    0 12px 0 #8a5c1a, 0 14px 0 #5c3d0e, 0 42px 48px -16px rgba(0, 0, 0, .75);
 }
 html[data-layout="tall"] .body-shell { border-radius: 34px; }
 .body-art { position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none; overflow: visible; }
+
+/* maker's plate: the studio's round logo and name on a small brass plate */
+.maker {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 18px;
+  padding: 0 9px 0 2px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #f8e19a, #c99432 55%, #8a5c1a);
+  box-shadow: 0 0 0 1.5px #3b2506, 0 2px 0 #3b2506, inset 0 1px 0 rgba(255, 255, 255, .5);
+  pointer-events: none;
+}
+.maker img { width: 15px; height: 15px; border-radius: 50%; box-shadow: 0 0 0 1px #3b2506; }
+.maker span { font: 900 8px/1 var(--round); letter-spacing: 1.4px; color: #3b2506; text-shadow: 0 1px 0 rgba(255, 240, 200, .6); }
 
 /* mana veins: an engraved groove; light runs through it while attuning */
 .dv-groove { stroke: #050913; stroke-width: 3.2; opacity: .8; }
@@ -83,6 +119,20 @@ html[data-layout="tall"] .body-shell { border-radius: 34px; }
 @keyframes runeLight { 0% { stroke: #fff; opacity: .2; } 30% { stroke: #fff; opacity: 1; filter: drop-shadow(0 0 4px var(--plane)); } 100% { stroke: var(--plane); opacity: .75; } }
 
 /* ==========================================================================
+   GRIPS
+   ========================================================================== */
+.wing {
+  --gh: #ffe39a; --gm: #e8b93a; --gl: #8a5c1a; --gt: #fff1c4;
+  touch-action: manipulation;
+}
+.wing-art { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.wing-ghost { pointer-events: none; z-index: 7; }
+.wing-ghost * { pointer-events: none !important; }
+.is-swapping .wing { pointer-events: none; z-index: 8; }   /* a flying grip passes above the dock */
+.seam.go { animation: seamFlash .6s ease-out; }
+@keyframes seamFlash { 0% { opacity: 0; } 14% { opacity: .95; } 100% { opacity: 0; } }
+
+/* ==========================================================================
    CREST: halo, the device's mana crystal, the game logo on a sky plate
    ========================================================================== */
 .crest { position: absolute; z-index: 4; pointer-events: none; }
@@ -91,13 +141,13 @@ html[data-layout="tall"] .body-shell { border-radius: 34px; }
   left: 18px; right: 18px; bottom: 0; top: 18px;
   border-radius: 60px 60px 12px 12px / 46px 46px 12px 12px;
   background: radial-gradient(90% 120% at 50% 100%, #ffffff 0%, #e6f4f9 55%, #c6e4ee 100%);   /* matches the logo's pale cloud */
-  box-shadow: inset 0 0 0 3px #d4a341, inset 0 0 0 5px #6b4512, 0 6px 14px rgba(0, 0, 0, .45);
+  box-shadow: inset 0 0 0 3px #d4a341, inset 0 0 0 5px #6b4512, 0 3px 0 #5c3b0c, 0 6px 0 #3b2506, 0 10px 16px rgba(0, 0, 0, .45);
   display: grid;
   place-items: center;
   overflow: hidden;
 }
 .crest-logo { width: 76%; height: auto; margin-top: 6px; }
-.crest-halo { /* brass halo hovering over the plate */
+.crest-halo {
   position: absolute;
   left: 50%; top: 4px;
   width: 74px; height: 18px;
@@ -106,7 +156,7 @@ html[data-layout="tall"] .body-shell { border-radius: 34px; }
   border: 4px solid #d9aa45;
   box-shadow: 0 2px 0 #6b4512, 0 0 10px rgba(232, 185, 58, .35);
 }
-.crest-crystal { /* the device's mana crystal, set inside the halo */
+.crest-crystal {
   position: absolute;
   left: 50%; top: -4px;
   width: 18px; height: 28px;
@@ -121,7 +171,7 @@ html[data-layout="tall"] .body-shell { border-radius: 34px; }
 .is-attune .crest-crystal b { animation: crystalFlare 1.4s ease both; }
 @keyframes crystalBreath { 50% { filter: brightness(1.35); } }
 @keyframes crystalFlare { 0%, 40% { filter: brightness(1); } 60% { filter: brightness(2.6); } 100% { filter: brightness(1); } }
-.crest::after { /* glow behind the crystal */
+.crest::after {
   content: '';
   position: absolute;
   left: 50%; top: -18px;
@@ -140,58 +190,74 @@ html[data-layout="tall"] .body-shell { border-radius: 34px; }
 /* ==========================================================================
    CONTROLS (positioned by their centre)
    ========================================================================== */
-.panel { position: absolute; z-index: 3; }
-.compass, .stud, .gem, .medallion { position: absolute; transform: translate(-50%, -50%); }
-.stud--top, .lever { transform: none; }
-
-/* shared: socket + cap that travels down when pressed */
+.compass, .stud, .gem { position: absolute; transform: translate(-50%, -50%); }
 .stud, .petal, .gem, .lever { touch-action: none; -webkit-user-select: none; }
 
-/* ---------- brass studs ---------- */
+/* ---------- brass studs: knurled rim, domed cap, side wall ---------- */
 .stud {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: #2c1a03;
-  background: radial-gradient(circle at 35% 30%, #fff4c6 0%, #e8b93a 35%, #9a6a1c 85%);
-  box-shadow: 0 0 0 3px #070b18, 0 0 0 4px rgba(232, 185, 58, .35), 0 4px 0 #5c3b0c, 0 6px 8px rgba(0, 0, 0, .45);
-  transition: transform .26s cubic-bezier(.28, 1.9, .5, 1), box-shadow .26s;
+  color: #3b2506;
   font: 900 18px/1 var(--round);
+  background:
+    radial-gradient(circle at 36% 30%, #fff8dc 0 8%, transparent 26%),
+    radial-gradient(circle at 50% 50%, #f1cf73 0, #d9a945 46%, #a7741f 62%, transparent 63%),
+    repeating-conic-gradient(from 0deg, #f3d27a 0 6deg, #7d5216 6deg 12deg);
+  box-shadow:
+    0 0 0 3px #070b18,                    /* socket */
+    0 0 0 4.5px rgba(232, 185, 58, .35),  /* socket lip */
+    0 4px 0 #6b4512, 0 5px 0 #4a3008,    /* side wall */
+    0 8px 10px rgba(0, 0, 0, .5);
+  text-shadow: 0 1px 0 rgba(255, 240, 200, .65);
+  transition: transform .26s cubic-bezier(.28, 1.9, .5, 1), box-shadow .26s, filter .15s;
+}
+.stud svg { width: 19px; height: 19px; stroke-width: 2.6; filter: drop-shadow(0 1px 0 rgba(255, 240, 200, .6)); }
+.stud:hover { filter: brightness(1.1); }
+.stud.is-pressed {
+  transform: translate(-50%, calc(-50% + 3.5px));
+  box-shadow: 0 0 0 3px #070b18, 0 0 0 4.5px rgba(232, 185, 58, .35), 0 1px 0 #6b4512, 0 2px 4px rgba(0, 0, 0, .5), 0 0 12px color-mix(in srgb, var(--plane) 60%, transparent);
+  filter: brightness(.95);
+  transition-duration: .05s;
 }
 html[data-layout="tall"] .stud:not(.stud--top) { width: 50px; height: 50px; }
-.stud svg { width: 20px; height: 20px; stroke-width: 2.4; }
-.stud:hover { filter: brightness(1.1); }
-.stud.is-pressed { transform: translate(-50%, calc(-50% + 3px)); box-shadow: 0 0 0 3px #070b18, 0 0 0 4px rgba(232, 185, 58, .35), 0 1px 0 #5c3b0c, 0 2px 4px rgba(0, 0, 0, .45); transition-duration: .05s; }
-.stud--top { position: absolute; top: -12px; width: 36px; height: 20px; border-radius: 8px 8px 3px 3px; z-index: 0; font-size: 14px; box-shadow: 0 0 0 2px #070b18, 0 3px 0 #5c3b0c; }
-.stud--top svg { width: 14px; height: 14px; }
-.stud--top.is-pressed { transform: translateY(4px); box-shadow: 0 0 0 2px #070b18; }
-html[data-layout="tall"] .stud--top { top: -16px; width: 40px; height: 24px; }
-.stud--power::after { content: ''; position: absolute; right: -9px; top: 7px; width: 5px; height: 5px; border-radius: 50%; background: #2a2f44; }
+.stud--sound, .stud--glass { width: 40px; height: 40px; }
+.stud--top { position: absolute; top: -13px; width: 38px; height: 22px; border-radius: 9px 9px 3px 3px; transform: none; z-index: 0; font-size: 14px; background: linear-gradient(180deg, #f8e19a 0%, #d4a341 50%, #8a5c1a 100%); box-shadow: 0 0 0 2px #070b18, 0 3px 0 #5c3b0c, inset 0 1px 0 rgba(255, 255, 255, .5); }
+.stud--top svg { width: 13px; height: 13px; }
+.stud--top.is-pressed { transform: translateY(5px); box-shadow: 0 0 0 2px #070b18, inset 0 1px 0 rgba(255, 255, 255, .5); }
+html[data-layout="tall"] .stud--top { top: -17px; width: 42px; height: 26px; }
+.stud--power::after { content: ''; position: absolute; right: -10px; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: #2a2f44; }
 .is-on .stud--power::after { background: var(--plane); box-shadow: 0 0 6px var(--plane); }
 
-/* ---------- relic levers (previous / next relic) on the top corners ---------- */
+/* ---------- relic levers: arched shoulder buttons on top of each grip ---------- */
 .lever {
   position: absolute;
-  top: 20px;
-  width: 44px;
-  height: 44px;
-  z-index: 4;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #24376e, #111c3c);
-  box-shadow: inset 0 0 0 2px #c9963a, 0 3px 0 #5c3b0c, 0 6px 10px rgba(0, 0, 0, .4);
+  top: -15px;
+  width: 80px;
+  height: 30px;
+  z-index: -1;
+  border-radius: 40px 40px 6px 6px / 26px 26px 6px 6px;
+  background: linear-gradient(180deg, var(--gh) 0%, var(--gm) 50%, var(--gl) 100%);
+  box-shadow: inset 0 0 0 2px rgba(255, 240, 200, .25), 0 0 0 2px #070b18, 0 -3px 0 color-mix(in srgb, var(--gl) 70%, #000) inset;
   display: grid;
-  place-items: center;
+  place-items: start center;
+  padding-top: 5px;
   transition: transform .2s cubic-bezier(.28, 1.9, .5, 1);
 }
-.lever i { width: 14px; height: 14px; border-left: 4px solid var(--gold); border-bottom: 4px solid var(--gold); transform: rotate(45deg); margin-left: 6px; }
-.lever--r i { transform: rotate(-135deg); margin-left: -6px; }
-.lever.is-pressed { transform: translateY(3px); box-shadow: inset 0 0 0 2px #c9963a, 0 0 0 #5c3b0c; transition-duration: .05s; }
-html[data-layout="wide"] .lever, html:not([data-layout]) .lever { top: 26px; }
+.lever i { width: 9px; height: 9px; border-left: 3px solid var(--gt); border-bottom: 3px solid var(--gt); transform: rotate(45deg); margin-left: 4px; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .5)); }
+.lever--r i { transform: rotate(-135deg); margin-left: -4px; }
+.lever.is-pressed { transform: translateY(4px); transition-duration: .05s; }
 
-/* ---------- rune compass: four petals around a crystal hub ---------- */
-.compass { width: 128px; height: 128px; border-radius: 50%; background: radial-gradient(circle, #0a1126 0%, #0a1126 58%, transparent 60%); box-shadow: 0 0 0 4px #070b18, 0 0 0 6px #b8882a, 0 0 0 7px #5c3b0c, 0 8px 14px rgba(0, 0, 0, .45); }
+/* ---------- rune compass: brass bezel, four petals with engraved runes, crystal hub ---------- */
+.compass {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #0a1126 0%, #0a1126 57%, transparent 58%), repeating-conic-gradient(from 0deg, #e2b54f 0 4deg, #8a5c1a 4deg 8deg);
+  box-shadow: 0 0 0 3px #070b18, 0 0 0 5px #c9963a, 0 3px 0 5px #5c3b0c, 0 10px 16px rgba(0, 0, 0, .5);
+}
 .petal {
   position: absolute;
   width: 46px;
@@ -200,49 +266,90 @@ html[data-layout="wide"] .lever, html:not([data-layout]) .lever { top: 26px; }
   top: 50%;
   margin: -23px 0 0 -23px;
   border-radius: 14px 14px 14px 2px;
-  background: linear-gradient(135deg, #2b4180 0%, #172654 70%);
-  box-shadow: inset 0 0 0 2px #d4a341, 0 3px 0 #5c3b0c;
-  transition: transform .22s cubic-bezier(.28, 1.9, .5, 1), filter .15s;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--gh) 35%, #2b4180) 0%, #1a2a5c 55%, #0f1838 100%);
+  box-shadow: inset 0 0 0 2px #d4a341, inset 3px 3px 0 rgba(255, 255, 255, .12), 3px 3px 0 #3b2506, 4px 4px 4px rgba(0, 0, 0, .45);
+  transition: transform .22s cubic-bezier(.28, 1.9, .5, 1), filter .15s, box-shadow .15s;
 }
-.petal i { position: absolute; inset: 0; margin: auto; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 10px solid var(--gold-hi); transform: rotate(-45deg); }
-.petal--up { transform: translate(0, -38px) rotate(45deg); }
-.petal--right { transform: translate(38px, 0) rotate(135deg); }
-.petal--down { transform: translate(0, 38px) rotate(225deg); }
-.petal--left { transform: translate(-38px, 0) rotate(315deg); }
+.petal::after { /* engraved rune line along the petal */
+  content: '';
+  position: absolute;
+  left: 9px; top: 9px;
+  width: 12px; height: 12px;
+  border-left: 2px solid rgba(248, 225, 154, .55);
+  border-top: 2px solid rgba(248, 225, 154, .55);
+  border-radius: 6px 0 0 0;
+}
+.petal i { position: absolute; inset: 0; margin: auto; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 10px solid var(--gold-hi); transform: rotate(-45deg); filter: drop-shadow(0 1px 0 #3b2506); }
+.petal--up { transform: translate(0, -39px) rotate(45deg); }
+.petal--right { transform: translate(39px, 0) rotate(135deg); }
+.petal--down { transform: translate(0, 39px) rotate(225deg); }
+.petal--left { transform: translate(-39px, 0) rotate(315deg); }
 .petal:hover { filter: brightness(1.2); }
-.petal--up.is-pressed { transform: translate(0, -35px) rotate(45deg) scale(.95); }
-.petal--right.is-pressed { transform: translate(35px, 0) rotate(135deg) scale(.95); }
-.petal--down.is-pressed { transform: translate(0, 35px) rotate(225deg) scale(.95); }
-.petal--left.is-pressed { transform: translate(-35px, 0) rotate(315deg) scale(.95); }
-.petal.is-pressed { filter: brightness(1.4); box-shadow: inset 0 0 0 2px var(--gold-hi), 0 0 12px var(--plane); transition-duration: .05s; }
-html[data-layout="tall"] .petal { width: 52px; height: 52px; margin: -26px 0 0 -26px; }
-html[data-layout="tall"] .petal--up { transform: translate(0, -44px) rotate(45deg); }
-html[data-layout="tall"] .petal--right { transform: translate(44px, 0) rotate(135deg); }
-html[data-layout="tall"] .petal--down { transform: translate(0, 44px) rotate(225deg); }
-html[data-layout="tall"] .petal--left { transform: translate(-44px, 0) rotate(315deg); }
-.compass-hub { position: absolute; left: 50%; top: 50%; width: 18px; height: 28px; margin: -14px 0 0 -9px; clip-path: polygon(50% 0, 100% 42%, 50% 100%, 0 42%); background: linear-gradient(135deg, #fff 0%, var(--plane) 45%, #1d3550 100%); opacity: .7; pointer-events: none; }
+.petal--up.is-pressed { transform: translate(0, -36px) rotate(45deg) scale(.95); }
+.petal--right.is-pressed { transform: translate(36px, 0) rotate(135deg) scale(.95); }
+.petal--down.is-pressed { transform: translate(0, 36px) rotate(225deg) scale(.95); }
+.petal--left.is-pressed { transform: translate(-36px, 0) rotate(315deg) scale(.95); }
+.petal.is-pressed { filter: brightness(1.45); box-shadow: inset 0 0 0 2px var(--gold-hi), 1px 1px 0 #3b2506, 0 0 12px var(--plane); transition-duration: .05s; }
+html[data-layout="tall"] .compass { width: 132px; height: 132px; }
+html[data-layout="tall"] .petal { width: 50px; height: 50px; margin: -25px 0 0 -25px; }
+html[data-layout="tall"] .petal--up { transform: translate(0, -40px) rotate(45deg); }
+html[data-layout="tall"] .petal--right { transform: translate(40px, 0) rotate(135deg); }
+html[data-layout="tall"] .petal--down { transform: translate(0, 40px) rotate(225deg); }
+html[data-layout="tall"] .petal--left { transform: translate(-40px, 0) rotate(315deg); }
+.compass-hub { position: absolute; left: 50%; top: 50%; width: 18px; height: 28px; margin: -14px 0 0 -9px; clip-path: polygon(50% 0, 100% 42%, 50% 100%, 0 42%); background: linear-gradient(135deg, #fff 0%, var(--plane) 45%, #1d3550 100%); opacity: .75; pointer-events: none; }
 .is-attuned .compass-hub { opacity: 1; }
 
-/* ---------- crystal gems: select (cyan) and back (ember) ---------- */
-.gem { border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, #0a1126 55%, transparent 57%); box-shadow: 0 0 0 4px #070b18, 0 0 0 6px #b8882a, 0 6px 12px rgba(0, 0, 0, .45); }
+/* ---------- crystal gems: prong setting, cut facets ---------- */
+.gem {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle, #0a1126 0 54%, transparent 55%),
+    repeating-conic-gradient(from 0deg, #e8bb55 0 5deg, #8a5c1a 5deg 10deg);
+  box-shadow: 0 0 0 3px #070b18, 0 0 0 5px #c9963a, 0 3px 0 5px #5c3b0c, 0 10px 14px rgba(0, 0, 0, .5);
+}
+.gem--b { width: 58px; height: 58px; }
+.gem::before { /* four brass prongs holding the stone */
+  content: '';
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 4%, #f8e19a 0 5%, transparent 6%),
+    radial-gradient(circle at 50% 96%, #f8e19a 0 5%, transparent 6%),
+    radial-gradient(circle at 4% 50%, #f8e19a 0 5%, transparent 6%),
+    radial-gradient(circle at 96% 50%, #f8e19a 0 5%, transparent 6%);
+  z-index: 2;
+  pointer-events: none;
+}
 .gem i {
-  width: 58%;
-  height: 76%;
+  position: relative;
+  width: 56%;
+  height: 74%;
   clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%);
-  background: linear-gradient(135deg, #f4feff 0%, #7FD6DF 38%, #2b7f9c 80%, #164b62 100%);
+  background: conic-gradient(from 0deg at 50% 42%, #e9fdff 0deg, #9fe6ee 60deg, #2b7f9c 120deg, #164b62 180deg, #3c9fbf 240deg, #c6f4f8 300deg, #e9fdff 360deg);
   transition: transform .22s cubic-bezier(.28, 1.9, .5, 1), filter .15s;
   filter: drop-shadow(0 3px 0 #0b2a38);
 }
-.gem--b i { background: linear-gradient(135deg, #fff2e6 0%, #f39a5c 38%, #c2501c 80%, #6e2508 100%); filter: drop-shadow(0 3px 0 #3a1404); }
+.gem i::after { /* the table: a bright inner facet */
+  content: '';
+  position: absolute;
+  left: 30%; right: 30%; top: 18%; bottom: 42%;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background: linear-gradient(160deg, rgba(255, 255, 255, .95), rgba(255, 255, 255, .15));
+}
+.gem--b i { background: conic-gradient(from 0deg at 50% 42%, #fff2e6 0deg, #f8b07c 60deg, #c2501c 120deg, #6e2508 180deg, #e2612b 240deg, #ffd2b0 300deg, #fff2e6 360deg); filter: drop-shadow(0 3px 0 #3a1404); }
 .gem:hover i { filter: brightness(1.15) drop-shadow(0 3px 0 #0b2a38); }
-.gem.is-pressed i { transform: translateY(3px) scale(.96); filter: brightness(1.5); transition-duration: .05s; }
+.gem.is-pressed i { transform: translateY(3px) scale(.95); filter: brightness(1.6); transition-duration: .05s; }
+.gem.is-pressed { box-shadow: 0 0 0 3px #070b18, 0 0 0 5px #c9963a, 0 1px 0 5px #5c3b0c, 0 4px 8px rgba(0, 0, 0, .5), 0 0 18px color-mix(in srgb, var(--plane) 60%, transparent); }
+html[data-layout="tall"] .gem--a { width: 70px; height: 70px; }
 
 /* ripple on press */
 .ripple { position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 2px var(--plane); opacity: .9; animation: ripple .45s ease-out forwards; pointer-events: none; }
 @keyframes ripple { to { transform: scale(1.5); opacity: 0; } }
-
-/* ---------- studio medallion ---------- */
-.medallion { border-radius: 50%; box-shadow: 0 0 0 3px #070b18, 0 0 0 5px #b8882a, 0 6px 10px rgba(0, 0, 0, .45); background: #000; }
 
 /* ==========================================================================
    SOCKET (top) AND RELIC SLOT (bottom)

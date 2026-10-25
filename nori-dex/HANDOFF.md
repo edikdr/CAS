@@ -20,6 +20,8 @@ English only: no Russian anywhere. The build fails on any Cyrillic in `src/` or 
 | O1 | `docs/AUDIT.md` |
 | O2 | Removed all Pokémon modules, data, scripts and third-party hosts. English became the source language (codemod). Studio art went in through `scripts/bake-images.py`. Added the build gates. `vercel.json` replaced `_headers`. Added stubs for your files. |
 | O3 | Built the Mana Communicator device (`index.html`, `css/console3d.css`, `js/device.js`). Built the three relics (`js/carts.js`, `css/stage.css`). Re-skinned the cable as the mana conduit (`js/cable.js`). Rebuilt the shell (`js/app.js`): attunement, altar and campaign, relic tabs, screen stack. Added the phone layout. Simplified input (no sticks; the gamepad is polled only while connected). |
+| O3.1 | **Interchangeable grips** (client request). The device is split into body + two grips (`.wing--l`, `.wing--r`) that slide on rails. Four sets in `config.grips` (Halo & Sky, Grove, Ember, Nightglass); pick one under the device, with `G`, or with the altar's Grips button. Swap animation: the old grips unlatch, slide off the rails and fly away, the new ones fly in, slide on and click (seam flash + sound). It works with the device off too. Grip colours are CSS variables (`--gh --gm --gl --gt`) set per wing; the wing art in `device.js` reads them. Buttons got more depth: knurled brass studs with a dome and travel, prong-set gems with facets, an engraved rune compass. |
+| O4 | Re-voiced audio (`js/audio.js`): stone, brass and crystal-chime voices through a generated reverb, a mana hum while powered, a per-relic attunement chord (`config.carts[].chord`). The sound preference is stored in `localStorage['nd-audio']`. All sounds are synthesised; no audio files. |
 
 ## The i18n rule
 
@@ -75,7 +77,9 @@ d.press(name) / d.hints() / d.destroy()
 
 ## Files Opus owns (ask, or make the smallest change and note it here)
 
-`index.html`, `css/style.css`, `css/console3d.css`, `css/stage.css`, `js/app.js`, `js/device.js`, `js/carts.js`, `js/cable.js`, `js/audio.js`, `js/input.js`, `js/static.js`, `js/config.js`, `scripts/*`, `vercel.json`.
+`index.html`, `css/style.css`, `css/console3d.css`, `css/stage.css`, `js/app.js`, `js/device.js`, `js/carts.js`, `js/cable.js`, `js/audio.js`, `js/input.js`, `js/static.js`, `js/config.js`, `js/quiz.js` (the dialog kit: extend it, keep its API), `scripts/*`, `vercel.json`.
+
+Keys the app already uses (do not reuse them in a screen): `P` power, `G` grips, `C` photo, `Y` glass effect, `Q`/`E` neighbouring relic, `1`-`3` pick a relic, `H` home, `+` / `?` help, `-` / `M` sound on/off, `[` / `]` volume. A screen gets `l`/`r`/`y`/`home` through `press()` first and may claim them; the rest never reach it.
 
 ## What is stubbed
 
@@ -92,5 +96,6 @@ Steam URL, Discord invite (both render "link pending"), transparent vector logo 
 
 - The reference renders are notched rectangles. Per the brief, the relics keep an **arched relic-slab silhouette** and borrow only the materials (stone, brass, vines, glowing runes, tints), as the client asked.
 - All device ornament (filigree, runes, crystals) is procedural CSS/SVG UI chrome. No illustration or game imagery is generated; every picture of the game world is official art.
+- **Grips, not Joy-Cons.** The client asked for interchangeable Joy-Cons with a Nintendo-style switching animation. The behaviour is built as asked (two halves, rail slide-off, fly-in, click), but the grips are drawn in the device's own shape and are never called Joy-Cons, because the brief forbids any Nintendo or Joy-Con look and the build's brand gate rejects the name. The client was told this and can ask for the literal look.
 - Landscape phones get the desktop layout at a small scale. The phone layout targets portrait (360 × 800 passes).
 - Credits (Soundtrack, Cinematics) are in the Controls help panel. The game and studio social links exist in `sky.links` but are not shown yet. Sonnet may surface them in a screen.

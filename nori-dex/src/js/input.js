@@ -1,7 +1,7 @@
 /* ==========================================================================
    Input: device buttons (mouse / touch), keyboard, real gamepads.
    Everything becomes one PL.bus 'press' event carrying the button name:
-   up down left right a b y l r plus minus home capture power volup voldown
+   up down left right a b y l r plus minus home capture power volup voldown grip
    The gamepad is polled only while one is connected, so there is no idle loop.
    ========================================================================== */
 window.PL = window.PL || {};
@@ -92,7 +92,7 @@ PL.input = (function () {
     KeyY: 'y', KeyQ: 'l', KeyE: 'r',
     Equal: 'plus', NumpadAdd: 'plus', Slash: 'plus',
     Minus: 'minus', NumpadSubtract: 'minus', KeyM: 'minus',
-    KeyH: 'home', KeyC: 'capture', KeyP: 'power',
+    KeyH: 'home', KeyC: 'capture', KeyP: 'power', KeyG: 'grip',
     BracketLeft: 'voldown', BracketRight: 'volup',
   };
   function typing(e) { return e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName); }

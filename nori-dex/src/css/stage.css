@@ -249,3 +249,22 @@ html[data-layout="tall"] .ci-hint { min-height: 30px; font-size: 12px; }
   .cart-tilt { transition-duration: .01s; }
   .port-spark.go, .slot-ring.go { animation: none; }
 }
+
+/* --- grip sets (desktop: left of the rack; phones use the altar's Grips button or G) --- */
+.grips { position: absolute; left: 40px; top: 52px; width: 230px; display: flex; flex-direction: column; gap: 12px; }
+html[data-layout="tall"] .grips { display: none; }
+.grips-title { font: 400 12px/1 var(--pixel); letter-spacing: 2px; color: rgba(248, 225, 154, .7); }
+.grips-row { display: flex; gap: 12px; }
+.grip-swatch {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--l) 0 50%, var(--r) 50% 100%);
+  box-shadow: 0 0 0 3px #0b1430, 0 0 0 4.5px rgba(232, 185, 58, .5), 0 3px 0 4.5px #3b2506, 0 8px 14px rgba(0, 0, 0, .5);
+  transition: transform .25s cubic-bezier(.3, 1.6, .5, 1), box-shadow .25s;
+}
+.grip-swatch::after { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .55), transparent 45%); }
+.grip-swatch:hover { transform: translateY(-3px); }
+.grip-swatch.is-on { transform: translateY(-3px) scale(1.08); box-shadow: 0 0 0 3px #0b1430, 0 0 0 5px var(--gold-hi), 0 0 18px rgba(232, 185, 58, .45), 0 8px 14px rgba(0, 0, 0, .5); }
+.grips-label { font: 800 13px/1.2 var(--round); color: rgba(255, 255, 255, .8); text-shadow: 0 1px 6px #000; }

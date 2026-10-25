@@ -22,6 +22,7 @@ PL.icons = {
   wifi: '<path d="M2.5 9a14 14 0 0 1 19 0"/><path d="M5.5 12.3a9.5 9.5 0 0 1 13 0"/><path d="M8.6 15.5a5 5 0 0 1 6.8 0"/><path d="M12 19h.01"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
   flag: '<path d="M5 21V4"/><path d="M5 4.5c4-2 7 2 11 0l2-.8v9.3l-2 .8c-4 2-7-2-11 0"/>',
+  swap: '<path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5"/>',
   crystal: '<path d="M12 2.5 18 9l-6 12.5L6 9z"/><path d="M6 9h12M12 2.5 9.5 9 12 21.5 14.5 9z"/>',
 };
 

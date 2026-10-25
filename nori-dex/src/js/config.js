@@ -47,9 +47,29 @@ PL.config = {
       crystal: '#ff7a3a', chord: [220, 261.63, 329.63, 392, 493.88], facts: ['planes'] },
   ],
 
+  /* Interchangeable grips: the two controller halves that slide onto the device's rails.
+     Pick a set under the device (or G, or the altar's Grips button) and the old grips unlatch,
+     slide off and fly away while the new ones fly in, slide down the rails and click.
+     Each side: hi / mid / lo enamel tones; trim: the grip's accent (lever arrows, glow). */
+  grips: [
+    { id: 'halo', name: _('Halo & Sky'),
+      l: { hi: '#ffe39a', mid: '#e8b93a', lo: '#8a5c1a', trim: '#fff1c4' },
+      r: { hi: '#c8f4f8', mid: '#7FD6DF', lo: '#2e7f95', trim: '#effdff' } },
+    { id: 'grove', name: _('Grove'),
+      l: { hi: '#b4dd8f', mid: '#5E9E4A', lo: '#2c5222', trim: '#e9ffd8' },
+      r: { hi: '#b4dd8f', mid: '#5E9E4A', lo: '#2c5222', trim: '#e9ffd8' } },
+    { id: 'ember', name: _('Ember'),
+      l: { hi: '#ffbf8a', mid: '#E2612B', lo: '#7d2a0e', trim: '#fff0e2' },
+      r: { hi: '#ffbf8a', mid: '#E2612B', lo: '#7d2a0e', trim: '#fff0e2' } },
+    { id: 'night', name: _('Nightglass'),
+      l: { hi: '#3d5596', mid: '#1b2c5c', lo: '#0a1230', trim: '#E8B93A' },
+      r: { hi: '#3d5596', mid: '#1b2c5c', lo: '#0a1230', trim: '#E8B93A' } },
+  ],
+
   /* Round system buttons on the altar */
   dock: [
     { id: 'controls', label: _('Controls'), icon: 'gamepad', color: '#7FD6DF' },
+    { id: 'grips',    label: _('Grips'),    icon: 'swap',    color: '#E8B93A' },
     { id: 'retro',    label: _('Glass effect'), icon: 'tv',  color: '#A98BE0' },
     { id: 'sound',    label: _('Sound'),    icon: 'sound',   color: '#ffffff' },
     { id: 'exit',     label: _('Sleep'),    icon: 'power',   color: '#F07A3E' },

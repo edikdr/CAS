@@ -227,6 +227,141 @@
     ], { duration: 280, easing: 'ease-out' });
   }
 
+  /* ---------- interchangeable grips: the rail choreography ---------- */
+  /* Swapping a set: the old grips unlatch, slide along the rails and fly off; the new ones
+     arc in, line up over the rails, slide home and click (seam flash, body jolt).
+     Desktop rails are vertical (left grip from the top, right from the bottom);
+     on phones the grips slide sideways into their bays. */
+  var Mo = PL.motion, Ease = Mo.E, mix = Mo.mix;
+  var gripEls = { l: $('.wing--l'), r: $('.wing--r') };
+  var gripsEl = $('#grips');
+  var T_ATT = 1.8;
+  var gripSwapping = false, gripQueued = null;
+  var gripId = store.get('nd-grips', C.grips[0].id);
+  function gripById(id) { return C.grips.filter(function (g) { return g.id === id; })[0] || C.grips[0]; }
+  function setGripVars(el, c) {
+    el.style.setProperty('--gh', c.hi); el.style.setProperty('--gm', c.mid);
+    el.style.setProperty('--gl', c.lo); el.style.setProperty('--gt', c.trim);
+  }
+  function applyGrips(id) {
+    var g = gripById(id);
+    gripId = g.id;
+    setGripVars(gripEls.l, g.l);
+    setGripVars(gripEls.r, g.r);
+    store.set('nd-grips', g.id);
+    renderGripPicker();
+  }
+
+  /* arrival. side: -1 left grip, +1 right grip; vdir: along the rail from the top (-1) or bottom (+1) */
+  function attachPose(side, vdir) {
+    if (vdir == null) vdir = side;
+    var tall = layout === 'tall';
+    return function (u) {
+      var t = u * T_ATT, x, y, z, rz, ry, sh;
+      if (t < 0.9) {                           // swoop in on an arc, turning to face the device
+        var a = Ease.out3(t / 0.9);
+        if (tall) { x = side * mix(330, 46, a); y = vdir * 90 * (1 - a); }
+        else { y = vdir * mix(560, 64, a); x = side * 100 * (1 - a); }
+        z = mix(170, 22, a); rz = vdir * 11 * (1 - a); ry = -side * 24 * (1 - a); sh = 1 - 0.85 * a;
+      } else if (t < 1.14) {                   // lined up over the rails, hovering for a beat
+        var b = Ease.io2((t - 0.9) / 0.24);
+        if (tall) { x = side * mix(46, 34, b); y = 0; } else { y = vdir * mix(64, 48, b); x = 0; }
+        z = mix(22, 6, b); rz = 0; ry = 0; sh = 0.15 * (1 - b * 0.5);
+      } else if (t < 1.42) {                   // slides along the rails, speeding up
+        var c = Ease.in2((t - 1.14) / 0.28);
+        if (tall) { x = side * mix(34, -2.4, c); y = 0; } else { y = vdir * mix(48, -3.2, c); x = 0; }
+        z = mix(6, 0, c); rz = 0; ry = 0; sh = 0.07 * (1 - c);
+      } else {                                 // latched: a short bounce
+        var d = (t - 1.42) / (T_ATT - 1.42), k = 1 - Ease.spring(d, 15, 0.4);
+        if (tall) { x = side * -2.4 * k; y = 0; } else { y = vdir * -3.2 * k; x = 0; }
+        z = 0; rz = 0; ry = 0; sh = 0;
+      }
+      return { persp: 1700, x: x, y: y, z: z, rz: rz, ry: ry, filter: 'drop-shadow(0 ' + (20 * sh).toFixed(1) + 'px ' + (22 * sh).toFixed(1) + 'px rgba(0,0,0,' + (0.55 * sh).toFixed(2) + '))' };
+    };
+  }
+  /* departure: a click back, then it slides off along the rails and away, fading */
+  function leavePose(side) {
+    var tall = layout === 'tall';
+    return function (u) {
+      var t = u * 0.95, y = 0, x = 0, z = 0, rz = 0, ry = 0, o = 1;
+      if (t < 0.1) {
+        var a = Ease.out2(t / 0.1);
+        if (tall) x = side * 6 * a; else y = -side * 6 * a;
+      } else {
+        var b = Ease.in3((t - 0.1) / 0.85);
+        if (tall) { x = side * mix(6, 420, b); y = mix(0, 60, b); }
+        else { y = mix(-side * 6, side * 640, b); x = side * mix(0, 96, b); }
+        z = mix(0, 170, b); rz = side * mix(0, 14, b); ry = -side * mix(0, 26, b); o = 1 - Mo.seg(b, 0.78, 1);
+      }
+      return { persp: 1700, x: x, y: y, z: z, rz: rz, ry: ry, o: o };
+    };
+  }
+  function seamFlash(side) {
+    var sm = $('.seam--' + (side < 0 ? 'l' : 'r'));
+    if (sm && !reduceMotion) { sm.classList.remove('go'); void sm.offsetWidth; sm.classList.add('go'); }
+  }
+  function attachOne(el, side, delay, k, vdir) {
+    var a = Mo.play(el, attachPose(side, vdir), T_ATT * k * 1000, { delay: delay * 1000 });
+    Mo.cues(a, [
+      { t: delay + 0.05, fn: function () { PL.audio.play('swoosh'); } },
+      { t: delay + 1.14 * k, fn: function () { PL.audio.play('slide'); } },
+      { t: delay + 1.42 * k, fn: function () { PL.audio.play('snap'); seamFlash(side); bump(side * 1.4, 1.4); } },
+    ]);
+    return a.finished.then(function () { el.style.transform = ''; el.style.filter = ''; a.cancel(); }, function () {});
+  }
+  function swapGrips(id) {
+    gripSwapping = true;
+    var ghosts = ['l', 'r'].map(function (side) {    // copies with the old colours lie on top of the real grips
+      var g = gripEls[side].cloneNode(true);
+      g.classList.add('wing-ghost');
+      g.setAttribute('aria-hidden', 'true');
+      g.querySelectorAll('[data-btn]').forEach(function (b) { b.removeAttribute('data-btn'); b.removeAttribute('data-tip'); b.tabIndex = -1; });
+      consoleEl.appendChild(g);
+      return g;
+    });
+    consoleEl.classList.add('is-swapping');
+    applyGrips(id);                                  // the real grips take the new colours
+    var ps = [];
+    [[ghosts[0], -1, 0], [ghosts[1], 1, 0.07]].forEach(function (g) {
+      var a = Mo.play(g[0], leavePose(g[1]), 950, { delay: g[2] * 1000 });
+      var rm = function () { g[0].remove(); };
+      ps.push(a.finished.then(rm, rm));
+    });
+    PL.audio.play('unplug');
+    /* the new grips come in from the other end of the rails, so the paths never cross */
+    ps.push(attachOne(gripEls.l, -1, 0.4, 0.82, 1));
+    ps.push(attachOne(gripEls.r, 1, 0.52, 0.82, -1));
+    return Promise.all(ps).then(function () {
+      gripSwapping = false;
+      consoleEl.classList.remove('is-swapping');
+      toast(_('Grips attached: {name}', { name: gripById(gripId).name }));
+    });
+  }
+  function changeGrips(id) {
+    var g = gripById(id);
+    if (g.id === gripId && !gripSwapping) return;
+    if (gripSwapping) { gripQueued = g.id; return; }
+    if (reduceMotion) { applyGrips(g.id); PL.audio.play('snap'); return; }
+    swapGrips(g.id).then(function () { if (gripQueued) { var q = gripQueued; gripQueued = null; changeGrips(q); } });
+  }
+  function nextGrips() {
+    var i = 0;
+    C.grips.forEach(function (g, k) { if (g.id === gripId) i = k; });
+    changeGrips(C.grips[(i + 1) % C.grips.length].id);
+  }
+  function renderGripPicker() {
+    if (!gripsEl) return;
+    var g = gripById(gripId);
+    gripsEl.innerHTML = '<div class="grips-title">' + _('Grips') + '</div><div class="grips-row">' + C.grips.map(function (x) {
+      return '<button class="grip-swatch' + (x.id === gripId ? ' is-on' : '') + '" data-id="' + x.id + '" style="--l:' + x.l.mid + ';--r:' + x.r.mid + '" aria-label="' + esc(_('Grips: {name}', { name: x.name })) + '" aria-pressed="' + (x.id === gripId) + '"></button>';
+    }).join('') + '</div><div class="grips-label">' + esc(g.name) + '</div>';
+  }
+  if (gripsEl) {
+    gripsEl.addEventListener('click', function (e) { var b = e.target.closest('.grip-swatch'); if (b) changeGrips(b.dataset.id); });
+    gripsEl.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); });
+  }
+  applyGrips(gripId);
+
   /* ---------- Awaken: mist -> tuning -> dawn boot with the logo -> next ---------- */
   function runBoot(sub, then, quick) {
     S.busy = true;
@@ -461,6 +596,7 @@
   function activateDock(i) {
     switch (C.dock[i].id) {
       case 'controls': openHelp(); break;
+      case 'grips': nextGrips(); break;
       case 'retro': toggleRetro(); break;
       case 'sound': toggleSound(); break;
       case 'exit': goStatic(); break;
@@ -556,6 +692,7 @@
     [['♪'], _('Sound on / off'), 'M'],
     [['⌂'], _('Relic altar'), 'H'],
     [['◉'], _('Save a photo of the screen'), 'C'],
+    [['⇄'], _('Swap the grips'), 'G'],
     [['⏻'], _('Power'), 'P'],
     [['−', '+'], _('Volume'), '[ ]'],
   ];
@@ -646,10 +783,11 @@
     var name = e.name;
 
     if (name === 'power') { if (S.power) { if (!S.busy && !launching) powerOff(); } else wake(); return; }
-    if (!S.power) { if (name === 'home' || name === 'a') wake(); return; }
+    if (!S.power) { if (name === 'home' || name === 'a') wake(); else if (name === 'grip') nextGrips(); return; }
     if (name === 'volup' || name === 'voldown') return changeVolume(name === 'volup' ? 1 : -1);
     if (name === 'minus') return toggleSound();
     if (name === 'capture') return capture();
+    if (name === 'grip') return nextGrips();
     if (S.busy) return;
 
     if (S.help) {

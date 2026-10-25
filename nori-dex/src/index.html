@@ -26,8 +26,26 @@
     <div class="console-wrap" id="consoleWrap">
       <div class="floor-glow" aria-hidden="true"></div>
 
-      <!-- THE MANA COMMUNICATOR -->
+      <!-- THE MANA COMMUNICATOR: body + two interchangeable grips (they slide on and off rails) -->
       <div class="console" id="console">
+        <i class="seam seam--l" aria-hidden="true"></i><i class="seam seam--r" aria-hidden="true"></i>
+
+        <!-- LEFT GRIP: relic lever, sound, rune compass, help, photo -->
+        <div class="wing wing--l" data-side="l">
+          <svg class="wing-art" aria-hidden="true"></svg>
+          <button class="lever lever--l" data-btn="l" data-tip="Previous relic" data-key="Q" aria-label="Previous relic"><i></i></button>
+          <button class="stud stud--sound" data-btn="minus" data-tip="Sound on / off" data-key="M" aria-label="Sound on or off"><span data-icon="sound"></span></button>
+          <div class="compass" role="group" aria-label="Navigate">
+            <button class="petal petal--up" data-btn="up" data-tip="Up" data-key="↑" aria-label="Up"><i></i></button>
+            <button class="petal petal--left" data-btn="left" data-tip="Left" data-key="←" aria-label="Left"><i></i></button>
+            <button class="petal petal--right" data-btn="right" data-tip="Right" data-key="→" aria-label="Right"><i></i></button>
+            <button class="petal petal--down" data-btn="down" data-tip="Down" data-key="↓" aria-label="Down"><i></i></button>
+            <span class="compass-hub" aria-hidden="true"></span>
+          </div>
+          <button class="stud stud--help" data-btn="plus" data-tip="Help" data-key="+" aria-label="Help"><b>?</b></button>
+          <button class="stud stud--photo" data-btn="capture" data-tip="Save a photo of the screen" data-key="C" aria-label="Save a photo of the screen"><span data-icon="camera"></span></button>
+        </div>
+
         <div class="body" id="deviceBody">
           <div class="body-shell" aria-hidden="true"></div>
           <!-- silhouette, brass rim, filigree, runes and mana veins (drawn by js/device.js per layout) -->
@@ -40,40 +58,18 @@
             <div class="crest-plate"><img class="crest-logo" src="assets/logo/sky-project-logo-432.webp" width="432" height="120" alt="" decoding="async"></div>
           </div>
 
-          <!-- top edge: power, volume, relic levers -->
+          <!-- maker's plate: the studio logo on the body -->
+          <div class="maker"><img src="assets/logo/enthariel-games-logo.webp" width="256" height="256" alt="Enthariel Games" decoding="async"><span>ENTHARIEL GAMES</span></div>
+
+          <!-- top edge: power and volume -->
           <button class="stud stud--top stud--power" data-btn="power" data-tip="Power" data-key="P" aria-label="Power"><span data-icon="power"></span></button>
           <button class="stud stud--top stud--vdown" data-btn="voldown" data-tip="Volume down" data-key="[" aria-label="Volume down"><b>−</b></button>
           <button class="stud stud--top stud--vup" data-btn="volup" data-tip="Volume up" data-key="]" aria-label="Volume up"><b>+</b></button>
-          <button class="lever lever--l" data-btn="l" data-tip="Previous relic" data-key="Q" aria-label="Previous relic"><i></i></button>
-          <button class="lever lever--r" data-btn="r" data-tip="Next relic" data-key="E" aria-label="Next relic"><i></i></button>
 
           <!-- socket on top: the conduit plugs in here -->
           <div class="port" id="port" aria-hidden="true"><i class="port-led" id="portLed"></i><i class="port-spark" id="portSpark"></i></div>
           <!-- relic slot at the bottom -->
           <div class="cart-slot" id="cartSlot" aria-hidden="true"><i class="slot-led" id="slotLed"></i></div>
-
-          <!-- left panel: rune compass, help, photo, studio medallion -->
-          <div class="panel panel--l">
-            <div class="compass" role="group" aria-label="Navigate">
-              <button class="petal petal--up" data-btn="up" data-tip="Up" data-key="↑" aria-label="Up"><i></i></button>
-              <button class="petal petal--left" data-btn="left" data-tip="Left" data-key="←" aria-label="Left"><i></i></button>
-              <button class="petal petal--right" data-btn="right" data-tip="Right" data-key="→" aria-label="Right"><i></i></button>
-              <button class="petal petal--down" data-btn="down" data-tip="Down" data-key="↓" aria-label="Down"><i></i></button>
-              <span class="compass-hub" aria-hidden="true"></span>
-            </div>
-            <button class="stud stud--help" data-btn="plus" data-tip="Help" data-key="+" aria-label="Help"><b>?</b></button>
-            <button class="stud stud--photo" data-btn="capture" data-tip="Save a photo of the screen" data-key="C" aria-label="Save a photo of the screen"><span data-icon="camera"></span></button>
-            <img class="medallion" src="assets/logo/enthariel-games-logo.webp" width="256" height="256" alt="Enthariel Games" decoding="async">
-          </div>
-
-          <!-- right panel: crystal gems (select / back), altar, glass, sound -->
-          <div class="panel panel--r">
-            <button class="gem gem--a" data-btn="a" data-tip="Select" data-key="Enter" aria-label="Select"><i></i></button>
-            <button class="gem gem--b" data-btn="b" data-tip="Back, or draw the relic out" data-key="Esc" aria-label="Back"><i></i></button>
-            <button class="stud stud--home" data-btn="home" data-tip="Relic altar" data-key="H" aria-label="Relic altar"><span data-icon="home"></span></button>
-            <button class="stud stud--glass" data-btn="y" data-tip="Glass effect" data-key="Y" aria-label="Glass effect"><span data-icon="tv"></span></button>
-            <button class="stud stud--sound" data-btn="minus" data-tip="Sound on / off" data-key="M" aria-label="Sound on or off"><span data-icon="sound"></span></button>
-          </div>
 
           <div class="glass">
             <div class="screen" id="screen">
@@ -159,10 +155,21 @@
             </div>
           </div>
         </div>
+
+        <!-- RIGHT GRIP: relic lever, glass, crystal gems (select / back), altar -->
+        <div class="wing wing--r" data-side="r">
+          <svg class="wing-art" aria-hidden="true"></svg>
+          <button class="lever lever--r" data-btn="r" data-tip="Next relic" data-key="E" aria-label="Next relic"><i></i></button>
+          <button class="stud stud--glass" data-btn="y" data-tip="Glass effect" data-key="Y" aria-label="Glass effect"><span data-icon="tv"></span></button>
+          <button class="gem gem--a" data-btn="a" data-tip="Select" data-key="Enter" aria-label="Select"><i></i></button>
+          <button class="gem gem--b" data-btn="b" data-tip="Back, or draw the relic out" data-key="Esc" aria-label="Back"><i></i></button>
+          <button class="stud stud--home" data-btn="home" data-tip="Relic altar" data-key="H" aria-label="Relic altar"><span data-icon="home"></span></button>
+        </div>
       </div>
 
-      <!-- DOCK: relic rack and info card of the selected relic -->
+      <!-- DOCK: grip sets, relic rack and info card of the selected relic -->
       <div class="dock-zone" id="dockZone">
+        <div class="grips" id="grips" role="group" aria-label="Grip sets"></div>
         <div class="rack-clip" id="rackClip">
           <div class="rack-lip" aria-hidden="true"></div>
           <div class="rack-stage" id="rackStage"></div>

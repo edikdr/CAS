@@ -177,6 +177,41 @@ test('not indexable: meta robots, X-Robots-Tag in vercel.json and _headers, robo
   assert.match(fs.readFileSync(path.join(ROOT, 'robots.txt'), 'utf8'), /^User-agent: \*\s*\nDisallow: \/\s*$/m);
 });
 
+/* WebP header: size and whether the file has an alpha channel (VP8X flag, or lossless) */
+function webpInfo(file) {
+  const b = fs.readFileSync(file), kind = b.toString('ascii', 12, 16);
+  if (b.toString('ascii', 0, 4) !== 'RIFF' || b.toString('ascii', 8, 12) !== 'WEBP') throw new Error(file + ' is not a WebP');
+  if (kind === 'VP8X') return { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3), alpha: !!(b[20] & 0x10) };
+  if (kind === 'VP8 ') return { w: b.readUInt16LE(26) & 0x3fff, h: b.readUInt16LE(28) & 0x3fff, alpha: false };
+  const v = b.readUInt32LE(21);   // VP8L
+  return { w: 1 + (v & 0x3fff), h: 1 + ((v >> 14) & 0x3fff), alpha: !!((v >> 28) & 1) };
+}
+test('images: every <img> of index.html declares the size of its file (no layout jump, no stretched art)', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  let n = 0;
+  for (const m of html.matchAll(/<img\b[^>]*>/g)) {
+    const src = /\bsrc="(assets\/[^"]+\.webp)"/.exec(m[0]), w = /\bwidth="(\d+)"/.exec(m[0]), h = /\bheight="(\d+)"/.exec(m[0]);
+    if (!src || !w || !h) continue;
+    const info = webpInfo(path.join(ROOT, src[1]));
+    assert.deepEqual([+w[1], +h[1]], [info.w, info.h], src[1] + ' is ' + info.w + 'x' + info.h);
+    n++;
+  }
+  assert.ok(n >= 2, 'found the images to check');
+});
+test('logo: a transparent cut-out of the studio logo with a margin round it (the boot screen and the crest show it on the sky, not as a pale rectangle)', () => {
+  for (const f of ['sky-project-logo.webp', 'sky-project-logo-456.webp']) {
+    const i = webpInfo(path.join(ROOT, 'assets/logo', f));
+    assert.ok(i.alpha, f + ' must have an alpha channel');
+  }
+  assert.ok(!fs.existsSync(path.join(ROOT, 'assets/logo/sky-project-logo-432.webp')), 'the old opaque 432 px logo is gone');
+});
+test('worlds: the art frame is drawn inside the art, so .wl-in (overflow: hidden) cannot cut it off', () => {
+  const css = fs.readFileSync(path.join(ROOT, 'css/sections.css'), 'utf8');
+  const rule = (sel) => (new RegExp('(?:^|\\n)' + sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{([^}]*)\\}').exec(css) || [])[1] || '';
+  assert.ok(!/box-shadow/.test(rule('.wl-art')), '.wl-art must not have an outer box-shadow ring');
+  assert.match(rule('.wl-art::after'), /box-shadow:\s*inset 0 0 0 2px/);
+});
+
 /* ---------- Spanish (js/i18n/es.js) ---------- */
 const ES = (() => {
   let dict = null;

@@ -135,6 +135,8 @@ All art must be official studio art.
 
 HUD portraits (`nori/hud-*.png`) are cropped square about their round rim when baked, so every avatar sits in the middle of its frame; send them as they come from the game, rim included.
 
+The logo (`logo/sky-project-logo-crop.png`) is a rectangle cut from the key art. When baked, its sky is made transparent along the logo's own black outline and a margin is added, so it sits cleanly on the boot screen and the crest; a vector logo or a PNG with alpha, sent as it is, will replace that step (remove the `sky-project-logo` branch in `main()` of `scripts/bake-images.py`).
+
 Replacing an existing original under the same name only needs steps 3 and 5. The page backdrop is
 baked from the Kael key art by `scripts/bake-bg.py`; change `SOURCE` there to use another image.
 

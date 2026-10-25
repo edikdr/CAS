@@ -106,6 +106,12 @@ remove content or stack it, do not squeeze the spacing.
   pills; icons are 16, 20 or 24 px; outlines are one neutral hairline or one 2 px gold ring.
 - **Text**: one title (24 px), one body (14), one caption (13, which is also the phone floor: 11.3 real px on a
   360 px wide phone). The countdown has its own display size (40, 32 on the phone).
+- **Frames and rings go inside the box**: a frame round a picture is an inset ring (`::after` with `inset: 0` and an inset
+  `box-shadow`, or an `outline` with a negative offset), never an outer `box-shadow`. A parent with `overflow: hidden`
+  (the open plane in Worlds, scroll areas) cuts an outer ring off at its edge. `npm test` guards the Worlds frame.
+- **Relics stay on the rack**: a held relic can be pressed down only into the tray (`REST_GIVE` in `js/carts.js`), a relic
+  pulled out of the slot stops where it stands in the tray, and the spring back after a release cannot dip below it.
+  It never sinks through the rack.
 - **Touch targets** on the phone are 44 px visible with a 52 px hit area (the dock and the tab keys reach out with an
   invisible `::after`), 52 px for buttons inside cards.
 - **Text never sits on art**: names go under the picture on a flat plate, the option list of the Spirit Quiz hides
@@ -140,13 +146,13 @@ Nothing below is presented as fact. Each one shows a **Placeholder**, **Working 
 | Celestia relic | The label is a screenshot and the relic says "Placeholder" | official Celestia art and name |
 | Abyssal relic | "Art pending" window | official art, then `art`, `artSize`, `crop` in `js/config.js` |
 | Join & follow | "Join Steam Playtest" says "link pending" (its URL is `null`). The Steam page and the Discord invite are live (see "Links" below) | `links.steamPlaytest` |
-| Crest | The logo sits on a pale plate because only a cropped raster logo exists | a transparent vector logo |
+| Logo | Only a rectangular crop of the key art exists. `scripts/bake-images.py` keys the sky out along the logo's own black outline (letters, wings and halo are not repainted; the studio's thin white rim stays) and adds a transparent margin, so the boot screen shows it with room round it and the crest shows it on its plate. Fine at the sizes used here, soft if enlarged | a transparent vector logo (SVG) or a large PNG with alpha |
 
 ## Needed from the studio
 
 1. **A Steam playtest URL** (or confirmation that the playtest is joined from the store page, then set `links.steamPlaytest` to that URL).
 2. **Confirmation of the links that are in** (below): the Steam page and the Discord invite are the ones the studio publishes on its own Linktree and on Steam, found on 25 Oct 2026 and not yet confirmed by the studio. Other channels the studio uses (Reddit, Twitch, a newsletter, a YouTube community) can be added: tell us the URL and the host; a new host needs one line in `LINK_HOSTS` in `scripts/build.mjs`.
-3. **Transparent vector logo** (SVG or large PNG) to replace the plate behind the crest.
+3. **Transparent vector logo** (SVG or large PNG with alpha) to replace the cut-out made from the crop.
 4. **Real Nori sprites** (idle poses) for the five Noris, and later all 200+.
 5. **Alternate-palette art** for each Nori.
 6. **Official plane names** for planes 1 to 3, a **description** for each plane, and **official art** for planes 1 to 4 (the Abyssal Plane first: its relic is waiting).
@@ -177,9 +183,10 @@ Nothing below is presented as fact. Each one shows a **Placeholder**, **Working 
 
 ## How it was checked
 
-- `npm test`: 23 checks, repeated in six time zones (Madrid, London, Los Angeles, Tokyo, Auckland, UTC): the countdown on 25 Oct 2026 and on DST days, the shape of `sky.js`, the quiz scoring for all 64 answer sets (every Nori can win; none wins more than 21 of 64), and the Spanish completeness checks.
+- `npm test`: 27 checks, repeated in six time zones (Madrid, London, Los Angeles, Tokyo, Auckland, UTC): the countdown on 25 Oct 2026 and on DST days, the shape of `sky.js`, the quiz scoring for all 64 answer sets (every Nori can win; none wins more than 21 of 64), and the Spanish completeness checks.
 - Headless Chromium runs, on desktop (1280 × 800) and phone (360 × 800, 390 × 844, 412 × 915, also 320 × 568, 768 × 1024, 844 × 390, 1024 × 600, 1440 × 900, 1920 × 1080): power, seating, swapping relics, dragging, grips, the dex by keyboard, cards, the quiz end to end, Worlds, the hub, the language chips. 0 console errors, 0 third-party requests, no horizontal scroll at any size. An automated scan finds no text below 11 real px in the screens, no control without an accessible name, no focusable element inside `aria-hidden`, no duplicate id, and the card dialog has a name.
 - Layout audit (a script run in headless Chromium, not part of the repo because it needs Playwright): for every state it measures each text line, picture, icon, button and card in design px; reports any closer than the frame to the glass (24 px at the sides on the desktop screen, 16 px on the phone, 16 px above and below; the top bar, tab bar and hint bar are exempt vertically), any overlap, and any group of equal columns or cards whose widths or heights differ. Everything under an overlay or scrolled out of its box is ignored.
+- Ring audit (same kind of script): for every screen, finds a frame or outline that an ancestor with `overflow` cuts off. It flagged the Worlds frame before the fix and finds nothing now. A relic-rack probe presses a relic down, releases it from high and pulls one out of the slot, and measures its bottom edge against a standing relic: at most 10 real px lower (still behind the tray's lip), where it used to sink below the tray.
 - Not done: a real phone, a screen reader, Safari and Firefox. Chrome's engine only.
 
 ## Known limits

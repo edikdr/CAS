@@ -607,6 +607,7 @@ PL.carts = (function () {
      ========================================================================== */
   var drag = null, dragRaf = 0, lastClick = 0;
   var X_RANGE = 380;                                            // how far from the slot a relic can be dragged
+  var REST_GIVE = 14;                                           // how far below the 'selected' pose a held relic can be pressed (BASE.y + 14 = standing in the tray)
 
   function startDrag(c, e) {
     var seated = st.ins === c.def.id;
@@ -632,13 +633,13 @@ PL.carts = (function () {
   function dragTarget() {
     var c = drag.c, dx0 = dxOf(c), tx = drag.tx || 0, ty = drag.ty || 0, p;
     if (drag.seated) {
-      var pull = M.clamp(ty, 0, 200);
+      var pull = M.clamp(ty, 0, BASE.y - SEAT);   // never past the rack: a relic drawn out stops where it stands in the tray
       p = { x: dx0 + M.clamp(tx * 0.18, -16, 16), y: SEAT + pull, z: pull > 60 ? mix(0, 34, M.seg(pull, 60, 150)) : 0, rx: 0, ry: 0, rz: 0 };
       drag.zone = false; drag.pull = pull;
       return p;
     }
     var x = M.clamp(tx, SLOT_X - X_RANGE - CELL_X[c.cell], SLOT_X + X_RANGE - CELL_X[c.cell]);
-    var y = M.clamp(BASE.y + ty, -250 - RISE, 70);
+    var y = M.clamp(BASE.y + (ty > 0 ? REST_GIVE * (1 - Math.exp(-ty / 40)) : ty), -250 - RISE, BASE.y + REST_GIVE);   // pulled down it only settles into the tray, it never sinks through it
     var worldX = CELL_X[c.cell] + x;
     var zoneK = M.clamp(1 - Math.abs(worldX - SLOT_X) / 90, 0, 1) * M.clamp((-52 - RISE - (y - BASE.y)) / 40 + 0.4, 0, 1);
     var inZone = Math.abs(worldX - SLOT_X) < 62 && (y - BASE.y) < -58 - RISE;
@@ -711,7 +712,7 @@ PL.carts = (function () {
       var f2 = { x: p.x, y: p.y, z: p.z, rx: p.rx, ry: p.ry, rz: p.rz };
       var a2 = M.play(el, function (u) {
         var k = E.spring(u, 11, 0.55);
-        return { x: mix(f2.x, 0, k), y: mix(f2.y, BASE.y, k), z: mix(f2.z, BASE.z, k), rx: mix(f2.rx, BASE.rx, k), ry: mix(f2.ry, 0, k), rz: mix(f2.rz, 0, k) };
+        return { x: mix(f2.x, 0, k), y: Math.min(mix(f2.y, BASE.y, k), BASE.y + REST_GIVE), z: mix(f2.z, BASE.z, k), rx: mix(f2.rx, BASE.rx, k), ry: mix(f2.ry, 0, k), rz: mix(f2.rz, 0, k) };
       }, 520);
       done = a2.finished.then(function () {
         el.style.transform = ''; el.style.zIndex = '';

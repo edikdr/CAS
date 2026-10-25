@@ -234,13 +234,13 @@ html[data-layout="tall"] .floor-glow { top: 650px; left: 0; right: 0; }
   background: radial-gradient(80% 90% at 50% 70%, #ffffff 0%, #e7f5fa 38%, #bfe2ee 70%, #8ec8dc 100%);
   color: #13224a;
 }
-.boot-ring { position: absolute; top: 12%; width: 84px; height: 84px; fill: none; stroke-linecap: round; overflow: visible; }
+.boot-ring { position: absolute; top: 8%; width: 84px; height: 84px; fill: none; stroke-linecap: round; overflow: visible; }
 .br-ring { stroke: #7FD6DF; stroke-width: 3; stroke-dasharray: 330; stroke-dashoffset: 330; opacity: .7; }
 .br-halo { stroke: var(--gold); stroke-width: 6; stroke-dasharray: 160; stroke-dashoffset: 160; }
 .view-boot.is-active .br-ring { animation: draw 1s .1s cubic-bezier(.6, 0, .3, 1) forwards; }
 .view-boot.is-active .br-halo { animation: draw .7s .5s ease forwards; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
-.boot-logo-img { width: min(440px, 82%); height: auto; margin-top: var(--sp-6); opacity: 0; transform: translateY(10px) scale(.96); }
+.boot-logo-img { width: min(460px, 86%); height: auto; margin-top: var(--sp-6); opacity: 0; transform: translateY(10px) scale(.96); filter: drop-shadow(0 4px 8px rgba(19, 34, 74, .22)); }   /* a transparent cut-out of the studio's logo: it sits on the dawn with room round it */
 .boot-logo { font-family: var(--pixel); font-size: 16px; letter-spacing: 6px; color: #13224a; opacity: 0; }
 .boot-sub { font-size: 14px; font-weight: 800; color: #2a4d74; opacity: 0; min-height: 1.2em; }
 .boot-bar { width: 200px; height: 6px; border-radius: 3px; background: rgba(19, 34, 74, .14); overflow: hidden; opacity: 0; }
@@ -578,7 +578,7 @@ html[data-layout="tall"] .floor-glow { top: 650px; left: 0; right: 0; }
 @container screen (max-width: 480px) {
   .osd { font-size: var(--fs-caption); }
   .play-label { font-size: 22px; }
-  .boot-logo-img { width: 88%; }
+  .boot-logo-img { width: 92%; }
 
   /* altar: the same pieces in one column, all on the 16 px frame */
   .view-home { grid-template-columns: minmax(0, 1fr); grid-template-areas: "hud" "tiles" "camp" "dock"; grid-template-rows: auto minmax(0, 1fr) auto auto; }

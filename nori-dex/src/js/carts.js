@@ -84,17 +84,15 @@ PL.carts = (function () {
   }
 
   function artOf(d, u) {
-    if (!d.art) {                                  // intentional empty state: dark window, rune ring, crystal
-      var r = d.tint.runes, ring = '';
-      for (var k = 0; k < 8; k++) {
-        var a = k / 8 * Math.PI * 2 - Math.PI / 2;
-        ring += runeUse(seedOf(d.id) + k * 5, 52 + Math.cos(a) * 25, 57 + Math.sin(a) * 21 - 4.8, r[k % 2], 'rc-rune');
-      }
+    if (!d.art) {                                  // intentional empty state: a stack, nothing overlaps (crystal, runes beside it, hairline, caption)
+      var r = d.tint.runes, seed = seedOf(d.id);
       return '<rect x="15" y="26" width="74" height="66" fill="url(#vd-' + u + ')"/>' +
-        '<ellipse cx="52" cy="61" rx="25" ry="21" fill="none" stroke="' + r[0] + '" stroke-opacity=".35" stroke-width=".8" stroke-dasharray="2 2.4"/>' + ring +
-        '<path d="M52 49 57 57 52 68 47 57Z" fill="' + d.crystal + '" opacity=".75"/><path d="M52 49 52 68M47 57H57" stroke="#fff" stroke-opacity=".35" stroke-width=".5"/>' +
-        '<text x="52" y="79" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="900" font-size="5.4" letter-spacing="1.1" fill="' + r[1] + '">ART PENDING</text>' +
-        '<text x="52" y="85.4" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="700" font-size="3.6" letter-spacing=".5" fill="#f4d9c8" opacity=".7">FROM THE STUDIO</text>';
+        '<ellipse cx="52" cy="52" rx="19" ry="16" fill="' + d.crystal + '" opacity=".14"/>' +
+        runeUse(seed, 31.5, 47.4, r[0], 'rc-rune') + runeUse(seed + 5, 72.5, 47.4, r[1], 'rc-rune') +
+        '<path d="M52 39 59.5 51 52 66 44.5 51Z" fill="' + d.crystal + '" opacity=".85"/><path d="M52 39 52 66M44.5 51H59.5" stroke="#fff" stroke-opacity=".4" stroke-width=".5"/>' +
+        '<path d="M30 73.2H74" stroke="' + r[0] + '" stroke-opacity=".4" stroke-width=".5" stroke-dasharray="1.6 1.6"/>' +
+        '<text x="52" y="80.6" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="900" font-size="5.4" letter-spacing="1.1" fill="' + r[1] + '">ART PENDING</text>' +
+        '<text x="52" y="86.8" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="700" font-size="3.6" letter-spacing=".5" fill="#f4d9c8" opacity=".7">FROM THE STUDIO</text>';
     }
     var sz = d.artSize || [1, 1], c = d.crop || [0, 0, sz[0], sz[1]];
     var k2 = Math.max(WBOX.w / c[2], WBOX.h / c[3]);
@@ -129,7 +127,7 @@ PL.carts = (function () {
     }
     var titleLen = d.title.length * 0.7 * 6.6, tl = titleLen > 70 ? ' textLength="70" lengthAdjust="spacingAndGlyphs"' : '';
     var sub = d.placeholder
-      ? '<rect x="29" y="111.2" width="46" height="7.6" rx="1.6" fill="rgba(10,14,30,.55)" stroke="#E8B93A" stroke-width=".6" stroke-dasharray="1.6 1.1"/>' +
+      ? '<rect class="rc-ph" x="29" y="111.2" width="46" height="7.6" rx="1.6" fill="rgba(10,14,30,.55)" stroke="#E8B93A" stroke-width=".6" stroke-dasharray="1.6 1.1"/>' +
         '<text x="52" y="116.9" text-anchor="middle" font-family="' + FONT + '" font-weight="900" font-size="4.6" letter-spacing=".9" fill="#E8B93A">PLACEHOLDER</text>'
       : '<text x="52" y="117" text-anchor="middle" font-family="' + FONT + '" font-weight="800" font-size="4.4" letter-spacing=".9" fill="#f6efe0" opacity=".78">' + esc(d.sub || '') + '</text>';
     var rust = '';

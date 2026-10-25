@@ -254,6 +254,9 @@ html[data-layout="tall"] .ci-hint { min-height: 30px; font-size: 12px; }
 /* --- grip sets (desktop: left of the rack; phones use the altar's Grips button or G) --- */
 .grips { position: absolute; left: 40px; top: 52px; width: 230px; display: flex; flex-direction: column; gap: 12px; }
 html[data-layout="tall"] .grips { display: none; }
+/* phone: a relic is ~54 px wide, so its engraved text (1.7 to 4.5 px) cannot be read and would only be noise.
+   The name, the Placeholder tag and the hint are in the info card and on the altar tiles at 11 px or more. */
+html[data-layout="tall"] .cart-face text, html[data-layout="tall"] .cart-face .rc-ph, html[data-layout="tall"] .tray-no { display: none; }
 .grips-title { font: 400 12px/1 var(--pixel); letter-spacing: 2px; color: rgba(248, 225, 154, .7); }
 .grips-row { display: flex; gap: 12px; }
 .grip-swatch {

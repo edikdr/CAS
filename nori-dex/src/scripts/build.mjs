@@ -45,7 +45,7 @@ const fail = (msg) => problems.push(msg);
 const CORE = [
   'js/i18n.js', 'data/sky.js',
   'js/motion.js', 'js/config.js', 'js/icons.js', 'js/audio.js', 'js/static.js', 'js/input.js',
-  'js/device.js', 'js/cable.js', 'js/carts.js', 'js/sections.js', 'js/quiz-data.js', 'js/quiz.js', 'js/shot.js',
+  'js/device.js', 'js/cable.js', 'js/carts.js', 'js/sections.js', 'js/quiz-data.js', 'js/quiz.js', 'js/hub.js', 'js/shot.js',
   'js/app.js',
 ];
 const FONTS_PRELOAD = ['nunito-latin', 'tiny5'];

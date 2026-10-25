@@ -490,17 +490,11 @@
   campaignEl.className = 'campaign';
   campaignEl.setAttribute('aria-label', _('Campaign'));
   homeView.insertBefore(campaignEl, dockEl);
-  function daysLeft() {
-    var c = sky.campaign;
-    if (!c || !c.endsOn) return 0;
-    return Math.ceil((new Date(c.endsOn + 'T23:59:59') - Date.now()) / 864e5);
-  }
-  /* formatted by hand: the first Intl call costs ~80 ms on a slow phone, on the startup path */
-  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  function fmtDate(iso) { var p = iso.split('-'); return +p[2] + ' ' + MONTHS[+p[1] - 1] + ' ' + p[0]; }
-  function fmtNum(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  /* the date math and number formats are in js/hub.js (tested by npm test, under several time zones) */
+  var fmtDate = PL.hub.fmtDate, fmtNum = PL.hub.fmtNum;
   function renderCampaign() {
-    var L = sky.links || {}, c = sky.campaign || {}, d = daysLeft();
+    var L = sky.links || {}, c = sky.campaign || {}, d = PL.hub.daysLeft(c.endsOn);
+    if (d === null) d = -1;
     var ends = c.endsOn ? fmtDate(c.endsOn) : '';
     function link(label, url, alt) {
       return url
@@ -509,8 +503,9 @@
     }
     campaignEl.innerHTML =
       '<div class="cp-head"><span class="cp-kicker">KICKSTARTER</span>' +
-      (d > 0 ? '<div class="cp-count"><b>' + d + '</b><span>' + _n(d, 'day left|days left') + '</span></div>' : '') + '</div>' +
-      '<p class="cp-note">' + (d > 0 ? _('Campaign ends {date}. Goal EUR {goal}, funded within hours.', { date: ends, goal: fmtNum(c.goalEUR || 0) })
+      (d > 0 ? '<div class="cp-count"><b>' + d + '</b><span>' + _n(d, 'day left|days left') + '</span></div>'
+        : d === 0 ? '<div class="cp-count"><span class="cp-last">' + _('Last day') + '</span></div>' : '') + '</div>' +
+      '<p class="cp-note">' + (d >= 0 ? _('Campaign ends {date}. Goal EUR {goal}, funded within hours.', { date: ends, goal: fmtNum(c.goalEUR || 0) })
         : _('Goal EUR {goal}, funded within hours.', { goal: fmtNum(c.goalEUR || 0) })) + '</p>' +
       '<div class="cp-links">' + link('Kickstarter', L.kickstarter) + link('Steam', L.steam, true) + link('Discord', L.discord, true) + '</div>';
     campaignEl.querySelectorAll('.cp-link').forEach(function (el, i) {

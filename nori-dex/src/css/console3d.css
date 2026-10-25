@@ -72,8 +72,9 @@ html[data-layout="tall"] .body > .stud--home { left: 196px; top: 533px; z-index:
 html[data-layout="tall"] .body > .stud--help { left: 196px; top: 589px; z-index: 3; }
 /* the maker's mark at the foot of the spine, above the relic slot */
 html[data-layout="tall"] .maker { left: 196px; top: 619px; transform: translateX(-50%); flex-direction: column; height: auto; gap: 2px; padding: 4px 7px 3px; border-radius: 9px; }
-html[data-layout="tall"] .maker img { width: 15px; height: 15px; }
-html[data-layout="tall"] .maker span { max-width: 54px; font-size: 6.5px; line-height: 1.15; letter-spacing: .9px; text-align: center; }
+html[data-layout="tall"] .maker { padding: 5px; border-radius: 50%; }   /* the studio emblem alone, on a brass medallion (the name stays in the image's alt text) */
+html[data-layout="tall"] .maker img { width: 30px; height: 30px; }
+html[data-layout="tall"] .maker span { display: none; }
 /* crown: the logo sits in an arched sky window (the relics' arch), the crystal is the finial */
 html[data-layout="tall"] .crest { left: 84px; top: -24px; width: 224px; height: 86px; }
 html[data-layout="tall"] .crest-halo { display: none; }

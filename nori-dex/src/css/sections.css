@@ -83,3 +83,23 @@
 .stub-quiz { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 54px; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; background: linear-gradient(90deg, rgba(232, 185, 58, .22), rgba(232, 185, 58, .06)); box-shadow: inset 0 0 0 1px rgba(232, 185, 58, .55); text-align: left; }
 .stub-quiz b { font-size: 15px; color: #f8e19a; }
 .stub-quiz span { font-size: 12px; font-weight: 700; color: #c9d2e3; }
+
+/* ==========================================================================
+   PHONE TEXT FLOOR
+   Nothing on a phone may render below 11 CSS px. The stage is scaled to fit (0.87 at 360 x 800), so
+   design px are multiplied by that: 13 design px is 11.3 real px at the smallest supported phone.
+   All the phone sizes live here, in one block, so the floor can be raised or lowered in one place.
+   ========================================================================== */
+html[data-layout="tall"] {
+  --min-text: 13px;
+}
+html[data-layout="tall"] .tile-name { font-size: 13px; }
+html[data-layout="tall"] .tile-num { font-size: var(--min-text); }
+html[data-layout="tall"] .ph-tag { font-size: var(--min-text); padding: 2px 8px; letter-spacing: .02em; text-transform: none; }
+html[data-layout="tall"] .cp-kicker { font-size: var(--min-text); letter-spacing: 1.6px; }
+html[data-layout="tall"] .cp-count span:not(.cp-last) { font-size: var(--min-text); }
+html[data-layout="tall"] .cp-link, html[data-layout="tall"] .cp-link i { font-size: var(--min-text); }
+html[data-layout="tall"] .hints { font-size: var(--min-text); }
+html[data-layout="tall"] .hints .badge { font-size: var(--min-text); min-width: 22px; height: 22px; }
+html[data-layout="tall"] .ci-card .ci-hint { font-size: var(--min-text); }
+html[data-layout="tall"] .tab { font-size: var(--min-text); }

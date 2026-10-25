@@ -1,6 +1,7 @@
 # HANDOFF: Opus to Sonnet
 
-Project root: `nori-dex/` (sources in `nori-dex/src/`). Build: `cd src && npm i && npm run build` writes `src/dist/`.
+Project root: `nori-dex/` (sources in `nori-dex/src/`). Build: `cd src && npm i && npm run build` writes `src/dist/`; `npm run serve` previews it with the production headers.
+Read next to this file: `docs/AUDIT.md` (codebase audit), `docs/PERF.md` (measurements), `docs/HANDOVER.md` (studio guide).
 English only: no Russian anywhere. The build fails on any Cyrillic in `src/` or `dist/`.
 
 ## Change of plan (from the client, after the brief)
@@ -23,6 +24,7 @@ English only: no Russian anywhere. The build fails on any Cyrillic in `src/` or 
 | O3.1 | **Interchangeable grips** (client request). The device is split into body + two grips (`.wing--l`, `.wing--r`) that slide on rails. Four sets in `config.grips` (Halo & Sky, Grove, Ember, Nightglass); pick one under the device, with `G`, or with the altar's Grips button. Swap animation: the old grips unlatch, slide off the rails and fly away, the new ones fly in, slide on and click (seam flash + sound). It works with the device off too. Grip colours are CSS variables (`--gh --gm --gl --gt`) set per wing; the wing art in `device.js` reads them. Buttons got more depth: knurled brass studs with a dome and travel, prong-set gems with facets, an engraved rune compass. |
 | O4 | Re-voiced audio (`js/audio.js`): stone, brass and crystal-chime voices through a generated reverb, a mana hum while powered, a per-relic attunement chord (`config.carts[].chord`). The sound preference is stored in `localStorage['nd-audio']`. All sounds are synthesised; no audio files. |
 | O5 | Performance and hosting (`docs/PERF.md`). Lighthouse mobile 68 → 86, accessibility, best practices and SEO 100; desktop 100 on all four. Fixed main-thread work at idle (hidden-view animations, a `box-shadow` loop, an unlayered hint, per-frame layout reads, the first `Intl` call). Added low-power mode (`?lite=1`, auto on Save-Data or 2 GB devices). The relic readout updates on a `change` event instead of a timer. Checked the strict CSP through a full flow with the real headers (0 violations) and a clean `npm ci` build. Added `npm run serve` (dist with production headers). |
+| O6 | Integration review. Checked the shipped copy against the ground-truth table; no unsourced claims. Brand sweep of `src/` and `dist/`: clean. Touch targets at 360 × 800 now all ≥ 44 CSS px: bigger grip studs, altar dock, campaign links and relic tabs on the phone. The volume studs are hidden on phones, where the crest covered them; there is hardware volume and the Sound toggle. Power has a larger touch area. Wrote `docs/HANDOVER.md` for the studio (data, art, relics, translations, Vercel). |
 
 ## The i18n rule
 
@@ -72,8 +74,10 @@ d.press(name) / d.hints() / d.destroy()
 **Screen sizes**: the screen is a CSS size container named `screen`.
 - Desktop: **768 × 432**. Phone (portrait): **368 × 404**.
 - Use `@container screen (max-width: 480px) { … }` for the phone.
-- On the phone, `44 CSS px ≈ 50 design px`. Make touch targets at least 50 px there.
-- The screen frame gives you `top: 44px` (48 on phone) to `bottom: 34px` (32 on phone) inside `#sectionScroll`.
+- On a 360 px wide phone the stage scale is 0.87, so `44 CSS px ≈ 52 design px`. Make touch targets at least **52 px** there (the brief's acceptance checklist measures this; every control on the device and the altar passes).
+- The screen frame gives you `top: 44px` (**56** on phone, where the relic tab bar holds 52 px touch targets) to `bottom: 34px` (32 on phone) inside `#sectionScroll`.
+
+**Platforms**: the ground truth lists Steam (public playtest live), Nintendo Switch and Nintendo Switch 2. They may appear once, as plain text worded exactly as the studio words them. No logos, and nothing that makes the device read as that hardware. The build prints how many times "Nintendo" appears in the shipped code so the reviewer can check it is only that line.
 
 **Do not**: fetch anything, add dependencies, reference `assets/src/` (originals, not shipped) or anything from `reference/`, or state facts outside the ground-truth table.
 

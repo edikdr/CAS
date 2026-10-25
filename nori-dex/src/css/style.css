@@ -575,17 +575,23 @@ html[data-layout="tall"] .floor-glow { top: 640px; left: 0; right: 0; }
   .cp-count b { font-size: 28px; }
   .cp-note { display: none; }
   .cp-links { flex-direction: row; gap: 6px; }
-  .cp-link { flex: 1; justify-content: center; padding: 0 6px; font-size: 12.5px; flex-direction: column; gap: 0; }
+  .cp-link { flex: 1; justify-content: center; min-height: 52px; padding: 0 6px; font-size: 12.5px; flex-direction: column; gap: 0; }
   .cp-link i { font-size: 10px; }
-  .dock { left: 0; right: 0; bottom: 38px; gap: 14px; justify-content: center; }
+  .dock { left: 0; right: 0; bottom: 38px; gap: 10px; justify-content: center; }
+  .dock-btn { width: 52px; height: 52px; }   /* touch targets: 52 design px = 44 CSS px on a 360 px wide phone */
   .hints { height: 32px; padding: 0 10px; font-size: 11px; }
   .hints-left { display: none; }
   .hints-right { gap: 10px; width: 100%; justify-content: flex-end; }
-  .tabs { height: 48px; padding: 0 6px; }
-  .tab-key { width: 44px; height: 40px; }
-  .tab { padding: 6px 9px; font-size: 12px; }
+  .tabs { height: 56px; padding: 0 4px; gap: 4px; }
+  .tab-key { width: 52px; height: 52px; }
+  .tab-list { gap: 0; }
+  /* the tab box is the 52 px touch target; the pill is drawn smaller inside it */
+  .tab { position: relative; isolation: isolate; min-width: 52px; min-height: 52px; justify-content: center; padding: 0 9px; font-size: 12px; background: none; box-shadow: none; }
+  .tab::before { content: ''; position: absolute; left: 2px; right: 2px; top: 12px; bottom: 12px; border-radius: 999px; z-index: -1; }
+  .tab.is-active { background: none; box-shadow: none; }
+  .tab.is-active::before { background: var(--tc); box-shadow: 0 0 14px color-mix(in srgb, var(--tc) 55%, transparent); }
   .tab:not(.is-active) span { display: none; }
-  .section-scroll { top: 48px; bottom: 32px; }
+  .section-scroll { top: 56px; bottom: 32px; }
   .help-grid { grid-template-columns: 1fr; }
   .at-art { width: 120px; height: 120px; }
 }
@@ -595,6 +601,8 @@ html[data-layout="tall"] .floor-glow { top: 640px; left: 0; right: 0; }
   .is-intro .body { animation: none; }
   .view-home.is-active .tile { animation: none; }
   .attune.is-on, .attune.is-on .at-ring, .attune.is-on .at-art, .attune.is-on .at-name { animation-duration: .01s; animation-delay: 0s; }
+  .cable-hint i, .ci-arrow, .cart-3d, .cart-gem, .crest-crystal b { animation: none !important; }   /* hint and idle loops (later files set them) */
+  .port.is-call::after { animation: none !important; opacity: .7; }
 }
 
 /* low-power mode (Save-Data, 2 GB devices or ?lite=1; set in js/motion.js): idle loops stop,

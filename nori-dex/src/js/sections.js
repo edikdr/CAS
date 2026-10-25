@@ -179,6 +179,8 @@ PL.sections = (function () {
 
   function dex(root) {
     var noris = sky.noris || [], hero = sky.hero, fallen = loadFallen(), alt = {};
+    var guardian = null;                                // the Spirit Quiz result, kept in localStorage 'nd-spirit' (js/spirit.js)
+    try { guardian = localStorage.getItem('nd-spirit'); } catch (e) {}
     var timers = [], card = null;
     var sec = new Section(root, { head: '' });
 
@@ -196,7 +198,7 @@ PL.sections = (function () {
       var gone = fallen.indexOf(n.id) > -1;
       return '<button class="gi dx-tile' + (gone ? ' is-fallen' : '') + '" data-id="' + esc(n.id) + '" style="--dc:' + (ACCENT[n.id] || '#7FD6DF') + '" aria-label="' + esc(_('{name}: open the card', { name: n.name })) + '">' +
         '<span class="dx-ph"><img src="' + esc(art(n)) + '" alt="" width="72" height="72" decoding="async"></span>' +
-        '<b>' + esc(n.name) + '</b><i class="dx-gone">' + (gone ? _('Fallen') : '') + '</i></button>';
+        '<b>' + esc(n.name) + '</b><i class="dx-gone' + (!gone && n.id === guardian ? ' is-mine' : '') + '">' + (gone ? _('Fallen') : n.id === guardian ? _('Your guardian') : '') + '</i></button>';
     }
     sec.scroll.innerHTML =
       '<div class="dx-wrap">' +
@@ -217,7 +219,9 @@ PL.sections = (function () {
         var t = sec.scroll.querySelector('.dx-tile[data-id="' + n.id + '"]'); if (!t) return;
         var gone = fallen.indexOf(n.id) > -1;
         t.classList.toggle('is-fallen', gone);
-        t.querySelector('.dx-gone').textContent = gone ? _('Fallen') : '';
+        var cap = t.querySelector('.dx-gone');
+        cap.classList.toggle('is-mine', !gone && n.id === guardian);
+        cap.textContent = gone ? _('Fallen') : n.id === guardian ? _('Your guardian') : '';
       });
       head();
     }
@@ -395,6 +399,12 @@ PL.sections = (function () {
       sec.sheet.removeEventListener('click', onSheetClick);
       baseDestroy.call(sec);
     };
+    var hand = PL.sections.hand && PL.sections.hand.card;     // "Meet Zer" in the Spirit Quiz: open that card
+    PL.sections.hand = null;
+    if (hand && byId(hand)) {
+      var tile = sec.scroll.querySelector('.dx-tile[data-id="' + hand + '"]'); if (tile) sec.select(tile, true);
+      later(function () { ctx.audio('open'); openCard(hand); }, 260);
+    }
     return sec;
   }
 
@@ -502,18 +512,7 @@ PL.sections = (function () {
     return sec;
   }
 
-  function spirit(root) {
-    var sec = new Section(root, { sub: true, head: '<b class="sec-title">' + _('Spirit Quiz') + '</b>' + tag() });
-    var d = PL.quiz.dialog(root, { accent: '#E8B93A', onHints: function () { ctx.hints(); } });
-    d.say([_('Which Nori is your spirit guardian?'), _('The three questions arrive in the next pass. Press Back to return to the bestiary.')], 'Nori-Dex');
-    var press = sec.press, destroy = sec.destroy, hints = sec.hints;
-    sec.press = function (name) { return d.press(name) || (name !== 'b' && press.call(sec, name)); };
-    sec.hints = function () { return d.hints().concat(hints.call(sec)); };
-    sec.destroy = function () { d.destroy(); destroy.call(sec); };
-    return sec;
-  }
-
-  var BUILDERS = { dex: dex, worlds: worlds, spirit: spirit };
+  var BUILDERS = { dex: dex, worlds: worlds };      // 'spirit' joins from js/spirit.js
 
   return {
     setContext: function (c) { ctx = c; },
@@ -524,6 +523,9 @@ PL.sections = (function () {
       return current;
     },
     register: function (id, builder) { BUILDERS[id] = builder; },
+    ctx: function () { return ctx; },
+    accent: ACCENT,
+    hand: null,          // a one-shot message between screens, e.g. { card: 'zer' } opens that Nori's card in the dex
     Section: Section,
     esc: esc,
     tag: tag,

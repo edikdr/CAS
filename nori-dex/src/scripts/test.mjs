@@ -103,6 +103,42 @@ test('sky.js: every fact has a source; campaign dates are valid and ordered', ()
   assert.ok(SKY.campaign.startsOn < SKY.campaign.endsOn);
 });
 
+/* ---------- Spirit Quiz (js/quiz-data.js) ---------- */
+const QZ = load(['js/quiz-data.js']).quizData;
+test('quiz: 3 questions with 4 options each; every weight names a real Nori', () => {
+  assert.equal(QZ.questions.length, 3);
+  const ids = SKY.noris.map((n) => n.id);
+  assert.deepEqual(plain(QZ.order).sort(), plain(ids).sort());
+  for (const q of QZ.questions) {
+    assert.equal(q.options.length, 4);
+    for (const o of q.options) for (const id of Object.keys(o.w)) assert.ok(ids.includes(id), id);
+  }
+  for (const id of ids) assert.ok(QZ.match[id], id + ' needs a match line');
+});
+test('quiz: text is short enough for the phone dialog (question <= 50, option <= 28 characters)', () => {
+  for (const q of QZ.questions) { assert.ok(q.q.length <= 50, q.q); for (const o of q.options) assert.ok(o.t.length <= 28, o.t); }
+});
+test('quiz: all 64 answer sets give one Nori, and every Nori can be the result', () => {
+  const seen = {};
+  for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) for (let c = 0; c < 4; c++) {
+    const r = QZ.outcome([a, b, c]);
+    assert.ok(QZ.order.includes(r.winner), `${a}${b}${c}`);
+    assert.equal(QZ.outcome([a, b, c]).winner, r.winner, 'same answers, same Nori');
+    seen[r.winner] = (seen[r.winner] || 0) + 1;
+  }
+  assert.deepEqual(Object.keys(seen).sort(), plain(QZ.order).sort(), 'a Nori that can never win: ' + JSON.stringify(seen));
+});
+test('quiz: no Nori wins more than a third of all answer sets (the result stays a surprise)', () => {
+  const seen = {};
+  for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) for (let c = 0; c < 4; c++) { const w = QZ.outcome([a, b, c]).winner; seen[w] = (seen[w] || 0) + 1; }
+  for (const [id, n] of Object.entries(seen)) assert.ok(n <= 21, `${id} wins ${n} of 64`);
+});
+test('quiz: a clear favourite wins (the same Nori three times)', () => {
+  assert.equal(QZ.outcome([0, 0, 3]).winner, 'zer');         // zer 2+2+1 beats everyone
+  assert.equal(QZ.outcome([3, 3, 3]).winner, 'garnia');
+  assert.equal(QZ.outcome([1, 1, 0]).winner, 'saltu');
+});
+
 /* ---------- run ---------- */
 let bad = 0;
 for (const [name, fn] of tests) {

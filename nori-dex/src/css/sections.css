@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Screens inside the device (owner: Sonnet). STUB by Opus: the controller
-   frame (.sec-head / .sec-scroll / .sheet / .gi) plus plain stub styles.
+   Screens inside the device (owner: Sonnet): the controller frame
+   (.sec-head / .sec-scroll / .sheet / .gi), then one block per screen.
    The screen element is a CSS size container named "screen": use
    @container screen (max-width: 480px) { ... } for the phone layout.
    ========================================================================== */
@@ -60,36 +60,13 @@
   vertical-align: middle;
 }
 
-/* stub layouts */
-.stub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
-.stub-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: 12px; background: rgba(255, 255, 255, .05); min-height: 44px; }
-.stub-tile img { width: 64px; height: 64px; border-radius: 50%; }
-.stub-tile b { font-size: 13px; }
-.stub-tile i { font-style: normal; font-size: 10px; color: #E8B93A; }
-.stub-card { display: grid; grid-template-columns: 150px 1fr; gap: 18px; }
-.stub-card img { width: 150px; height: 150px; border-radius: 50%; }
-.stub-card h3 { font-size: 22px; font-weight: 900; }
-.stub-card p { margin-top: 8px; font-size: 13px; font-weight: 700; color: #c9d2e3; line-height: 1.4; }
-.stub-list { display: flex; flex-direction: column; gap: 10px; }
-.stub-row { display: block; padding: 12px 14px; border-radius: 10px; background: rgba(255, 255, 255, .05); }
-.stub-row b { font-size: 14px; }
-.stub-row p, .stub-note { margin-top: 6px; font-size: 12px; font-weight: 700; color: #c9d2e3; }
-.stub-link { display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 10px; background: rgba(127, 214, 223, .14); color: #fff; font-weight: 800; text-decoration: none; }
-.stub-link.is-pending { background: rgba(255, 255, 255, .05); color: var(--ui-dim); }
-
-@container screen (max-width: 480px) {
-  .stub-card { grid-template-columns: 1fr; }
-}
-.stub-quiz { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; min-height: 54px; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; background: linear-gradient(90deg, rgba(232, 185, 58, .22), rgba(232, 185, 58, .06)); box-shadow: inset 0 0 0 1px rgba(232, 185, 58, .55); text-align: left; }
-.stub-quiz b { font-size: 15px; color: #f8e19a; }
-.stub-quiz span { font-size: 12px; font-weight: 700; color: #c9d2e3; }
-
 /* ==========================================================================
    NORI-DEX (js/sections.js). Desktop screen 768 x 432, phone 368 x 404 (container "screen").
    ========================================================================== */
 .dx-count { margin-left: auto; font: 800 12px/1 var(--round); letter-spacing: .04em; color: var(--ui-dim); white-space: nowrap; }
 .dx-lost { padding: 3px 8px; border-radius: 999px; font: 800 12px/1 var(--round); color: #cdd3df; background: rgba(160, 168, 184, .16); box-shadow: inset 0 0 0 1px rgba(200, 206, 218, .3); white-space: nowrap; }
 .dx-count + .dx-lost { margin-left: 0; }
+.dx-count--left { margin-left: 4px; font-weight: 700; }   /* in the quiz the counter follows the title; the option menu covers the right side */
 
 .dx-wrap { display: grid; grid-template-columns: 214px 1fr; gap: 14px; align-items: stretch; }
 .dx-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(0, 1fr); gap: 10px; }
@@ -122,6 +99,7 @@
 .dx-tile b { font-size: 15px; font-weight: 900; line-height: 1.05; }
 .dx-gone { min-height: 0; font: 800 12px/1 var(--round); font-style: normal; color: #aeb5c4; }
 .dx-gone:empty { display: none; }
+.dx-gone.is-mine { color: #f8e19a; }
 .dx-tile.is-fallen { background: rgba(150, 158, 175, .08); }
 .dx-tile.is-fallen .dx-ph { box-shadow: 0 0 0 3px #6c7384; }
 .dx-tile.is-fallen .dx-ph img { filter: grayscale(1) contrast(.85) brightness(.78); opacity: .75; }
@@ -336,6 +314,66 @@
 @media (prefers-reduced-motion: reduce) {
   .wl-line::after, .wl-node, .wl-body { transition: none; }
   .wl-end.is-pop { animation: none; }
+}
+
+/* ==========================================================================
+   SPIRIT QUIZ (js/spirit.js): the Noris wait along the top and warm up as the answers favour them;
+   the reveal shows the guardian. The questions use the dialog kit (css/quiz.css).
+   ========================================================================== */
+.sq-stage { position: relative; min-height: 100%; }
+.sq-row { list-style: none; margin: 0; padding: 4px 0 0; display: flex; gap: 6px; transition: opacity .4s, transform .4s; }
+.sq-row.is-done { opacity: 0; transform: translateY(-10px); pointer-events: none; height: 0; overflow: hidden; padding: 0; }
+.sq-dot { --dc: #7FD6DF; --lit: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; width: 64px; opacity: calc(.4 + var(--lit) * .6); transition: opacity .6s; }
+.sq-dot span { display: block; width: 50px; height: 50px; border-radius: 50%; overflow: hidden; background: rgba(0, 0, 0, .3); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dc) calc(var(--lit) * 100%), #3a4157), 0 0 calc(var(--lit) * 20px) color-mix(in srgb, var(--dc) 70%, transparent); transition: box-shadow .6s; }
+.sq-dot img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(calc(1 - var(--lit))); transition: filter .6s; }
+.sq-dot b { font-size: 13px; font-weight: 800; color: #dbe3f5; }
+
+.sq-res { --dc: #E8B93A; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 26px; padding: 0 12px; }
+.sq-res[hidden] { display: none; }
+.sq-pic { position: relative; flex: none; width: 150px; height: 150px; }
+.sq-ring { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, .14), rgba(0, 0, 0, .4)); box-shadow: 0 0 0 5px var(--dc), 0 0 0 9px rgba(0, 0, 0, .4), 0 0 40px color-mix(in srgb, var(--dc) 60%, transparent); }
+.sq-ring img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.sq-burst { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+.sq-burst i { position: absolute; left: -5px; top: -8px; width: 10px; height: 16px; opacity: 0; clip-path: polygon(50% 0, 100% 42%, 50% 100%, 0 42%); background: linear-gradient(135deg, #fff, var(--dc)); }
+.sq-res.is-on .sq-ring { animation: sqPop .75s cubic-bezier(.3, 1.6, .5, 1) both; }
+.sq-res.is-on .sq-burst i { animation: sqShard .95s cubic-bezier(.2, .8, .3, 1) .12s both; }
+@keyframes sqPop { from { transform: scale(.3); opacity: 0; } }
+@keyframes sqShard { 0% { opacity: 1; transform: rotate(var(--a)) translateY(-30px) scale(.5); } 100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--r))) scale(1.1); } }
+.sq-txt { min-width: 0; max-width: 420px; }
+.sq-kick { margin: 0; font: 400 12px/1 var(--pixel); letter-spacing: 2px; text-transform: uppercase; color: color-mix(in srgb, var(--dc) 70%, #fff); }
+.sq-txt h3 { margin: 6px 0 4px; font-size: 38px; font-weight: 900; line-height: 1; color: #fff; text-shadow: 0 0 22px color-mix(in srgb, var(--dc) 60%, transparent); }
+.sq-match { margin: 0 0 6px; font-size: 15px; font-weight: 800; line-height: 1.35; color: #f0f4ff; }
+.sq-look { margin: 0 0 12px; font-size: 13px; font-weight: 700; line-height: 1.35; color: #b9c4dc; }
+.sq-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+.sq-btn { min-height: 44px; padding: 8px 18px; border-radius: 6px; font: 400 20px/1.1 'Tiny5', ui-monospace, monospace; color: #f4f7ff; text-shadow: 2px 2px 0 #142449; background: linear-gradient(180deg, #17295c, #0f1b3d); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dc) 60%, #fff), 0 0 0 6px #070b1a; }
+.sq-btn.is-sel { color: #0a0f26; text-shadow: none; background: var(--dc); }
+.sq-foot { margin: 14px 0 0; font-size: 12px; font-weight: 700; color: var(--ui-dim); }
+
+@container screen (max-width: 480px) {
+  .sq-row { gap: 4px; justify-content: center; }
+  .sq-dot { width: 68px; }
+  .sq-dot span { width: 46px; height: 46px; }
+  .sq-dot b { font-size: 13px; }
+  .sq-res { position: relative; inset: auto; display: grid; grid-template-columns: 88px 1fr; grid-template-areas: "pic kick" "pic name" "pic match" "look look" "btns btns" "foot foot"; align-items: start; justify-content: stretch; gap: 0 14px; padding: 2px 2px 0; }
+  .sq-pic { grid-area: pic; width: 84px; height: 84px; margin-top: 4px; }
+  .sq-ring { box-shadow: 0 0 0 4px var(--dc), 0 0 0 7px rgba(0, 0, 0, .4), 0 0 26px color-mix(in srgb, var(--dc) 60%, transparent); }
+  .sq-txt { display: contents; }
+  .sq-kick { grid-area: kick; align-self: end; font-size: 13px; padding-top: 6px; }
+  .sq-txt h3 { grid-area: name; margin: 2px 0 2px; font-size: 30px; }
+  .sq-match { grid-area: match; font-size: 14px; margin: 0; }
+  .sq-look { grid-area: look; font-size: 13px; margin: 10px 0 0; }
+  .sq-btns { grid-area: btns; flex-wrap: nowrap; gap: 10px; margin-top: 10px; }
+  .sq-btn { flex: 1; min-height: 52px; font-size: 19px; padding: 8px 10px; }
+  .sq-foot { grid-area: foot; font-size: 13px; margin: 8px 0 0; }
+  /* the dialog kit's box, a little smaller here so four options (44 px each) fit above it without touching the tab bar */
+  .sec-host .q-box { bottom: 8px; }
+  .sec-host .q-box .q-dialog { min-height: 84px; padding: 10px 18px 8px; }
+  .sec-host .q-box .q-menu { bottom: calc(100% + 12px); }
+  .sec-host .q-box .q-opt { padding-top: 2px; padding-bottom: 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sq-res.is-on .sq-ring, .sq-res.is-on .sq-burst i { animation: none; }
+  .sq-row, .sq-dot, .sq-dot span, .sq-dot img { transition: none; }
 }
 
 /* ==========================================================================

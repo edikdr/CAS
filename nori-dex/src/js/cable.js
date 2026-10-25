@@ -65,9 +65,13 @@ PL.cable = (function () {
   }
   function on(n, f) { (handlers[n] = handlers[n] || []).push(f); }
 
-  function portInfo() {   // top edge of the body at the socket centre, in design coordinates
+  /* top edge of the body at the socket centre, in design coordinates. Read once per frame (and after a resize):
+     each read can force a layout of the whole 3D scene. */
+  var piCache = null;
+  function portInfo() {
+    if (piCache) return piCache;
     var r = port.getBoundingClientRect();
-    return { x: (r.left + r.width / 2) / S, y: (r.top + 1) / S };
+    return (piCache = { x: (r.left + r.width / 2) / S, y: (r.top + 1) / S });
   }
   function anchorPos() { var pi = portInfo(); return { x: pi.x + AX, y: -20 }; }
   /* cable length: the plug hangs just below the top edge of the body and can still reach the socket */
@@ -78,6 +82,7 @@ PL.cable = (function () {
   }
 
   function resize() {
+    piCache = null;
     dpr = Math.min(2, window.devicePixelRatio || 1);
     S = PL.scale || 1;
     W = window.innerWidth;
@@ -243,6 +248,7 @@ PL.cable = (function () {
 
   function frame(now) {
     raf = 0;
+    piCache = null;
     if (state === 'dangle' && !hot && now - lastT < 30) { raf = requestAnimationFrame(frame); return; }   // at rest: 30 fps
     var dt = Math.min(0.05, (now - lastT) / 1000) * slow;
     lastT = now;

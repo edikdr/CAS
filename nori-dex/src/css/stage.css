@@ -11,6 +11,7 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
 .cable-hint {
   position: fixed;
   left: 0; top: 0;
+  will-change: transform;   /* follows the plug every frame: its own layer, no repaint */
   z-index: 41;
   pointer-events: none;
   display: flex;

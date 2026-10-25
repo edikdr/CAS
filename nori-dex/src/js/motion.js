@@ -9,6 +9,16 @@ window.PL = window.PL || {};
 PL.motion = (function () {
   var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
+  /* low-power mode: Save-Data, a device with 2 GB of memory or less, or ?lite=1 (?lite=0 forces it off).
+     The mist runs at a lower frame rate, the grain stops, idle loops pause and the reverb is shorter. */
+  var low = (function () {
+    var q = /[?&]lite=([01])/.exec(location.search);
+    if (q) return q[1] === '1';
+    var c = navigator.connection;
+    return !!(c && c.saveData) || (navigator.deviceMemory > 0 && navigator.deviceMemory <= 2);
+  })();
+  if (low) document.documentElement.classList.add('low-power');
+
   /* ---- easing curves ---- */
   var E = {
     lin: function (u) { return u; },
@@ -108,5 +118,5 @@ PL.motion = (function () {
 
   function wait(ms) { return new Promise(function (r) { setTimeout(r, reduce ? 0 : ms); }); }
 
-  return { E: E, mix: mix, clamp: clamp, seg: seg, bez: bez, frames: frames, play: play, run: run, cues: cues, commit: commit, wait: wait, reduce: reduce, toTransform: toTransform };
+  return { E: E, mix: mix, clamp: clamp, seg: seg, bez: bez, frames: frames, play: play, run: run, cues: cues, commit: commit, wait: wait, reduce: reduce, low: low, toTransform: toTransform };
 })();

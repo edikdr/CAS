@@ -439,7 +439,7 @@
   });
   PL.carts.on('play', function (id) { launchCart(id); });
   PL.carts.on('eject', ejectCart);
-  setInterval(function () { if (!PL.carts.isBusy()) updateOsd(); }, 1000);
+  PL.carts.on('change', updateOsd);
 
   /* back to the idle mist (the relic stays seated) */
   function goStatic() {
@@ -495,9 +495,13 @@
     if (!c || !c.endsOn) return 0;
     return Math.ceil((new Date(c.endsOn + 'T23:59:59') - Date.now()) / 864e5);
   }
+  /* formatted by hand: the first Intl call costs ~80 ms on a slow phone, on the startup path */
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function fmtDate(iso) { var p = iso.split('-'); return +p[2] + ' ' + MONTHS[+p[1] - 1] + ' ' + p[0]; }
+  function fmtNum(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
   function renderCampaign() {
     var L = sky.links || {}, c = sky.campaign || {}, d = daysLeft();
-    var ends = c.endsOn ? new Date(c.endsOn + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    var ends = c.endsOn ? fmtDate(c.endsOn) : '';
     function link(label, url, alt) {
       return url
         ? '<a class="cp-link' + (alt ? ' is-alt' : '') + '" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(label) + '<i>↗</i></a>'
@@ -506,8 +510,8 @@
     campaignEl.innerHTML =
       '<div class="cp-head"><span class="cp-kicker">KICKSTARTER</span>' +
       (d > 0 ? '<div class="cp-count"><b>' + d + '</b><span>' + _n(d, 'day left|days left') + '</span></div>' : '') + '</div>' +
-      '<p class="cp-note">' + (d > 0 ? _('Campaign ends {date}. Goal EUR {goal}, funded within hours.', { date: ends, goal: (c.goalEUR || 0).toLocaleString('en-GB') })
-        : _('Goal EUR {goal}, funded within hours.', { goal: (c.goalEUR || 0).toLocaleString('en-GB') })) + '</p>' +
+      '<p class="cp-note">' + (d > 0 ? _('Campaign ends {date}. Goal EUR {goal}, funded within hours.', { date: ends, goal: fmtNum(c.goalEUR || 0) })
+        : _('Goal EUR {goal}, funded within hours.', { goal: fmtNum(c.goalEUR || 0) })) + '</p>' +
       '<div class="cp-links">' + link('Kickstarter', L.kickstarter) + link('Steam', L.steam, true) + link('Discord', L.discord, true) + '</div>';
     campaignEl.querySelectorAll('.cp-link').forEach(function (el, i) {
       el.addEventListener('pointermove', function (e) {

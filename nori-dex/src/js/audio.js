@@ -35,7 +35,7 @@ PL.audio = (function () {
 
   /* a small stone hall: generated impulse response (decaying stereo noise) */
   function makeVerb() {
-    var len = Math.floor(ctx.sampleRate * 1.6), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    var len = Math.floor(ctx.sampleRate * (PL.motion && PL.motion.low ? 0.7 : 1.6)), ir = ctx.createBuffer(2, len, ctx.sampleRate);
     for (var c = 0; c < 2; c++) {
       var d = ir.getChannelData(c);
       for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);

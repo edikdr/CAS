@@ -22,6 +22,7 @@ English only: no Russian anywhere. The build fails on any Cyrillic in `src/` or 
 | O3 | Built the Mana Communicator device (`index.html`, `css/console3d.css`, `js/device.js`). Built the three relics (`js/carts.js`, `css/stage.css`). Re-skinned the cable as the mana conduit (`js/cable.js`). Rebuilt the shell (`js/app.js`): attunement, altar and campaign, relic tabs, screen stack. Added the phone layout. Simplified input (no sticks; the gamepad is polled only while connected). |
 | O3.1 | **Interchangeable grips** (client request). The device is split into body + two grips (`.wing--l`, `.wing--r`) that slide on rails. Four sets in `config.grips` (Halo & Sky, Grove, Ember, Nightglass); pick one under the device, with `G`, or with the altar's Grips button. Swap animation: the old grips unlatch, slide off the rails and fly away, the new ones fly in, slide on and click (seam flash + sound). It works with the device off too. Grip colours are CSS variables (`--gh --gm --gl --gt`) set per wing; the wing art in `device.js` reads them. Buttons got more depth: knurled brass studs with a dome and travel, prong-set gems with facets, an engraved rune compass. |
 | O4 | Re-voiced audio (`js/audio.js`): stone, brass and crystal-chime voices through a generated reverb, a mana hum while powered, a per-relic attunement chord (`config.carts[].chord`). The sound preference is stored in `localStorage['nd-audio']`. All sounds are synthesised; no audio files. |
+| O5 | Performance and hosting (`docs/PERF.md`). Lighthouse mobile 68 → 86, accessibility, best practices and SEO 100; desktop 100 on all four. Fixed main-thread work at idle (hidden-view animations, a `box-shadow` loop, an unlayered hint, per-frame layout reads, the first `Intl` call). Added low-power mode (`?lite=1`, auto on Save-Data or 2 GB devices). The relic readout updates on a `change` event instead of a timer. Checked the strict CSP through a full flow with the real headers (0 violations) and a clean `npm ci` build. Added `npm run serve` (dist with production headers). |
 
 ## The i18n rule
 
@@ -39,6 +40,7 @@ English only: no Russian anywhere. The build fails on any Cyrillic in `src/` or 
 - `verified:false`, `nameStatus:'working'` and `artStatus:'unverified'|'pending'` must render a Placeholder tag (class `.ph-tag` exists in `css/sections.css`).
 - `snapshot` is a playtest HUD reading. Label it "Playtest snapshot", never "base stats".
 - Keep the file under 20 KB. The build fails above that.
+- Prefer the `-960` WebP variants for screen art (`assets/art/*-960.webp`, `assets/shots/*-960.webp`): half the bytes of the full-size files and sharp at screen size. `sky.js` currently points the Noreth and Celestia planes at the full-size shots.
 
 **`js/sections.js`** (+ `css/sections.css`) uses this contract, which `app.js` relies on:
 

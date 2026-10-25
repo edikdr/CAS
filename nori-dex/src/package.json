@@ -7,7 +7,8 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "images": "python3 scripts/bake-images.py && python3 scripts/bake-bg.py",
-    "fonts": "node scripts/build-shot-fonts.mjs"
+    "fonts": "node scripts/build-shot-fonts.mjs",
+    "serve": "node scripts/serve.mjs"
   },
   "engines": {
     "node": ">=18"

@@ -17,6 +17,7 @@ PL.static = (function () {
   var seed = (Math.random() * 0xffffffff) >>> 0 || 1;
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var calmOnly = reduce || !!(navigator.connection && navigator.connection.saveData);
+  var low = PL.motion && PL.motion.low;           // low-power: the mist at 12 fps, a still grain
   var tears = []; // horizontal tear lines
 
   function rand() {
@@ -78,11 +79,11 @@ PL.static = (function () {
 
   function loop(ts) {
     raf = requestAnimationFrame(loop);
-    var minGap = mode === 'grain' ? 125 : mode === 'tune' ? 16 : 40;   // the mist drifts at 25 fps, the grain at 8 fps
+    var minGap = mode === 'grain' ? 125 : mode === 'tune' ? 16 : low ? 83 : 40;   // the mist drifts at 25 fps, the grain at 8 fps
     if (ts - lastDraw < minGap) return;
     lastDraw = ts;
     draw(ts);
-    if (calmOnly && mode !== 'tune') stop();   // reduced motion / Save-Data: one still frame
+    if ((calmOnly || (low && mode === 'grain')) && mode !== 'tune') stop();   // reduced motion / Save-Data: one still frame
   }
 
   function start() { if (!raf) raf = requestAnimationFrame(loop); }

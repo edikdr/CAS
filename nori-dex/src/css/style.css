@@ -136,6 +136,8 @@ html[data-layout="tall"] .floor-glow { top: 640px; left: 0; right: 0; }
   transition: opacity .35s ease, transform .45s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .45s;
 }
 .view.is-active { opacity: 1; visibility: visible; transition: opacity .35s ease, transform .45s cubic-bezier(.2, .8, .2, 1), visibility 0s; }
+/* loops inside a hidden view stay paused: an invisible animation cannot run on the compositor and would tick the main thread every frame */
+.view:not(.is-active) *, .view:not(.is-active) *::before, .view:not(.is-active) *::after { animation-play-state: paused !important; }
 
 /* ---------- OSD ---------- */
 .osd {
@@ -176,6 +178,7 @@ html[data-layout="tall"] .floor-glow { top: 640px; left: 0; right: 0; }
   border-radius: 50%;
   border: 5px solid var(--gold);
   box-shadow: 0 0 18px rgba(232, 185, 58, .6), inset 0 0 10px rgba(232, 185, 58, .45);
+  will-change: transform;   /* own layer: the spin must not repaint the screen */
   animation: haloSpin 5s linear infinite;
 }
 @keyframes haloSpin { to { transform: rotateZ(360deg); } }
@@ -185,6 +188,7 @@ html[data-layout="tall"] .floor-glow { top: 640px; left: 0; right: 0; }
   display: grid;
   place-items: center;
   filter: drop-shadow(0 0 14px rgba(127, 214, 223, .8));
+  will-change: transform;
   animation: corePulse 2.6s ease-in-out infinite;
 }
 .play-core i {
@@ -592,3 +596,10 @@ html[data-layout="tall"] .floor-glow { top: 640px; left: 0; right: 0; }
   .view-home.is-active .tile { animation: none; }
   .attune.is-on, .attune.is-on .at-ring, .attune.is-on .at-art, .attune.is-on .at-name { animation-duration: .01s; animation-delay: 0s; }
 }
+
+/* low-power mode (Save-Data, 2 GB devices or ?lite=1; set in js/motion.js): idle loops stop,
+   the one-off moments (boot, attunement, swaps) stay */
+.low-power .bg-img, .low-power .play-halo, .low-power .play-core,
+.low-power .cart.is-sel .cart-3d, .low-power .cart.is-seated .cart-gem,
+.low-power .is-attuned .crest-crystal b { animation: none !important; }
+.low-power .dv-light { filter: none !important; }

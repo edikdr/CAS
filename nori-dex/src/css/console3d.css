@@ -372,8 +372,10 @@ body.is-plugged.is-on .port-led { background: var(--plane); box-shadow: 0 0 7px 
 .port-spark { position: absolute; left: 50%; top: 0; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, .95) 0, rgba(127, 214, 223, .6) 24%, rgba(127, 214, 223, .12) 48%, transparent 64%); opacity: 0; pointer-events: none; }
 .port-spark.go { animation: sparkPop .7s ease-out both; }
 @keyframes sparkPop { 0% { opacity: 1; transform: scale(.25); } 100% { opacity: 0; transform: scale(1.4); } }
-.port.is-call { animation: portCall 1.4s ease-in-out infinite; }
-@keyframes portCall { 50% { box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 3px #f8e19a, 0 0 0 4px #5c3b0c, 0 0 16px 5px rgba(127, 214, 223, .65); } }
+/* calling for the conduit: a glow ring that only fades (opacity runs on the compositor; an animated box-shadow repainted the whole device every frame) */
+.port::after { content: ''; position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 3px #f8e19a, 0 0 16px 5px rgba(127, 214, 223, .65); opacity: 0; pointer-events: none; }
+.port.is-call::after { will-change: opacity; animation: portCall 1.4s ease-in-out infinite; }
+@keyframes portCall { 50% { opacity: 1; } }
 .port.is-near { box-shadow: inset 0 -3px 4px rgba(0, 0, 0, .95), 0 0 0 3px #f8e19a, 0 0 18px 6px rgba(127, 214, 223, .75); }
 
 .cart-slot {

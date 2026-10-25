@@ -8,7 +8,7 @@
      slides in and latches (click, indicator, device jolt).
      A side relic flies across to the slot through the air.
    • Eject: spring kick, slides out and returns to its own cell.
-   API: PL.carts.select(id), insert(id, hooks), eject(hooks), inserted(), on('play'|'eject'|'seated'|'eject-start', fn)
+   API: PL.carts.select(id), insert(id, hooks), eject(hooks), inserted(), on('play'|'eject'|'seated'|'eject-start'|'change', fn)
    ========================================================================== */
 window.PL = window.PL || {};
 
@@ -461,6 +461,7 @@ PL.carts = (function () {
     st.ins = c.def.id;
     c.pose = null;
     updateLeds();
+    emit('change', st.ins);
   }
 
   /* hooks.fast: a swap from the screen plays the same path faster (K scales time) */
@@ -534,6 +535,7 @@ PL.carts = (function () {
     c.pose = null;
     st.ins = null;
     updateLeds();
+    emit('change', null);
   }
   function flyOut(c, hooks, from) {
     var el = c.el, dx = dxOf(c), K = speed(hooks);

@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#0F1B3D">
   <title>Nori-Dex · The Sky Project: Land of Noris</title>
   <meta name="description" content="Nori-Dex: an interactive bestiary and promo hub for The Sky Project: Land of Noris by Enthariel Games.">
+  <link rel="icon" type="image/webp" href="assets/logo/enthariel-games-logo.webp">
   <link rel="stylesheet" href="css/fonts.css">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/sections.css">
@@ -94,7 +95,7 @@
                 <!-- VIEW 2: boot (dawn) -->
                 <section class="view view-boot" data-view="boot" aria-label="Waking up">
                   <svg class="boot-ring" viewBox="0 0 120 120" aria-hidden="true"><circle class="br-ring" cx="60" cy="60" r="52" /><ellipse class="br-halo" cx="60" cy="60" rx="34" ry="12" /></svg>
-                  <img class="boot-logo-img" src="assets/logo/sky-project-logo.webp" width="865" height="240" alt="The Sky Project: Land of Noris" decoding="async">
+                  <img class="boot-logo-img" src="assets/logo/sky-project-logo.webp" width="865" height="240" alt="The Sky Project: Land of Noris" decoding="async" fetchpriority="low">
                   <div class="boot-logo" id="bootLogo">NORI-DEX</div>
                   <div class="boot-sub" id="bootSub"></div>
                   <div class="boot-bar"><i></i></div>
@@ -182,7 +183,7 @@
   <!-- power conduit (drawn above the device) -->
   <canvas id="cable" aria-hidden="true"></canvas>
 
-  <div class="tip" id="tip" role="tooltip"></div>
+  <div class="tip" id="tip" aria-hidden="true"></div>   <!-- visual only: every button carries its own aria-label -->
 
   <!-- shared rune glyphs (used by the device, relics and screens) -->
   <svg class="rune-defs" aria-hidden="true" width="0" height="0">

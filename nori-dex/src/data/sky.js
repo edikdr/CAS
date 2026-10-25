@@ -66,23 +66,30 @@ PL.sky = {
   /* the countdown is computed locally from endsOn and hides itself after that date (js/hub.js) */
   campaign: { startsOn: '2026-10-13', endsOn: '2026-11-12', goalEUR: 15000 },
 
-  /* null means "link pending": the button renders disabled */
+  /* null means "link pending": the button renders disabled.
+     Checked on 25 Oct 2026 against the studio's own pages (their Linktree, linktr.ee/EntharielGames, and the Steam page
+     itself): steam = the game's Steam page (a "coming soon" page, so it takes wishlists); discord = the invite the
+     studio publishes for "The Sky Project: Land of Noris Discord Server"; facebook = the game's page; bluesky = the
+     studio's account. steamPlaytest stays null until the studio says where the playtest is joined.
+     Also on the studio's Linktree, not shown: LinkedIn (linkedin.com/company/enthariel-games) and the press kit. */
   links: {
     kickstarter: 'https://www.kickstarter.com/projects/entharielgames/the-sky-project-land-of-noris',
     studioSite: 'https://www.entharielgames.com/',
-    steam: null,          // store page (wishlist)
+    steam: 'https://store.steampowered.com/app/4415570/The_Sky_Project_Land_of_Noris',
     steamPlaytest: null,  // public playtest: ask the studio whether it has its own link
-    discord: null,
+    discord: 'https://discord.gg/WRDKmgUq4R',
     game: {
       instagram: 'https://www.instagram.com/theskyproject_landofnoris/',
       x: 'https://x.com/theskyproject_',
       tiktok: 'https://www.tiktok.com/@theskyproject__',
+      facebook: 'https://www.facebook.com/profile.php?id=61582429482517',
     },
     studio: {
       x: 'https://x.com/EntharielGames',
       instagram: 'https://www.instagram.com/entharielgames/',
       tiktok: 'https://www.tiktok.com/@entharielgames',
       youtube: 'https://www.youtube.com/@EntharielGames',
+      bluesky: 'https://bsky.app/profile/entharielgames.bsky.social',
     },
   },
 

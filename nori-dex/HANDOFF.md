@@ -111,6 +111,19 @@ remove content or stack it, do not squeeze the spacing.
 - **Text never sits on art**: names go under the picture on a flat plate, the option list of the Spirit Quiz hides
   the five Noris while it is open.
 
+## Links (all in `data/sky.js`, `links`)
+
+| Where it shows | Link | State |
+|---|---|---|
+| Altar and Join & follow | Kickstarter campaign | live |
+| Altar ("Wishlist") and Join & follow | Steam store page, app 4415570 (a "coming soon" page, so it takes wishlists) | live, from the Steam page and the studio's Linktree |
+| Altar and Join & follow | Discord invite `discord.gg/WRDKmgUq4R` ("The Sky Project: Land of Noris Discord Server") | live, from the studio's Linktree |
+| Join & follow | Join Steam Playtest | **pending** (`steamPlaytest: null`) |
+| Follow the game | Instagram, X, TikTok, Facebook | live |
+| Follow the studio | Website, Instagram, X, TikTok, YouTube, Bluesky | live |
+
+Not shown, but on the studio's Linktree: LinkedIn and the press kit (a Google Drive folder). To add a channel, add a line to `links.game` or `links.studio` and a row to `SOCIAL` in `js/hub.js` (name, icon), and its host to `LINK_HOSTS`; `npm test` checks that every link is https on an allowed host. The icons are drawn for this site (no company marks): flag, heart, pad, chat, camera, cross, note, play, people, wings, globe.
+
 ## Placeholders in the product (each is labelled on screen)
 
 Nothing below is presented as fact. Each one shows a **Placeholder**, **Working title**, **Description pending**, **Art pending**, **Rare palette (demo)** or **link pending** label.
@@ -126,13 +139,13 @@ Nothing below is presented as fact. Each one shows a **Placeholder**, **Working 
 | Worlds, descriptions | Planes 1 to 3 have none ("Description pending"); plane 4 has the one line the ground truth supports | the studio writes them (`blurb`) |
 | Celestia relic | The label is a screenshot and the relic says "Placeholder" | official Celestia art and name |
 | Abyssal relic | "Art pending" window | official art, then `art`, `artSize`, `crop` in `js/config.js` |
-| Join & follow | Steam wishlist, Steam playtest and Discord say "link pending" (their URL is `null`) | `links.steam`, `links.steamPlaytest`, `links.discord` |
+| Join & follow | "Join Steam Playtest" says "link pending" (its URL is `null`). The Steam page and the Discord invite are live (see "Links" below) | `links.steamPlaytest` |
 | Crest | The logo sits on a pale plate because only a cropped raster logo exists | a transparent vector logo |
 
 ## Needed from the studio
 
-1. **Steam store page URL** and a **Steam playtest URL** (or confirmation that the playtest uses the store page). Host `store.steampowered.com` is already allowed in `LINK_HOSTS`; a new host needs one line in `scripts/build.mjs`.
-2. **Discord invite URL** (`discord.gg` is allowed).
+1. **A Steam playtest URL** (or confirmation that the playtest is joined from the store page, then set `links.steamPlaytest` to that URL).
+2. **Confirmation of the links that are in** (below): the Steam page and the Discord invite are the ones the studio publishes on its own Linktree and on Steam, found on 25 Oct 2026 and not yet confirmed by the studio. Other channels the studio uses (Reddit, Twitch, a newsletter, a YouTube community) can be added: tell us the URL and the host; a new host needs one line in `LINK_HOSTS` in `scripts/build.mjs`.
 3. **Transparent vector logo** (SVG or large PNG) to replace the plate behind the crest.
 4. **Real Nori sprites** (idle poses) for the five Noris, and later all 200+.
 5. **Alternate-palette art** for each Nori.
@@ -154,7 +167,7 @@ Nothing below is presented as fact. Each one shows a **Placeholder**, **Working 
 | Only official art ships | Pass. `dist/assets` holds the 20 WebP files baked from the studio pack; nothing from `reference/`. The relics' stone, brass and vines are drawn in SVG/CSS as UI chrome. |
 | Usable at 360 × 800: 44 px targets, visible focus, reduced motion, keys | Pass, with two exceptions. Buttons are drawn 44 px and touch at 52 px (design px; 44 real px on a 360 px wide phone, checked by hit-testing the edges of a 44 px square around each control); the focus ring is a 3 px gold outline everywhere; `prefers-reduced-motion` stops every loop; keys 1 to 3 and Enter work, and 1 to 4 pick quiz answers. **Exceptions**: the entries of the hint bar at the bottom of the screen (22 px tall; they are a legend that repeats the device's own buttons) and the Spirit Quiz's answer rows (42 px tall, because four of them must fit above the dialog; the console's A button and keys 1 to 4 also answer). |
 | Dex list and card, Regular / Alternate, Worlds, Spirit Quiz, Join hub work | Pass, by keyboard, mouse and touch, in both languages. |
-| Steam and Discord disabled while `null`; countdown hides itself after 12 Nov 2026 | Pass. Tested with a fixed "now" in six time zones. |
+| A missing link renders disabled; countdown hides itself after 12 Nov 2026 | Pass. "Join Steam Playtest" is the one link still `null` and shows "link pending"; the rule is tested for every link (https, allowed host). The countdown was tested with a fixed "now" in six time zones. |
 | New copy is English, short, warm | Pass, plus the Spanish. |
 | sky.js under 20 KB; images under 250 KB; first load under 250 KB | Pass: 6.9 KB, 20 WebP files (largest under 250 KB), first load 76.7 KB gzip (html 2.8 + css 19.7 + js 54). |
 | Lighthouse mobile: Performance 90+, Accessibility 95+ | Accessibility 100, best practices 100. **Performance: 76, 89, 93 in three runs (median 89), LCP 2.6 s**, in this sandbox, where the Opus build measured 75 to 80 (LCP 3.7 s) on the same day. The gain comes from not laying out and painting the views that have not been shown yet (`content-visibility`, see `docs/PERF.md`); blocking time at load fell by a third. A real phone may differ. Desktop 99. **SEO shows 66 on purpose**: the one failing audit is "Page is blocked from indexing" (the site is not indexable); it returns to 100 when the site goes public. |

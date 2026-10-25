@@ -47,6 +47,8 @@ PL.hub = (function () {
     cross: '<path class="o" d="M7 7l18 18M25 7L7 25" stroke-width="8.8"/><path class="oc" d="M7 7l18 18M25 7L7 25" stroke-width="4.6"/><path class="w" d="M9 8.8l5 5"/>',
     note: '<ellipse class="c" cx="11" cy="23.5" rx="5.6" ry="4.5"/><rect class="c" x="15" y="4.5" width="4.4" height="19" rx="2.2"/><path class="g" d="M19.4 5c0 5 3 7.6 8 7.6v4.3c-3.2 0-5.6-1-8-2.7z"/><path class="w" d="M8.5 22c.8-1 2-1.3 3-1"/>',
     play: '<rect class="c" x="3" y="6.5" width="26" height="19" rx="6.5"/><path class="g" d="M13 11.2v9.6l8.4-4.8z"/><path class="w" d="M7 10.5c1.2-.8 2.6-1 4-.8"/>',
+    people: '<circle class="g" cx="11.5" cy="10.5" r="4.7"/><path class="c" d="M3 26.5c0-5.2 3.7-8.6 8.5-8.6s8.5 3.4 8.5 8.6z"/><circle class="c" cx="22.5" cy="12.4" r="3.9"/><path class="g" d="M16.8 26.5c.3-4.4 2.9-7.2 6.4-7.2 3.7 0 6.2 2.8 6.2 7.2z"/><path class="w" d="M9.2 8.9c.8-.9 1.8-1.2 2.9-1"/>',
+    wings: '<path class="c" d="M16 15.8C14 11.6 10 6.6 5.7 6.3 3.9 6.2 3.2 8.1 3.6 10.2c.5 3.2 2 5.5 5.2 6-2.8.6-4.3 2.3-3.7 4.9.8 3.1 4.7 3.6 6.9 1.3 1.4-1.4 2-3 2.6-4.6z"/><path class="g" d="M16 15.8c2-4.2 6-9.2 10.3-9.5 1.8-.1 2.5 1.8 2.1 3.9-.5 3.2-2 5.5-5.2 6 2.8.6 4.3 2.3 3.7 4.9-.8 3.1-4.7 3.6-6.9 1.3-1.4-1.4-2-3-2.6-4.6z"/><path class="w" d="M6.8 9.2c1.2-.4 2.4.3 3.5 1.5"/>',
     globe: '<circle class="c" cx="16" cy="17" r="11.5"/><ellipse class="o2" cx="16" cy="17" rx="5" ry="11.5"/><path class="o2" d="M5 13.5h22M5 20.5h22"/><ellipse class="g" cx="16" cy="3.6" rx="5" ry="1.9"/><path class="w" d="M9 11c1-1.6 2.6-2.5 4.4-2.8"/>',
   };
   /* gradients the icons point at (one hidden SVG for the whole page) */
@@ -87,7 +89,7 @@ PL.hub = (function () {
   }
 
   /* ---------- the "Join & follow" panel ---------- */
-  var SOCIAL = [['instagram', 'Instagram', 'camera'], ['x', 'X', 'cross'], ['tiktok', 'TikTok', 'note'], ['youtube', 'YouTube', 'play']];
+  var SOCIAL = [['instagram', 'Instagram', 'camera'], ['x', 'X', 'cross'], ['tiktok', 'TikTok', 'note'], ['youtube', 'YouTube', 'play'], ['facebook', 'Facebook', 'people'], ['bluesky', 'Bluesky', 'wings']];
   var el = null, panel = null, isOpen = false, sel = null, host = null, api = null, closeTimer = 0;
 
   function chips(map, extra) {

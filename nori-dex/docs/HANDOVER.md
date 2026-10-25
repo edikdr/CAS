@@ -27,14 +27,15 @@ below) and nothing on it is presented as a game fact unless it comes from the st
 - The Abyssal Plane's name and its one-line description; the idea of four planes joined by the stream of mana.
 - The game's facts: genre, studio and team, combat and permadeath, the size of the game, platforms, stretch goals.
 - The Kickstarter dates and goal (the countdown is computed on the visitor's device), the Kickstarter link, the
-  game's and the studio's social links, the credits.
+  Steam page, the Discord invite, the game's and the studio's social links (found on the studio's own Linktree and
+  on Steam; please confirm them), the credits.
 
 **Placeholder** (always labelled on screen: Placeholder, Working title, Description pending, Art pending,
 Rare palette (demo), link pending):
 - The six types (Type I to VI) and which Nori has which: not public yet.
 - The Noris' pictures: HUD portraits stand in for the real sprites; the Alternate palette is a colour effect.
 - Celestia, Noreth and Infernia are working titles; planes 1 to 3 have no description; planes 3 and 4 have no art.
-- Steam wishlist, Steam playtest and Discord links.
+- The Steam playtest link.
 - The Spanish text (written for this project; please review it).
 - The playtest Lv / HP values are **hidden**: they come from an early playtest save and are not base stats. They
   stay in `data/sky.js`; set `showSnapshot: true` in `js/config.js` to show them again (a "Playtest snapshot"
@@ -108,9 +109,12 @@ Open the file in any text editor. Keep the quotes, commas and brackets as they a
   working titles; the Abyssal Plane is confirmed.
 - **Campaign.** `endsOn` (YYYY-MM-DD) and `goalEUR` drive the countdown on the console's home screen.
   The countdown hides itself after the end date. Live pledge totals are deliberately not shown.
-- **Links.** `steam: null` and `discord: null` show "link pending". Paste the URL to make the button
-  live. A host not yet allowed (for example a new storefront) goes into `LINK_HOSTS` in
-  `scripts/build.mjs`.
+- **Links.** All of them are in `links`. A link set to `null` shows "link pending" and cannot be clicked: today
+  that is only `steamPlaytest`. Paste the URL to make the button live. The Steam page, the Discord invite, Facebook
+  and Bluesky were taken from the studio's Linktree and from Steam on 25 Oct 2026: check them. To add a channel,
+  add it to `links.game` or `links.studio`, add a row to `SOCIAL` in `js/hub.js` (a name and an icon), and its host
+  to `LINK_HOSTS` in `scripts/build.mjs` (a host that is not listed makes the build fail). `npm test` checks that
+  every link is https on a listed host.
 - **Credits** appear in the Join & follow panel.
 - **Text a player reads** (descriptions, blurbs, type labels, credit roles, facts) is wrapped like
   `_('A spirit of blue flame...')` so that it can be translated. Names and numbers are not wrapped.

@@ -51,7 +51,8 @@ const CORE = [
 const FONTS_PRELOAD = ['nunito-latin', 'tiny5'];
 /* outbound links the site may contain (they are <a href>, never fetched) */
 const LINK_HOSTS = ['www.kickstarter.com', 'kickstarter.com', 'www.entharielgames.com', 'entharielgames.com',
-  'www.instagram.com', 'x.com', 'www.tiktok.com', 'www.youtube.com', 'store.steampowered.com', 'discord.gg', 'discord.com'];
+  'www.instagram.com', 'x.com', 'www.tiktok.com', 'www.youtube.com', 'store.steampowered.com', 'discord.gg', 'discord.com',
+  'www.facebook.com', 'bsky.app'];
 const NAMESPACES = ['http://www.w3.org/2000/svg', 'http://www.w3.org/1999/xhtml', 'http://www.w3.org/1999/xlink'];
 const BRAND = /pok[eé]|pikachu|arceus|joy-?con|tcg/i;
 const CYRILLIC = /[\u0400-\u04FF]/;

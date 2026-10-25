@@ -103,6 +103,17 @@ test('sky.js: every fact has a source; campaign dates are valid and ordered', ()
   assert.ok(SKY.campaign.startsOn < SKY.campaign.endsOn);
 });
 
+test('sky.js: every link is https on an allowed host; Steam and Discord are real links, only the playtest is pending', () => {
+  const hosts = new RegExp('LINK_HOSTS = \\[([^\\]]*)\\]').exec(fs.readFileSync(path.join(ROOT, 'scripts/build.mjs'), 'utf8'))[1].match(/'([^']+)'/g).map((x) => x.slice(1, -1));
+  const urls = (o, out = []) => { if (typeof o === 'string') out.push(o); else if (o && typeof o === 'object') Object.values(o).forEach((v) => urls(v, out)); return out; };
+  const all = urls(SKY.links);
+  assert.ok(all.length >= 10);
+  for (const u of all) { const x = new URL(u); assert.equal(x.protocol, 'https:', u); assert.ok(hosts.includes(x.host), `${x.host} is not in LINK_HOSTS (scripts/build.mjs)`); }
+  assert.match(SKY.links.steam, /^https:\/\/store\.steampowered\.com\/app\/\d+\//);
+  assert.match(SKY.links.discord, /^https:\/\/discord\.(gg|com\/invite)\/\w+$/);
+  assert.equal(SKY.links.steamPlaytest, null, 'the playtest link is still unknown: keep it pending until the studio sends it');
+});
+
 /* ---------- Spirit Quiz (js/quiz-data.js) ---------- */
 const QZ = load(['js/quiz-data.js']).quizData;
 test('quiz: 3 questions with 4 options each; every weight names a real Nori', () => {

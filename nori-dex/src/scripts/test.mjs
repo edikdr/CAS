@@ -212,6 +212,16 @@ test('worlds: the art frame is drawn inside the art, so .wl-in (overflow: hidden
   assert.match(rule('.wl-art::after'), /box-shadow:\s*inset 0 0 0 2px/);
 });
 
+test('site credit: the corner credit in index.html and the Join & follow panel show the name and e-mail of config.js', () => {
+  const sc = CFG.siteCredit;
+  assert.ok(sc && sc.name && /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(sc.email), 'config.js siteCredit has a name and an e-mail');
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const m = /<footer class="site-credit">Website by <b>([^<]+)<\/b> · <a href="mailto:([^"]+)">([^<]+)<\/a><\/footer>/.exec(html);
+  assert.ok(m, 'the corner credit is in index.html');
+  assert.deepEqual([m[1], m[2], m[3]], [sc.name, sc.email, sc.email]);
+  assert.match(fs.readFileSync(path.join(ROOT, 'js/hub.js'), 'utf8'), /PL\.config \|\| \{\}\)\.siteCredit/);
+});
+
 /* ---------- Spanish (js/i18n/es.js) ---------- */
 const ES = (() => {
   let dict = null;
@@ -234,7 +244,7 @@ function codeKeys() {
   return keys;
 }
 /* text that stays the same in every language: names, key labels, symbols */
-const SAME = new Set(['NORI-DEX', 'ENTHARIEL GAMES', 'Enthariel Games', 'Nori-Dex']);
+const SAME = new Set(['NORI-DEX', 'ENTHARIEL GAMES', 'Enthariel Games', 'Nori-Dex', CFG.siteCredit.name, CFG.siteCredit.email]);
 function pageKeys() {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '').replace(/<(script|style)[\s\S]*?<\/\1>/g, '');
   const out = new Set();

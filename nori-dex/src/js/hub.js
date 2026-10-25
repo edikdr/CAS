@@ -110,6 +110,8 @@ PL.hub = (function () {
     var days = d === null || d < 0 ? '' : d === 0 ? _('Last day') : _n(d, '{n} day left|{n} days left').replace('{n}', d);
     function group(title, body, cls) { return '<section class="hub-group"><h4>' + title + '</h4><div class="' + (cls || 'hub-chips') + '">' + body + '</div></section>'; }
     var credits = (sky.credits || []).map(function (x) { return '<div><dt>' + esc(x.role) + '</dt><dd>' + esc(x.name) + '</dd></div>'; }).join('');
+    var by = (PL.config || {}).siteCredit;
+    var site = by ? '<div><dt>' + _('Website by') + '</dt><dd>' + esc(by.name) + '<a href="mailto:' + esc(by.email) + '">' + esc(by.email) + '</a></dd></div>' : '';
     return '<div class="hub-head"><b>' + _('Join & follow') + '</b>' + (days ? '<span class="hub-days">' + esc(days) + '</span>' : '') +
         '<button class="hub-x" data-hub="close" aria-label="' + esc(_('Close')) + '">×</button></div>' +
       '<p class="hub-sub">' + esc(sky.meta ? sky.meta.game + ' · ' + sky.meta.studio : '') + '</p>' +
@@ -125,7 +127,7 @@ PL.hub = (function () {
       '<div class="hub-cols">' +
         group(_('Language'), langChips()) +
         '<dl class="hub-info">' +
-          (sky.facts && sky.facts.platforms ? '<div><dt>' + _('Platforms') + '</dt><dd>' + esc(sky.facts.platforms.text) + '</dd></div>' : '') + credits +
+          (sky.facts && sky.facts.platforms ? '<div><dt>' + _('Platforms') + '</dt><dd>' + esc(sky.facts.platforms.text) + '</dd></div>' : '') + credits + site +
         '</dl>' +
       '</div>';
   }

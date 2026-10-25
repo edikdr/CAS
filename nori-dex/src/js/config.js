@@ -14,6 +14,11 @@ PL.config = {
      this to true to show the "Playtest snapshot" row again. */
   showSnapshot: false,
 
+  /* Who built this website (not the game): shown in the bottom-left corner of the page and as the last line of
+     the Join & follow panel. The corner credit in index.html (.site-credit) repeats these two values; `npm test`
+     checks that they match. */
+  siteCredit: { name: 'Eduard', email: 'fantastical566@gmail.com' },
+
   /* Screens a relic can open. 'spirit' has no relic of its own: the bestiary
      opens it with a button (ctx.go('spirit')). */
   sections: [

@@ -55,6 +55,13 @@ from a new Nori: its Spanish description needs an entry in `js/i18n/es.js`; its 
 `js/quiz-data.js` only knows the five current Noris, so a new one takes part in the quiz once it gets answer
 weights there (`npm test` tells you what is missing). The dex grid grows by itself and scrolls.
 
+## Who built the website
+
+The credit "Website by Eduard · fantastical566@gmail.com" is in `siteCredit` in `js/config.js`. It shows in the bottom-left
+corner of the page (the `.site-credit` line in `index.html`, hidden in small windows and on the phone layout, where it
+would touch the device) and as the last line of the Join & follow panel. If the name or address changes, change it in
+`config.js` and in the `index.html` line; `npm test` fails when the two differ. The Spanish page says "Sitio web de".
+
 ## Going public (turning the prototype into the real site)
 
 Right now the site tells search engines to stay away, in four places that must be removed together:
@@ -207,6 +214,13 @@ purpose. Decide first, then widen the policy in `vercel.json`.
    it carries the same security and caching rules as `vercel.json`, plus `X-Robots-Tag: noindex, nofollow`.
    `robots.txt` is copied the same way. If you change a header, change it in both files; `npm test` checks that
    the two agree.
+
+**Drag and drop (no Git).** Upload the *site*, not the project: the folder whose top level holds `index.html`,
+`robots.txt` and `_headers` (that is `nori-dex/src/dist/`, or the unzipped `nori-dex-site-*.zip`). If you drop the whole
+project archive instead, Netlify publishes the project folders: the address then answers "Page not found" (there is no
+`index.html` at the top), the site only opens under `/src/dist/`, and `robots.txt` and `_headers` (the noindex rules) are
+not at the root where they must be. Check before dropping: if you see `index.html` right inside the folder, it is the
+right one. Netlify's drag and drop does not run a build, so `netlify.toml` is ignored there; the folder must already be built.
 
 Any other static host works too: run `npm run build` and upload `dist/`. Copy the headers from
 `vercel.json` (or `_headers`) into that host's configuration.

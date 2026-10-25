@@ -106,6 +106,9 @@ remove content or stack it, do not squeeze the spacing.
   pills; icons are 16, 20 or 24 px; outlines are one neutral hairline or one 2 px gold ring.
 - **Text**: one title (24 px), one body (14), one caption (13, which is also the phone floor: 11.3 real px on a
   360 px wide phone). The countdown has its own display size (40, 32 on the phone).
+- **Site credit**: "Website by Eduard" with an e-mail link sits in the bottom-left corner of the page, outside the device
+  (`.site-credit`, `css/stage.css`; hidden below 900 × 700 px and on the phone layout) and in the Join & follow panel. The
+  values live in `siteCredit` in `js/config.js`.
 - **Frames and rings go inside the box**: a frame round a picture is an inset ring (`::after` with `inset: 0` and an inset
   `box-shadow`, or an `outline` with a negative offset), never an outer `box-shadow`. A parent with `overflow: hidden`
   (the open plane in Worlds, scroll areas) cuts an outer ring off at its edge. `npm test` guards the Worlds frame.

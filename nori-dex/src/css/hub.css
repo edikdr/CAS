@@ -49,3 +49,7 @@
   .hub-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hub-info > div { grid-template-columns: minmax(0, 1fr); gap: var(--sp-1); }
 }
+
+/* the credit for the website: name, then the e-mail address as a link on its own line */
+.hub-info dd a { display: block; margin: calc(var(--sp-2) * -1) 0; padding: var(--sp-2) 0; color: inherit; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.hub-info dd a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; border-radius: var(--r-sm); }

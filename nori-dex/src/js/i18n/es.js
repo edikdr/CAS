@@ -112,6 +112,7 @@ PL.i18n.add('es', {
   'Website': 'Web',
   'Enthariel Games website': 'Web de Enthariel Games',
   'Platforms': 'Plataformas',
+  'Website by': 'Sitio web de',
   'Language': 'Idioma',
   'Jan': 'ene',
   'Feb': 'feb',

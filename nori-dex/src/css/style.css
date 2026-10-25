@@ -385,6 +385,8 @@ html[data-layout="tall"] .floor-glow { top: 650px; left: 0; right: 0; }
   pointer-events: none;
   transition: opacity .15s;
 }
+.dock-btn:first-child .dock-label { left: 0; transform: none; }   /* the first label is the longest ('Join & follow'): align it with the button instead of centring it past the screen edge */
+.dock-btn:last-child .dock-label { left: auto; right: 0; transform: none; }
 .dock-btn.is-selected, .dock-btn:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 2px var(--gold-hi), 0 0 0 3px var(--dc), 0 6px 14px rgba(0, 0, 0, .45); }
 .dock-btn.is-selected .dock-label, .dock-btn:hover .dock-label { opacity: 1; }
 .dock-btn.is-off { color: #6b7280; }

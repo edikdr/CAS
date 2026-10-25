@@ -6,8 +6,7 @@
      is set on <html data-layout> by app.js -> fit(); CSS places everything per layout.
    • The phone is its own model, not a shrunken desktop: a crown with the logo window and
      the mana crystal as its finial, shoulders carrying the power stud and the socket, and
-     a deck where two grips rise towards a brass spine (Home, Help, maker's mark, relic
-     slot). relocate() moves those buttons between grips and body when the layout changes.
+     a deck where two grips rise towards a brass spine (Help, maker's mark, relic slot). relocate() moves those buttons between grips and body when the layout changes.
    • build() draws the body art for the current layout as one static SVG: silhouette,
      enamel, brass rim, corner filigree, 16 engraved runes and the mana veins that run
      from the relic slot up to the crest. Nothing in it animates unless attuning.
@@ -53,8 +52,8 @@ PL.device = (function () {
       outline: 'M0 90Q0 58 32 58H72Q84 58 84 46V40C84 16 136 0 196 0C256 0 308 16 308 40V46Q308 58 320 58H360Q392 58 392 90V626Q392 676 342 676H50Q0 676 0 626Z',
       window: 'M106 60V36C106 22 146 14 196 14C246 14 286 22 286 36V60Z',   // the logo's arched window in the crown
       glass: [8, 74, 376, 412],
-      wing: { w: 152, h: 168 },
-      grips: [-2, 242, 504],   // left edge of each grip box, and their top
+      wing: { w: 164, h: 168 },
+      grips: [-2, 230, 504],   // left edge of each grip box, and their top (the spine between them is 68 wide)
       runes: function () {     // one row between the glass and the grips
         var out = [];
         for (var i = 0; i < 16; i++) out.push([22 + i * 23.2, 497]);
@@ -157,8 +156,8 @@ PL.device = (function () {
       '<path d="M' + spineX + ' ' + (top + 8) + 'V' + (top + g.wing.h - 8) + 'M' + (spineX + spineW) + ' ' + (top + 8) + 'V' + (top + g.wing.h - 8) + '" stroke="url(#dvBrass)" stroke-width="1.4" opacity=".8"/>';
   }
 
-  /* phone: Home and Help move onto the spine and Photo onto the right grip; on desktop they go back */
-  var MOVES = [['home', 'body'], ['plus', 'body'], ['capture', 'r']], homes = null;
+  /* phone: Help moves onto the spine, Home and Photo onto the right grip (its four buttons mirror the compass); on desktop they go back */
+  var MOVES = [['home', 'r'], ['plus', 'body'], ['capture', 'r']], homes = null;
   function relocate(layout) {
     if (!homes) {
       homes = MOVES.map(function (m) {
@@ -176,16 +175,16 @@ PL.device = (function () {
   /* ---------- grips ---------- */
   /* silhouettes; the inner edge (rail side) is straight, the outer edge a carved double curve */
   function wingPath(layout) {
-    if (layout === 'tall') return 'M152 0V168H50Q0 168 0 118V40Q0 26 14 22C56 10 108 2 152 0Z';   // its top rises towards the spine
+    if (layout === 'tall') return 'M164 0V168H50Q0 168 0 118V40Q0 26 14 22C58 10 114 2 164 0Z';   // its top rises towards the spine
     return 'M170 0H72Q14 0 9 62Q4 150 20 255Q4 360 9 448Q14 510 72 510H170Z';
   }
   function wingArt(side, layout) {
     var g = L[layout] || L.wide, W = g.wing.w, H = g.wing.h, P = wingPath(layout), tall = layout === 'tall';
     var flip = side === 'r' ? ' transform="translate(' + W + ' 0) scale(-1 1)"' : '';
     var dark = function (k) { return 'fill:color-mix(in srgb, var(--gl) ' + k + '%, #000)'; };
-    var screws = tall ? [[14, 56], [52, 158], [140, 12], [142, 158]] : [[46, 48], [46, 462], [150, 26], [150, 484]];
+    var screws = tall ? [[14, 56], [52, 158], [152, 12], [154, 158]] : [[46, 48], [46, 462], [150, 26], [150, 484]];
     var feathers = tall
-      ? '<path d="M26 32C64 20 106 12 132 10M8 70Q4 96 8 122"/>'
+      ? '<path d="M26 32C68 20 118 12 144 10M8 70Q4 96 8 122"/>'
       : '<path d="M24 120Q12 190 30 255M36 140Q26 195 40 250M24 390Q12 320 30 255M36 370Q26 315 40 260"/>';
     return '<svg viewBox="0 0 ' + W + ' ' + (H + 14) + '" width="' + W + '" height="' + (H + 14) + '" aria-hidden="true">' +
       '<defs><linearGradient id="wgSheen" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".35" stop-color="#fff" stop-opacity=".06"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>' +
@@ -208,6 +207,8 @@ PL.device = (function () {
           /* brass trim along the silhouette (inner half of a wide stroke, clipped) */
           '<path d="' + P + '" fill="none" stroke="url(#wgBrass)" stroke-width="7"/>' +
         '</g>' +
+        /* phone, right grip: an engraved dial under the four buttons, the counterpart of the left grip's compass */
+        (tall && side === 'r' ? dial(79, 90) : '') +
         /* engraved feathers along the outer edge */
         '<g fill="none" stroke-linecap="round" stroke-width="2.2" style="stroke:color-mix(in srgb, var(--gl) 70%, #000)" opacity=".7">' + feathers + '</g>' +
         '<g fill="none" stroke-linecap="round" stroke-width=".9" style="stroke:var(--gh)" opacity=".55" transform="translate(-.8 -.8)">' + feathers + '</g>' +
@@ -217,6 +218,16 @@ PL.device = (function () {
             '<path d="M' + (c[0] - 2.6) + ' ' + (c[1] - 1.4) + 'L' + (c[0] + 2.6) + ' ' + (c[1] + 1.4) + '" stroke="#3b2506" stroke-width="1.1"/>';
         }).join('') +
       '</g></svg>';
+  }
+  /* a ring and a small crystal hub, centred at (cx, cy) in grip coordinates; the four buttons sit on the ring */
+  function dial(cx, cy) {
+    return '<g transform="translate(' + cx + ' ' + cy + ')" fill="none">' +
+      '<circle r="46" stroke="#000" stroke-opacity=".4" stroke-width="7"/>' +
+      '<circle r="46" stroke="url(#wgBrass)" stroke-width="2.2"/>' +
+      '<circle r="46" stroke="#fff" stroke-opacity=".25" stroke-width=".7" transform="translate(-.6 -.6)"/>' +
+      '<path d="M0-46V46M-46 0H46" stroke="#000" stroke-opacity=".28" stroke-width="2"/>' +
+      '<path d="M0-13 8 0 0 13-8 0Z" fill="url(#wgBrass)" stroke="#3b2506" stroke-width=".8"/>' +
+      '<path d="M0-8 4 0 0 8-4 0Z" fill="#fff" fill-opacity=".55"/></g>';
   }
   function buildWings(layout) {
     document.querySelectorAll('.wing:not(.wing-ghost)').forEach(function (w) {

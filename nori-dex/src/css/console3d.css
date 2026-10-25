@@ -47,31 +47,33 @@
 /* ---------- placement: tall (400 x 920, phones in portrait) ----------
    The phone model: crown with the logo window and the crystal finial, power stud on the left
    shoulder, socket on the right one, and a deck where the grips rise towards a brass spine.
-   Home and Help sit on the spine, Photo on the right grip (moved there by device.js). */
+   The deck is mirrored around the spine: the compass on the left grip, a matching dial of four
+   buttons (Photo, A, B, Home) on the right, and only Help on the spine (device.js relocate()). */
 html[data-layout="tall"] .console { left: 4px; top: 22px; width: 392px; height: 676px; }
 html[data-layout="tall"] .body { left: 0; width: 392px; height: 676px; }
 html[data-layout="tall"] .body-shell { display: none; }   /* the phone silhouette and its thickness are drawn in the body art */
-html[data-layout="tall"] .wing { top: 504px; width: 152px; height: 168px; z-index: 5; }
+html[data-layout="tall"] .wing { top: 504px; width: 164px; height: 168px; z-index: 5; }
 html[data-layout="tall"] .wing--l { left: -2px; }
-html[data-layout="tall"] .wing--r { left: 242px; }
+html[data-layout="tall"] .wing--r { left: 230px; }
 html[data-layout="tall"] .glass { left: 8px; top: 74px; width: 376px; height: 412px; }
 html[data-layout="tall"] .screen { left: 4px; top: 4px; width: 368px; height: 404px; }
 html[data-layout="tall"] .port { left: 340px; top: 58px; }
 html[data-layout="tall"] .port-led { left: -14px; top: 1px; }   /* inboard, on the shoulder face */
-html[data-layout="tall"] .cart-slot { left: 196px; width: 96px; margin-left: -48px; }
+html[data-layout="tall"] .cart-slot { left: 196px; width: 72px; margin-left: -36px; }
 html[data-layout="tall"] .seam { top: 508px; height: 160px; }
-html[data-layout="tall"] .seam--l { left: 146px; }
-html[data-layout="tall"] .seam--r { left: 238px; }
+html[data-layout="tall"] .seam--l { left: 158px; }
+html[data-layout="tall"] .seam--r { left: 226px; }
 html[data-layout="tall"] .lever, html[data-layout="tall"] .stud--sound, html[data-layout="tall"] .stud--glass { display: none; }   /* on phones: the screen's tab keys and the altar dock */
 html[data-layout="tall"] .stud--vdown, html[data-layout="tall"] .stud--vup { display: none; }   /* phones have hardware volume; Sound is on the altar dock */
-html[data-layout="tall"] .wing--l .compass { left: 78px; top: 92px; }
-html[data-layout="tall"] .wing--r .gem--a { left: 96px; top: 62px; }
-html[data-layout="tall"] .wing--r .gem--b { left: 46px; top: 110px; }
-html[data-layout="tall"] .wing--r .stud--photo { left: 116px; top: 126px; }
-html[data-layout="tall"] .body > .stud--home { left: 196px; top: 533px; z-index: 3; }
-html[data-layout="tall"] .body > .stud--help { left: 196px; top: 589px; z-index: 3; }
-/* the maker's mark at the foot of the spine, above the relic slot */
-html[data-layout="tall"] .maker { left: 196px; top: 619px; transform: translateX(-50%); flex-direction: column; height: auto; gap: 2px; padding: 4px 7px 3px; border-radius: 9px; }
+/* the two halves of the deck mirror each other: both centres are 79 px in from the spine edge, at y 90 */
+html[data-layout="tall"] .wing--l .compass { left: 79px; top: 90px; width: 140px; height: 140px; }
+html[data-layout="tall"] .wing--r .stud--photo { left: 85px; top: 44px; }      /* the dial: north ... */
+html[data-layout="tall"] .wing--r .gem--a { left: 131px; top: 90px; }          /* ... east (Select) ... */
+html[data-layout="tall"] .wing--r .gem--b { left: 85px; top: 136px; }          /* ... south (Back) ... */
+html[data-layout="tall"] .wing--r .stud--home { left: 39px; top: 90px; }       /* ... west (Altar) */
+html[data-layout="tall"] .body > .stud--help { left: 196px; top: 542px; z-index: 3; }
+/* the maker's mark at the foot of the spine, between Help and the relic slot */
+html[data-layout="tall"] .maker { left: 196px; top: 590px; transform: translateX(-50%); flex-direction: column; height: auto; gap: 2px; padding: 4px 7px 3px; border-radius: 9px; }
 html[data-layout="tall"] .maker { padding: 5px; border-radius: 50%; }   /* the studio emblem alone, on a brass medallion (the name stays in the image's alt text) */
 html[data-layout="tall"] .maker img { width: 30px; height: 30px; }
 html[data-layout="tall"] .maker span { display: none; }
@@ -233,7 +235,13 @@ html[data-layout="tall"] .crest::after { top: -6px; }
   filter: brightness(.95);
   transition-duration: .05s;
 }
-html[data-layout="tall"] .stud:not(.stud--top) { width: 52px; height: 52px; }   /* >= 44 CSS px on a 360 px wide phone */
+/* phone buttons: the brass ring around a button is a box-shadow, so each one looks ~10 px bigger than it is.
+   Bodies are 44 px; an invisible disc around each (58 px, 50 CSS px on a 360 px phone) is the touch target,
+   and the centres are spaced so the rings leave ~11 px between them. */
+html[data-layout="tall"] .stud:not(.stud--top), html[data-layout="tall"] .gem { width: 44px; height: 44px; }
+html[data-layout="tall"] .stud:not(.stud--top)::after, html[data-layout="tall"] .gem::after { content: ''; position: absolute; inset: -7px; border-radius: 50%; }
+/* the compass petals are diamonds, so their real touch area is smaller than they look: grow it. 58 px squares, turned like the petals, just touch at their corners */
+html[data-layout="tall"] .petal::before { content: ''; position: absolute; inset: -6px; }
 .stud--sound, .stud--glass { width: 40px; height: 40px; }
 .stud--top { position: absolute; top: -13px; width: 38px; height: 22px; border-radius: 9px 9px 3px 3px; transform: none; z-index: 0; font-size: 14px; background: linear-gradient(180deg, #f8e19a 0%, #d4a341 50%, #8a5c1a 100%); box-shadow: 0 0 0 2px #070b18, 0 3px 0 #5c3b0c, inset 0 1px 0 rgba(255, 255, 255, .5); }
 .stud--top svg { width: 13px; height: 13px; }
@@ -304,12 +312,11 @@ html[data-layout="tall"] .stud--power::before { content: ''; position: absolute;
 .petal--down.is-pressed { transform: translate(0, 36px) rotate(225deg) scale(.95); }
 .petal--left.is-pressed { transform: translate(-36px, 0) rotate(315deg) scale(.95); }
 .petal.is-pressed { filter: brightness(1.45); box-shadow: inset 0 0 0 2px var(--gold-hi), 1px 1px 0 #3b2506, 0 0 12px var(--plane); transition-duration: .05s; }
-html[data-layout="tall"] .compass { width: 132px; height: 132px; }
-html[data-layout="tall"] .petal { width: 50px; height: 50px; margin: -25px 0 0 -25px; }
-html[data-layout="tall"] .petal--up { transform: translate(0, -40px) rotate(45deg); }
-html[data-layout="tall"] .petal--right { transform: translate(40px, 0) rotate(135deg); }
-html[data-layout="tall"] .petal--down { transform: translate(0, 40px) rotate(225deg); }
-html[data-layout="tall"] .petal--left { transform: translate(-40px, 0) rotate(315deg); }
+html[data-layout="tall"] .petal { width: 46px; height: 46px; margin: -23px 0 0 -23px; }
+html[data-layout="tall"] .petal--up { transform: translate(0, -42px) rotate(45deg); }
+html[data-layout="tall"] .petal--right { transform: translate(42px, 0) rotate(135deg); }
+html[data-layout="tall"] .petal--down { transform: translate(0, 42px) rotate(225deg); }
+html[data-layout="tall"] .petal--left { transform: translate(-42px, 0) rotate(315deg); }
 .compass-hub { position: absolute; left: 50%; top: 50%; width: 18px; height: 28px; margin: -14px 0 0 -9px; clip-path: polygon(50% 0, 100% 42%, 50% 100%, 0 42%); background: linear-gradient(135deg, #fff 0%, var(--plane) 45%, #1d3550 100%); opacity: .75; pointer-events: none; }
 .is-attuned .compass-hub { opacity: 1; }
 
@@ -359,7 +366,6 @@ html[data-layout="tall"] .petal--left { transform: translate(-40px, 0) rotate(31
 .gem:hover i { filter: brightness(1.15) drop-shadow(0 3px 0 #0b2a38); }
 .gem.is-pressed i { transform: translateY(3px) scale(.95); filter: brightness(1.6); transition-duration: .05s; }
 .gem.is-pressed { box-shadow: 0 0 0 3px #070b18, 0 0 0 5px #c9963a, 0 1px 0 5px #5c3b0c, 0 4px 8px rgba(0, 0, 0, .5), 0 0 18px color-mix(in srgb, var(--plane) 60%, transparent); }
-html[data-layout="tall"] .gem--a { width: 70px; height: 70px; }
 
 /* ripple on press */
 .ripple { position: absolute; inset: 0; border-radius: inherit; box-shadow: 0 0 0 2px var(--plane); opacity: .9; animation: ripple .45s ease-out forwards; pointer-events: none; }

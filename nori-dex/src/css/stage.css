@@ -1,7 +1,7 @@
 /* ==========================================================================
    Stage: the conduit canvas, the relic rack with 3D relics and the info card.
    Same design pixels as style.css. Wide: device 112..622, dock 622..848.
-   Tall: device 64..684, dock 684..920 (the rack is scaled down, see PL.rackScale).
+   Tall: device 22..698, dock 698..920 (the rack is scaled down, see PL.rackScale).
    ========================================================================== */
 
 /* ---------- conduit ---------- */
@@ -37,7 +37,7 @@ body.is-cable-drag, body.is-cable-drag * { cursor: grabbing !important; }
    ========================================================================== */
 .dock-zone { position: absolute; left: 0; top: 622px; width: 1200px; height: 226px; z-index: 4; pointer-events: none; }   /* above the body's shadow */
 .dock-zone > * { pointer-events: auto; }
-html[data-layout="tall"] .dock-zone { top: 684px; width: 400px; height: 236px; }
+html[data-layout="tall"] .dock-zone { top: 698px; width: 400px; height: 222px; }
 
 /* --- relic rack --- */
 .rack-clip {
@@ -174,7 +174,7 @@ html[data-layout="tall"] .rack-clip { left: -110px; transform: scale(var(--rack-
 
 /* --- info card of the selected relic --- */
 .cart-info { position: absolute; right: 34px; top: 22px; width: 300px; height: 184px; --cc: #8d94a3; }
-html[data-layout="tall"] .cart-info { left: 8px; right: 8px; top: 150px; width: auto; height: 80px; }
+html[data-layout="tall"] .cart-info { left: 8px; right: 8px; top: 140px; width: auto; height: 78px; }
 .ci-card {
   position: absolute;
   inset: 0;

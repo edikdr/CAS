@@ -101,7 +101,7 @@ html[data-layout="tall"] .console-wrap { width: 400px; height: 920px; }
   background: radial-gradient(closest-side, color-mix(in srgb, var(--ambient) 32%, transparent), transparent);
   opacity: .7;
 }
-html[data-layout="tall"] .floor-glow { top: 640px; left: 0; right: 0; }
+html[data-layout="tall"] .floor-glow { top: 650px; left: 0; right: 0; }
 
 /* ==========================================================================
    SCREEN

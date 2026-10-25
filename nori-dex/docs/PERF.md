@@ -41,6 +41,34 @@ Mobile is the default preset: simulated slow 4G and 4x CPU slowdown. "Before" is
 | Cumulative Layout Shift | 0.023 | 0.023 |
 | Speed Index | 3.5 s | 1.2 s |
 
+### After the Sonnet phase (25 Oct 2026, Lighthouse 13.5.0, three runs each, same sandbox, same day)
+
+| Build | Performance (3 runs) | TBT | LCP |
+|---|---|---|---|
+| Opus final (`cd87ea0`) | 80, 75, 77 | 410 to 550 ms | 3.7 s |
+| Phone console (`25ab622`) | 78, 78, 78 | 440 to 540 ms | 3.4 to 3.7 s |
+| Lobby (`9f28bda`) | 78, 79, 79 | 380 to 500 ms | 3.4 to 3.7 s |
+| With Spanish and the S6/S7 fixes | 75, 80, 79 | 380 to 540 ms | 3.8 s |
+
+The sandbox was slower than during O5 (the same Opus build scored 86 then and 75 to 80 now), so compare
+the rows with each other, not with the O5 table. The rows show no change from what the Sonnet phase
+added (dex, worlds, quiz, hub, Spanish dictionary, lobby sky): the screens build when a relic is seated.
+First load is 76.7 KB gzip (O5: 55 KB; the rest is the new screens, the lobby CSS and the Spanish
+dictionary).
+Accessibility, best practices and SEO are 100; desktop is 99 to 100.
+
+Where the time goes (Chrome trace at 4x CPU slowdown): one 555 ms task runs `app.js` (about 340 ms of
+script plus the first style and layout pass of the 3D console), then 156 ms, 94 ms and 86 ms tasks for
+layout and paint of the same scene. The LCP element is the crest logo, and its render delay is about 2 s
+only because those tasks come first. Target 90+ needs roughly 0.7 s less main-thread work before the
+first paint of the console. Ideas, in order of expected gain:
+1. A same-origin script in `<head>` that sets `data-layout` and `--scale` (see "Open items"): the console
+   can show at once, without the layout jump.
+2. Split the start-up of `app.js` into chunks under 50 ms (build the grips, the relic labels and the
+   conduit after the first paint). Blocking time counts only tasks over 50 ms.
+3. `contain: layout paint` on the big static subtrees of the console, so the first layout does not
+   cover the whole scene.
+
 ## What O5 fixed
 
 1. **Animations in hidden views ticked the main thread.** The Awaken prompt's halo and crystal loop

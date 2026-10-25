@@ -23,6 +23,7 @@ You need Node.js 18 or newer.
 cd nori-dex/src
 npm install          # three build tools, nothing that ships
 npm run build        # writes dist/ and runs the checks below
+npm test             # logic tests (countdown, data, quiz, Spanish), repeated in six time zones
 npm run serve        # http://127.0.0.1:4173/ with the same headers as the live site
 ```
 
@@ -31,7 +32,7 @@ The build **refuses to finish** if one of these checks fails. The message says w
 | Check | What it protects | Typical fix |
 |---|---|---|
 | Script list | `index.html` loads exactly the expected scripts | Add a new script to `CORE` in `scripts/build.mjs` too |
-| No Cyrillic | The site is English-only | Remove the stray characters |
+| No Cyrillic | The site is English and Spanish (Latin letters only) | Remove the stray characters |
 | Brand sweep | No third-party franchise or hardware names | Reword |
 | Third-party URLs | Zero requests to other sites; only allowed outbound links | Add the link's host to `LINK_HOSTS` in `scripts/build.mjs` |
 | Missing assets | Every `assets/...` path in code and data exists | Fix the path, or bake the image (section 3) |
@@ -59,7 +60,11 @@ Open the file in any text editor. Keep the quotes, commas and brackets as they a
 - **Links.** `steam: null` and `discord: null` show "link pending". Paste the URL to make the button
   live. A host not yet allowed (for example a new storefront) goes into `LINK_HOSTS` in
   `scripts/build.mjs`.
-- **Credits** appear in the Controls help panel.
+- **Credits** appear in the Join & follow panel.
+- **Text a player reads** (descriptions, blurbs, type labels, credit roles, facts) is wrapped like
+  `_('A spirit of blue flame...')` so that it can be translated. Names and numbers are not wrapped.
+  When you change an English sentence, change its Spanish entry in `js/i18n/es.js` too (the key is the
+  English text). `npm test` fails if one is missing.
 
 ## 3. Change or add art
 
@@ -95,13 +100,23 @@ baked from the Kael key art by `scripts/bake-bg.py`; change `SOURCE` there to us
 
 ## 5. Text and translations
 
-The interface is written in English. Every visible string is wrapped like `_('Seat a relic')`. A
-Spanish version needs:
-- one file `js/i18n/es.js` containing `PL.i18n.add('es', { 'Seat a relic': 'Inserta una reliquia', ... })`;
-- that file listed in `index.html` and in `CORE` in `scripts/build.mjs`, right after `js/i18n.js`;
-- a translated `data/sky.js`.
+The interface is written in English, and Spanish is built in. Every visible string is wrapped like
+`_('Seat relic')`, and `js/i18n/es.js` holds the Spanish for each one (the English text is the key):
 
-The language is picked from `?lang=es`, then the saved choice, then the browser language.
+```
+'Seat relic': 'Insertar reliquia',
+'{n} day left|{n} days left': 'Queda {n} día|Quedan {n} días',     // plural: one|other
+```
+
+- Keep every `{placeholder}` of the English text, and the same number of `|` forms.
+- The language is picked from `?lang=es`, then the saved choice, then the browser language. The
+  Join & follow panel has English / Español chips.
+- **The Spanish was written for this project and has not been reviewed by the studio.** Please read it,
+  above all the game's own terms (Soulbonded, Celestial, plane, Lv / HP, Fallen, relic, grips).
+- `npm test` checks that nothing is missing, nothing is unused, and the quiz still fits the phone's
+  dialog box (a question up to 50 characters, an answer up to 28).
+- A third language: copy `es.js`, list it in `index.html` and in `CORE` in `scripts/build.mjs` right
+  after `es.js`, and add its chip to `LANGS` in `js/hub.js`.
 
 ## 6. Put it online with Vercel
 
@@ -129,7 +144,8 @@ Any other static host works too: run `npm run build` and upload `dist/`. Copy th
 ## 7. Before launch
 
 - Run `npm run build && npm run serve` and click through: plug in the cable, wake the device, seat
-  each relic, swap the grips, open the Spirit Quiz.
+  each relic, swap the grips, open a Nori card, take the Spirit Quiz, open Join & follow, switch the
+  language. Try it once with `?lang=es` on a phone.
 - Run a Lighthouse audit on a real phone. Numbers measured so far are in `docs/PERF.md`.
 - Low-power mode switches on by itself for Save-Data users and low-memory phones. Add `?lite=1` to
   the URL to see it.

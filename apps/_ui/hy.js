@@ -1,4 +1,4 @@
-// HYPERINA UI kit — общий код приложений: связь с хостом, API ядра, тема на лету,
+// HAOTICA UI kit — общий код приложений: связь с хостом, API ядра, тема на лету,
 // перевод, оформление окна и небольшие компоненты. Подключение:
 //   import { HY, el, icon } from "/ui/hy.js";  await HY.start({ title: "Файлы", glyph: "folder" });
 import { GLYPHS } from "/ui/glyphs.js";
@@ -127,7 +127,7 @@ export const HY = {
   // ── API ядра ───────────────────────────────────────────────────
   async req(base, method, path, body) {
     const r = await fetch(base + path, {
-      method, headers: { "X-Hyperina-Token": this.token, ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
+      method, headers: { "X-Haotica-Token": this.token, ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     const txt = await r.text();
@@ -216,7 +216,7 @@ export const HY = {
         ondblclick: () => this.bridge && this.bridge.toggleMaximize(),
       }),
       icon(opts.glyph || "sparkle", 16, "glyph"),
-      el("span.title", opts.titleHtml ? { html: opts.titleHtml } : (opts.title || document.title || "HYPERINA")),
+      el("span.title", opts.titleHtml ? { html: opts.titleHtml } : (opts.title || document.title || "HAOTICA")),
       el("span.sub", { id: "hy-sub" }, opts.sub || ""),
       el("span.spacer"),
       ...(opts.actions || []),
@@ -268,7 +268,7 @@ export const HY = {
     let box = document.querySelector(".hy-toasts");
     if (!box) { box = el("div.hy-toasts"); document.body.append(box); }
     const t = el("div.hy-toast" + (kind ? "." + kind : ""),
-      el("div.t", kind === "err" ? this.t("error") : kind === "ai" ? "HAOTICA" : "HYPERINA"),
+      el("div.t", kind === "err" ? this.t("error") : kind === "ai" ? "HAOTICA" : "HAOTICA"),
       el("div", text),
       actions.length ? el("div.act", actions.map((a) => el("button.hy-btn.small", { onclick: () => { a.fn(); t.remove(); } }, a.label))) : null);
     box.append(t);

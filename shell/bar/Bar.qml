@@ -14,6 +14,7 @@ import "../components"
 // Верхняя панель: досье системы, рабочие столы, живые показатели, часы, Haotica
 PanelWindow {
     id: bar
+    Component.onCompleted: Ui.reg("bar", bar)
     required property var modelData
     screen: modelData
     anchors { top: true; left: true; right: true }
@@ -21,7 +22,7 @@ PanelWindow {
     exclusiveZone: 34
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.namespace: "hyperina-bar"
+    WlrLayershell.namespace: "haotica-bar"
 
     readonly property int wsCount: (Theme.s.desktop && Theme.s.desktop.workspaces) ? Theme.s.desktop.workspaces : 6
     readonly property var monitor: Hyprland.monitorFor(bar.screen)
@@ -47,11 +48,11 @@ PanelWindow {
                 id: brand
                 spacing: 8
                 anchors.verticalCenter: parent.verticalCenter
-                Text { text: "HYPERINA"; color: Theme.ink; font.family: Theme.fontMono; font.pixelSize: 12; font.weight: Font.DemiBold; font.letterSpacing: 2 }
+                Text { text: "HAOTICA"; color: Theme.ink; font.family: Theme.fontMono; font.pixelSize: 12; font.weight: Font.DemiBold; font.letterSpacing: 2 }
                 Text { text: "//"; color: Theme.dim; font.family: Theme.fontMono; font.pixelSize: 12 }
                 Text {
-                    text: "SYSTEM: " + (State.coreOnline ? "ONLINE" : "BOOT")
-                    color: State.coreOnline ? Theme.green : Theme.amber
+                    text: "SYSTEM: " + (Core.coreOnline ? "ONLINE" : "BOOT")
+                    color: Core.coreOnline ? Theme.green : Theme.amber
                     font.family: Theme.fontMono; font.pixelSize: 11; font.letterSpacing: 1.2
                 }
             }
@@ -115,39 +116,43 @@ PanelWindow {
         Row {
             spacing: 6
             Text { text: "CPU"; color: Theme.dim; font.family: Theme.fontMono; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
-            Sparkline { width: 46; height: 16; values: State.cpuHistory; color: Theme.teal; grid: false }
-            Text { text: Math.round(State.cpu) + "%"; color: Theme.ink; font.family: Theme.fontMono; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter; width: 32 }
+            Sparkline { width: 46; height: 16; values: Core.cpuHistory; color: Theme.teal; grid: false }
+            Text { text: Math.round(Core.cpu) + "%"; color: Theme.ink; font.family: Theme.fontMono; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter; width: 32 }
         }
         Row {
             spacing: 6
             Text { text: "GPU"; color: Theme.dim; font.family: Theme.fontMono; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
-            Sparkline { width: 46; height: 16; values: State.gpuHistory; color: Theme.coral; grid: false }
-            Text { text: Math.round(State.gpu) + "%"; color: Theme.ink; font.family: Theme.fontMono; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter; width: 32 }
+            Sparkline { width: 46; height: 16; values: Core.gpuHistory; color: Theme.coral; grid: false }
+            Text { text: Math.round(Core.gpu) + "%"; color: Theme.ink; font.family: Theme.fontMono; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter; width: 32 }
         }
         Text {
-            text: "GTT " + State.gttUsed.toFixed(0) + "/" + State.gttTotal.toFixed(0) + "G"
-            color: State.gttUsed > State.gttTotal * 0.9 ? Theme.amber : Theme.ink
+            text: "GTT " + Core.gttUsed.toFixed(0) + "/" + Core.gttTotal.toFixed(0) + "G"
+            color: Core.gttUsed > Core.gttTotal * 0.9 ? Theme.amber : Theme.ink
             font.family: Theme.fontMono; font.pixelSize: 11
         }
-        Row {
-            spacing: 5
-            Glyph { name: "wifi"; size: 15; color: State.netName !== "" ? Theme.teal : Theme.dim; anchors.verticalCenter: parent.verticalCenter }
-            Text {
-                text: State.netName !== "" ? (State.netPing >= 0 ? State.netPing + " ms" : "") : "offline"
-                color: State.netName !== "" ? Theme.ink : Theme.coral
-                font.family: Theme.fontMono; font.pixelSize: 11
-                anchors.verticalCenter: parent.verticalCenter
+        Item {
+            implicitWidth: wifiRow.implicitWidth; implicitHeight: wifiRow.implicitHeight
+            Row {
+                id: wifiRow
+                spacing: 5
+                Glyph { name: "wifi"; size: 15; color: Core.netName !== "" ? Theme.teal : Theme.dim; anchors.verticalCenter: parent.verticalCenter }
+                Text {
+                    text: Core.netName !== "" ? (Core.netPing >= 0 ? Core.netPing + " ms" : "") : "offline"
+                    color: Core.netName !== "" ? Theme.ink : Theme.coral
+                    font.family: Theme.fontMono; font.pixelSize: 11
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
             MouseArea { anchors.fill: parent; onClicked: Ui.controlOpen = !Ui.controlOpen; cursorShape: Qt.PointingHandCursor }
         }
         Row {
-            visible: State.battery >= 0
+            visible: Core.battery >= 0
             spacing: 5
-            Glyph { name: State.charging ? "bolt" : "battery"; size: 15; color: State.battery < 15 && !State.charging ? Theme.coral : Theme.ink; anchors.verticalCenter: parent.verticalCenter }
-            Text { text: Math.round(State.battery) + "%"; color: Theme.ink; font.family: Theme.fontMono; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+            Glyph { name: Core.charging ? "bolt" : "battery"; size: 15; color: Core.battery < 15 && !Core.charging ? Theme.coral : Theme.ink; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: Math.round(Core.battery) + "%"; color: Theme.ink; font.family: Theme.fontMono; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
         }
         Text {
-            text: State.kbLayout.toUpperCase()
+            text: Core.kbLayout.toUpperCase()
             color: Theme.ink
             font.family: Theme.fontMono; font.pixelSize: 11; font.weight: Font.DemiBold
         }
@@ -193,7 +198,7 @@ PanelWindow {
         Item {
             id: orb
             implicitWidth: 22; implicitHeight: 22
-            readonly property string st: State.haotica.state || "idle"
+            readonly property string st: Core.haotica.state || "idle"
             readonly property color col: st === "warning" ? Theme.coral : (st === "sleep" ? Theme.dim : Theme.violet)
             Glyph { anchors.centerIn: parent; name: "haotica"; size: 18; color: orb.col }
             SequentialAnimation on opacity {
@@ -203,7 +208,7 @@ PanelWindow {
                 NumberAnimation { to: 1; duration: 420 }
                 onStopped: orb.opacity = 1
             }
-            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Quickshell.execDetached(["hyperina", "open", "haotica", "--toggle"]) }
+            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Quickshell.execDetached(["haotica", "open", "assistant", "--toggle"]) }
         }
     }
 }

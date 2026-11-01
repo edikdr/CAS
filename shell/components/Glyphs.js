@@ -1,5 +1,5 @@
 .pragma library
-// Автоматически создано из core/hyperina/icons.py: пиктограммы 24×24 для Shape/PathSvg
+// Автоматически создано из core/haotica/icons.py: пиктограммы 24×24 для Shape/PathSvg
 var paths = {
  "terminal": "M3 5h18v14h-18zM7 9.5l3 2.5-3 2.5M12 14.5h5",
  "folder": "M3 6h6l2 2h10v10H3z",

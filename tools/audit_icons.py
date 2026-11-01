@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Аудит симметрии и центровки иконок, монограмм и курсоров HYPERINA.
+"""Аудит симметрии и центровки иконок, монограмм и курсоров HAOTICA.
 
   python3 tools/audit_icons.py                 # проверка, код возврата 1 при ошибках
   python3 tools/audit_icons.py --sheet out/    # плюс контактные листы с осями для просмотра
@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT / "core"))
 import numpy as np  # noqa: E402
 from PIL import Image, ImageDraw  # noqa: E402
 
-from hyperina import cursors, icons, palette  # noqa: E402
+from haotica import cursors, icons, palette  # noqa: E402
 
 TOL = 0.30          # допуск центровки, единиц сетки 24
 MIN_GAP = 1.0       # минимальный зазор содержимого до внутреннего края рамки
@@ -282,7 +282,7 @@ def contact_sheets(r: Raster, out: Path, p) -> list[Path]:
         sheet.paste(im, (x, y), im)
         d.line((x + 48, y + 30, x + 48, y + 66), fill=(120, 30, 30))
         d.line((x + 30, y + 48, x + 66, y + 48), fill=(120, 30, 30))
-        d.text((x, y + 104), app.replace("hyperina-", "")[:16], fill=(150, 150, 150))
+        d.text((x, y + 104), app.replace("haotica-", "")[:16], fill=(150, 150, 150))
     fn = out / "tiles.png"
     sheet.save(fn)
     made.append(fn)
@@ -296,7 +296,7 @@ def contact_sheets(r: Raster, out: Path, p) -> list[Path]:
         sheet.paste(im, (x, 4), im)
         d.line((x + 96, 4, x + 96, 196), fill=(255, 40, 40))
         d.line((x, 100, x + 192, 100), fill=(255, 40, 40))
-        d.text((x, 204), app.replace("hyperina-web-", ""), fill=(160, 160, 160))
+        d.text((x, 204), app.replace("haotica-web-", ""), fill=(160, 160, 160))
     fn = out / "monograms.png"
     sheet.save(fn)
     made.append(fn)

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=HAOTICA
+Description=HAOTICA: загрузка в стиле досье
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/haotica
+ScriptFile=/usr/share/plymouth/themes/haotica/haotica.script

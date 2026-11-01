@@ -14,6 +14,7 @@ import "../components"
 // Центр управления: Wi-Fi, Bluetooth, звук, яркость, питание, быстрые переключатели
 PanelWindow {
     id: cc
+    Component.onCompleted: Ui.reg("control", cc)
     visible: Ui.controlOpen
     anchors { top: true; right: true }
     margins { top: 40; right: 10 }
@@ -22,7 +23,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "hyperina-control"
+    WlrLayershell.namespace: "haotica-control"
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     PwObjectTracker { objects: [Pipewire.defaultAudioSink] }
@@ -79,10 +80,10 @@ PanelWindow {
             Tile {
                 label: "НОЧНОЙ"; glyph: "night"; onColor: Theme.amber
                 on: Theme.s.display ? Theme.s.display.night_light === true : false
-                onClicked: State.setSetting("display.night_light", !on)
+                onClicked: Core.setSetting("display.night_light", !on)
             }
-            Tile { label: "ИГРА"; glyph: "game"; on: State.gameMode; onColor: Theme.coral; onClicked: Quickshell.execDetached(["hyperina", "gamemode", "toggle"]) }
-            Tile { label: "HAOTICA"; glyph: "haotica"; on: (State.haotica.state || "") !== "sleep"; onColor: Theme.violet; onClicked: Quickshell.execDetached(["hyperina", "open", "haotica", "--toggle"]) }
+            Tile { label: "ИГРА"; glyph: "game"; on: Core.gameMode; onColor: Theme.coral; onClicked: Quickshell.execDetached(["haotica", "gamemode", "toggle"]) }
+            Tile { label: "HAOTICA"; glyph: "haotica"; on: (Core.haotica.state || "") !== "sleep"; onColor: Theme.violet; onClicked: Quickshell.execDetached(["haotica", "open", "assistant", "--toggle"]) }
         }
 
         // режим питания
@@ -175,8 +176,8 @@ PanelWindow {
         Rectangle { Layout.fillWidth: true; height: 1; color: Theme.line }
         Row {
             spacing: 6
-            HButton { glyph: "settings"; text: "Настройки"; onClicked: { Ui.controlOpen = false; Quickshell.execDetached(["hyperina", "open", "settings"]); } }
-            HButton { glyph: "radar"; text: "Сеть"; onClicked: { Ui.controlOpen = false; Quickshell.execDetached(["hyperina", "open", "netrecon"]); } }
+            HButton { glyph: "settings"; text: "Настройки"; onClicked: { Ui.controlOpen = false; Quickshell.execDetached(["haotica", "open", "settings"]); } }
+            HButton { glyph: "radar"; text: "Сеть"; onClicked: { Ui.controlOpen = false; Quickshell.execDetached(["haotica", "open", "netrecon"]); } }
             HButton { glyph: "power"; onClicked: { Ui.controlOpen = false; Ui.powerOpen = true; } }
         }
     }

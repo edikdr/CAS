@@ -15,7 +15,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     color: Theme.alpha(Theme.bg0, 0.82)
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "hyperina-power"
+    WlrLayershell.namespace: "haotica-power"
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     signal lockRequested()
@@ -91,7 +91,7 @@ PanelWindow {
         exclusionMode: ExclusionMode.Ignore
         color: "transparent"
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "hyperina-overlay"
+        WlrLayershell.namespace: "haotica-overlay"
         Rectangle { id: topCurtain; width: parent.width; height: 0; color: "black" }
         Rectangle { id: botCurtain; width: parent.width; height: 0; y: parent.height - height; color: "black" }
         Rectangle { id: beam; anchors.centerIn: parent; width: parent.width; height: 2; color: Theme.ink; opacity: 0 }

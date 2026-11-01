@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>portrait</title>
+<link rel="stylesheet" href="/ui/hy.css">
+<style>html,body{background:transparent!important;margin:0;overflow:hidden} body{display:flex} .cell{width:480px;height:520px}</style>
+</head><body>
+<script type="module">
+// Экспорт портрета Haotica в PNG для оболочки (QML): все состояния в один ряд, хост делает снимок окна
+import { HY } from "/ui/hy.js";
+import { createAvatar, avatarCss } from "/ui/avatar.js";
+await HY.start({ chrome: false, transparent: true });
+const st = document.createElement("style"); st.textContent = avatarCss(); document.head.append(st);
+for (const s of ["idle", "reading", "thinking", "speaking", "happy", "warning", "sleep"]) {
+  const c = document.createElement("div"); c.className = "cell"; document.body.append(c);
+  const a = createAvatar(c, { size: 480, interactive: false });
+  a.setState(s); if (s === "speaking") a.setMouth(0.55);
+}
+</script></body></html>

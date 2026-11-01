@@ -27,6 +27,10 @@ Singleton {
         logLines = a;
     }
 
+    // отладка: окна регистрируются, чтобы «qs ipc call haotica snapshot <папка>» снимал их без композитора
+    property var windows: []
+    function reg(name, win) { const a = windows.slice(); a.push({ name: name, win: win }); windows = a; }
+
     function closeAll() {
         launcherOpen = false; dashboardOpen = false; notificationsOpen = false;
         controlOpen = false; clipboardOpen = false; powerOpen = false;

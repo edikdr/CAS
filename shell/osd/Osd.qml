@@ -51,7 +51,7 @@ Scope {
         exclusionMode: ExclusionMode.Ignore
         color: "transparent"
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "hyperina-osd"
+        WlrLayershell.namespace: "haotica-osd"
 
         Connections {
             target: Ui

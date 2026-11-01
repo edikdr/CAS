@@ -59,12 +59,12 @@ base_time() {
 }
 
 base_tuning() {
-  install_root_file "$HY_ROOT/system/etc/sysctl.d/90-hyperina.conf" /etc/sysctl.d/90-hyperina.conf
+  install_root_file "$HY_ROOT/system/etc/sysctl.d/90-haotica.conf" /etc/sysctl.d/90-haotica.conf
   install_root_file "$HY_ROOT/system/etc/systemd/zram-generator.conf" /etc/systemd/zram-generator.conf
-  install_root_file "$HY_ROOT/system/etc/systemd/journald.conf.d/90-hyperina.conf" /etc/systemd/journald.conf.d/90-hyperina.conf
-  install_root_file "$HY_ROOT/system/etc/systemd/logind.conf.d/90-hyperina.conf" /etc/systemd/logind.conf.d/90-hyperina.conf
-  install_root_file "$HY_ROOT/system/etc/makepkg.conf.d/hyperina.conf" /etc/makepkg.conf.d/hyperina.conf
-  install_root_file "$HY_ROOT/system/etc/modprobe.d/hyperina-blacklist.conf" /etc/modprobe.d/hyperina-blacklist.conf
+  install_root_file "$HY_ROOT/system/etc/systemd/journald.conf.d/90-haotica.conf" /etc/systemd/journald.conf.d/90-haotica.conf
+  install_root_file "$HY_ROOT/system/etc/systemd/logind.conf.d/90-haotica.conf" /etc/systemd/logind.conf.d/90-haotica.conf
+  install_root_file "$HY_ROOT/system/etc/makepkg.conf.d/haotica.conf" /etc/makepkg.conf.d/haotica.conf
+  install_root_file "$HY_ROOT/system/etc/modprobe.d/haotica-blacklist.conf" /etc/modprobe.d/haotica-blacklist.conf
   sudo_run sysctl --system >/dev/null 2>&1 || true
   # если раньше был swap-раздел — оставляем, zram получит приоритет 100
   enable_system_unit fstrim.timer paccache.timer
@@ -81,7 +81,7 @@ mod_run() {
   base_locales
   base_time
   base_tuning
-  sudo_run mkdir -p "$HY_ETC" /var/cache/hyperina /var/log/hyperina
+  sudo_run mkdir -p "$HY_ETC" /var/cache/haotica /var/log/haotica
   save_install_var HY_USER "$HY_USER"
   mark_reboot
 }

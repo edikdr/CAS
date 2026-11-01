@@ -1,2 +1,2 @@
--- Ваши правки Hyprland. HYPERINA не перезаписывает этот файл.
+-- Ваши правки Hyprland. HAOTICA не перезаписывает этот файл.
 -- Пример: hl.bind("SUPER + T", hl.dsp.exec_cmd("kitty"))

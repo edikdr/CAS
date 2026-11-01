@@ -16,15 +16,15 @@ mod_run() {
   # Бережная зарядка (по умолчанию включена, меняется в Настройках → Питание)
   if [[ ! -f "$HY_ETC/power.conf" ]]; then
     write_root_file "$HY_ETC/power.conf" <<'CONF'
-# HYPERINA: питание
+# HAOTICA: питание
 CHARGE_CONSERVATION=1
 CHARGE_LIMIT=80
 CONF
   fi
-  install_root_file "$HY_ROOT/system/usr/lib/hyperina/bin/hyperina-charge-limit" "$HY_PREFIX_LIB/bin/hyperina-charge-limit" 0755
-  install_root_file "$HY_ROOT/system/etc/systemd/system/hyperina-charge-limit.service" /etc/systemd/system/hyperina-charge-limit.service
+  install_root_file "$HY_ROOT/system/usr/lib/haotica/bin/haotica-charge-limit" "$HY_PREFIX_LIB/bin/haotica-charge-limit" 0755
+  install_root_file "$HY_ROOT/system/etc/systemd/system/haotica-charge-limit.service" /etc/systemd/system/haotica-charge-limit.service
   sudo_run systemctl daemon-reload
-  enable_system_unit hyperina-charge-limit.service
+  enable_system_unit haotica-charge-limit.service
   if [[ -n "${HW_CHARGE_CTRL:-}" ]]; then
     ui_ok "Бережная зарядка: ${HW_CHARGE_CTRL}"
   else

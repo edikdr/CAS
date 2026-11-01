@@ -127,7 +127,7 @@ Scope {
         exclusionMode: ExclusionMode.Ignore
         color: "transparent"
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "hyperina-notifications"
+        WlrLayershell.namespace: "haotica-notifications"
         Column {
             id: popCol
             y: 12
@@ -154,7 +154,7 @@ Scope {
         exclusionMode: ExclusionMode.Ignore
         color: "transparent"
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "hyperina-notifications"
+        WlrLayershell.namespace: "haotica-notifications"
         WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
         HFrame { anchors.fill: parent; fill: Theme.alpha(Theme.bg0, 0.95); stroke: Theme.lineHi }

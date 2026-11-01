@@ -34,18 +34,18 @@ kernel_params() {
 }
 
 apply_systemd_boot() {
-  local params="$1" esp="$HW_ESP" e opts new safe="$HW_ESP/loader/entries/hyperina-safe.conf" main="" entries=()
+  local params="$1" esp="$HW_ESP" e opts new safe="$HW_ESP/loader/entries/haotica-safe.conf" main="" entries=()
   # ESP обычно читается только root — список записей берём через sudo
   mapfile -t entries < <(sudo_q find "$esp/loader/entries" -maxdepth 1 -name '*.conf' | sort)
   for e in "${entries[@]}"; do
-    [[ "$(basename "$e")" == hyperina-safe.conf ]] && continue
+    [[ "$(basename "$e")" == haotica-safe.conf ]] && continue
     sudo_q grep -qE '^linux[[:space:]]+/vmlinuz-linux' "$e" || continue
     [[ -z "$main" ]] && main="$e"
     opts="$(sudo_q sed -n -E 's/^options[[:space:]]+//p' "$e" | head -1)"
     # безопасная запись — копия исходной, без наших параметров, создаётся один раз
     if ! sudo_q test -f "$safe" && [[ "$e" == "$main" ]]; then
-      sudo_sh "sed -E 's/^title.*/title   HYPERINA — безопасный режим/' '$e' > '$safe'"
-      ui_ok "Создан пункт загрузки «HYPERINA — безопасный режим» (исходные параметры)"
+      sudo_sh "sed -E 's/^title.*/title   HAOTICA — безопасный режим/' '$e' > '$safe'"
+      ui_ok "Создан пункт загрузки «HAOTICA — безопасный режим» (исходные параметры)"
     fi
     new="$(kparams_merge "$opts" "$params")"
     backup_root_path "$e"
@@ -133,8 +133,8 @@ apply_refind() {
 mkinitcpio_setup() {
   # MODULES += amdgpu (ранний KMS для заставки), HOOKS += plymouth (до шифрования диска)
   local mods hooks out_m=() out_h=() h placed=0
-  mods="$(bash -c 'source /etc/mkinitcpio.conf; for f in /etc/mkinitcpio.conf.d/*.conf; do [[ -f $f && $f != */hyperina.conf ]] && source "$f"; done; echo "${MODULES[*]}"')"
-  hooks="$(bash -c 'source /etc/mkinitcpio.conf; for f in /etc/mkinitcpio.conf.d/*.conf; do [[ -f $f && $f != */hyperina.conf ]] && source "$f"; done; echo "${HOOKS[*]}"')"
+  mods="$(bash -c 'source /etc/mkinitcpio.conf; for f in /etc/mkinitcpio.conf.d/*.conf; do [[ -f $f && $f != */haotica.conf ]] && source "$f"; done; echo "${MODULES[*]}"')"
+  hooks="$(bash -c 'source /etc/mkinitcpio.conf; for f in /etc/mkinitcpio.conf.d/*.conf; do [[ -f $f && $f != */haotica.conf ]] && source "$f"; done; echo "${HOOKS[*]}"')"
   read -ra out_m <<<"$mods"
   [[ " ${out_m[*]} " == *" amdgpu "* ]] || out_m+=(amdgpu)
   for h in $hooks; do
@@ -144,8 +144,8 @@ mkinitcpio_setup() {
   done
   ((placed)) || out_h+=(plymouth)
   sudo_run mkdir -p /etc/mkinitcpio.conf.d
-  write_root_file /etc/mkinitcpio.conf.d/hyperina.conf <<EOF
-# HYPERINA: ранний KMS для Radeon 8060S и заставка Plymouth
+  write_root_file /etc/mkinitcpio.conf.d/haotica.conf <<EOF
+# HAOTICA: ранний KMS для Radeon 8060S и заставка Plymouth
 MODULES=(${out_m[*]})
 HOOKS=(${out_h[*]})
 EOF
@@ -159,8 +159,8 @@ mod_run() {
   ui_kv "ПАМЯТЬ ДЛЯ GPU (GTT)" "${gib} ГиБ из ${HW_RAM_GIB} ГиБ"
   ui_kv "ПАРАМЕТРЫ" "iommu=pt amd_pstate=active ttm=${gib}G"
 
-  write_root_file /etc/modprobe.d/hyperina-ttm.conf <<EOF
-# HYPERINA: лимит памяти, которую GPU может занять динамически (GTT), ${gib} ГиБ
+  write_root_file /etc/modprobe.d/haotica-ttm.conf <<EOF
+# HAOTICA: лимит памяти, которую GPU может занять динамически (GTT), ${gib} ГиБ
 options ttm pages_limit=$((gib * 262144)) page_pool_size=$((gib * 262144))
 EOF
   echo "$params" | write_root_file "$HY_ETC/kernel-params.txt"

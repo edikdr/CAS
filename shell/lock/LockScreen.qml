@@ -30,7 +30,7 @@ Scope {
     }
 
     FileView {
-        path: "/etc/hyperina/install.env"
+        path: "/etc/haotica/install.env"
         onLoaded: {
             const m = text().match(/INSTALL_DATE=([0-9-]+)/);
             if (m) root.inceptDate = m[1].split("-").reverse().join("/");
@@ -39,7 +39,7 @@ Scope {
 
     PamContext {
         id: pam
-        config: "hyperina-lock"
+        config: "haotica-lock"
         onPamMessage: {
             root.message = pam.message;
             root.needPassword = pam.responseRequired;
@@ -206,12 +206,12 @@ Scope {
                         spacing: 9
                         DossierRow { width: parent.width; pixelSize: 14; key: "NAME"; value: root.user.toUpperCase() }
                         DossierRow { width: parent.width; pixelSize: 14; key: "INCEPT DATE"; value: root.inceptDate }
-                        DossierRow { width: parent.width; pixelSize: 14; key: "SYSTEM STATE"; value: State.coreOnline ? "STABLE" : "STANDBY"; valueColor: State.coreOnline ? Theme.green : Theme.amber }
+                        DossierRow { width: parent.width; pixelSize: 14; key: "SYSTEM STATE"; value: Core.coreOnline ? "STABLE" : "STANDBY"; valueColor: Core.coreOnline ? Theme.green : Theme.amber }
                         DossierRow { width: parent.width; pixelSize: 14; key: "THREAT ASSESSMENT"; value: "★ ★ ★"; valueColor: Theme.violet }
                         DossierRow { width: parent.width; pixelSize: 14; key: "ACCESS"; value: root.status; valueColor: root.failed ? Theme.coral : (root.status === "ACCESS GRANTED" ? Theme.green : Theme.ink) }
                     }
 
-                    Sparkline { Layout.fillWidth: true; Layout.preferredHeight: 50; values: State.cpuHistory; color: Theme.violet }
+                    Sparkline { Layout.fillWidth: true; Layout.preferredHeight: 50; values: Core.cpuHistory; color: Theme.violet }
 
                     // пароль
                     Item {

@@ -1,0 +1,15 @@
+[Unit]
+Description=Haotica: ассистент (чат, инструменты, память, облачный канал)
+PartOf=graphical-session.target
+After=graphical-session.target haotica-core.service
+Wants=haotica-llm-main.service haotica-llm-fast.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/haotica-agent
+Restart=on-failure
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=haotica-session.target

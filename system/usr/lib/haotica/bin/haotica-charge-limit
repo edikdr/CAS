@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# HAOTICA: бережная зарядка батареи (Lenovo conservation mode или порог зарядки).
+# Использование: haotica-charge-limit apply|on|off|status
+set -euo pipefail
+CONF=/etc/haotica/power.conf
+CHARGE_CONSERVATION=1
+CHARGE_LIMIT=80
+# shellcheck source=/dev/null
+[[ -f "$CONF" ]] && source "$CONF"
+MODE=off
+[[ "${CHARGE_CONSERVATION}" == 1 ]] && MODE=on
+
+find_ctrl() {
+  local c
+  for c in /sys/bus/platform/drivers/ideapad_acpi/*/conservation_mode \
+           /sys/class/power_supply/BAT*/charge_control_end_threshold \
+           /sys/class/power_supply/BAT*/charge_types; do
+    [[ -e "$c" ]] && { echo "$c"; return; }
+  done
+}
+
+set_mode() {
+  local want="$1" c value
+  c="$(find_ctrl)"
+  [[ -n "$c" ]] || { echo "Управление зарядом не поддерживается этим ядром"; exit 0; }
+  case "$c" in
+    */conservation_mode) value=0; [[ "$want" == on ]] && value=1 ;;
+    */charge_control_end_threshold) value=100; [[ "$want" == on ]] && value="$CHARGE_LIMIT" ;;
+    */charge_types) value=Standard; [[ "$want" == on ]] && value=Long_Life ;;
+  esac
+  printf '%s\n' "$value" >"$c" 2>/dev/null || echo "Не удалось записать $c"
+}
+
+case "${1:-apply}" in
+  apply) set_mode "$MODE" ;;
+  on) set_mode on ;;
+  off) set_mode off ;;
+  status)
+    c="$(find_ctrl)"
+    if [[ -n "$c" ]]; then echo "$c: $(cat "$c")"; else echo "нет"; fi
+    ;;
+esac

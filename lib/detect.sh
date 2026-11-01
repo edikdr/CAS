@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# HYPERINA installer — определение железа и окружения.
-# Результат: переменные HW_* и файл /var/lib/hyperina/hardware.env
+# HAOTICA installer — определение железа и окружения.
+# Результат: переменные HW_* и файл /var/lib/haotica/hardware.env
 # shellcheck disable=SC2034
 
 _rd() { if [[ -r "$1" ]]; then tr -d '\n' <"$1" 2>/dev/null || true; fi; }

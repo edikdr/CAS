@@ -92,7 +92,7 @@ Scope {
         color: "transparent"
         mask: Region {}
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "hyperina-glitch"
+        WlrLayershell.namespace: "haotica-glitch"
 
         Item {
             id: area

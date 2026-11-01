@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# HYPERINA installer — вывод в стиле системы (палитра MIX, truecolor).
+# HAOTICA installer — вывод в стиле системы (палитра MIX, truecolor).
 # shellcheck disable=SC2034,SC2119,SC2120  # цвета используются в других файлах
 
 if [[ -t 1 && "${NO_COLOR:-}" == "" ]]; then

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- HAOTICA: действия haotica-helper. Без пароля — только безопасные действия активного сеанса. -->
+<policyconfig>
+  <vendor>HAOTICA</vendor>
+  <icon_name>haotica-security</icon_name>
+  <action id="org.haotica.helper.recon">
+    <description>Сканирование своей локальной сети</description>
+    <message>HAOTICA: сканирование своей локальной сети — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">recon</annotate>
+  </action>
+  <action id="org.haotica.helper.charge">
+    <description>Порог заряда батареи</description>
+    <message>HAOTICA: порог заряда батареи — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">charge</annotate>
+  </action>
+  <action id="org.haotica.helper.theme">
+    <description>Тема экрана входа и заставки</description>
+    <message>HAOTICA: тема экрана входа и заставки — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">system-theme</annotate>
+  </action>
+  <action id="org.haotica.helper.locale">
+    <description>Язык и форматы системы</description>
+    <message>HAOTICA: язык и форматы системы — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">locale</annotate>
+  </action>
+  <action id="org.haotica.helper.timezone">
+    <description>Часовой пояс</description>
+    <message>HAOTICA: часовой пояс — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">timezone</annotate>
+  </action>
+  <action id="org.haotica.helper.ntp">
+    <description>Синхронизация времени</description>
+    <message>HAOTICA: синхронизация времени — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">ntp</annotate>
+  </action>
+  <action id="org.haotica.helper.keymap">
+    <description>Раскладка клавиатуры экрана входа</description>
+    <message>HAOTICA: раскладка клавиатуры экрана входа — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">keymap</annotate>
+  </action>
+  <action id="org.haotica.helper.service">
+    <description>Системные службы</description>
+    <message>HAOTICA: системные службы — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">service</annotate>
+  </action>
+  <action id="org.haotica.helper.firewall">
+    <description>Файрвол</description>
+    <message>HAOTICA: файрвол — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">firewall</annotate>
+  </action>
+  <action id="org.haotica.helper.snapshot">
+    <description>Снимки системы и откат</description>
+    <message>HAOTICA: снимки системы и откат — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">snapshot</annotate>
+  </action>
+  <action id="org.haotica.helper.clean">
+    <description>Очистка системы</description>
+    <message>HAOTICA: очистка системы — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">clean</annotate>
+  </action>
+  <action id="org.haotica.helper.hostname">
+    <description>Имя компьютера</description>
+    <message>HAOTICA: имя компьютера — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">hostname</annotate>
+  </action>
+  <action id="org.haotica.helper.face">
+    <description>Вход по лицу</description>
+    <message>HAOTICA: вход по лицу — нужен пароль</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/haotica/bin/haotica-helper</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">face</annotate>
+  </action>
+</policyconfig>

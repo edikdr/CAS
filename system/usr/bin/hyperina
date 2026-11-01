@@ -1,4 +1,0 @@
-#!/bin/sh
-# HYPERINA: hyperina.cli
-export PYTHONPATH="/usr/lib/hyperina/python${PYTHONPATH:+:$PYTHONPATH}"
-exec /usr/bin/python3 -m hyperina.cli "$@"

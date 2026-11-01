@@ -1,4 +1,4 @@
-// Терминал HYPERINA: xterm.js + PTY хоста, блоки команд (OSC 133), кликабельные пути (OSC 8 и
+// Терминал HAOTICA: xterm.js + PTY хоста, блоки команд (OSC 133), кликабельные пути (OSC 8 и
 // распознавание в выводе), файловая панель с категориями и тегами, превью, системные виджеты
 // из общего сервиса метрик, Haotica в правой панели, палитра команд и Cloud Link.
 import { HY, el, icon } from "/ui/hy.js";
@@ -35,7 +35,7 @@ const CATS = ["all", "dir", "code", "doc", "image", "video", "audio", "archive",
 const state = { tabs: [], active: null, fontSize: 13, metrics: {}, hist: { cpu: [], gpu: [], gtt: [], tps: [] },
   dir: "", cat: "all", hidden: false, selected: "", statCache: new Map(), lastClick: { uri: "", t: 0 } };
 
-await HY.start({ title: "TERMINAL // HYPERINA", glyph: "terminal", topics: ["metrics", "events", "recon", "gamemode"],
+await HY.start({ title: "TERMINAL // HAOTICA", glyph: "terminal", topics: ["metrics", "events", "recon", "gamemode"],
   ctrlW: false, chrome: false });
 HY.edges();
 document.querySelector(".hy-app").classList.add("hy-boot");
@@ -90,7 +90,7 @@ class Tab {
     this.box.addEventListener("dragover", (e) => e.preventDefault());
     this.box.addEventListener("drop", (e) => {
       e.preventDefault();
-      const p = e.dataTransfer.getData("text/x-hyperina-path") || e.dataTransfer.getData("text/plain");
+      const p = e.dataTransfer.getData("text/x-haotica-path") || e.dataTransfer.getData("text/plain");
       if (p) this.input(quote(p) + " ");
     });
     this.spawn(command);
@@ -406,7 +406,7 @@ function showPanel(name) {
   $("p-tabs").replaceChildren(...PANELS.map(([n, label]) => el("button" + (n === name ? ".on" : ""), { onclick: () => showPanel(n) },
     label, n === "log" && state.unread ? el("span.n", state.unread) : null)));
   if (name === "log") state.unread = 0;
-  if (name === "haotica" && !hFrame.src) hFrame.src = "/apps/haotica/index.html?embed=terminal";
+  if (name === "haotica" && !hFrame.src) hFrame.src = "/apps/assistant/index.html?embed=terminal";
 }
 
 // журнал со встроенными барами
@@ -447,7 +447,7 @@ function renderTree() {
     onclick: () => { state.selected = e.path; renderTree(); preview(e.path, null, false); },
     ondblclick: () => e.type === "dir" ? loadDir(e.path) : HY.post("/api/fs/open", { path: e.path }),
     oncontextmenu: (ev) => { ev.preventDefault(); fileMenu(ev, e); },
-    ondragstart: (ev) => { ev.dataTransfer.setData("text/x-hyperina-path", e.path); ev.dataTransfer.setData("text/plain", e.path); },
+    ondragstart: (ev) => { ev.dataTransfer.setData("text/x-haotica-path", e.path); ev.dataTransfer.setData("text/plain", e.path); },
   }, el("span.bar2", { style: { background: HY.catColor(e.category) } }),
      icon(e.type === "dir" ? "folder" : glyphFor(e.category), 14), el("span.nm", e.name),
      e.tags && e.tags.length ? el("span.tg", e.tags.slice(0, 3).map((t) => el("i", { title: t, style: { background: reg[t] || "var(--accent)" } }))) : null)));
@@ -634,7 +634,7 @@ $("globe").onclick = () => HY.openApp("netrecon");
 let globeT = 0;
 setInterval(() => { globeT += 0.08; const m = $("globe").querySelector(".gl-m"); if (m) m.setAttribute("rx", Math.abs(Math.cos(globeT)) * 14 + 1); }, 66);
 
-// эмблема HYPERINA
+// эмблема HAOTICA
 $("emblem").innerHTML = `<svg viewBox="0 0 46 40"><path d="M3 3h40L23 37z" fill="none" stroke="currentColor" stroke-width="1.6"/>
   <path d="M9 7h28L23 31z" fill="none" stroke="currentColor" stroke-width=".8" opacity=".6"/>
   <path d="M17 11v10M29 11v10M17 16h12" stroke="currentColor" stroke-width="2.2" fill="none"/></svg>`;
@@ -672,7 +672,7 @@ import("/ui/avatar.js").then(({ createAvatar, avatarCss }) => {
   $("avatar").onclick = () => showPanel("haotica");
 });
 const hFrame = $("haotica");
-function hPost(msg) { try { hFrame.contentWindow && hFrame.contentWindow.postMessage({ hyperina: true, ...msg }, location.origin); } catch (e) { /* ещё грузится */ } }
+function hPost(msg) { try { hFrame.contentWindow && hFrame.contentWindow.postMessage({ haotica: true, ...msg }, location.origin); } catch (e) { /* ещё грузится */ } }
 const voice = { env: new Array(60).fill(0) };
 function drawVoice() {
   const [g, w, h] = fitCanvas($("voice-wave"));
@@ -739,7 +739,7 @@ function showCard(c) {
 }
 
 window.addEventListener("message", (e) => {
-  if (e.origin !== location.origin || !e.data || !e.data.hyperina) return;
+  if (e.origin !== location.origin || !e.data || !e.data.haotica) return;
   const d = e.data;
   if (d.type === "insert" && state.active) state.active.input(d.text);
   if (d.type === "run" && state.active) state.active.input(d.text + "\r");

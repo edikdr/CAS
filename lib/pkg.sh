@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# HYPERINA installer — пакеты: pacman, AUR (paru), списки пакетов.
+# HAOTICA installer — пакеты: pacman, AUR (paru), списки пакетов.
 
 pkg_installed() { pacman -Qq "$1" >/dev/null 2>&1; }
 pkg_in_repo()   { pacman -Si "$1" >/dev/null 2>&1; }
@@ -69,7 +69,7 @@ aur_install() {
     run paru -S --needed --noconfirm --skipreview --removemake --cleanafter --sudoloop "$p" || failed+=("$p")
   done
   if ((${#failed[@]})); then
-    ui_warn "Из AUR не собрались: ${failed[*]}. Установка продолжается, их можно поставить позже: hyperina doctor"
+    ui_warn "Из AUR не собрались: ${failed[*]}. Установка продолжается, их можно поставить позже: haotica doctor"
     return 1
   fi
 }
@@ -86,8 +86,8 @@ ensure_multilib() {
   sudo_run pacman -Sy --noconfirm
 }
 
-# Python-пакеты в виртуальное окружение HYPERINA
+# Python-пакеты в виртуальное окружение HAOTICA
 venv_pip() {
   local venv="$1"; shift
-  sudo_run env UV_CACHE_DIR=/var/cache/hyperina/uv uv pip install --python "$venv/bin/python" "$@"
+  sudo_run env UV_CACHE_DIR=/var/cache/haotica/uv uv pip install --python "$venv/bin/python" "$@"
 }

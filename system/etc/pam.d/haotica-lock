@@ -1,0 +1,4 @@
+#%PAM-1.0
+# HAOTICA: экран блокировки. Строка howdy (вход по лицу) добавляется модулем 55-face, если включено.
+auth       include      system-local-login
+account    include      system-local-login

@@ -1,7 +1,7 @@
 import QtQuick
 import "../theme"
 
-// Кнопка HYPERINA: «plate» — инверсная плашка, «ghost» — контур; скобки при наведении
+// Кнопка HAOTICA: «plate» — инверсная плашка, «ghost» — контур; скобки при наведении
 Item {
     id: root
     property string text: ""

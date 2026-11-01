@@ -1,0 +1,4 @@
+#!/bin/sh
+# HAOTICA: haotica.agent
+export PYTHONPATH="/usr/lib/haotica/python${PYTHONPATH:+:$PYTHONPATH}"
+exec /usr/bin/python3 -m haotica.agent "$@"

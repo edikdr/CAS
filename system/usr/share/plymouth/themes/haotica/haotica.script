@@ -1,0 +1,93 @@
+# HAOTICA — заставка загрузки (Plymouth script)
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+
+W = Window.GetWidth();
+H = Window.GetHeight();
+
+logo.image = Image("logo.png");
+logo.sprite = Sprite(logo.image);
+logo.x = Math.Int(W * 0.08);
+logo.y = Math.Int(H * 0.30);
+logo.sprite.SetPosition(logo.x, logo.y, 10);
+
+# строки журнала проявляются по мере загрузки
+NLOG = 6;
+for (i = 0; i < NLOG; i++) {
+  log[i].image = Image("log" + i + ".png");
+  log[i].sprite = Sprite(log[i].image);
+  log[i].sprite.SetPosition(logo.x + 4, logo.y + logo.image.GetHeight() + 40 + i * 32, 10);
+  log[i].sprite.SetOpacity(0);
+}
+
+# сегментный прогресс
+NSEG = 24;
+for (i = 0; i < NSEG; i++) {
+  seg[i].off = Sprite(Image("seg_off.png"));
+  seg[i].on = Sprite(Image("seg_on.png"));
+  sx = logo.x + 4 + i * 22;
+  sy = logo.y + logo.image.GetHeight() + 40 + NLOG * 32 + 24;
+  seg[i].off.SetPosition(sx, sy, 10);
+  seg[i].on.SetPosition(sx, sy, 11);
+  seg[i].on.SetOpacity(0);
+}
+
+fun progress_cb(duration, progress) {
+  shown = Math.Int(progress * NLOG + 0.999);
+  for (i = 0; i < NLOG; i++) {
+    if (i < shown) log[i].sprite.SetOpacity(1); else log[i].sprite.SetOpacity(0);
+  }
+  lit = Math.Int(progress * NSEG);
+  for (i = 0; i < NSEG; i++) {
+    if (i < lit) seg[i].on.SetOpacity(1); else seg[i].on.SetOpacity(0);
+  }
+}
+Plymouth.SetBootProgressFunction(progress_cb);
+
+# ── ввод пароля диска (LUKS) ──────────────────────────────────
+prompt.image = Image("prompt.png");
+prompt.sprite = Sprite(prompt.image);
+entry.image = Image("entry.png");
+entry.sprite = Sprite(entry.image);
+bullet.image = Image("bullet.png");
+px = logo.x + 4;
+py = logo.y + logo.image.GetHeight() + 40 + NLOG * 32 + 64;
+prompt.sprite.SetPosition(px, py, 20);
+entry.sprite.SetPosition(px, py + 34, 20);
+prompt.sprite.SetOpacity(0);
+entry.sprite.SetOpacity(0);
+nbullets = 0;
+
+fun display_normal_cb() {
+  prompt.sprite.SetOpacity(0);
+  entry.sprite.SetOpacity(0);
+  for (i = 0; i < nbullets; i++) bullets[i].SetOpacity(0);
+}
+
+fun display_password_cb(prompt_text, count) {
+  prompt.sprite.SetOpacity(1);
+  entry.sprite.SetOpacity(1);
+  for (i = 0; i < nbullets; i++) bullets[i].SetOpacity(0);
+  for (i = 0; i < count && i < 30; i++) {
+    if (!bullets[i]) bullets[i] = Sprite(bullet.image);
+    bullets[i].SetPosition(px + 16 + i * 17, py + 34 + 16, 21);
+    bullets[i].SetOpacity(1);
+  }
+  nbullets = count;
+}
+
+Plymouth.SetDisplayNormalFunction(display_normal_cb);
+Plymouth.SetDisplayPasswordFunction(display_password_cb);
+
+# сообщения системы (например, «проверка диска») — внизу экрана
+message_sprite = Sprite();
+message_sprite.SetPosition(logo.x + 4, H - 80, 30);
+fun message_cb(text) {
+  message_sprite.SetImage(Image.Text(text, 0.64, 0.61, 0.53));
+}
+Plymouth.SetMessageFunction(message_cb);
+
+fun quit_cb() {
+  for (i = 0; i < NSEG; i++) seg[i].on.SetOpacity(1);
+}
+Plymouth.SetQuitFunction(quit_cb);

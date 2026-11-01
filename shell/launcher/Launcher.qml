@@ -11,12 +11,13 @@ import "../components"
 // Лаунчер: поиск программ и действий. Префиксы: ? — спросить Haotica, = — посчитать, > — команда в терминале
 PanelWindow {
     id: win
+    Component.onCompleted: Ui.reg("launcher", win)
     visible: Ui.launcherOpen
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     color: Theme.alpha(Theme.bg0, 0.55)
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "hyperina-launcher"
+    WlrLayershell.namespace: "haotica-launcher"
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     property string query: ""
@@ -26,14 +27,14 @@ PanelWindow {
     readonly property var cats: [["all", "ВСЕ"], ["ai", "ИИ"], ["chat", "ОБЩЕНИЕ"], ["social", "СОЦСЕТИ"], ["dev", "РАЗРАБОТКА"],
         ["finance", "ФИНАНСЫ"], ["media", "ИГРЫ И МЕДИА"], ["system", "СИСТЕМА"]]
     readonly property var known: ({
-        "hyperina-web-chatgpt": "ai", "hyperina-web-gemini": "ai", "hyperina-web-grok": "ai", "hyperina-web-claude": "ai",
-        "hyperina-web-elevenlabs": "ai", "hyperina-haotica": "ai", "hyperina-cloud": "ai",
-        "org.telegram.desktop": "chat", "vesktop": "chat", "discord": "chat", "hyperina-web-whatsapp": "chat", "hyperina-notes": "chat",
-        "hyperina-web-reddit": "social", "hyperina-web-x": "social", "hyperina-web-pinterest": "social", "hyperina-store": "social",
-        "code": "dev", "obsidian": "dev", "hyperina-terminal": "dev", "hyperina-editor": "dev", "hyperina-web-github": "dev",
-        "hyperina-web-sparkasse": "finance", "org.keepassxc.KeePassXC": "finance",
-        "steam": "media", "spotify": "media", "mpv": "media", "com.obsproject.Studio": "media", "hyperina-web-chess": "media",
-        "hyperina-player": "media", "hyperina-gallery": "media"
+        "haotica-web-chatgpt": "ai", "haotica-web-gemini": "ai", "haotica-web-grok": "ai", "haotica-web-claude": "ai",
+        "haotica-web-elevenlabs": "ai", "haotica-assistant": "ai", "haotica-cloud": "ai",
+        "org.telegram.desktop": "chat", "vesktop": "chat", "discord": "chat", "haotica-web-whatsapp": "chat", "haotica-notes": "chat",
+        "haotica-web-reddit": "social", "haotica-web-x": "social", "haotica-web-pinterest": "social", "haotica-store": "social",
+        "code": "dev", "obsidian": "dev", "haotica-terminal": "dev", "haotica-editor": "dev", "haotica-web-github": "dev",
+        "haotica-web-sparkasse": "finance", "org.keepassxc.KeePassXC": "finance",
+        "steam": "media", "spotify": "media", "mpv": "media", "com.obsproject.Studio": "media", "haotica-web-chess": "media",
+        "haotica-player": "media", "haotica-gallery": "media"
     })
     function catOf(e) {
         if (known[e.id] !== undefined) return known[e.id];
@@ -74,11 +75,11 @@ PanelWindow {
     function activate() {
         if (mode === "ask") {
             const q = query.slice(1).trim();
-            if (q !== "") { State.haoticaApi("POST", "/api/ask", { text: q, source: "launcher" }, null); Quickshell.execDetached(["hyperina", "open", "haotica"]); }
+            if (q !== "") { Core.haoticaApi("POST", "/api/ask", { text: q, source: "launcher" }, null); Quickshell.execDetached(["haotica", "open", "assistant"]); }
         } else if (mode === "calc") {
             if (calcResult !== "") Quickshell.execDetached(["wl-copy", calcResult]);
         } else if (mode === "cmd") {
-            Quickshell.execDetached(["hyperina", "open", "terminal", "--run", query.slice(1).trim()]);
+            Quickshell.execDetached(["haotica", "open", "terminal", "--run", query.slice(1).trim()]);
         } else if (results.length > 0) {
             results[Math.min(sel, results.length - 1)].execute();
             Sound.play("win_open");

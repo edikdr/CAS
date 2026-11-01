@@ -1,4 +1,4 @@
-# Зависимости ядра HYPERINA, терминала и приложений
+# Зависимости ядра HAOTICA, терминала и приложений
 python-aiohttp python-psutil python-pillow python-numpy python-markdown python-pygments
 python-dbus python-gobject python-secretstorage python-requests python-yaml python-tomli-w
 python-watchdog python-pyudev python-cryptography python-huggingface-hub

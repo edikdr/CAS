@@ -1,0 +1,8 @@
+[Sound Theme]
+Name=HAOTICA
+Comment=Звуки HAOTICA
+Inherits=freedesktop
+Directories=stereo
+
+[stereo]
+OutputProfile=stereo

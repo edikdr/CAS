@@ -11,13 +11,14 @@ import "../services"
 // пролетает спутник, дрейфует пыль. Всё замирает в игре, на батарее и при полноэкранных окнах.
 PanelWindow {
     id: wall
+    Component.onCompleted: Ui.reg("wallpaper", wall)
     required property var modelData
     screen: modelData
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     color: Theme.bg0
     WlrLayershell.layer: WlrLayer.Background
-    WlrLayershell.namespace: "hyperina-wallpaper"
+    WlrLayershell.namespace: "haotica-wallpaper"
 
     readonly property string dir: Theme.dataDir + "/wallpapers/current/"
     property var meta: ({ size: [2560, 1600], statue: { x: 115, y: 264, w: 762, h: 1278 }, ground: 1550, edges: [] })
@@ -331,7 +332,7 @@ PanelWindow {
         ScriptAction { script: if (flareReset.target) { flareReset.target.scale = 1; flareReset.target.opacity = 0.3; } }
     }
 
-    readonly property var weights: [["meteor", 3], ["pebble", 2 + Math.min(2, State.uptimeDays / 4)], ["satellite", 1.5],
+    readonly property var weights: [["meteor", 3], ["pebble", 2 + Math.min(2, Core.uptimeDays / 4)], ["satellite", 1.5],
         ["ping", 2], ["glitch", 1.5], ["gust", 1], ["scan", 1], ["flare", 1.5]]
     function pick() {
         let total = 0;

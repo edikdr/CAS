@@ -29,7 +29,7 @@ efi /memtest.efi
 C
 DRY_RUN=0 apply_systemd_boot "iommu=pt quiet splash" >/dev/null
 check "$(grep '^options' "$HW_ESP/loader/entries/arch.conf")" "options root=UUID=abc rw rootflags=subvol=@ iommu=pt quiet splash" "systemd-boot options updated"
-check "$(grep '^options' "$HW_ESP/loader/entries/hyperina-safe.conf")" "options root=UUID=abc rw rootflags=subvol=@ iommu=on" "safe entry keeps original"
+check "$(grep '^options' "$HW_ESP/loader/entries/haotica-safe.conf")" "options root=UUID=abc rw rootflags=subvol=@ iommu=on" "safe entry keeps original"
 check "$(grep -c '^options' "$HW_ESP/loader/entries/memtest.conf" || true)" "0" "non-linux entry untouched"
 
 cat > "$T/limine.conf" <<'C'

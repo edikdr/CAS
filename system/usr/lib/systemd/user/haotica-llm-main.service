@@ -1,0 +1,17 @@
+[Unit]
+Description=HAOTICA: основная модель (Qwen3-Next-80B-A3B) — llama.cpp (Vulkan)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/haotica/bin/haotica-llm main
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=300
+Nice=5
+# модели живут в общей памяти с GPU: держим их вне swap
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=haotica-session.target

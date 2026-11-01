@@ -11,13 +11,14 @@ import "../components"
 // HUD рабочего стола: часы, досье системы, глобус сети, журнал. Прячется, когда открыты окна.
 PanelWindow {
     id: hud
+    Component.onCompleted: Ui.reg("hud", hud)
     required property var modelData
     screen: modelData
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Normal
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Bottom
-    WlrLayershell.namespace: "hyperina-hud"
+    WlrLayershell.namespace: "haotica-hud"
     mask: Region {
         Region { item: hud.busy ? null : clockBox }
         Region { item: hud.busy ? null : dossier }
@@ -72,19 +73,19 @@ PanelWindow {
             anchors { top: clockBox.bottom; right: parent.right; topMargin: 18; rightMargin: 48 }
             width: 360
             title: "SYSTEM // DOSSIER"
-            tag: State.gameMode ? "GAME" : (State.powerProfile || "").toUpperCase()
-            tagColor: State.gameMode ? Theme.coral : Theme.dim
+            tag: Core.gameMode ? "GAME" : (Core.powerProfile || "").toUpperCase()
+            tagColor: Core.gameMode ? Theme.coral : Theme.dim
             Column {
                 width: parent.width
                 spacing: 7
-                Sparkline { width: parent.width; height: 44; values: State.cpuHistory; color: Theme.teal }
-                DossierRow { width: parent.width; key: "CPU"; value: Math.round(State.cpu) + "%" }
-                DossierRow { width: parent.width; key: "GPU · 8060S"; value: Math.round(State.gpu) + "%" }
-                DossierRow { width: parent.width; key: "GTT"; value: State.gttUsed.toFixed(1) + " / " + State.gttTotal.toFixed(0) + " GB" }
-                SegBar { width: parent.width; value: State.gttTotal > 0 ? State.gttUsed / State.gttTotal : 0; count: 24; fillColor: Theme.violet }
-                DossierRow { width: parent.width; key: "THERMAL"; value: Math.round(State.tempCpu) + "°C"; valueColor: State.tempCpu > 85 ? Theme.coral : (State.tempCpu > 72 ? Theme.amber : Theme.ink) }
-                DossierRow { width: parent.width; key: "FAN"; value: State.fan > 0 ? State.fan + " RPM" : "—" }
-                DossierRow { width: parent.width; key: "NEURAL CORE"; value: State.llmState === "ready" ? State.tokensPerSec.toFixed(0) + " TOK/S" : State.llmState.toUpperCase(); valueColor: State.llmState === "ready" ? Theme.violet : Theme.dim }
+                Sparkline { width: parent.width; height: 44; values: Core.cpuHistory; color: Theme.teal }
+                DossierRow { width: parent.width; key: "CPU"; value: Math.round(Core.cpu) + "%" }
+                DossierRow { width: parent.width; key: "GPU · 8060S"; value: Math.round(Core.gpu) + "%" }
+                DossierRow { width: parent.width; key: "GTT"; value: Core.gttUsed.toFixed(1) + " / " + Core.gttTotal.toFixed(0) + " GB" }
+                SegBar { width: parent.width; value: Core.gttTotal > 0 ? Core.gttUsed / Core.gttTotal : 0; count: 24; fillColor: Theme.violet }
+                DossierRow { width: parent.width; key: "THERMAL"; value: Math.round(Core.tempCpu) + "°C"; valueColor: Core.tempCpu > 85 ? Theme.coral : (Core.tempCpu > 72 ? Theme.amber : Theme.ink) }
+                DossierRow { width: parent.width; key: "FAN"; value: Core.fan > 0 ? Core.fan + " RPM" : "—" }
+                DossierRow { width: parent.width; key: "NEURAL CORE"; value: Core.llmState === "ready" ? Core.tokensPerSec.toFixed(0) + " TOK/S" : Core.llmState.toUpperCase(); valueColor: Core.llmState === "ready" ? Theme.violet : Theme.dim }
                 Row {
                     spacing: 10
                     Text { id: hint; text: "▲▼ : ВЫБОР   ⏎ : ДАШБОРД"; color: Theme.dim; font.family: Theme.fontMono; font.pixelSize: 9; font.letterSpacing: 1 }
@@ -155,16 +156,16 @@ PanelWindow {
             }
             Text {
                 anchors { left: parent.left; bottom: parent.bottom; leftMargin: 12; bottomMargin: 8 }
-                text: "NET // " + (State.netName !== "" ? State.netName.toUpperCase() : "OFFLINE") + (State.netPing >= 0 ? "  ·  " + State.netPing + " MS" : "")
-                color: State.netName !== "" ? Theme.teal : Theme.coral
+                text: "NET // " + (Core.netName !== "" ? Core.netName.toUpperCase() : "OFFLINE") + (Core.netPing >= 0 ? "  ·  " + Core.netPing + " MS" : "")
+                color: Core.netName !== "" ? Theme.teal : Theme.coral
                 font.family: Theme.fontMono; font.pixelSize: 10; font.letterSpacing: 1.2
             }
-            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Quickshell.execDetached(["hyperina", "open", "netrecon"]) }
+            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Quickshell.execDetached(["haotica", "open", "netrecon"]) }
             Connections {
                 target: Ui
                 function onHudPing() {
                     globeBox.rings = globeBox.rings.concat([{ lat: -40 + Math.random() * 80, lon: Math.random() * 360, t: 0 }]);
-                    Ui.pushLog("> PING ..................... " + (State.netPing >= 0 ? State.netPing + " ms" : "—"));
+                    Ui.pushLog("> PING ..................... " + (Core.netPing >= 0 ? Core.netPing + " ms" : "—"));
                 }
             }
         }

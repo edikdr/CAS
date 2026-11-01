@@ -3,7 +3,7 @@ import QtQuick.Shapes
 import "../theme"
 import "Glyphs.js" as Glyphs
 
-// Линейная пиктограмма HYPERINA (сетка 24×24)
+// Линейная пиктограмма HAOTICA (сетка 24×24)
 Item {
     id: root
     property string name: "sparkle"

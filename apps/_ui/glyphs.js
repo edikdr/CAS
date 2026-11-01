@@ -1,4 +1,4 @@
-// Автоматически создано из core/hyperina/icons.py: пиктограммы 24×24 (линии, currentColor)
+// Автоматически создано из core/haotica/icons.py: пиктограммы 24×24 (линии, currentColor)
 export const GLYPHS = {
  "terminal": "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\"/><path d=\"M7 9.5l3 2.5-3 2.5M12 14.5h5\"/>",
  "folder": "<path d=\"M3 6h6l2 2h10v10H3z\"/>",

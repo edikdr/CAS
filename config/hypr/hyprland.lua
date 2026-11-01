@@ -1,16 +1,16 @@
--- ┌─ HYPERINA // HYPRLAND ──────────────────────────────────────────┐
--- │ Главный конфиг. Файлы hyperina/* создаёт и обновляет HYPERINA:  │
+-- ┌─ HAOTICA // HYPRLAND ──────────────────────────────────────────┐
+-- │ Главный конфиг. Файлы haotica/* создаёт и обновляет HAOTICA:  │
 -- │ цвета и параметры берутся из окна «Настройки».                  │
 -- │ Свои правки пишите в user.lua — его установщик не трогает.      │
 -- └──────────────────────────────────────────────────────────────────┘
 
-require("hyperina.env")
-require("hyperina.monitors")
-require("hyperina.look")
-require("hyperina.input")
-require("hyperina.binds")
-require("hyperina.rules")
-require("hyperina.autostart")
+require("haotica.env")
+require("haotica.monitors")
+require("haotica.look")
+require("haotica.input")
+require("haotica.binds")
+require("haotica.rules")
+require("haotica.autostart")
 
 -- пользовательские дополнения (если файла нет — просто пропускаем)
 pcall(require, "user")

@@ -1,0 +1,8 @@
+[Unit]
+Description=HAOTICA: графический сеанс
+Documentation=file:///usr/share/doc/haotica/README.md
+BindsTo=graphical-session.target
+Before=graphical-session.target
+Wants=graphical-session-pre.target xdg-desktop-autostart.target
+Wants=haotica-core.service haotica-shell.service
+After=graphical-session-pre.target

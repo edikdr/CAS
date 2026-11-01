@@ -11,12 +11,13 @@ import "../components"
 // История буфера обмена (cliphist)
 PanelWindow {
     id: cp
+    Component.onCompleted: Ui.reg("clipboard", cp)
     visible: Ui.clipboardOpen
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
     color: Theme.alpha(Theme.bg0, 0.55)
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "hyperina-launcher"
+    WlrLayershell.namespace: "haotica-launcher"
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     property var entries: []

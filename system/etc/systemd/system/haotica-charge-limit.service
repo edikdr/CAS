@@ -1,0 +1,10 @@
+[Unit]
+Description=HAOTICA: бережная зарядка батареи
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/haotica/bin/haotica-charge-limit apply
+
+[Install]
+WantedBy=multi-user.target

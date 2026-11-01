@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Shapes
 import "../theme"
 
-// Рамка HYPERINA: тонкая линия, скосы углов, узлы-квадратики на прямых углах
+// Рамка HAOTICA: тонкая линия, скосы углов, узлы-квадратики на прямых углах
 Item {
     id: root
     property color fill: Theme.bg1

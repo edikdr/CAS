@@ -14,7 +14,7 @@ mod_run() {
     mark_reboot
   fi
   enable_system_unit NetworkManager.service bluetooth.service avahi-daemon.service
-  write_root_file /etc/NetworkManager/conf.d/90-hyperina.conf <<'CONF'
+  write_root_file /etc/NetworkManager/conf.d/90-haotica.conf <<'CONF'
 [device]
 wifi.scan-rand-mac-address=yes
 

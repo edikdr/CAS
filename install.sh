@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# ┌─ HYPERINA // INSTALLER ──────────────────────────────────────────────┐
-# │ Превращает свежий Arch Linux в HYPERINA.                              │
+# ┌─ HAOTICA // INSTALLER ──────────────────────────────────────────────┐
+# │ Превращает свежий Arch Linux в HAOTICA.                              │
 # │ Запуск: ./install.sh            — всё по порядку, с продолжением      │
 # │         ./install.sh --help     — все параметры                       │
 # └───────────────────────────────────────────────────────────────────────┘
@@ -21,7 +21,7 @@ source "$HY_ROOT/lib/detect.sh"
 
 usage() {
   cat <<EOF
-HYPERINA installer ${HY_VERSION}
+HAOTICA installer ${HY_VERSION}
 
 Использование: ./install.sh [параметры]
 
@@ -30,11 +30,11 @@ HYPERINA installer ${HY_VERSION}
   --only 15,30       выполнить только указанные модули (номера или имена)
   --skip 55,60       пропустить модули
   --force            выполнить заново даже уже сделанные модули
-  --no-models        не скачивать модели ИИ (~50 ГБ), можно позже: hyperina models pull
+  --no-models        не скачивать модели ИИ (~50 ГБ), можно позже: haotica models pull
   --list             список модулей и их состояние
   --help             эта справка
 
-Журнал: ~/.local/state/hyperina/install-<дата>.log
+Журнал: ~/.local/state/haotica/install-<дата>.log
 EOF
 }
 
@@ -56,7 +56,7 @@ done
 export DRY_RUN ASSUME_YES FORCE NO_MODELS
 
 # ── базовые проверки ────────────────────────────────────────────
-[[ -f /etc/arch-release ]] || die "Это не Arch Linux. HYPERINA ставится только поверх Arch."
+[[ -f /etc/arch-release ]] || die "Это не Arch Linux. HAOTICA ставится только поверх Arch."
 [[ $EUID -ne 0 ]] || die "Запустите установщик от обычного пользователя (не root): sudo он попросит сам."
 have sudo || die "Нужен sudo: pacman -S sudo и добавьте пользователя в группу wheel."
 

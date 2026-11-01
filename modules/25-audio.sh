@@ -11,6 +11,6 @@ mod_run() {
   if [[ -n "${HW_AUDIO_CODEC:-}" ]]; then
     ui_ok "Кодек: ${HW_AUDIO_CODEC}"
   fi
-  ui_note "Динамики проверятся после перезагрузки (hyperina doctor audio)."
+  ui_note "Динамики проверятся после перезагрузки (haotica doctor audio)."
   ui_note "Если они молчат — это известная проблема умных усилителей Lenovo: Haotica соберёт отчёт для исправления."
 }

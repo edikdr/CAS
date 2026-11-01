@@ -1,8 +1,0 @@
-[Unit]
-Description=HYPERINA: графический сеанс
-Documentation=file:///usr/share/doc/hyperina/README.md
-BindsTo=graphical-session.target
-Before=graphical-session.target
-Wants=graphical-session-pre.target xdg-desktop-autostart.target
-Wants=hyperina-core.service hyperina-shell.service
-After=graphical-session-pre.target

@@ -1,0 +1,357 @@
+#!/usr/bin/python3 -I
+"""haotica-helper — системные действия для окна «Настройки» (запускается через pkexec).
+
+Только строгий список действий, каждый аргумент проверяется. Пароль спрашивает polkit
+(окном HAOTICA). Действия без пароля для активного сеанса описаны в
+/usr/share/polkit-1/actions/org.haotica.helper.policy (сканирование своей сети, порог заряда).
+
+Использование: haotica-helper <действие> [аргументы…]; ответ — JSON в stdout.
+"""
+import ipaddress
+import json
+import os
+import pwd
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ETC = Path("/etc/haotica")
+LOCALE_RE = re.compile(r"^[a-z]{2,3}_[A-Z]{2}(@[a-z]+)?\.UTF-8$")
+LC_KEYS = {"LANG", "LC_TIME", "LC_NUMERIC", "LC_MONETARY", "LC_PAPER", "LC_MEASUREMENT", "LC_COLLATE",
+           "LC_ADDRESS", "LC_TELEPHONE", "LC_NAME", "LC_IDENTIFICATION", "LC_MESSAGES"}
+SERVICES = {"bluetooth.service", "sshd.service", "ufw.service", "cups.service", "avahi-daemon.service",
+            "power-profiles-daemon.service", "haotica-charge-limit.service", "fwupd.service",
+            "systemd-timesyncd.service", "podman.socket"}
+THEME_TARGETS = {  # файл в каталоге-заготовке → куда кладём
+    "theme.json": "/etc/haotica/theme.json",
+    "greeter-wallpaper.png": "/usr/share/haotica/wallpapers/default/full.png",
+}
+THEME_DIRS = {"icons": "/usr/share/icons/HAOTICA", "plymouth": "/usr/share/plymouth/themes/haotica"}
+PLYMOUTH_FILES = re.compile(r"^[a-z0-9_]+\.png$")
+
+
+def out(ok=True, **kw):
+    print(json.dumps({"ok": ok, **kw}, ensure_ascii=False))
+    sys.exit(0 if ok else 1)
+
+
+def fail(msg):
+    out(False, error=msg)
+
+
+def sh(cmd, timeout=120, input=None):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, input=input)
+    except FileNotFoundError:
+        return 127, "", f"{cmd[0]}: не найдено"
+    except subprocess.TimeoutExpired:
+        return 124, "", "превышено время ожидания"
+    return r.returncode, r.stdout, r.stderr
+
+
+def caller():
+    uid = int(os.environ.get("PKEXEC_UID", "-1"))
+    if uid < 1000:
+        fail("вызов не от пользователя")
+    return pwd.getpwuid(uid)
+
+
+# ── действия ─────────────────────────────────────────────────────
+def act_locale(args):
+    """locale LANG=ru_RU.UTF-8 LC_TIME=de_DE.UTF-8 …"""
+    pairs = {}
+    for a in args:
+        k, _, v = a.partition("=")
+        if k not in LC_KEYS or not LOCALE_RE.match(v):
+            fail(f"недопустимо: {a}")
+        pairs[k] = v
+    gen = Path("/etc/locale.gen")
+    text = gen.read_text() if gen.exists() else ""
+    changed = False
+    for v in set(pairs.values()):
+        line = f"{v} UTF-8"
+        if re.search(rf"^{re.escape(line)}\s*$", text, re.M):
+            continue
+        if re.search(rf"^#\s*{re.escape(line)}\s*$", text, re.M):
+            text = re.sub(rf"^#\s*{re.escape(line)}\s*$", line, text, flags=re.M)
+        else:
+            text += f"\n{line}\n"
+        changed = True
+    if changed:
+        gen.write_text(text)
+        rc, _, err = sh(["locale-gen"], 300)
+        if rc:
+            fail(f"locale-gen: {err.strip()[:200]}")
+    rc, _, err = sh(["localectl", "set-locale", *[f"{k}={v}" for k, v in pairs.items()]])
+    out(rc == 0, error=err.strip()[:200] if rc else "", relogin=True)
+
+
+def act_timezone(args):
+    if len(args) != 1 or not re.match(r"^[A-Za-z_]+(/[A-Za-z0-9_+\-]+){0,2}$", args[0]):
+        fail("часовой пояс?")
+    if not Path("/usr/share/zoneinfo", args[0]).is_file():
+        fail("нет такого часового пояса")
+    rc, _, err = sh(["timedatectl", "set-timezone", args[0]])
+    out(rc == 0, error=err.strip()[:200])
+
+
+def act_ntp(args):
+    if args not in (["on"], ["off"]):
+        fail("on|off")
+    rc, _, err = sh(["timedatectl", "set-ntp", "true" if args[0] == "on" else "false"])
+    out(rc == 0, error=err.strip()[:200])
+
+
+def act_keymap(args):
+    """keymap de,ru ,phonetic grp:alt_shift_toggle — для экрана входа и консоли."""
+    if not 1 <= len(args) <= 3:
+        fail("раскладки?")
+    layouts = args[0]
+    variants = args[1] if len(args) > 1 else ""
+    options = args[2] if len(args) > 2 else ""
+    if not re.match(r"^[a-z]{2,3}(,[a-z]{2,3}){0,3}$", layouts) or not re.match(r"^[a-z_,]*$", variants) \
+            or not re.match(r"^[a-z0-9_:,]*$", options):
+        fail("недопустимые раскладки")
+    rc, _, err = sh(["localectl", "--no-convert", "set-x11-keymap", layouts, "pc105", variants, options])
+    vconsole = layouts.split(",")[0]
+    if vconsole == "de":
+        sh(["localectl", "--no-convert", "set-keymap", "de-latin1"])
+    out(rc == 0, error=err.strip()[:200])
+
+
+def act_charge(args):
+    """charge on|off [порог 50–100]"""
+    if not args or args[0] not in ("on", "off"):
+        fail("on|off")
+    limit = int(args[1]) if len(args) > 1 and args[1].isdigit() else 80
+    if not 50 <= limit <= 100:
+        fail("порог 50–100")
+    ETC.mkdir(parents=True, exist_ok=True)
+    (ETC / "power.conf").write_text(
+        f"# HAOTICA: питание\nCHARGE_CONSERVATION={1 if args[0] == 'on' else 0}\nCHARGE_LIMIT={limit}\n")
+    rc, o, err = sh(["/usr/lib/haotica/bin/haotica-charge-limit", "apply"])
+    out(rc == 0, info=o.strip(), error=err.strip()[:200])
+
+
+def act_service(args):
+    if len(args) != 2 or args[0] not in ("enable", "disable", "start", "stop", "restart") or args[1] not in SERVICES:
+        fail("служба не из списка")
+    verb, unit = args
+    cmd = ["systemctl", verb, unit]
+    if verb in ("enable", "disable"):
+        cmd.insert(2, "--now")
+    rc, _, err = sh(cmd)
+    out(rc == 0, error=err.strip()[:200])
+
+
+def act_firewall(args):
+    if args not in (["on"], ["off"], ["status"]):
+        fail("on|off|status")
+    if args[0] == "status":
+        rc, o, _ = sh(["ufw", "status", "verbose"])
+        out(rc == 0, status=o)
+    rc, o, err = sh(["ufw", "--force", "enable" if args[0] == "on" else "disable"])
+    out(rc == 0, info=o.strip(), error=err.strip()[:200])
+
+
+def _snapper():
+    rc, o, _ = sh(["snapper", "list-configs"])
+    return rc == 0 and re.search(r"^root\b", o, re.M) is not None
+
+
+def act_snapshot(args):
+    if not args:
+        fail("list|create|delete|rollback")
+    verb = args[0]
+    if _snapper():
+        if verb == "list":
+            rc, o, _ = sh(["snapper", "-c", "root", "--jsonout", "list"])
+            out(rc == 0, tool="snapper", data=json.loads(o) if rc == 0 else {})
+        if verb == "create":
+            desc = re.sub(r"[^\w .:\-+()]", "", " ".join(args[1:]))[:80] or "HAOTICA"
+            rc, _, err = sh(["snapper", "-c", "root", "create", "-t", "single", "-d", desc])
+            out(rc == 0, error=err.strip()[:200])
+        if verb in ("delete", "rollback") and len(args) == 2 and args[1].isdigit():
+            rc, _, err = sh(["snapper", "-c", "root", verb, args[1]], 600)
+            out(rc == 0, error=err.strip()[:200], reboot=verb == "rollback")
+        fail("неизвестное действие snapper")
+    base = Path("/.haotica-snapshots")
+    if verb == "list":
+        items = sorted(p.name for p in base.iterdir()) if base.exists() else []
+        out(True, tool="btrfs", data=items)
+    if verb == "create":
+        rc, o, _ = sh(["findmnt", "-n", "-o", "FSTYPE", "/"])
+        if o.strip() != "btrfs":
+            fail("корень не на btrfs — снимки недоступны")
+        base.mkdir(exist_ok=True)
+        name = "manual-" + subprocess.run(["date", "+%Y%m%d-%H%M%S"], capture_output=True, text=True).stdout.strip()
+        rc, _, err = sh(["btrfs", "subvolume", "snapshot", "-r", "/", str(base / name)])
+        out(rc == 0, name=name, error=err.strip()[:200])
+    if verb == "delete" and len(args) == 2 and re.match(r"^[\w.\-]+$", args[1]):
+        rc, _, err = sh(["btrfs", "subvolume", "delete", str(base / args[1])])
+        out(rc == 0, error=err.strip()[:200])
+    fail("откат без snapper делается из загрузчика; см. README")
+
+
+def act_clean(args):
+    if args not in (["pacman"], ["journal"], ["coredumps"]):
+        fail("pacman|journal|coredumps")
+    if args[0] == "pacman":
+        rc, o, err = sh(["paccache", "-rk2"], 300)
+        sh(["paccache", "-ruk0"], 300)
+    elif args[0] == "journal":
+        rc, o, err = sh(["journalctl", "--vacuum-size=300M"], 120)
+    else:
+        d = Path("/var/lib/systemd/coredump")
+        n = 0
+        for f in d.glob("core.*") if d.exists() else []:
+            f.unlink(missing_ok=True)
+            n += 1
+        rc, o, err = 0, f"удалено {n}", ""
+    out(rc == 0, info=(o or "").strip()[-300:], error=(err or "").strip()[:200])
+
+
+def act_hostname(args):
+    if len(args) != 1 or not re.match(r"^[a-z0-9][a-z0-9\-]{0,62}$", args[0]):
+        fail("имя: латиница, цифры, дефис")
+    rc, _, err = sh(["hostnamectl", "set-hostname", args[0]])
+    out(rc == 0, error=err.strip()[:200])
+
+
+def act_system_theme(args):
+    """system-theme <каталог-заготовка пользователя> — тема экрана входа, курсор и заставка."""
+    user = caller()
+    if len(args) != 1:
+        fail("каталог?")
+    src = Path(args[0]).resolve()
+    home = Path(user.pw_dir).resolve()
+    if not str(src).startswith(str(home) + "/") or src.stat().st_uid != user.pw_uid:
+        fail("заготовка должна лежать в домашнем каталоге пользователя")
+    done = []
+    for name, dst in THEME_TARGETS.items():
+        f = src / name
+        if f.is_file() and not f.is_symlink() and f.stat().st_size < 64 * 1024 * 1024:
+            if name.endswith(".json"):
+                json.loads(f.read_text())     # только корректный JSON
+            Path(dst).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(f, dst)
+            os.chmod(dst, 0o644)
+            done.append(dst)
+    icons = src / "icons"
+    if icons.is_dir() and not icons.is_symlink():
+        dst = Path(THEME_DIRS["icons"])
+        tmp = dst.with_name(dst.name + ".new")
+        shutil.rmtree(tmp, ignore_errors=True)
+        shutil.copytree(icons, tmp, symlinks=True)
+        for p in tmp.rglob("*"):
+            if p.is_symlink() and (os.path.isabs(os.readlink(p)) or ".." in os.readlink(p)):
+                p.unlink()                      # только относительные ссылки внутри темы
+        shutil.rmtree(dst, ignore_errors=True)
+        tmp.rename(dst)
+        done.append(str(dst))
+    ply = src / "plymouth"
+    rebuild = False
+    if ply.is_dir() and not ply.is_symlink():
+        dst = Path(THEME_DIRS["plymouth"])
+        for f in ply.iterdir():
+            if PLYMOUTH_FILES.match(f.name) and f.is_file() and not f.is_symlink():
+                shutil.copyfile(f, dst / f.name)
+                rebuild = True
+        if rebuild:
+            done.append(str(dst))
+    if rebuild:
+        subprocess.Popen(["mkinitcpio", "-P"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+    out(True, installed=done, initramfs=rebuild)
+
+
+def _local_subnets():
+    rc, o, _ = sh(["ip", "-j", "-4", "addr"])
+    nets = []
+    if rc == 0:
+        for iface in json.loads(o):
+            for a in iface.get("addr_info", []):
+                net = ipaddress.ip_network(f"{a['local']}/{a['prefixlen']}", strict=False)
+                if net.is_private and not net.is_loopback:
+                    nets.append((iface["ifname"], net))
+    return nets
+
+
+def act_recon(args):
+    """recon sweep <cidr> | recon probe <ip> — только своя локальная подсеть."""
+    if len(args) != 2 or args[0] not in ("sweep", "probe"):
+        fail("sweep <подсеть> | probe <адрес>")
+    nets = _local_subnets()
+    if args[0] == "sweep":
+        try:
+            want = ipaddress.ip_network(args[1], strict=False)
+        except ValueError:
+            fail("подсеть?")
+        match = [(i, n) for i, n in nets if want.subnet_of(n) or want == n]
+        if not match or want.num_addresses > 1024:
+            fail("сканировать можно только свою локальную подсеть (до /22)")
+        iface = match[0][0]
+        if shutil.which("arp-scan"):
+            rc, o, err = sh(["arp-scan", "--interface", iface, "--plain", "--format=${ip}\t${mac}\t${vendor}", str(want)], 120)
+            hosts = []
+            for line in o.splitlines():
+                p = line.split("\t")
+                if len(p) >= 2:
+                    hosts.append({"ip": p[0], "mac": p[1].lower(), "vendor": p[2] if len(p) > 2 else ""})
+            out(rc == 0, hosts=hosts, error=err.strip()[:200])
+        rc, o, err = sh(["nmap", "-sn", "-PR", "-oX", "-", str(want)], 180)
+        out(rc == 0, xml=o, error=err.strip()[:200])
+    try:
+        ip = ipaddress.ip_address(args[1])
+    except ValueError:
+        fail("адрес?")
+    if not any(ip in n for _i, n in nets):
+        fail("адрес не из своей локальной подсети")
+    rc, o, err = sh(["nmap", "-sS", "-sV", "-O", "--osscan-limit", "--top-ports", "200", "-T4",
+                     "--host-timeout", "90s", "-oX", "-", str(ip)], 150)
+    out(rc == 0, xml=o, error=err.strip()[:200])
+
+
+def act_face(args):
+    """face add|remove|list|clear|test — модели лица howdy для вызывающего пользователя."""
+    user = caller().pw_name
+    if not args or args[0] not in ("add", "remove", "list", "clear", "test"):
+        fail("add|remove|list|clear|test")
+    if not shutil.which("howdy"):
+        fail("howdy не установлен")
+    verb = args[0]
+    if verb == "add":
+        label = re.sub(r"[^\w\- ]", "", args[1] if len(args) > 1 else "HAOTICA")[:24] or "HAOTICA"
+        rc, o, err = sh(["howdy", "-U", user, "-y", "add"], 90, input=label + "\n")
+    elif verb == "remove" and len(args) == 2 and args[1].isdigit():
+        rc, o, err = sh(["howdy", "-U", user, "-y", "remove", args[1]], 30)
+    elif verb == "clear":
+        rc, o, err = sh(["howdy", "-U", user, "-y", "clear"], 30)
+    elif verb == "list":
+        rc, o, err = sh(["howdy", "-U", user, "list"], 30)
+    else:
+        rc, o, err = sh(["howdy", "-U", user, "test"], 30)
+    out(rc == 0, info=o.strip()[-600:], error=err.strip()[-300:])
+
+
+ACTIONS = {
+    "locale": act_locale, "timezone": act_timezone, "ntp": act_ntp, "keymap": act_keymap,
+    "charge": act_charge, "service": act_service, "firewall": act_firewall, "snapshot": act_snapshot,
+    "clean": act_clean, "hostname": act_hostname, "system-theme": act_system_theme, "recon": act_recon,
+    "face": act_face,
+}
+
+if __name__ == "__main__":
+    if os.geteuid() != 0:
+        fail("нужен запуск через pkexec")
+    if len(sys.argv) < 2 or sys.argv[1] not in ACTIONS:
+        fail("действия: " + ", ".join(sorted(ACTIONS)))
+    os.environ["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/bin"
+    try:
+        ACTIONS[sys.argv[1]](sys.argv[2:])
+    except SystemExit:
+        raise
+    except Exception as e:  # noqa: BLE001
+        fail(f"{type(e).__name__}: {e}")

@@ -1,0 +1,17 @@
+[Unit]
+Description=HAOTICA: быстрая модель подсказок — llama.cpp (Vulkan)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/haotica/bin/haotica-llm fast
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=60
+Nice=5
+# модели живут в общей памяти с GPU: держим их вне swap
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=haotica-session.target

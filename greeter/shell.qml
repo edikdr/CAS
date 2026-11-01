@@ -8,10 +8,10 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Greetd
-import "../shell/theme"
-import "../shell/components"
+import "theme"
+import "components"
 
-// ┌─ HYPERINA // GREETER ─────────────────────────────────────────┐
+// ┌─ HAOTICA // GREETER ─────────────────────────────────────────┐
 // │ Экран входа в стиле досье SUBJECT. После включения — пароль    │
 // │ (он разблокирует связку ключей); вход по лицу — опционально.   │
 // └────────────────────────────────────────────────────────────────┘
@@ -43,7 +43,7 @@ ShellRoot {
         }
     }
     FileView {
-        path: "/etc/hyperina/install.env"
+        path: "/etc/haotica/install.env"
         onLoaded: {
             const d = text().match(/INSTALL_DATE=([0-9-]+)/);
             if (d) root.inceptDate = d[1].split("-").reverse().join("/");
@@ -93,11 +93,11 @@ ShellRoot {
         color: Theme.bg0
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
-        WlrLayershell.namespace: "hyperina-greeter"
+        WlrLayershell.namespace: "haotica-greeter"
 
         Image {
             anchors.fill: parent
-            source: "file:///usr/share/hyperina/wallpapers/default/full.png"
+            source: "file:///usr/share/haotica/wallpapers/default/full.png"
             fillMode: Image.PreserveAspectCrop
             opacity: 0.22
         }
@@ -124,7 +124,7 @@ ShellRoot {
                         spacing: 14
                         RowLayout {
                             Text { text: "SUBJECT // " + root.user.toUpperCase(); color: Theme.violet; font.family: Theme.fontPixel; font.pixelSize: 24; font.letterSpacing: 2; Layout.fillWidth: true }
-                            Text { text: "HYPERINA"; color: Theme.dim; font.family: Theme.fontMono; font.pixelSize: 11; font.letterSpacing: 2 }
+                            Text { text: "HAOTICA"; color: Theme.dim; font.family: Theme.fontMono; font.pixelSize: 11; font.letterSpacing: 2 }
                         }
                         RowLayout {
                             spacing: 14
@@ -224,6 +224,48 @@ ShellRoot {
                             DossierRow { width: parent.width; pixelSize: 14; key: "THREAT ASSESSMENT"; value: "★ ★ ★"; valueColor: Theme.violet }
                             DossierRow { width: parent.width; pixelSize: 14; key: "ACCESS"; value: root.status; valueColor: root.failed ? Theme.coral : (root.status === "ACCESS GRANTED" ? Theme.green : Theme.ink) }
                         }
+                        // низ досье: синусоида на сетке и столбцы цифр (SUBJECT A-34)
+                        Item {
+                            Layout.fillWidth: true; Layout.preferredHeight: 58
+                            Canvas {
+                                id: wave
+                                anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+                                width: parent.width - digits.width - 14
+                                property real t: 0
+                                Timer { interval: 50; running: true; repeat: true; onTriggered: { wave.t += 0.06; wave.requestPaint(); } }
+                                onPaint: {
+                                    const g = getContext("2d"); g.reset();
+                                    g.strokeStyle = Theme.alpha(Theme.violet, 0.16); g.lineWidth = 1;
+                                    for (let x = 0.5; x < width; x += 14) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, height); g.stroke(); }
+                                    for (let y = 0.5; y < height; y += 14) { g.beginPath(); g.moveTo(0, y); g.lineTo(width, y); g.stroke(); }
+                                    g.fillStyle = Theme.violet;
+                                    for (let x = 0; x < width; x += 14) for (let y = 0; y < height; y += 14) g.fillRect(x - 1, y - 1, 3, 3);
+                                    g.strokeStyle = Theme.violet; g.lineWidth = 1.6; g.beginPath();
+                                    const amp = root.status === "VERIFYING" ? 0.42 : 0.28;
+                                    for (let x = 0; x <= width; x += 2) {
+                                        const y = height / 2 + Math.sin(x / 18 + wave.t * 3) * height * amp * Math.sin(Math.PI * x / width);
+                                        x ? g.lineTo(x, y) : g.moveTo(x, y);
+                                    }
+                                    g.stroke();
+                                }
+                            }
+                            Column {
+                                id: digits
+                                anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                                spacing: 1
+                                property int tick: 0
+                                Timer { interval: 180; running: true; repeat: true; onTriggered: digits.tick++ }
+                                Repeater {
+                                    model: 4
+                                    Text {
+                                        required property int index
+                                        text: { void digits.tick; let r = ""; for (let i = 0; i < 4; i++) r += Math.floor(Math.random() * 65536).toString(16).toUpperCase().padStart(4, "0") + " "; return r.trim(); }
+                                        color: index === 0 ? Theme.violet : Theme.dim; font.family: Theme.fontMono; font.pixelSize: 9; font.letterSpacing: 1
+                                    }
+                                }
+                            }
+                        }
+                        Text { text: root.needInput ? "OR ENTER PASSPHRASE" : "LOOK AT THE CAMERA"; color: Theme.dim; font.family: Theme.fontMono; font.pixelSize: 10; font.letterSpacing: 2.4 }
                         Item {
                             Layout.fillWidth: true; Layout.preferredHeight: 44
                             HFrame { anchors.fill: parent; fill: Theme.bg0; stroke: root.failed ? Theme.coral : (pass.activeFocus ? Theme.violet : Theme.line); nodes: false }

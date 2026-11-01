@@ -21,9 +21,9 @@ import "glitch"
 import "polkit"
 import "clipboard"
 
-// ┌─ HYPERINA // SHELL ────────────────────────────────────────────┐
+// ┌─ HAOTICA // SHELL ────────────────────────────────────────────┐
 // │ Оболочка рабочего стола: обои, HUD, панель, док и оверлеи.      │
-// │ Управление снаружи: qs -p /usr/share/hyperina/shell ipc call …  │
+// │ Управление снаружи: qs -p /usr/share/haotica/shell ipc call …  │
 // └────────────────────────────────────────────────────────────────┘
 ShellRoot {
     id: shell
@@ -60,14 +60,14 @@ ShellRoot {
     }
 
     IpcHandler {
-        target: "hyperina"
+        target: "haotica"
         function launcher(action: string): void { if (action === "close" || (action === "toggle" && Ui.launcherOpen)) Ui.launcherOpen = false; else launcherWin.open(); }
         function dashboard(action: string): void { shell.toggle("dashboardOpen", action); }
         function notifications(action: string): void { shell.toggle("notificationsOpen", action); }
         function control(action: string): void { shell.toggle("controlOpen", action); }
         function clipboard(action: string): void { shell.toggle("clipboardOpen", action); }
         function power(action: string): void { shell.toggle("powerOpen", action); }
-        function haotica(action: string): void { Quickshell.execDetached(["hyperina", "open", "haotica", action === "open" ? "" : "--toggle"]); }
+        function haotica(action: string): void { Quickshell.execDetached(["haotica", "open", "assistant", action === "open" ? "" : "--toggle"]); }
         function lock(): void { lockScreen.engage(); }
         function osd(kind: string, action: string): void {
             if (kind === "volume") osdCtl.volume(action);
@@ -77,6 +77,28 @@ ShellRoot {
         }
         function reloadTheme(): void { Theme.reload(); }
         function log(text: string): void { Ui.pushLog(text); }
-        function ping(): string { return "HYPERINA SHELL ONLINE"; }
+        function ping(): string { return "HAOTICA SHELL ONLINE"; }
+        function snapshot(dir: string): string {
+            const out = [];
+            for (const w of Ui.windows) {
+                if (!w.win || !w.win.visible || !w.win.contentItem) continue;
+                // корневой элемент окна создан не движком QML — снимаем его дочерние элементы
+                const kids = w.win.contentItem.children;
+                for (let i = 0; i < kids.length; i++) {
+                    const item = kids[i];
+                    if (!item || !item.visible || item.width < 2 || item.height < 2) continue;
+                    const name = w.name + "-" + out.length;
+                    const a = w.win.anchors || {};
+                    const pos = item.mapToItem(null, 0, 0);
+                    out.push({ name: name, win: w.name, x: pos.x, y: pos.y, w: item.width, h: item.height, ww: w.win.width, wh: w.win.height,
+                               top: !!a.top, bottom: !!a.bottom, left: !!a.left, right: !!a.right,
+                               mt: w.win.margins ? w.win.margins.top : 0, mb: w.win.margins ? w.win.margins.bottom : 0,
+                               ml: w.win.margins ? w.win.margins.left : 0, mr: w.win.margins ? w.win.margins.right : 0 });
+                    const ok = item.grabToImage(function(res) { res.saveToFile(dir + "/" + name + ".png"); });
+                    if (!ok) console.log("snapshot failed", name);
+                }
+            }
+            return JSON.stringify(out);
+        }
     }
 }

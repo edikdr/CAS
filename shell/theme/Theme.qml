@@ -3,15 +3,15 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// HYPERINA: тема оболочки. Источник — $XDG_RUNTIME_DIR/hyperina/theme.json (пишет ядро),
-// при отсутствии — ~/.config/hyperina/theme.json, затем встроенные значения MIX.
+// HAOTICA: тема оболочки. Источник — $XDG_RUNTIME_DIR/haotica/theme.json (пишет ядро),
+// при отсутствии — ~/.config/haotica/theme.json, затем встроенные значения MIX.
 Singleton {
     id: root
 
-    readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/hyperina"
+    readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/haotica"
     readonly property string homeDir: Quickshell.env("HOME") || ""
-    readonly property string dataDir: homeDir + "/.local/share/hyperina"
-    readonly property string shareDir: "/usr/share/hyperina"
+    readonly property string dataDir: homeDir + "/.local/share/haotica"
+    readonly property string shareDir: "/usr/share/haotica"
 
     property var t: ({})
     property var s: ({})
@@ -97,14 +97,14 @@ Singleton {
     }
     FileView {
         id: fallbackTheme
-        path: root.homeDir + "/.config/hyperina/theme.json"
+        path: root.homeDir + "/.config/haotica/theme.json"
         onLoaded: if (Object.keys(root.t).length === 0) root.parseTheme(text())
         onLoadFailed: systemTheme.reload()
     }
     // системная копия — для экрана входа (пользователь greeter)
     FileView {
         id: systemTheme
-        path: "/etc/hyperina/theme.json"
+        path: "/etc/haotica/theme.json"
         onLoaded: if (Object.keys(root.t).length === 0) root.parseTheme(text())
     }
     FileView {

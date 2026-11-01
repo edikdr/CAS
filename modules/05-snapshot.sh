@@ -14,12 +14,12 @@ mod_run() {
 
   if [[ "$HW_ROOT_FS" == btrfs ]]; then
     if have snapper && sudo_q snapper list-configs 2>/dev/null | grep -q '^root'; then
-      sudo_run snapper -c root create -t single -d "HYPERINA: до установки" &&
+      sudo_run snapper -c root create -t single -d "HAOTICA: до установки" &&
         ui_ok "Снимок snapper создан. Откат: snapper -c root rollback"
     else
-      sudo_run mkdir -p /.hyperina-snapshots
-      if sudo_run btrfs subvolume snapshot -r / "/.hyperina-snapshots/pre-install-$HY_TS" >/dev/null; then
-        ui_ok "Снимок btrfs: /.hyperina-snapshots/pre-install-$HY_TS (только чтение)"
+      sudo_run mkdir -p /.haotica-snapshots
+      if sudo_run btrfs subvolume snapshot -r / "/.haotica-snapshots/pre-install-$HY_TS" >/dev/null; then
+        ui_ok "Снимок btrfs: /.haotica-snapshots/pre-install-$HY_TS (только чтение)"
       else
         ui_warn "Снимок btrfs не создан (необычная разметка). Есть копия /etc."
       fi

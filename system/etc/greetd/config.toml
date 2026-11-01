@@ -1,7 +1,7 @@
-# HYPERINA: экран входа — greetd запускает отдельный Hyprland с оболочкой входа
+# HAOTICA: экран входа — greetd запускает отдельный Hyprland с оболочкой входа
 [terminal]
 vt = 1
 
 [default_session]
-command = "Hyprland --config /usr/share/hyperina/greeter/hyprland.lua"
+command = "Hyprland --config /usr/share/haotica/greeter/hyprland.lua"
 user = "greeter"

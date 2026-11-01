@@ -17,7 +17,7 @@ Scope {
         exclusionMode: ExclusionMode.Ignore
         color: Theme.alpha(Theme.bg0, 0.7)
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "hyperina-power"
+        WlrLayershell.namespace: "haotica-power"
         WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         onVisibleChanged: if (visible) { pw.text = ""; pw.forceActiveFocus(); Sound.play("notify"); }
 

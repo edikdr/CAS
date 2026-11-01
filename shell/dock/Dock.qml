@@ -10,6 +10,7 @@ import "../components"
 // Док: квадратные плитки, цветная метка категории, точка — приложение запущено
 PanelWindow {
     id: dock
+    Component.onCompleted: Ui.reg("dock", dock)
     required property var modelData
     screen: modelData
     anchors.bottom: true
@@ -19,10 +20,10 @@ PanelWindow {
     exclusiveZone: 74
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.namespace: "hyperina-dock"
+    WlrLayershell.namespace: "haotica-dock"
 
-    readonly property var defaults: ["hyperina-terminal", "hyperina-files", "google-chrome", "org.telegram.desktop",
-        "vesktop", "steam", "spotify", "code", "obsidian", "hyperina-haotica", "hyperina-settings"]
+    readonly property var defaults: ["haotica-terminal", "haotica-files", "google-chrome", "org.telegram.desktop",
+        "vesktop", "steam", "spotify", "code", "obsidian", "haotica-assistant", "haotica-settings"]
     readonly property var pinned: (Theme.s.desktop && Theme.s.desktop.dock) ? Theme.s.desktop.dock : defaults
 
     function entryFor(id) { return DesktopEntries.byId(id) || DesktopEntries.heuristicLookup(id); }

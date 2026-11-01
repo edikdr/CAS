@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# HYPERINA installer — ядро: выполнение команд, файлы, состояние, systemd.
+# HAOTICA installer — ядро: выполнение команд, файлы, состояние, systemd.
 # shellcheck disable=SC2034
 
-HY_STATE_DIR="/var/lib/hyperina"
+HY_STATE_DIR="/var/lib/haotica"
 HY_STATE_FILE="$HY_STATE_DIR/install.state"
 HY_HW_FILE="$HY_STATE_DIR/hardware.env"
-HY_PREFIX_LIB="/usr/lib/hyperina"
-HY_PREFIX_SHARE="/usr/share/hyperina"
-HY_PREFIX_OPT="/opt/hyperina"
-HY_ETC="/etc/hyperina"
+HY_PREFIX_LIB="/usr/lib/haotica"
+HY_PREFIX_SHARE="/usr/share/haotica"
+HY_PREFIX_OPT="/opt/haotica"
+HY_ETC="/etc/haotica"
 HY_TS="$(date +%Y%m%d-%H%M%S)"
 HY_BACKUP_DIR="$HY_STATE_DIR/backup/$HY_TS"
 
 HY_USER="${SUDO_USER:-$(id -un)}"
 HY_HOME="$(getent passwd "$HY_USER" | cut -d: -f6)"
 HY_UID="$(id -u "$HY_USER")"
-HY_USER_STATE="$HY_HOME/.local/state/hyperina"
+HY_USER_STATE="$HY_HOME/.local/state/haotica"
 HY_USER_BACKUP="$HY_USER_STATE/backup/$HY_TS"
 
 DRY_RUN="${DRY_RUN:-0}"
@@ -225,7 +225,7 @@ state_set() {
 
 mark_reboot() { NEED_REBOOT=1; [[ "$DRY_RUN" == 1 ]] || sudo_run touch "$HY_STATE_DIR/reboot-required"; }
 
-# Сохранить переменную в /etc/hyperina/install.env (её читают сервисы и последующие модули)
+# Сохранить переменную в /etc/haotica/install.env (её читают сервисы и последующие модули)
 save_install_var() {
   local key="$1" val="$2" f="$HY_ETC/install.env" line
   line="${key}=$(printf '%q' "$val")"

@@ -164,7 +164,7 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font:11
     <div class="brand">
       <h1>HYPERINA</h1>
       <span class="outline">MOTION SYSTEM</span>
-      <p class="lede">Восемь вариантов анимации окон и элементов интерфейса на одном и том же окне системного монитора. Нажмите «Проиграть» на карточке, чтобы сравнить. Скорость меняется для всех сразу.</p>
+      <p class="lede">Выбранная анимация окон, CRT + ГЛИТЧ, и восемь вариантов для остальных элементов интерфейса, показанные на одном и том же окне системного монитора. Нажмите «Проиграть» на карточке. Скорость меняется для всех сразу.</p>
       <p class="note">В системе включено «уменьшение движения». Анимации проигрываются только по нажатию кнопки.</p>
     </div>
     <div class="controls">
@@ -178,7 +178,7 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font:11
     </div>
   </header>
 
-  <div class="sec-h"><h2>Открытие и закрытие окон</h2><span>08 вариантов</span></div>
+  <div class="sec-h"><h2>Окна и элементы</h2><span>09 вариантов</span></div>
   <div class="grid" id="grid"></div>
 
   <div class="sec-h"><h2>Микро-анимации элементов</h2><span>наведение, нажатие, статусы</span></div>
@@ -215,22 +215,22 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font:11
     <table>
       <thead><tr><th>Событие</th><th>Анимация</th><th>Время</th><th>Почему</th></tr></thead>
       <tbody>
-        <tr><td>Открытие наших окон: дашборд, настройки, лаунчер, терминал</td><td class="m">01 СБОРКА</td><td class="m">≈ 450 мс</td><td>Ваша идея, главный характер системы</td></tr>
-        <tr><td>Открытие окон других программ: Chrome, Telegram, Steam</td><td class="m">01Б ПАЗЛ</td><td class="m">≈ 450 мс</td><td>Hyprland видит такое окно как одну картинку, поэтому режем её на плитки</td></tr>
-        <tr><td>Меню, всплывающие панели, контекстные окна</td><td class="m">02 ЧЕРТЁЖ</td><td class="m">≈ 350 мс</td><td>Спокойнее сборки, не утомляет при частом использовании</td></tr>
+        <tr><td>Открытие и закрытие всех окон, своих и чужих</td><td class="m">00 CRT + ГЛИТЧ</td><td class="m">720 / 630 мс</td><td>Ваш выбор. Одинаково для всех программ, поэтому система выглядит цельной</td></tr>
+        <tr><td>Дашборд, первый вход после загрузки</td><td class="m">01 СБОРКА</td><td class="m">≈ 450 мс</td><td>Ваша идея в редкий «большой» момент, поэтому она не надоедает</td></tr>
+        <tr><td>Меню, всплывающие панели, контекстные окна</td><td class="m">02 ЧЕРТЁЖ</td><td class="m">≈ 350 мс</td><td>Они открываются часто, нужен спокойный вариант</td></tr>
         <tr><td>Вход, блокировка, превью изображений</td><td class="m">03 СКАН</td><td class="m">≈ 450 мс</td><td>Связка со сканом лица на экране входа</td></tr>
         <tr><td>Данные, уведомления, ответы Haotica</td><td class="m">04 ДЕКОД</td><td class="m">≈ 500 мс</td><td>Текст «расшифровывается», цифры не прыгают</td></tr>
-        <tr><td>Обои, постерные заголовки, картинки в превью</td><td class="m">05 ПЕЧАТЬ</td><td class="m">≈ 450 мс</td><td>Печатная фактура референсов Escape и SPACE</td></tr>
-        <tr><td>Сон, блокировка, запуск игры, Haotica засыпает</td><td class="m">06 CRT</td><td class="m">260 + 420 мс</td><td>Понятная метафора «выключения»</td></tr>
-        <tr><td>Закрытие окон, удаление файлов</td><td class="m">07 РАСПАД</td><td class="m">≈ 350 мс</td><td>Закрытие быстрее открытия, взгляд не задерживается</td></tr>
-        <tr><td>Ошибка, неизвестное устройство в сети, отказ доступа</td><td class="m">08 ГЛИТЧ</td><td class="m">≈ 280 мс</td><td>Только события, иначе глитч теряет смысл</td></tr>
+        <tr><td>Обои, постерные заголовки, картинки</td><td class="m">05 ПЕЧАТЬ</td><td class="m">≈ 450 мс</td><td>Печатная фактура референсов Escape и SPACE</td></tr>
+        <tr><td>Сон, блокировка всего экрана, запуск игры</td><td class="m">06 CRT</td><td class="m">260 + 420 мс</td><td>То же движение, что у окон, но на весь экран</td></tr>
+        <tr><td>Удаление файлов в корзину, смахивание уведомлений</td><td class="m">07 РАСПАД</td><td class="m">≈ 350 мс</td><td>Видно, что объект исчез, а не просто закрылся</td></tr>
+        <tr><td>Ошибка, неизвестное устройство в сети, отказ доступа</td><td class="m">08 ГЛИТЧ</td><td class="m">≈ 280 мс</td><td>Сильнее, чем в окнах: тревога должна отличаться от обычного закрытия</td></tr>
       </tbody>
     </table>
   </div>
   <div class="presets">
-    <div class="pr def"><b>ХАОС</b><span>Хореография из таблицы выше: сборка для окон, остальное по ролям.</span></div>
+    <div class="pr def"><b>СИГНАЛ</b><span>Хореография из таблицы выше: CRT + ГЛИТЧ для всех окон, остальное по ролям.</span></div>
+    <div class="pr"><b>ХАОС</b><span>Как СИГНАЛ, но наши собственные окна открываются СБОРКОЙ.</span></div>
     <div class="pr"><b>ЧЕРТЁЖ</b><span>Везде спокойное прочерчивание рамок и проявление. Для работы и учёбы.</span></div>
-    <div class="pr"><b>ЛЮМИНОФОР</b><span>Скан и CRT везде, максимум ретро-терминала Hyperion.</span></div>
     <div class="pr"><b>МИНИМУМ</b><span>Только прозрачность и короткие сдвиги. Для батареи и «уменьшения движения».</span></div>
   </div>
 
@@ -278,12 +278,12 @@ const WIN = `
 </div>`;
 
 const STAGES = [
-  {id:'assembly', n:'01', t:'СБОРКА', tag:['ваша идея','amber'], yours:true,
+  {id:'crtglitch', n:'00', t:'CRT + ГЛИТЧ', tag:['ваш выбор','amber'], yours:true,
+   d:'Закрытие: короткий сбой сигнала, затем окно схлопывается в яркую линию и точку. Открытие: кинескоп раскрывается из точки, а в конце сигнал на мгновение «дрожит» глитчем. Скорость 0.7× от исходных CRT и ГЛИТЧ. Кнопка показывает закрытие и открытие.',
+   where:'открытие и закрытие всех окон, включая Chrome, Telegram и Steam', time:'закрытие ≈ 630 мс, открытие ≈ 720 мс', ref:'06 CRT + 08 ГЛИТЧ'},
+  {id:'assembly', n:'01', t:'СБОРКА', tag:['ваша идея','amber'],
    d:'Части окна появляются в случайных местах одновременно, летят под разными углами и собираются на свои места, как пазл. Вокруг вспыхивают «строительные» линии, в конце рамка мигает и защёлкиваются скобки.',
-   where:'наши окна: дашборд, настройки, лаунчер, терминал', time:'≈ 450 мс', ref:'хаотичная сборка'},
-  {id:'tiles', n:'01Б', t:'ПАЗЛ', tag:['ваша идея','amber'], yours:true,
-   d:'Та же сборка для окон других программ. Hyprland видит окно Chrome или Telegram как одну картинку, поэтому её режем на 12 плиток, и они съезжаются на места.',
-   where:'Chrome, Telegram, Steam и любые другие окна', time:'≈ 450 мс', ref:'плагин Hyprland'},
+   where:'дашборд и первый вход после загрузки: редкие «большие» моменты', time:'≈ 450 мс', ref:'хаотичная сборка'},
   {id:'blueprint', n:'02', t:'ЧЕРТЁЖ', tag:['спокойный','teal'],
    d:'Рамка прочерчивается из угла одной линией, по краям тянутся направляющие, на пересечениях вспыхивают узлы, затем проявляется содержимое сверху вниз.',
    where:'меню, всплывающие панели, контекстные окна', time:'≈ 350 мс', ref:'Arch, SPACE'},
@@ -334,7 +334,7 @@ fit();
 addEventListener('resize', fit);
 document.fonts && document.fonts.ready.then(fit);
 
-const A = (el, kf, o) => el.animate(kf, Object.assign({fill:'backwards'}, o, {duration:(o.duration||300)*K, delay:(o.delay||0)*K}));
+const A = (el, kf, o, k = K) => el.animate(kf, Object.assign({fill:'backwards'}, o, {duration:(o.duration||300)*k, delay:(o.delay||0)*k}));
 const done = list => Promise.all(list.map(a => a.finished.catch(()=>{})));
 const fx = (vp, cls, css) => { const d = document.createElement('div'); d.className = 'fx ' + cls; Object.assign(d.style, css); vp.appendChild(d); return d; };
 const box = win => ({x:win.offsetLeft, y:win.offsetTop, w:win.offsetWidth, h:win.offsetHeight});
@@ -350,6 +350,36 @@ function brackets(vp, win, delay){
     out[out.length-1].finished.then(() => d.remove(), () => d.remove());
   });
   return out;
+}
+
+const CRT_OFF = [
+  {transform:'none', filter:'brightness(1)'},
+  {transform:'scaleY(.012) scaleX(1)', filter:'brightness(3)', offset:.6},
+  {transform:'scaleY(.012) scaleX(.02)', filter:'brightness(5)', offset:.92},
+  {transform:'scaleY(0) scaleX(0)', filter:'brightness(5)'}
+];
+const CRT_ON = [
+  {transform:'scaleY(.012) scaleX(.02)', filter:'brightness(5)'},
+  {transform:'scaleY(.012) scaleX(1)', filter:'brightness(3)', offset:.35},
+  {transform:'scaleY(1.03) scaleX(1)', filter:'brightness(1.6)', offset:.8},
+  {transform:'none', filter:'brightness(1)'}
+];
+function glitchBurst(vp, win, dur, k, amp){
+  const b = box(win), bands = 7, list = [], clones = [];
+  for (let i = 0; i < bands; i++){
+    const c = win.cloneNode(true); c.classList.add('ghost');
+    const y0 = i*b.h/bands, y1 = (i+1)*b.h/bands;
+    Object.assign(c.style, {position:'absolute', left:b.x+'px', top:b.y+'px', width:b.w+'px', height:b.h+'px', clipPath:`inset(${y0}px 0 ${b.h-y1}px 0)`});
+    vp.appendChild(c); clones.push(c);
+    const kf = [];
+    for (let j = 0; j < 6; j++){
+      const last = j === 5;
+      kf.push({transform:last ? 'none' : `translateX(${rand(-amp,amp)}px)`, filter: last ? 'none' : (j%2 ? 'drop-shadow(3px 0 0 #E0705A) drop-shadow(-3px 0 0 #4FA6DC)' : 'brightness(1.6)'), opacity:last ? 0 : 1, easing:'steps(1,end)'});
+    }
+    list.push(A(c, kf, {duration:dur}, k));
+  }
+  list.push(A(win, [{opacity:0, easing:'steps(1,end)'},{opacity:.6, easing:'steps(1,end)'},{opacity:0, easing:'steps(1,end)'},{opacity:1}], {duration:dur}, k));
+  return done(list).then(() => clones.forEach(c => c.remove()));
 }
 
 const RUN = {
@@ -378,24 +408,16 @@ const RUN = {
     return done(list);
   },
 
-  tiles(vp, win){
-    const b = box(win), cols = 4, rows = 3, list = [], clones = [];
-    win.style.visibility = 'hidden';
-    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++){
-      const t = win.cloneNode(true);
-      t.classList.add('ghost');
-      const x0 = c*b.w/cols, y0 = r*b.h/rows, x1 = (c+1)*b.w/cols, y1 = (r+1)*b.h/rows;
-      Object.assign(t.style, {position:'absolute', left:b.x+'px', top:b.y+'px', width:b.w+'px', height:b.h+'px', visibility:'visible',
-        clipPath:`inset(${y0}px ${b.w-x1}px ${b.h-y1}px ${x0}px)`});
-      vp.appendChild(t); clones.push(t);
-      list.push(A(t, [
-        {transform:`translate(${rand(-1,1)*b.w*.6}px,${rand(-1,1)*140}px) rotate(${rand(-20,20)}deg)`, opacity:0},
-        {opacity:1, offset:.25},
-        {transform:'none', opacity:1}
-      ], {duration:rand(280,380), delay:rand(0,140), easing:'cubic-bezier(.16,1,.3,1)'}));
-    }
-    list.push(...brackets(vp, win, 300));
-    return done(list).then(() => { clones.forEach(t => t.remove()); win.style.visibility = ''; });
+  async crtglitch(vp, win){
+    const k = K/0.7;                       // 0.7× от исходной скорости
+    await glitchBurst(vp, win, 180, k, 22); // закрытие: сбой сигнала
+    const off = A(win, CRT_OFF, {duration:260, easing:'cubic-bezier(.6,0,.4,1)', fill:'forwards'}, k);
+    await off.finished.catch(()=>{});
+    await wait(320*k);
+    off.cancel();
+    const on = A(win, CRT_ON, {duration:420, easing:'cubic-bezier(.2,.7,.2,1)'}, k); // открытие
+    await wait(300*k);
+    return Promise.all([glitchBurst(vp, win, 200, k, 16), done([on])]);
   },
 
   blueprint(vp, win){
@@ -462,22 +484,11 @@ const RUN = {
   },
 
   async crt(vp, win){
-    const off = A(win, [
-      {transform:'none', filter:'brightness(1)'},
-      {transform:'scaleY(.012) scaleX(1)', filter:'brightness(3)', offset:.6},
-      {transform:'scaleY(.012) scaleX(.02)', filter:'brightness(5)', offset:.92},
-      {transform:'scaleY(0) scaleX(0)', filter:'brightness(5)'}
-    ], {duration:260, easing:'cubic-bezier(.6,0,.4,1)', fill:'forwards'});
+    const off = A(win, CRT_OFF, {duration:260, easing:'cubic-bezier(.6,0,.4,1)', fill:'forwards'});
     await off.finished.catch(()=>{});
     await wait(300*K);
     off.cancel();
-    const on = A(win, [
-      {transform:'scaleY(.012) scaleX(.02)', filter:'brightness(5)'},
-      {transform:'scaleY(.012) scaleX(1)', filter:'brightness(3)', offset:.35},
-      {transform:'scaleY(1.03) scaleX(1)', filter:'brightness(1.6)', offset:.8},
-      {transform:'none', filter:'brightness(1)'}
-    ], {duration:420, easing:'cubic-bezier(.2,.7,.2,1)'});
-    return done([on]);
+    return done([A(win, CRT_ON, {duration:420, easing:'cubic-bezier(.2,.7,.2,1)'})]);
   },
 
   async dissolve(vp, win){
@@ -491,23 +502,7 @@ const RUN = {
     return done([A(win, [{opacity:0},{opacity:1}], {duration:260})]);
   },
 
-  glitch(vp, win){
-    const b = box(win), bands = 7, list = [], clones = [];
-    for (let i = 0; i < bands; i++){
-      const c = win.cloneNode(true); c.classList.add('ghost');
-      const y0 = i*b.h/bands, y1 = (i+1)*b.h/bands;
-      Object.assign(c.style, {position:'absolute', left:b.x+'px', top:b.y+'px', width:b.w+'px', height:b.h+'px', clipPath:`inset(${y0}px 0 ${b.h-y1}px 0)`});
-      vp.appendChild(c); clones.push(c);
-      const kf = [];
-      for (let k = 0; k < 6; k++){
-        const last = k === 5;
-        kf.push({transform:last ? 'none' : `translateX(${rand(-28,28)}px)`, filter: last ? 'none' : (k%2 ? 'drop-shadow(3px 0 0 #E0705A) drop-shadow(-3px 0 0 #4FA6DC)' : 'brightness(1.6)'), opacity:last ? 0 : 1, easing:'steps(1,end)'});
-      }
-      list.push(A(c, kf, {duration:280}));
-    }
-    list.push(A(win, [{opacity:0, easing:'steps(1,end)'},{opacity:.6, easing:'steps(1,end)'},{opacity:0, easing:'steps(1,end)'},{opacity:1}], {duration:280}));
-    return done(list).then(() => clones.forEach(c => c.remove()));
-  }
+  glitch(vp, win){ return glitchBurst(vp, win, 280, K, 28); }
 };
 
 async function play(btn){

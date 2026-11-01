@@ -10,6 +10,7 @@
 <body>
 <div class="hy-app">
   <div class="crt" id="crt">
+    <canvas class="crt-lines" id="crt-lines"></canvas><div class="crt-roll"></div>
     <!-- шапка: строка статуса в рамках, как у Hyperion -->
     <header class="t-head" id="head">
       <div class="t-strip" id="strip1">
@@ -86,10 +87,24 @@
 
     <footer class="t-foot" id="foot">
       <div class="hints mono" id="hints"></div>
-      <div class="emblem" id="emblem" title="HAOTICA"></div>
     </footer>
   </div>
 </div>
+<!-- CRT: расхождение лучей по каналам (R влево, B вправо), лёгкая расфокусировка, свечение люминофора -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="crt-rgb" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <feOffset in="SourceGraphic" dx="-1.2" dy="0" result="L"/>
+    <feOffset in="SourceGraphic" dx="1.2" dy="0" result="R"/>
+    <feColorMatrix in="L" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="rc"/>
+    <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="gc"/>
+    <feColorMatrix in="R" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="bc"/>
+    <feComposite in="rc" in2="gc" operator="arithmetic" k2="1" k3="1" result="rg"/>
+    <feComposite in="rg" in2="bc" operator="arithmetic" k2="1" k3="1" result="rgb"/>
+    <feGaussianBlur in="rgb" stdDeviation="0.35" result="soft"/>
+    <feGaussianBlur in="rgb" stdDeviation="3" result="glow"/>
+    <feComposite in="soft" in2="glow" operator="arithmetic" k2="1" k3="0.16"/>
+  </filter>
+</svg>
 <div class="t-overlay hidden" id="overlay"><iframe id="overlay-frame" title="Cloud Link"></iframe></div>
 <script type="module" src="terminal.js"></script>
 </body>

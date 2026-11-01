@@ -3,7 +3,8 @@
 Включается сам, когда появляется окно игры Steam (класс steam_app_*), или вручную
 (Super+G, плитка в центре управления, `haotica gamemode on`). При включении:
 выгружается большая модель Haotica (~43 ГБ возвращаются системе), на паузу встают
-жесты, фоновые сканы сети и декоративные анимации, питание — «производительность».
+жесты, фоновые сканы сети и декоративные анимации, снимается экранный CRT,
+питание — «производительность».
 После выхода всё возвращается.
 """
 from __future__ import annotations
@@ -69,6 +70,7 @@ class GameMode:
                     await util.arun(["systemctl", "--user", "start", "haotica-gestures.service"], 10)
                 self.core.events.add("game", "GAME MODE // OFF — NEURAL CORE RELOADING")
                 await self.core.haotica_call("POST", "/api/event", {"event": "game_mode", "on": False})
+            await self.core.crt.update()          # экранный CRT снимается на время игры
             self.core.hub.publish("gamemode", self.status())
             return self.status()
 

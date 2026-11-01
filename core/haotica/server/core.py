@@ -13,6 +13,7 @@ import aiohttp
 from .. import config, paths, recon, theme, util
 from ..cli import ensure_token
 from .appliers import Applier
+from .crt import ScreenCrt
 from .events import EventLog
 from .gamemode import GameMode
 from .hub import Hub
@@ -63,6 +64,7 @@ class Core:
         self._night_on: bool | None = None
         self._session: aiohttp.ClientSession | None = None
         self.hypr.on_games_changed = self.game.games_changed
+        self.crt = ScreenCrt(self)
         self.hypr.per_window = bool(config.get("locale.per_window_layout", True))
         self.started = time.time()
 
@@ -79,6 +81,7 @@ class Core:
         if not (paths.HOME / ".config/hypr/hypridle.conf").exists():
             await self.applier.write_hypridle(s)
         await self.applier.lid_policy(s)
+        await self.crt.update(force=True)
         for coro in (self.metrics.run(), self.hypr.run(), self._scheduler(), self.recon.run()):
             asyncio.create_task(coro)
         self.events.add("ok", "CORE // ONLINE")
@@ -130,7 +133,7 @@ class Core:
         util.write_json(paths.STATE_DIR / "settings-history.json", list(self.history))
         try:
             did = await self.applier.apply(changed, old, new)
-        except Exception as e:  # noqa: BLE001 — настройка сохранена, применение могло частично упасть
+        except Exception as e:
             log.exception("apply")
             did = [f"ошибка применения: {e}"]
         self.hub.publish("settings", self.shell_settings(new))
@@ -246,7 +249,7 @@ class Core:
         while True:
             try:
                 await self.night_light_tick()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 log.exception("scheduler")
             await asyncio.sleep(30)
 

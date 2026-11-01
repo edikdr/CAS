@@ -1,4 +1,5 @@
--- HAOTICA: облик — тонкие рамки, свечение люминофора, анимация окон CRT + ГЛИТЧ
+-- HAOTICA: облик — тонкие рамки, свечение люминофора, анимация окон CRT + ГЛИТЧ,
+-- лёгкий экранный CRT (шейдер; ядро снимает его в режиме «Игра» и на полноэкранных окнах)
 local t = require("haotica.theme")
 local s = require("haotica.settings")
 
@@ -44,6 +45,7 @@ hl.config({
             vibrancy = 0.12,
             popups = true,
         },
+        screen_shader = s.crt_shader or "",
     },
 
     animations = { enabled = not s.reduce_motion },

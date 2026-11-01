@@ -9,7 +9,9 @@ hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
 
 hl.config({
     general = { border_size = 0, gaps_in = 0, gaps_out = 0 },
-    decoration = { rounding = 0, shadow = { enabled = false }, blur = { enabled = false } },
+    -- лёгкий экранный CRT, как в сессии (сила 0.35 по умолчанию)
+    decoration = { rounding = 0, shadow = { enabled = false }, blur = { enabled = false },
+                   screen_shader = "/usr/share/haotica/shaders/crt.frag" },
     animations = { enabled = true },
     misc = {
         disable_hyprland_logo = true,

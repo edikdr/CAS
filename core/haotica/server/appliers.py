@@ -54,8 +54,8 @@ class Applier:
             if _hit(keys, ("appearance.font", "appearance.icon_theme", "appearance.cursor")):
                 targets |= {"gtk", "qt"}
             if _hit(keys, ("display.", "keyboard.repeat", "touchpad.", "locale.layouts", "locale.ru_variant",
-                           "locale.switch", "animations.", "effects.blur", "effects.glow", "appearance.density",
-                           "appearance.cursor")):
+                           "locale.switch", "animations.", "effects.blur", "effects.glow", "effects.crt_screen",
+                           "appearance.density", "appearance.cursor")):
                 targets |= {"hyprland"}
         if targets:
             await asyncio.to_thread(theme.apply, targets, new)
@@ -68,6 +68,9 @@ class Applier:
         if full_theme:
             self._rebuild_assets(new)
             did.append("иконки, курсор и обои пересобираются")
+        if _hit(keys, ("effects.crt_screen", "effects.crt_fullscreen_off")):
+            await self.core.crt.update(force=True)
+            did.append("экранный CRT")
         if _hit(keys, ("appearance.cursor",)):
             ap = new.get("appearance", {})
             await self.core.hypr.hyprctl("setcursor", ap.get("cursor_theme", "HAOTICA"), str(ap.get("cursor_size", 24)))

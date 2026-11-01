@@ -347,10 +347,47 @@ HY.on("theme-applied", () => {
 });
 function applyCrt() {
   const fx = HY.theme.effects || {};
-  const v = fx.crt_terminal === undefined ? 0.35 : fx.crt_terminal;
-  document.documentElement.style.setProperty("--crt", v);
-  document.body.classList.toggle("no-crt", v <= 0);
+  const k = Math.max(0, Math.min(1, fx.crt_terminal === undefined ? 0.7 : +fx.crt_terminal || 0));
+  const screen = Math.max(0, +fx.crt_screen || 0);           // лёгкий экранный CRT уже лежит сверху
+  const root = document.documentElement.style;
+  root.setProperty("--crt", k);
+  document.body.classList.toggle("no-crt", k <= 0);
+  if (k <= 0) { root.setProperty("--crt-filter", "none"); return; }
+  const flt = document.getElementById("crt-rgb");
+  const [oL, oR, , , , , , soft, , glowMix] = flt.children;
+  const off = (0.3 + 0.75 * k).toFixed(2);
+  oL.setAttribute("dx", -off); oR.setAttribute("dx", off);
+  soft.setAttribute("stdDeviation", (0.15 + 0.45 * k).toFixed(2));
+  glowMix.setAttribute("k3", (0.08 + 0.22 * k).toFixed(3));
+  root.setProperty("--crt-filter", "url(#crt-rgb)");
+  crtLines.k = k * (screen > 0 ? 0.82 : 1);
+  drawCrtLines();
 }
+// строки развёртки точно по физическим пикселям: период кратен 3 (как у экранного шейдера) —
+// узоры совпадают по шагу и не дают муара; тёмная полоса с мягкими краями
+const crtLines = { k: 0.7, key: "" };
+function drawCrtLines() {
+  const c = $("crt-lines");
+  if (!c || document.body.classList.contains("no-crt")) return;
+  const r = c.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+  const key = `${w}x${h}@${crtLines.k}`;
+  if (key === crtLines.key) return;
+  crtLines.key = key;
+  c.width = w; c.height = h;
+  const g = c.getContext("2d");
+  const P = 3 * Math.max(1, Math.round(4 * dpr / 3));
+  // тёмная полоса (затемняет яркое) и едва светлая — «люминофор» в чёрном, как у кинескопа
+  const A = 0.34 * crtLines.k, L = 0.022 * crtLines.k;
+  for (let y = 0; y < h; y++) {
+    const ph = Math.cos(2 * Math.PI * ((y % P) + 0.5) / P);
+    const dark = A * Math.pow(0.5 + 0.5 * ph, 1.6), lite = L * Math.pow(0.5 - 0.5 * ph, 2);
+    if (dark > 0.004) { g.fillStyle = `rgba(0,0,0,${dark.toFixed(3)})`; g.fillRect(0, y, w, 1); }
+    else if (lite > 0.002) { g.fillStyle = `rgba(255,244,230,${lite.toFixed(4)})`; g.fillRect(0, y, w, 1); }
+  }
+}
+new ResizeObserver(HY.debounce(drawCrtLines, 80)).observe($("crt-lines"));
+matchMedia(`(resolution: ${devicePixelRatio}dppx)`).addEventListener?.("change", () => { crtLines.key = ""; drawCrtLines(); });
 
 async function paste(t) {
   try { const text = await navigator.clipboard.readText(); if (text) t.input(text.includes("\n") ? `\x1b[200~${text}\x1b[201~` : text); }
@@ -634,11 +671,6 @@ $("globe").onclick = () => HY.openApp("netrecon");
 let globeT = 0;
 setInterval(() => { globeT += 0.08; const m = $("globe").querySelector(".gl-m"); if (m) m.setAttribute("rx", Math.abs(Math.cos(globeT)) * 14 + 1); }, 66);
 
-// эмблема HAOTICA
-$("emblem").innerHTML = `<svg viewBox="0 0 46 40"><path d="M3 3h40L23 37z" fill="none" stroke="currentColor" stroke-width="1.6"/>
-  <path d="M9 7h28L23 31z" fill="none" stroke="currentColor" stroke-width=".8" opacity=".6"/>
-  <path d="M17 11v10M29 11v10M17 16h12" stroke="currentColor" stroke-width="2.2" fill="none"/></svg>`;
-
 // подсказки клавиш (реальные сочетания)
 $("hints").innerHTML = [["CTRL+SHIFT+T", "NEW TAB"], ["CTRL+SHIFT+P", "COMMANDS"], ["CTRL+SHIFT+F", "FIND"], ["?? …", "ASK HAOTICA"], ["CTRL+ALT+B", "PANELS"]]
   .map(([k, v]) => `<b>${k}</b> : ${v}`).join('<span class="sep">·</span>');
@@ -791,7 +823,7 @@ function palette() {
     { label: "Haotica — чат", key: "", icon: "haotica", fn: () => showPanel("haotica") },
     { label: HY.t("toggle_left"), key: "Ctrl+Alt+B", icon: "layout", fn: () => { document.body.classList.toggle("no-left"); refit(); } },
     { label: HY.t("toggle_right"), key: "Ctrl+Shift+H", icon: "layout", fn: () => { document.body.classList.toggle("no-right"); refit(); } },
-    { label: "CRT-рамка вкл/выкл", key: "", icon: "eye", fn: () => HY.setting("effects.crt_terminal", document.body.classList.contains("no-crt") ? 0.35 : 0) },
+    { label: "CRT терминала вкл/выкл", key: "", icon: "eye", fn: () => HY.setting("effects.crt_terminal", document.body.classList.contains("no-crt") ? 0.7 : 0) },
     { label: HY.t("prev_block"), key: "Ctrl+Shift+↑", icon: "chevron", fn: () => t && t.jump(-1) },
     { label: HY.t("next_block"), key: "Ctrl+Shift+↓", icon: "chevron", fn: () => t && t.jump(1) },
     { label: HY.t("font_up"), key: "Ctrl+=", icon: "plus", fn: () => setFont(state.fontSize + 1) },

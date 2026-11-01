@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import io
+import itertools
 import json
 import os
 import re
@@ -14,8 +15,17 @@ import zipfile
 from pathlib import Path
 
 from . import config, paths
-from .palette import (Palette, argb_qt, build, css_rgba, hex_to_rgb, luminance, mix,
-                      rgba_hypr, saturation)
+from .palette import (
+    Palette,
+    argb_qt,
+    build,
+    css_rgba,
+    hex_to_rgb,
+    luminance,
+    mix,
+    rgba_hypr,
+    saturation,
+)
 
 H = paths.HOME
 AUTOGEN = "Автоматически создано HAOTICA. Не редактируйте вручную — изменения пропадут."
@@ -87,6 +97,43 @@ def _lua(v) -> str:
     return json.dumps(str(v), ensure_ascii=False)
 
 
+def crt_frag(k: float) -> str:
+    """Экранный шейдер «лёгкий CRT» для decoration:screen_shader (GLSL ES 3.00).
+
+    Строки развёртки по физическим пикселям (период 3, без муара при дробном масштабе),
+    горизонтальное расхождение лучей R/B (как у кинескопа: красный влево, синий вправо,
+    сильнее к краям) и мягкая виньетка. Без uniform-ов времени — damage tracking работает,
+    кадр перерисовывается только при изменениях. k — сила 0…1 (терминал добавляет своё).
+    """
+    k = max(0.0, min(1.0, float(k)))
+    return f"""#version 300 es
+// {AUTOGEN}
+// HAOTICA — лёгкий CRT на весь экран, сила {k:.2f}
+precision highp float;
+in vec2 v_texcoord;
+uniform sampler2D tex;
+out vec4 fragColor;
+
+const float K = {k:.3f};
+
+void main() {{
+    vec2 uv = v_texcoord;
+    vec2 c = uv - 0.5;
+    float r2 = dot(c, c);                          // 0 в центре … 0.5 в углах
+    float px = 1.0 / float(textureSize(tex, 0).x);
+    vec2 off = vec2(px * K * (1.6 + 2.4 * r2), 0.0);
+    vec4 base = texture(tex, uv);
+    float r = texture(tex, uv + off).r;            // красный луч — левее
+    float b = texture(tex, uv - off).b;            // синий — правее
+    vec3 col = vec3(r, base.g, b);
+    float row = mod(floor(gl_FragCoord.y), 3.0);   // тёмная строка, полутень, светлая
+    col *= 1.0 - K * (row < 0.5 ? 0.16 : (row < 1.5 ? 0.05 : 0.0));
+    col *= 1.0 - K * 0.42 * smoothstep(0.12, 0.5, r2);
+    fragColor = vec4(col, base.a);
+}}
+"""
+
+
 def hyprland_settings_lua(s: dict, p: Palette) -> str:
     """Параметры Hyprland из настроек (экран, ввод, анимации, плотность)."""
     ap, fx, an = s.get("appearance", {}), s.get("effects", {}), s.get("animations", {})
@@ -108,6 +155,8 @@ def hyprland_settings_lua(s: dict, p: Palette) -> str:
         "repeat_delay": kb.get("repeat_delay", 300), "repeat_rate": kb.get("repeat_rate", 35),
         "sensitivity": float(tp.get("speed", 0.0)), "natural_scroll": tp.get("natural_scroll", True),
         "tap_to_click": tp.get("tap_to_click", True), "disable_while_typing": tp.get("disable_while_typing", True),
+        # экранный CRT: путь к шейдеру или "" (снимается в режиме «Игра» и на полноэкранных окнах)
+        "crt_shader": str(H / ".config/hypr/haotica/crt.frag") if float(fx.get("crt_screen", 0.35) or 0) > 0 else "",
     }
     body = "\n".join(f"    {k} = {_lua(v)}," for k, v in vals.items())
     return f"-- {AUTOGEN}\nreturn {{\n{body}\n}}\n"
@@ -246,7 +295,7 @@ def kvantum_recolor_svg(svg: str, p: Palette) -> str:
             (0.32, p["line_hi"]), (0.55, p["dim"]), (1.0, p["ink"])]
 
     def map_grey(lum: float) -> str:
-        for (l0, c0), (l1, c1) in zip(ramp, ramp[1:]):
+        for (l0, c0), (l1, c1) in itertools.pairwise(ramp):
             if lum <= l1:
                 t = 0 if l1 == l0 else (lum - l0) / (l1 - l0)
                 return mix(c0, c1, max(0.0, min(1.0, t)))
@@ -429,7 +478,7 @@ def write_vesktop(p: Palette) -> list[Path]:
 
 
 def mangohud_conf(p: Palette) -> str:
-    h = lambda c: c.lstrip("#").upper()  # noqa: E731
+    h = lambda c: c.lstrip("#").upper()
     return f"""# {AUTOGEN}
 legacy_layout=false
 horizontal
@@ -478,7 +527,7 @@ def btop_theme(p: Palette) -> str:
 
 
 def spicetify_theme(p: Palette) -> tuple[str, str]:
-    h = lambda c: c.lstrip("#").lower()  # noqa: E731
+    h = lambda c: c.lstrip("#").lower()
     ini = f"""[HAOTICA]
 text               = {h(p['ink'])}
 subtext            = {h(p['dim'])}
@@ -563,6 +612,8 @@ def system_targets(p: Palette, s: dict) -> dict[str, str]:
     return {
         "/etc/opt/chrome/policies/managed/haotica.json": json.dumps(chrome_policy(p), indent=2),
         "/etc/haotica/theme.json": json.dumps(runtime_theme(p, s), ensure_ascii=False, indent=1),
+        # экран входа: тот же лёгкий CRT (в репозитории лежит вариант 0.35 — system/usr/share/…)
+        "/usr/share/haotica/shaders/crt.frag": crt_frag(float(s.get("effects", {}).get("crt_screen", 0.35) or 0.35)),
     }
 
 
@@ -594,8 +645,10 @@ def apply(targets: set[str] | None = None, settings: dict | None = None) -> dict
         config.export_runtime(s)
         mark("runtime", paths.RUNTIME_DIR / "theme.json")
     if want("hyprland"):
+        k = float(s.get("effects", {}).get("crt_screen", 0.35) or 0)
         mark("hyprland", _write(H / ".config/hypr/haotica/theme.lua", hyprland_lua(p)),
-             _write(H / ".config/hypr/haotica/settings.lua", hyprland_settings_lua(s, p)))
+             _write(H / ".config/hypr/haotica/settings.lua", hyprland_settings_lua(s, p)),
+             *([_write(H / ".config/hypr/haotica/crt.frag", crt_frag(k))] if k > 0 else []))
     if want("gtk"):
         css = gtk_css(p)
         mark("gtk", _write(H / ".config/gtk-3.0/gtk.css", css), _write(H / ".config/gtk-4.0/gtk.css", css),

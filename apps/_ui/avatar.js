@@ -5,6 +5,7 @@
 // Шестерёнки векторные и вращаются (быстрее, когда Haotica думает).
 // Состояния: idle, reading, thinking, speaking, warning, happy, sleep.
 import { RIG } from "./avatar/rig.js";
+import { beamFilter, tuneBeamFilter } from "./crt.js";
 
 const NS = "http://www.w3.org/2000/svg";
 const BASE = new URL("./avatar/", import.meta.url).href;
@@ -92,7 +93,8 @@ const EXPR = {
   sleep:    { lid: 1, look: [0, 2], bl: [2, -1], br: [2, -1], tilt: 3, mouth: null },
 };
 
-export function createAvatar(host, { size = 260, interactive = true } = {}) {
+// crt — свой CRT аватара (расхождение лучей, свечение) поверх того, что есть у окна: 0…1
+export function createAvatar(host, { size = 260, interactive = true, crt = 0 } = {}) {
   const id = "hav" + (++uid);
   host.classList.add("hy-avatar");
   const E = RIG.eyes, C = RIG.chest;
@@ -136,9 +138,11 @@ export function createAvatar(host, { size = 260, interactive = true } = {}) {
     <linearGradient id="${id}-glint" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
     </linearGradient>
+    ${beamFilter(`${id}-crt`)}
     <linearGradient id="${id}-ulip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5E0B38"/><stop offset="1" stop-color="#3F0627"/></linearGradient>
     <linearGradient id="${id}-llip" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B51D55"/><stop offset=".45" stop-color="#D3306A"/><stop offset="1" stop-color="#A3194B"/></linearGradient>
   </defs>
+  <g class="crtwrap">
   <g class="gears" fill="none" stroke="var(--av-gear)" stroke-linejoin="round">${gearSvg}</g>
   <g class="fig">
     <g class="headwrap"><g class="head">
@@ -161,6 +165,7 @@ export function createAvatar(host, { size = 260, interactive = true } = {}) {
   </g>
   <g class="zz" opacity="0" fill="none" stroke="var(--av-zz)" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
     <path d="M860 230 h34 l-34 34 h34"/><path d="M915 168 h26 l-26 26 h26"/>
+  </g>
   </g>
 </svg>`;
   const svg = host.querySelector("svg");
@@ -194,7 +199,7 @@ export function createAvatar(host, { size = 260, interactive = true } = {}) {
     const dt = Math.min(0.1, (now - st.last) / 1000);
     st.last = now;
     const s = st.state, X = EXPR[s] || EXPR.idle;
-    const ease = 1 - Math.exp(-dt * 10);
+    const ease = st.instant ? 1 : 1 - Math.exp(-dt * 10);
 
     // дыхание: плечи и грудь поднимаются на вдохе; грудь догоняет с мягкой пружиной
     const period = s === "sleep" ? 6.2 : s === "speaking" ? 3.6 : 4.4;
@@ -206,7 +211,7 @@ export function createAvatar(host, { size = 260, interactive = true } = {}) {
     el.torso.setAttribute("transform", `translate(0 ${f1(-6 * b)}) translate(617 ${H}) scale(${(1 + 0.003 * b).toFixed(4)} ${(1 + 0.007 * b).toFixed(4)}) translate(-617 ${-H})`);
     el.chest.setAttribute("transform", `translate(${C.anchor[0]} ${C.anchor[1]}) scale(${(1 + 0.02 * c).toFixed(4)} ${(1 + 0.026 * c).toFixed(4)}) translate(${-C.anchor[0]} ${f1(-C.anchor[1] - 1.5 * c)})`);
     el.headwrap.setAttribute("transform", `translate(0 ${f1(-9.2 * b)})`);
-    st.tilt = lerp(st.tilt, X.tilt, ease * 0.5);
+    st.tilt = st.instant ? X.tilt : lerp(st.tilt, X.tilt, ease * 0.5);
     const talk = s === "speaking" ? Math.sin(t * 7.3) * st.mouth * 0.7 : 0;
     const rot = Math.sin(t * 0.55) * 0.6 + Math.sin(t * 1.3 + 1) * 0.22 + st.tilt + talk;
     el.head.setAttribute("transform", `rotate(${rot.toFixed(3)} ${RIG.head.pivot[0]} ${RIG.head.pivot[1]})`);
@@ -254,11 +259,11 @@ export function createAvatar(host, { size = 260, interactive = true } = {}) {
     // рот: растровые губы эталона в покое; векторные — для речи и мимики
     const target = X.mouth || (st.mouth > 0.02 ? EXPR.speaking.mouth : null);
     const vec = !!target;
-    st.mv = lerp(st.mv, vec ? 1 : 0, 1 - Math.exp(-dt * 14));
+    st.mv = st.instant ? (vec ? 1 : 0) : lerp(st.mv, vec ? 1 : 0, 1 - Math.exp(-dt * 14));
     const tm = target || { open: 0, smile: 0, press: 0, shift: 0, pout: 0 };
     const open = s === "speaking" || st.mouth > 0.02 ? Math.max(tm.open, st.mouth) : tm.open;
     for (const key of ["smile", "press", "shift", "pout"]) st.m[key] = lerp(st.m[key], tm[key], ease);
-    st.m.open = lerp(st.m.open, open, 1 - Math.exp(-dt * 22));
+    st.m.open = st.instant ? open : lerp(st.m.open, open, 1 - Math.exp(-dt * 22));
     el.lips.setAttribute("opacity", (1 - st.mv).toFixed(3));
     el.mouth.setAttribute("opacity", st.mv.toFixed(3));
     if (st.mv > 0.01) {
@@ -306,11 +311,24 @@ export function createAvatar(host, { size = 260, interactive = true } = {}) {
   if (interactive) window.addEventListener("mousemove", onMove);
   const onVis = () => { if (document.hidden) cancelAnimationFrame(st.raf); else st.raf = requestAnimationFrame(loop); };
   document.addEventListener("visibilitychange", onVis);
+  const wrap = q(".crtwrap"), flt = svg.querySelector(`#${id}-crt`);
+  function setCrt(k) {
+    if (!(k > 0)) { wrap.removeAttribute("filter"); return; }
+    // свечение слабее, чем у окна: аватар и так лежит под CRT окна, двойное свечение «выбеливает» кожу
+    tuneBeamFilter(flt, Math.min(1, k), W / Math.max(1, svg.getBoundingClientRect().width || size), { glow: 0.25 });
+    wrap.setAttribute("filter", `url(#${id}-crt)`);
+  }
+  setCrt(crt);
   return {
     el: host,
-    setState(s) { st.state = EXPR[s] ? s : "idle"; },
+    setCrt,
+    // instant — сразу в итоговое выражение, без плавного перехода и моргания (статичный портрет)
+    setState(s, { instant = false } = {}) {
+      st.state = EXPR[s] ? s : "idle";
+      if (instant) { st.instant = true; st.blinkT = -1; st.nextBlink = Infinity; apply(performance.now()); }
+    },
     get state() { return st.state; },
-    setMouth(v) { st.mouth = clamp(v || 0, 0, 1); },
+    setMouth(v) { st.mouth = clamp(v || 0, 0, 1); if (st.instant) apply(performance.now()); },
     destroy() {
       cancelAnimationFrame(st.raf);
       window.removeEventListener("mousemove", onMove);

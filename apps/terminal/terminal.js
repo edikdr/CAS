@@ -45,9 +45,11 @@ $("winbtns").append(
   ...HY.winButtons());
 HY.dragArea($("drag1")); HY.dragArea($("drag2"));
 
+const crtMod = import("/ui/crt.js");
 const termTheme = () => {
   const t = (HY.theme && HY.theme.terminal) || {};
-  return { ...t, background: getComputedStyle(document.documentElement).getPropertyValue("--bg0").trim() || "#000000",
+  // прозрачный фон: под текстом — руки из живого кода (art.js) и рамка HUD
+  return { ...t, background: "#00000000",
     scrollbarSliderBackground: "#ffffff14", scrollbarSliderHoverBackground: "#ffffff26", scrollbarSliderActiveBackground: "#ffffff33",
     overviewRulerBorder: "#00000000" };
 };
@@ -68,7 +70,7 @@ class Tab {
     this.term = new Terminal({
       fontFamily: font || "JetBrains Mono, monospace", fontSize: state.fontSize, lineHeight: 1.18, letterSpacing: 0,
       cursorStyle: "bar", cursorBlink: true, cursorWidth: 2, scrollback: 20000, allowProposedApi: true,
-      allowTransparency: false, drawBoldTextInBrightColors: false, minimumContrastRatio: 1, smoothScrollDuration: 90,
+      allowTransparency: true, drawBoldTextInBrightColors: false, minimumContrastRatio: 1, smoothScrollDuration: 90,
       theme: termTheme(), overviewRuler: { width: 8 }, rightClickSelectsWord: true, macOptionIsMeta: true,
       linkHandler: { allowNonHttpProtocols: true, activate: (e, uri) => onLink(e, uri, this),
         hover: (e, uri) => showTip(e, uri), leave: () => hideTip() },
@@ -99,7 +101,11 @@ class Tab {
   spawn(command = "") {
     this.exited = false;
     const { cols, rows } = this.dims();
-    if (!HY.bridge) { this.term.write("\x1b[33mРежим разработки: нет хоста PTY.\x1b[0m\r\n"); return; }
+    if (!HY.bridge) {                      // разработка в браузере: без PTY, с доступом к вкладкам для проверок
+      this.term.write("\x1b[33mРежим разработки: нет хоста PTY.\x1b[0m\r\n");
+      window.__hyterm = state;
+      return;
+    }
     HY.bridge.ptySpawn(this.cwd, cols, rows, command, (sid) => { this.sid = sid; sessions.set(sid, this); });
     this.term.onData((d) => {
       if (this.exited) { if (d === "\r") { this.term.write("\r\n"); this.spawn(); } return; }
@@ -347,47 +353,27 @@ HY.on("theme-applied", () => {
 });
 function applyCrt() {
   const fx = HY.theme.effects || {};
-  const k = Math.max(0, Math.min(1, fx.crt_terminal === undefined ? 0.7 : +fx.crt_terminal || 0));
+  const k = Math.max(0, Math.min(1, fx.crt_terminal === undefined ? 0.85 : +fx.crt_terminal || 0));
+  crtLines.av_k = Math.max(0, Math.min(1, fx.crt_avatar === undefined ? 0.25 : +fx.crt_avatar || 0));
+  if (state.avatar && state.avatar.setCrt) state.avatar.setCrt(crtLines.av_k);
   const screen = Math.max(0, +fx.crt_screen || 0);           // лёгкий экранный CRT уже лежит сверху
   const root = document.documentElement.style;
   root.setProperty("--crt", k);
   document.body.classList.toggle("no-crt", k <= 0);
   if (k <= 0) { root.setProperty("--crt-filter", "none"); return; }
-  const flt = document.getElementById("crt-rgb");
-  const [oL, oR, , , , , , soft, , glowMix] = flt.children;
-  const off = (0.3 + 0.75 * k).toFixed(2);
-  oL.setAttribute("dx", -off); oR.setAttribute("dx", off);
-  soft.setAttribute("stdDeviation", (0.15 + 0.45 * k).toFixed(2));
-  glowMix.setAttribute("k3", (0.08 + 0.22 * k).toFixed(3));
+  crtMod.then(({ mountBeamFilter, tuneBeamFilter }) => tuneBeamFilter(mountBeamFilter("crt-rgb"), k));
   root.setProperty("--crt-filter", "url(#crt-rgb)");
   crtLines.k = k * (screen > 0 ? 0.82 : 1);
   drawCrtLines();
 }
-// строки развёртки точно по физическим пикселям: период кратен 3 (как у экранного шейдера) —
-// узоры совпадают по шагу и не дают муара; тёмная полоса с мягкими краями
-const crtLines = { k: 0.7, key: "" };
-function drawCrtLines() {
-  const c = $("crt-lines");
-  if (!c || document.body.classList.contains("no-crt")) return;
-  const r = c.getBoundingClientRect(), dpr = devicePixelRatio || 1;
-  const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
-  const key = `${w}x${h}@${crtLines.k}`;
-  if (key === crtLines.key) return;
-  crtLines.key = key;
-  c.width = w; c.height = h;
-  const g = c.getContext("2d");
-  const P = 3 * Math.max(1, Math.round(4 * dpr / 3));
-  // тёмная полоса (затемняет яркое) и едва светлая — «люминофор» в чёрном, как у кинескопа
-  const A = 0.34 * crtLines.k, L = 0.022 * crtLines.k;
-  for (let y = 0; y < h; y++) {
-    const ph = Math.cos(2 * Math.PI * ((y % P) + 0.5) / P);
-    const dark = A * Math.pow(0.5 + 0.5 * ph, 1.6), lite = L * Math.pow(0.5 - 0.5 * ph, 2);
-    if (dark > 0.004) { g.fillStyle = `rgba(0,0,0,${dark.toFixed(3)})`; g.fillRect(0, y, w, 1); }
-    else if (lite > 0.002) { g.fillStyle = `rgba(255,244,230,${lite.toFixed(4)})`; g.fillRect(0, y, w, 1); }
-  }
-}
-new ResizeObserver(HY.debounce(drawCrtLines, 80)).observe($("crt-lines"));
-matchMedia(`(resolution: ${devicePixelRatio}dppx)`).addEventListener?.("change", () => { crtLines.key = ""; drawCrtLines(); });
+// строки развёртки — общий модуль /ui/crt.js (период кратен 3, по физическим пикселям)
+const crtLines = { k: 0.85, ctl: null, av: null };
+function drawCrtLines() { crtLines.ctl?.redraw(); crtLines.av?.redraw(); }
+crtMod.then(({ watchScanlines }) => {
+  crtLines.ctl = watchScanlines($("crt-lines"), () => document.body.classList.contains("no-crt") ? 0 : crtLines.k);
+  // аватар: свои строки поверх (только затемнение — фон у него прозрачный)
+  crtLines.av = watchScanlines($("av-lines"), () => document.body.classList.contains("no-crt") ? 0 : crtLines.av_k || 0, { light: false });
+});
 
 async function paste(t) {
   try { const text = await navigator.clipboard.readText(); if (text) t.input(text.includes("\n") ? `\x1b[200~${text}\x1b[201~` : text); }
@@ -698,11 +684,39 @@ async function downloads() {
 }
 downloads(); setInterval(downloads, 30000);
 
+// ── фон сеанса: «Сотворение Адама» из живого кода ─────────────────
+const art = { ctl: null };
+function applyArt() {
+  const fx = HY.theme.effects || {};
+  const on = fx.terminal_art === undefined ? true : !!fx.terminal_art;
+  if (on && !art.ctl && !art.starting) {
+    art.starting = true;
+    import("./art.js").then(async ({ startHandsArt }) => {
+      art.ctl = await startHandsArt($("t-art"), {
+        opacity: () => { const e = HY.theme.effects || {}; return e.terminal_art_opacity === undefined ? 0.5 : +e.terminal_art_opacity; },
+        font: () => getComputedStyle(document.documentElement).getPropertyValue("--font-term").trim() || "monospace",
+        colors: () => ({ ink: cssv("--ink"), teal: cssv("--teal"), violet: cssv("--violet"), dim: cssv("--line-hi"), accent: cssv("--accent") }),
+      });
+      art.starting = false;
+    }).catch(() => { art.starting = false; });
+  } else if (!on && art.ctl) { art.ctl.stop(); art.ctl = null; }
+}
+HY.on("theme-applied", applyArt);
+applyArt();
+
 // ── Haotica: портрет, голос, короткая связь, карточки команд ─────
 import("/ui/avatar.js").then(({ createAvatar, avatarCss }) => {
   const st = el("style", avatarCss()); document.head.append(st);
-  state.avatar = createAvatar($("avatar"), { size: 262 });
+  const fx = HY.theme.effects || {};
+  state.avatar = createAvatar($("avatar"), { size: 262, crt: fx.crt_avatar === undefined ? 0.25 : +fx.crt_avatar || 0 });
   $("avatar").onclick = () => showPanel("haotica");
+  // строки аватара — ровно по рамке портрета
+  const fitLines = () => {
+    const a = $("avatar").getBoundingClientRect(), p = $("portrait").getBoundingClientRect(), c = $("av-lines");
+    Object.assign(c.style, { top: `${a.top - p.top}px`, height: `${a.height}px`, left: `${a.left - p.left}px`, width: `${a.width}px` });
+    drawCrtLines();
+  };
+  new ResizeObserver(fitLines).observe($("avatar")); fitLines();
 });
 const hFrame = $("haotica");
 function hPost(msg) { try { hFrame.contentWindow && hFrame.contentWindow.postMessage({ haotica: true, ...msg }, location.origin); } catch (e) { /* ещё грузится */ } }
@@ -824,7 +838,8 @@ function palette() {
     { label: "Haotica — чат", key: "", icon: "haotica", fn: () => showPanel("haotica") },
     { label: HY.t("toggle_left"), key: "Ctrl+Alt+B", icon: "layout", fn: () => { document.body.classList.toggle("no-left"); refit(); } },
     { label: HY.t("toggle_right"), key: "Ctrl+Shift+H", icon: "layout", fn: () => { document.body.classList.toggle("no-right"); refit(); } },
-    { label: "CRT терминала вкл/выкл", key: "", icon: "eye", fn: () => HY.setting("effects.crt_terminal", document.body.classList.contains("no-crt") ? 0.7 : 0) },
+    { label: "CRT терминала вкл/выкл", key: "", icon: "eye", fn: () => HY.setting("effects.crt_terminal", document.body.classList.contains("no-crt") ? 0.85 : 0) },
+    { label: "Фон «руки из кода» вкл/выкл", key: "", icon: "image", fn: () => HY.setting("effects.terminal_art", !(HY.theme.effects || {}).terminal_art) },
     { label: HY.t("prev_block"), key: "Ctrl+Shift+↑", icon: "chevron", fn: () => t && t.jump(-1) },
     { label: HY.t("next_block"), key: "Ctrl+Shift+↓", icon: "chevron", fn: () => t && t.jump(1) },
     { label: HY.t("font_up"), key: "Ctrl+=", icon: "plus", fn: () => setFont(state.fontSize + 1) },

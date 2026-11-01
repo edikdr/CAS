@@ -12,6 +12,6 @@ const st = document.createElement("style"); st.textContent = avatarCss(); docume
 for (const s of ["idle", "reading", "thinking", "speaking", "happy", "warning", "sleep"]) {
   const c = document.createElement("div"); c.className = "cell"; document.body.append(c);
   const a = createAvatar(c, { size: 480, interactive: false });
-  a.setState(s); if (s === "speaking") a.setMouth(0.55);
+  a.setState(s, { instant: true }); if (s === "speaking") a.setMouth(0.55);
 }
 </script></body></html>

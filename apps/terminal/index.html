@@ -34,7 +34,7 @@
       <aside class="t-col t-left" id="left">
         <section class="hud portrait" id="portrait">
           <div class="hud-tab"><span>SUBJECT // HAOTICA</span><b id="h-state">IDLE</b></div>
-          <div class="avatar-box" id="avatar"></div>
+          <div class="avatar-box" id="avatar"></div><canvas class="av-lines" id="av-lines"></canvas>
           <div class="voice" id="voice"><canvas id="voice-wave" width="260" height="22"></canvas></div>
         </section>
         <section class="hud link">
@@ -61,7 +61,7 @@
         <div class="hud session" id="session">
           <div class="s-head"><span class="pipe">|</span><b id="s-title">SESSION 1</b><span id="s-path" class="dim"></span><span class="grant">— ACCESS GRANTED</span><span class="pipe">|</span><span class="grow"></span><span id="s-state" class="dim"></span></div>
           <div class="s-rule"></div>
-          <div class="t-terms" id="terms"></div>
+          <div class="t-terms" id="terms"><canvas class="t-art" id="t-art"></canvas></div>
         </div>
       </section>
 
@@ -90,21 +90,6 @@
     </footer>
   </div>
 </div>
-<!-- CRT: расхождение лучей по каналам (R влево, B вправо), лёгкая расфокусировка, свечение люминофора -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <filter id="crt-rgb" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
-    <feOffset in="SourceGraphic" dx="-1.2" dy="0" result="L"/>
-    <feOffset in="SourceGraphic" dx="1.2" dy="0" result="R"/>
-    <feColorMatrix in="L" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="rc"/>
-    <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="gc"/>
-    <feColorMatrix in="R" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="bc"/>
-    <feComposite in="rc" in2="gc" operator="arithmetic" k2="1" k3="1" result="rg"/>
-    <feComposite in="rg" in2="bc" operator="arithmetic" k2="1" k3="1" result="rgb"/>
-    <feGaussianBlur in="rgb" stdDeviation="0.35" result="soft"/>
-    <feGaussianBlur in="rgb" stdDeviation="3" result="glow"/>
-    <feComposite in="soft" in2="glow" operator="arithmetic" k2="1" k3="0.16"/>
-  </filter>
-</svg>
 <div class="t-overlay hidden" id="overlay"><iframe id="overlay-frame" title="Cloud Link"></iframe></div>
 <script type="module" src="terminal.js"></script>
 </body>

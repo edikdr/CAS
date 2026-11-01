@@ -2,7 +2,7 @@
 Description=Haotica: ассистент (чат, инструменты, память, облачный канал)
 PartOf=graphical-session.target
 After=graphical-session.target haotica-core.service
-Wants=haotica-llm-main.service haotica-llm-fast.service
+Wants=haotica-llm-base.service haotica-llm-fast.service
 
 [Service]
 Type=simple

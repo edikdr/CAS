@@ -1,0 +1,15 @@
+[Unit]
+Description=HAOTICA: глубокая модель Haotica (Qwen3-Coder-Next 80B-A3B: длинные и сложные задачи) — llama.cpp (Vulkan)
+PartOf=graphical-session.target
+After=graphical-session.target haotica-llm-base.service
+# запускается по требованию; при старте останавливает base (и наоборот), сначала — остановка
+Conflicts=haotica-llm-base.service
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/haotica/bin/haotica-llm deep
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=420
+Nice=5
+LimitMEMLOCK=infinity

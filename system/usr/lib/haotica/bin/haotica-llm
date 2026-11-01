@@ -1,4 +1,4 @@
 #!/bin/sh
-# HAOTICA: запуск llama-server для роли main | fast | vision (параметры — из манифеста и настроек)
+# HAOTICA: запуск llama-server для роли base | deep | fast (параметры — из манифеста и настроек)
 export PYTHONPATH="/usr/lib/haotica/python${PYTHONPATH:+:$PYTHONPATH}"
-exec /usr/bin/python3 -c 'import sys; from haotica.models import launch; launch(sys.argv[1])' "${1:-main}"
+exec /usr/bin/python3 -c 'import sys; from haotica.models import launch; launch(sys.argv[1])' "${1:-base}"

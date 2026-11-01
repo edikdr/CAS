@@ -174,7 +174,7 @@ class Metrics:
     def _llm(self) -> dict:
         h = util.load_json(paths.RUNTIME_DIR / "haotica.json", {}) or {}
         return {"llm_state": h.get("llm_state", "offline"), "llm_tps": h.get("llm_tps", 0),
-                "llm_model": h.get("llm_model", "")}
+                "llm_model": h.get("llm_model", ""), "llm_role": h.get("llm_role", "base")}
 
     # ── цикл ───────────────────────────────────────────────────
     async def _slow(self) -> None:
@@ -185,7 +185,7 @@ class Metrics:
                 self.data.update(await self._network(default_iface()))
                 if n % 2 == 0:
                     self.data["net_ping_ms"] = await self._ping()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 log.exception("slow metrics")
             n += 1
             await asyncio.sleep(10)
@@ -208,7 +208,7 @@ class Metrics:
                 util.write_json(self.file, self.data)
                 self.core.hub.publish("metrics", self.data)
                 self.core.on_metrics(self.data)
-            except Exception:  # noqa: BLE001 — метрики не должны останавливаться
+            except Exception:
                 log.exception("metrics tick")
             self._tick += 1
             slow = self.data.get("on_battery") or self.extra.get("game_mode")

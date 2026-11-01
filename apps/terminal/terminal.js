@@ -688,7 +688,8 @@ async function downloads() {
     const f = need ? have / need : 1;
     lines.push(f >= 1 ? el("div", "NEURAL CORE: ", el("b", { style: { color: "var(--green)" } }, "READY"))
       : el("div", "MODELS ", el("b", pbar(f)), ` ${Math.floor(f * 100)}%`));
-    lines.push(el("div", "PACKAGE: ", el("b", (all.find((m) => m.role === "main") || all[0] || {}).label?.split("·")[0]?.trim().slice(0, 22) || "—")));
+    const act = all.find((m) => m.role === (state.metrics.llm_role || "base")) || all[0] || {};
+    lines.push(el("div", "PACKAGE: ", el("b", act.label?.split("·")[0]?.trim().slice(0, 24) || "—")));
   }
   if (upd && upd.ok) lines.push(el("div", "UPDATES: ", el("b", { style: { color: upd.count ? "var(--amber)" : "var(--green)" } }, upd.count ? `${upd.count} AVAILABLE` : "UP TO DATE")));
   lines.push(el("div", "CONNECTION: ", el("b", state.metrics.net_name ? "ESTABLISHED" : "—")));

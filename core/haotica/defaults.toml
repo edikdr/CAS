@@ -126,8 +126,10 @@ memory = true
 avatar = "auto"            # auto (Live2D, если есть модель), svg
 folders_allowed = ["~"]
 folders_denied = ["~/.ssh", "~/.gnupg", "~/.local/share/keyrings"]
-model_main = "main"
-context_size = 131072      # 32768, 65536, 131072, 262144 (максимум модели)
+model_mode = "auto"        # auto — Haotica сама выбирает модель; base — всегда Qwen3.8-27B; deep — всегда Coder-Next
+deep_idle_min = 10         # после глубокой задачи вернуться на base через N минут простоя
+speculative = "auto"       # auto (DFlash-драфт у base, n-граммы у deep), draft, ngram, none
+context_size = 131072      # 32768, 65536, 131072, 262144 (максимум моделей)
 
 [cloud]
 enabled = false

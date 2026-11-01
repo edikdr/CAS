@@ -1,0 +1,19 @@
+[Unit]
+Description=HAOTICA: базовая модель Haotica (Qwen3.8-27B: терминал, команды, зрение) — llama.cpp (Vulkan)
+PartOf=graphical-session.target
+After=graphical-session.target
+# base и deep работают по очереди: вместе им не хватит общей памяти
+Conflicts=haotica-llm-deep.service
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/haotica/bin/haotica-llm base
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=300
+Nice=5
+# модели живут в общей памяти с GPU: держим их вне swap
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=haotica-session.target

@@ -50,13 +50,13 @@ def run() -> int:
         ok = "RADV" in r.stdout
         line("VULKAN RADV", "ok" if ok else "fail", "Radeon 8060S" if ok else "нет устройства Vulkan")
         fails += 0 if ok else 1
-    for unit in ("haotica-core", "haotica-shell", "haotica-agent", "haotica-llm-main", "haotica-llm-fast",
+    for unit in ("haotica-core", "haotica-shell", "haotica-agent", "haotica-llm-base", "haotica-llm-fast",
                  "haotica-tts"):
         r = util.run(["systemctl", "--user", "is-active", f"{unit}.service"], 5)
         st = r.stdout.strip()
         line(f"SERVICE {unit}", "ok" if st == "active" else ("warn" if st in ("inactive", "activating") else "fail"), st)
     for name, port in (("CORE API", paths.PORT_CORE), ("HAOTICA API", paths.PORT_HAOTICA),
-                       ("LLM MAIN", paths.PORT_LLM_MAIN), ("LLM FAST", paths.PORT_LLM_FAST), ("VOICE", paths.PORT_TTS)):
+                       ("LLM BASE", paths.PORT_LLM_BASE), ("LLM FAST", paths.PORT_LLM_FAST), ("VOICE", paths.PORT_TTS)):
         line(f"PORT {name}", "ok" if port_open(port) else "warn", str(port))
     r = util.run(["pactl", "info"], 5)
     sink = next((ln.split(":", 1)[1].strip() for ln in r.stdout.splitlines() if ln.startswith("Default Sink")), "")

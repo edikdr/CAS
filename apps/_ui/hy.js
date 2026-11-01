@@ -18,7 +18,9 @@ export function el(tag, attrs, ...kids) {
   for (const [k, v] of Object.entries(attrs || {})) {
     if (v === undefined || v === null || v === false) continue;
     if (k === "class") n.className += (n.className ? " " : "") + v;
-    else if (k === "style" && typeof v === "object") Object.assign(n.style, v);
+    else if (k === "style" && typeof v === "object") {
+      for (const [sk, sv] of Object.entries(v)) sk.startsWith("--") ? n.style.setProperty(sk, sv) : (n.style[sk] = sv);
+    }
     else if (k.startsWith("on") && typeof v === "function") n.addEventListener(k.slice(2).toLowerCase(), v);
     else if (k === "html") n.innerHTML = v;
     else if (k === "text") n.textContent = v;
@@ -223,13 +225,29 @@ export const HY = {
       el("button.winbtn.close", { title: this.t("close"), onclick: () => this.close() }, icon("close", 14)),
     );
     app.prepend(bar);
+    this.edges();
+    app.classList.add("hy-boot");
+    return bar;
+  },
+  // края окна для изменения размера (если приложение рисует свой заголовок)
+  edges() {
     for (const edge of ["left", "right", "top", "bottom", "top-left", "top-right", "bottom-left", "bottom-right"]) {
       document.body.append(el("div.hy-resize." + edge, {
         onmousedown: (e) => { if (e.button === 0 && this.bridge) { e.preventDefault(); this.bridge.startResize(edge); } },
       }));
     }
-    app.classList.add("hy-boot");
-    return bar;
+  },
+  winButtons() {
+    return [
+      el("button.winbtn", { title: this.t("minimize"), onclick: () => this.bridge && this.bridge.minimize() }, icon("minus", 14)),
+      el("button.winbtn", { title: this.t("maximize"), onclick: () => this.bridge && this.bridge.toggleMaximize() }, icon("layout", 14)),
+      el("button.winbtn.close", { title: this.t("close"), onclick: () => this.close() }, icon("close", 14)),
+    ];
+  },
+  dragArea(node) {
+    node.addEventListener("mousedown", (e) => { if (e.button === 0 && e.detail === 1 && e.target === node && this.bridge) this.bridge.startMove(); });
+    node.addEventListener("dblclick", (e) => { if (e.target === node && this.bridge) this.bridge.toggleMaximize(); });
+    return node;
   },
   sub(text) { const s = document.getElementById("hy-sub"); if (s) s.textContent = text; },
   close() {

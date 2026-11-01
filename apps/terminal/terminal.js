@@ -35,11 +35,15 @@ const CATS = ["all", "dir", "code", "doc", "image", "video", "audio", "archive",
 const state = { tabs: [], active: null, fontSize: 13, metrics: {}, hist: { cpu: [], gpu: [], gtt: [], tps: [] },
   dir: "", cat: "all", hidden: false, selected: "", statCache: new Map(), lastClick: { uri: "", t: 0 } };
 
-await HY.start({ title: "TERMINAL // HYPERINA", titleHtml: "TERMINAL <i>// HYPERINA</i>", glyph: "terminal", topics: ["metrics"],
-  ctrlW: false, actions: [
-    el("button.hy-btn.ghost.small", { title: HY.t("cloud"), onclick: () => openCloud() }, icon("cloud", 14), "CLOUD"),
-    el("button.hy-btn.ghost.small", { title: HY.t("palette") + "  Ctrl+Shift+P", onclick: () => palette() }, icon("search", 14)),
-  ] });
+await HY.start({ title: "TERMINAL // HYPERINA", glyph: "terminal", topics: ["metrics", "events", "recon", "gamemode"],
+  ctrlW: false, chrome: false });
+HY.edges();
+document.querySelector(".hy-app").classList.add("hy-boot");
+$("winbtns").append(
+  el("button.winbtn", { title: HY.t("cloud"), onclick: () => openCloud() }, icon("cloud", 14)),
+  el("button.winbtn", { title: HY.t("palette") + "  Ctrl+Shift+P", onclick: () => palette() }, icon("search", 14)),
+  ...HY.winButtons());
+HY.dragArea($("drag1")); HY.dragArea($("drag2"));
 
 const termTheme = () => {
   const t = (HY.theme && HY.theme.terminal) || {};
@@ -287,10 +291,12 @@ if (HY.bridge) {
   });
 }
 
+// ── вкладки ──────────────────────────────────────────────────────
 function newTab(opts = {}) {
   const t = new Tab(opts);
   state.tabs.push(t);
   activate(t);
+  logLine("ok", `SESSION ${state.tabs.length} OPENED`, "OK");
   return t;
 }
 function activate(t) {
@@ -315,11 +321,9 @@ function cycle(d) {
   activate(state.tabs[(i + d + state.tabs.length) % state.tabs.length]);
 }
 function renderTabs() {
-  const box = $("tabs");
-  box.replaceChildren(...state.tabs.map((t, i) => el("div.hy-tab" + (t === state.active ? ".on" : ""), {
-    onclick: () => activate(t), onauxclick: (e) => { if (e.button === 1) closeTab(t); },
-    title: t.cwd,
-  }, t.activity ? el("span.badge") : null, el("span", `${i + 1} · ${shortTitle(t)}`),
+  $("tabs").replaceChildren(...state.tabs.map((t, i) => el("div.t-tab" + (t === state.active ? ".on" : ""), {
+    onclick: () => activate(t), onauxclick: (e) => { if (e.button === 1) closeTab(t); }, title: t.cwd,
+  }, t.activity ? el("span.dot") : null, el("span", `${i + 1} · ${shortTitle(t)}`),
      el("span.x", { onclick: (e) => { e.stopPropagation(); closeTab(t); } }, icon("close", 14)))),
     el("button.t-tab-new", { title: HY.t("newtab") + "  Ctrl+Shift+T", onclick: () => newTab({ cwd: state.active ? state.active.cwd : "" }) }, icon("plus", 14)));
 }
@@ -332,18 +336,20 @@ function setFont(n) {
   state.fontSize = Math.max(9, Math.min(26, n));
   for (const t of state.tabs) { t.term.options.fontSize = state.fontSize; t.dims(); }
 }
-function refit() { requestAnimationFrame(() => state.tabs.forEach((t) => t.dims())); }
+function refit() { requestAnimationFrame(() => { state.tabs.forEach((t) => t.dims()); drawCharts(); }); }
 window.addEventListener("resize", HY.debounce(refit, 60));
 HY.on("theme-applied", () => {
   const th = termTheme();
   const font = getComputedStyle(document.documentElement).getPropertyValue("--font-term").trim();
   for (const t of state.tabs) { t.term.options.theme = th; if (font) t.term.options.fontFamily = font; }
   applyCrt();
+  drawCharts();
 });
 function applyCrt() {
-  const v = ((HY.theme.effects || {}).crt_terminal) || 0;
+  const fx = HY.theme.effects || {};
+  const v = fx.crt_terminal === undefined ? 0.35 : fx.crt_terminal;
   document.documentElement.style.setProperty("--crt", v);
-  for (const t of state.tabs) t.box.classList.toggle("crt", v > 0);
+  document.body.classList.toggle("no-crt", v <= 0);
 }
 
 async function paste(t) {
@@ -356,9 +362,8 @@ function resolvePath(p, cwd) {
   const home = HY.boot.home || "/home";
   if (p.startsWith("~")) return home + p.slice(1);
   if (p.startsWith("/")) return p;
-  const parts = (cwd + "/" + p).split("/");
   const out = [];
-  for (const s of parts) { if (!s || s === ".") continue; if (s === "..") out.pop(); else out.push(s); }
+  for (const seg of (cwd + "/" + p).split("/")) { if (!seg || seg === ".") continue; if (seg === "..") out.pop(); else out.push(seg); }
   return "/" + out.join("/");
 }
 async function statPath(p) {
@@ -369,7 +374,7 @@ async function statPath(p) {
   return pr;
 }
 
-// клик по ссылке-пути: клик — превью, двойной клик — открыть, Ctrl+клик — показать в папке
+// клик по пути: клик — превью, двойной клик — открыть, Ctrl+клик — показать в «Файлах»
 function onLink(e, uri, tab) {
   if (!uri.startsWith("file://")) return HY.openUrl(uri);
   const u = new URL(uri);
@@ -384,15 +389,43 @@ function onLink(e, uri, tab) {
   if (tab) tab.term.focus();
 }
 let tip;
-function showTip(e, text) { hideTip(); tip = el("div.hy-tip", text.replace("file://", "") + "   клик — превью · 2× — открыть · Ctrl — в папке"); document.body.append(tip);
-  tip.style.left = Math.min(e.clientX + 12, innerWidth - 420) + "px"; tip.style.top = e.clientY + 16 + "px"; }
+function showTip(e, text) {
+  hideTip();
+  tip = el("div.hy-tip", text.replace("file://", "") + "   клик — превью · 2× — открыть · Ctrl — в папке");
+  document.body.append(tip);
+  tip.style.left = Math.min(e.clientX + 12, innerWidth - 420) + "px"; tip.style.top = e.clientY + 16 + "px";
+}
 function hideTip() { if (tip) { tip.remove(); tip = null; } }
 
-// ── файловая панель ──────────────────────────────────────────────
-$("f-up").append(icon("chevron", 14)); $("f-up").style.transform = "rotate(-90deg)";
-$("f-up").onclick = () => { if (state.dir && state.dir !== "/") loadDir(state.dir.replace(/\/[^/]+\/?$/, "") || "/"); };
-$("f-cd").append(icon("terminal", 14));
-$("f-cd").onclick = () => state.active && state.active.input(" cd " + quote(state.dir) + "\r");
+// ── правая панель: журнал / файлы / превью / Haotica ─────────────
+const PANELS = [["log", "LOG"], ["files", "FILES"], ["preview", "PREVIEW"], ["haotica", "HAOTICA"]];
+let panel = "log";
+function showPanel(name) {
+  panel = name;
+  for (const [n] of PANELS) $("p-" + n).classList.toggle("hidden", n !== name);
+  $("p-tabs").replaceChildren(...PANELS.map(([n, label]) => el("button" + (n === name ? ".on" : ""), { onclick: () => showPanel(n) },
+    label, n === "log" && state.unread ? el("span.n", state.unread) : null)));
+  if (name === "log") state.unread = 0;
+  if (name === "haotica" && !hFrame.src) hFrame.src = "/apps/haotica/index.html?embed=terminal";
+}
+
+// журнал со встроенными барами
+const logBox = $("p-log");
+function logLine(kind, text, status, pct) {
+  const bar = pct !== undefined ? el("span.pbar", "▓".repeat(Math.round(pct / 10)) + "░".repeat(10 - Math.round(pct / 10))) : null;
+  const row = el("div.lg." + kind + ".new", el("span", ">"), el("span.tx", text), el("span.ld"), bar,
+    el("span.st", pct !== undefined ? `${Math.round(pct)}%` : status || ""));
+  logBox.append(row);
+  while (logBox.children.length > 300) logBox.firstChild.remove();
+  logBox.scrollTop = logBox.scrollHeight;
+  if (panel !== "log") { state.unread = (state.unread || 0) + 1; showPanel(panel); }
+}
+const KIND_STATUS = { ok: "OK", info: "INFO", warn: "WARN", error: "FAIL", haotica: "AI", net: "LINK", power: "PWR",
+  security: "ALERT", game: "GAME", update: "UPD" };
+HY.get("/api/events?n=24").then((r) => { for (const e of (r && r.events) || []) logLine(e.kind, e.text, KIND_STATUS[e.kind] || e.time); });
+HY.on("events", (e) => logLine(e.kind, e.text, KIND_STATUS[e.kind] || e.time));
+
+// файлы: категории, теги, дерево текущей папки
 function renderCats() {
   $("f-cats").replaceChildren(...CATS.map((c) => el("span.c" + (state.cat === c ? ".on" : ""), { onclick: () => { state.cat = c; renderCats(); renderTree(); } },
     c === "all" ? null : el("i", { style: { background: HY.catColor(c) } }), c === "all" ? HY.t("all") : c)));
@@ -408,21 +441,16 @@ async function loadDir(dir) {
 }
 function renderTree() {
   const reg = state.tagColors || {};
-  const list = state.entries.filter((e) => state.cat === "all" || e.category === state.cat);
-  $("f-tree").replaceChildren(...list.slice(0, 600).map((e) => {
-    const n = el("div.n" + (e.type === "dir" ? ".dir" : "") + (e.hidden ? ".hidden-file" : "") + (e.path === state.selected ? ".sel" : ""), {
-      draggable: true, title: e.path,
-      onclick: () => { state.selected = e.path; renderTree(); if (e.type === "dir") preview(e.path); else preview(e.path); },
-      ondblclick: () => e.type === "dir" ? loadDir(e.path) : HY.post("/api/fs/open", { path: e.path }),
-      oncontextmenu: (ev) => { ev.preventDefault(); fileMenu(ev, e); },
-      ondragstart: (ev) => { ev.dataTransfer.setData("text/x-hyperina-path", e.path); ev.dataTransfer.setData("text/plain", e.path); },
-    },
-    el("span.bar", { style: { background: HY.catColor(e.category) } }),
-    icon(e.type === "dir" ? "folder" : glyphFor(e.category), 14),
-    el("span.nm", e.name),
-    e.tags && e.tags.length ? el("span.tg", e.tags.slice(0, 3).map((t) => el("i", { title: t, style: { background: reg[t] || "var(--accent)" } }))) : null);
-    return n;
-  }));
+  const list = (state.entries || []).filter((e) => state.cat === "all" || e.category === state.cat);
+  $("f-tree").replaceChildren(...list.slice(0, 600).map((e) => el("div.n" + (e.type === "dir" ? ".dir" : "") + (e.hidden ? ".hidden-file" : "") + (e.path === state.selected ? ".sel" : ""), {
+    draggable: true, title: e.path,
+    onclick: () => { state.selected = e.path; renderTree(); preview(e.path, null, false); },
+    ondblclick: () => e.type === "dir" ? loadDir(e.path) : HY.post("/api/fs/open", { path: e.path }),
+    oncontextmenu: (ev) => { ev.preventDefault(); fileMenu(ev, e); },
+    ondragstart: (ev) => { ev.dataTransfer.setData("text/x-hyperina-path", e.path); ev.dataTransfer.setData("text/plain", e.path); },
+  }, el("span.bar2", { style: { background: HY.catColor(e.category) } }),
+     icon(e.type === "dir" ? "folder" : glyphFor(e.category), 14), el("span.nm", e.name),
+     e.tags && e.tags.length ? el("span.tg", e.tags.slice(0, 3).map((t) => el("i", { title: t, style: { background: reg[t] || "var(--accent)" } }))) : null)));
 }
 function glyphFor(cat) { return { code: "code", doc: "doc", image: "image", video: "play", audio: "music", archive: "archive", model: "haotica" }[cat] || "doc"; }
 function fileMenu(ev, e) {
@@ -437,21 +465,22 @@ function fileMenu(ev, e) {
     { label: HY.t("copy_path"), icon: "clipboard", fn: () => navigator.clipboard.writeText(e.path) },
     { label: HY.t("tag"), icon: "key", fn: () => tagDialog(e) },
     "-",
-    { label: HY.t("ask"), icon: "haotica", fn: () => haoticaPost({ type: "ask", text: `Что это за файл и что с ним можно сделать? ${e.path}`, context: { path: e.path } }) },
+    { label: HY.t("ask"), icon: "haotica", fn: () => ask(`Что это за файл и что с ним можно сделать? ${e.path}`, { path: e.path }) },
   ].filter(Boolean));
 }
 async function tagDialog(e) {
   const v = await HY.prompt(HY.t("tag"), (e.tags || []).join(", "), "важное, работа, проект");
   if (v === null) return;
-  await HY.post("/api/fs/tags", { paths: [e.path], tags: v.split(",").map((s) => s.trim()).filter(Boolean) });
+  await HY.post("/api/fs/tags", { paths: [e.path], tags: v.split(",").map((x) => x.trim()).filter(Boolean) });
   loadDir(state.dir);
 }
 HY.get("/api/fs/tags").then((r) => { state.tagColors = (r && r.registry) || {}; });
 
-// ── превью ───────────────────────────────────────────────────────
-async function preview(path, line) {
-  const box = $("preview");
+// превью
+async function preview(path, line, switchTo = true) {
+  const box = $("p-preview");
   const r = await HY.get("/api/fs/preview?path=" + encodeURIComponent(path));
+  if (switchTo) showPanel("preview");
   if (!r || !r.ok) { box.replaceChildren(el("div.t-prev-empty", HY.t("nothing"))); return; }
   const p = r.preview;
   const name = path.split("/").pop() || path;
@@ -468,11 +497,10 @@ async function preview(path, line) {
   else if (p.kind === "markdown") body.append(el("div.md", { html: p.html }));
   else if (p.kind === "code" || p.kind === "text") {
     body.append(el("div.code", { html: p.html }));
-    if (line) setTimeout(() => { const a = body.querySelector(`a[href="#L-${line}"]`) || body.querySelector(`#L-${line}`); if (a) a.scrollIntoView({ block: "center" }); }, 30);
+    if (line) setTimeout(() => { const a = body.querySelector(`#L-${line}`) || body.querySelector(`a[href="#L-${line}"]`); if (a) a.scrollIntoView({ block: "center" }); }, 30);
   } else if (p.kind === "archive") body.append(el("pre.lines", p.entries.join("\n")));
   else if (p.kind === "binary") body.append(el("div.hex", p.hex));
-  else if (p.kind === "dir") body.append(el("div.lines", Object.entries(p.categories || {}).map(([c, n]) =>
-    el("div.hy-kv", el("span.k", c), el("span.dots"), el("span.v", { style: { color: HY.catColor(c) } }, n)))));
+  else if (p.kind === "dir") body.append(el("div.lines", Object.entries(p.categories || {}).map(([c, n]) => HY.kv(c, String(n), HY.catColor(c)))));
   else body.append(el("div.t-prev-empty", HY.t("nothing")));
   box.replaceChildren(head, body);
   box.classList.remove("hy-scan"); void box.offsetWidth; box.classList.add("hy-scan");
@@ -482,76 +510,261 @@ function tracks(p) {
     Object.entries(t).map(([k, v]) => HY.kv(k.replace("@", ""), String(v))))));
 }
 
-// ── виджеты системы (общий сервис метрик) ────────────────────────
-function widgets() {
+// ── шапка: дата, время, аптайм, сеть ────────────────────────────
+function clock() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  $("date").textContent = `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
+  $("time").textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+setInterval(clock, 1000); clock();
+
+// ── полосы-статы, мини-блок, графики (общий сервис метрик) ──────
+const VITALS = [
+  ["CPU", "--teal", (m) => (m.cpu || 0) / 100, (m) => Math.round(m.cpu || 0) + "%"],
+  ["GPU", "--sky", (m) => (m.gpu || 0) / 100, (m) => Math.round(m.gpu || 0) + "%"],
+  ["RAM", "--green", (m) => m.ram_total_gb ? m.ram_used_gb / m.ram_total_gb : 0, (m) => (m.ram_used_gb || 0).toFixed(1) + "G"],
+  ["GTT", "--violet", (m) => m.gtt_total_gb ? m.gtt_used_gb / m.gtt_total_gb : 0, (m) => (m.gtt_used_gb || 0).toFixed(1) + "G"],
+  ["TEMP", "--amber", (m) => Math.min(1, (m.temp_cpu || 0) / 100), (m) => m.temp_cpu ? m.temp_cpu + "°" : "—"],
+  ["FAN", "--dim", (m) => Math.min(1, (m.fan_rpm || 0) / 6000), (m) => m.fan_rpm ? (m.fan_rpm / 1000).toFixed(1) + "k" : "—"],
+  ["BAT", "--green", (m) => m.battery >= 0 ? m.battery / 100 : 1, (m) => m.battery >= 0 ? m.battery + "%" + (m.charging ? "+" : "") : "AC"],
+  ["AI", "--violet", (m) => Math.min(1, (m.llm_tps || 0) / 60), (m) => m.llm_state === "ready" ? Math.round(m.llm_tps || 0) + "t/s" : ({ loading: "LOAD", sleep: "SLEEP" }[m.llm_state] || "OFF")],
+];
+function bars() {
   const m = state.metrics;
-  const W = (k, v, hist, color) => {
-    const c = el("canvas", { width: 120, height: 18 });
-    spark(c, hist, color);
-    return el("div.t-w", el("span.k", k), c, el("span.v", v));
-  };
-  const gttPct = m.gtt_total_gb ? m.gtt_used_gb / m.gtt_total_gb : 0;
-  $("widgets").replaceChildren(
-    el("div.t-w-title", el("span", "SYSTEM"), el("span", { style: { color: m.game_mode ? "var(--coral)" : "var(--dim)" } },
-      m.game_mode ? "GAME" : (m.power_profile || "").toUpperCase())),
-    W("CPU", Math.round(m.cpu || 0) + "%", state.hist.cpu, "--teal"),
-    W("GPU", Math.round(m.gpu || 0) + "%", state.hist.gpu, "--sky"),
-    W("GTT", `${(m.gtt_used_gb || 0).toFixed(1)}/${Math.round(m.gtt_total_gb || 0)}G`, state.hist.gtt, "--violet"),
-    el("div.t-w", el("span.k", "TEMP"), HY.segbar(Math.min(1, (m.temp_cpu || 0) / 100), 16, (m.temp_cpu || 0) > 85 ? "var(--coral)" : "var(--amber)"),
-      el("span.v", `${m.temp_cpu || "—"}° ${m.temp_gpu ? "/ " + m.temp_gpu + "°" : ""}`)),
-    el("div.t-w", el("span.k", "FAN"), HY.segbar(Math.min(1, (m.fan_rpm || 0) / 6000), 16, "var(--dim)"), el("span.v", m.fan_rpm ? m.fan_rpm + " rpm" : "—")),
-    W("TOK/S", m.llm_state === "ready" ? String(Math.round(m.llm_tps || 0)) : (m.llm_state || "off").toUpperCase(), state.hist.tps, "--violet"),
-  );
-  void gttPct;
+  if (!$("bars").children.length) {
+    $("bars").append(...VITALS.map(([k, c]) => el("div.bar", { style: { "--c": `var(${c})` }, title: k,
+      onclick: () => (k === "TEMP" || k === "FAN" || k === "BAT") ? palettePower() : k === "AI" ? showPanel("haotica") : HY.openApp("sysmon") },
+      el("span.pt"), el("span.k", k), el("div.track", el("i")), el("span.v", "—"))));
+  }
+  VITALS.forEach(([, , frac, val], i) => {
+    const row = $("bars").children[i];
+    let f = Math.max(0, Math.min(1, frac(m) || 0));
+    if (i === 4) row.style.setProperty("--c", (m.temp_cpu || 0) > 85 ? "var(--coral)" : "var(--amber)");
+    if (i === 6) row.style.setProperty("--c", m.battery >= 0 && m.battery <= 20 && !m.charging ? "var(--coral)" : "var(--green)");
+    row.querySelector(".track i").style.setProperty("--p", (f * 100).toFixed(1) + "%");
+    row.querySelector(".v").textContent = val(m);
+  });
+  $("power-mode").textContent = m.game_mode ? "GAME" : (m.power_profile || "balanced").toUpperCase();
+  $("power-mode").style.color = m.game_mode ? "var(--coral)" : "";
 }
-function spark(c, data, colorVar) {
-  const g = c.getContext("2d");
-  const w = c.width, h = c.height;
-  g.clearRect(0, 0, w, h);
-  const color = getComputedStyle(document.documentElement).getPropertyValue(colorVar).trim() || "#5FA8A0";
-  g.strokeStyle = color; g.lineWidth = 1.2; g.beginPath();
-  const max = Math.max(1, ...data);
-  data.forEach((v, i) => { const x = (i / Math.max(1, data.length - 1)) * w, y = h - 1 - (v / max) * (h - 3); i ? g.lineTo(x, y) : g.moveTo(x, y); });
-  g.stroke();
+function mini() {
+  const m = state.metrics;
+  const rnd = (n) => Math.floor(Math.random() * 16 ** n).toString(16).toUpperCase().padStart(n, "0");
+  $("mini-cols").textContent =
+    `IP   ${m.net_ip || "—"}\nPING ${m.net_ping_ms >= 0 ? m.net_ping_ms + " ms" : "—"}\n↓${(m.net_down_kbs || 0).toFixed(0).padStart(6)} kB/s  ${rnd(4)}\n↑${(m.net_up_kbs || 0).toFixed(0).padStart(6)} kB/s  ${rnd(4)}`;
+  $("net-status").textContent = m.net_name ? (m.net_ping_ms >= 0 && m.net_ping_ms < 120 ? "STABLE" : "DEGRADED") : "OFFLINE";
+  $("net-status").style.color = m.net_name ? (m.net_ping_ms >= 0 && m.net_ping_ms < 120 ? "var(--green)" : "var(--amber)") : "var(--coral)";
+  $("sec-level").textContent = (m.recon_unknown || 0) > 0 ? "CHECK" : "HIGH";
+  $("sec-level").style.color = (m.recon_unknown || 0) > 0 ? "var(--amber)" : "";
+  const h = m.uptime_hours || 0;
+  $("uptime").textContent = h >= 48 ? Math.floor(h / 24) + "d" : h + "h";
 }
-const push = (a, v) => { a.push(v); if (a.length > 40) a.shift(); };
+const push = (a, v, n = 90) => { a.push(v); if (a.length > n) a.shift(); };
+state.hist.net = []; state.hist.up = [];
 HY.on("metrics", (m) => {
   state.metrics = m;
-  push(state.hist.cpu, m.cpu || 0); push(state.hist.gpu, m.gpu || 0); push(state.hist.gtt, m.gtt_used_gb || 0); push(state.hist.tps, m.llm_tps || 0);
-  if (!document.body.classList.contains("no-left")) widgets();
+  push(state.hist.cpu, m.cpu || 0); push(state.hist.gpu, m.gpu || 0); push(state.hist.gtt, m.gtt_used_gb || 0);
+  push(state.hist.tps, m.llm_tps || 0); push(state.hist.net, m.net_down_kbs || 0); push(state.hist.up, m.net_up_kbs || 0);
+  bars(); mini(); drawCharts();
+  $("load-val").textContent = `${Math.round(m.cpu || 0)}% · ${Math.round(m.gpu || 0)}%`;
+  $("net-val").textContent = `↓ ${HY.fmtBytes((m.net_down_kbs || 0) * 1024)}/s`;
 });
-
-function renderStatus() {
-  const t = state.active;
-  if (!t) return;
-  const last = t.blocks[t.blocks.length - 1];
-  $("status").replaceChildren(
-    el("span", icon("folder", 14)), el("b", t.cwd.replace(HY.boot.home || "\0", "~")),
-    el("span", last ? (last.code ? el("span.err", `EXIT ${last.code}`) : el("span.ok", "OK")) : ""),
-    el("span.grow"), el("span", `${t.blocks.length} BLOCKS`), el("span", `${state.fontSize}PX`),
-    el("span", "Ctrl+Shift+P — " + HY.t("palette").replace("…", "")));
+function cssv(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function fitCanvas(c) {
+  const r = c.getBoundingClientRect();
+  const dpr = devicePixelRatio || 1;
+  if (c.width !== Math.round(r.width * dpr) || c.height !== Math.round(r.height * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); }
+  const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [g, r.width, r.height];
+}
+function grid(g, w, h, step = 12) {
+  g.strokeStyle = cssv("--ink-faint") || "#1E1D1A"; g.lineWidth = 1;
+  for (let x = 0.5; x < w; x += step) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+  for (let y = 0.5; y < h; y += step) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+}
+function drawCharts() {
+  // нагрузка: сглаженная «колоколообразная» площадь CPU и линия GPU
+  let [g, w, h] = fitCanvas($("c-load"));
+  g.clearRect(0, 0, w, h); grid(g, w, h);
+  const area = (data, color, fill) => {
+    const n = Math.max(2, data.length);
+    g.beginPath();
+    data.forEach((v, i) => { const x = (i / (n - 1)) * w, y = h - 3 - (Math.min(100, v) / 100) * (h - 8); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    if (fill) { g.lineTo(w, h); g.lineTo(0, h); g.closePath(); const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, color + "55"); gr.addColorStop(1, color + "00"); g.fillStyle = gr; g.fill(); }
+    else { g.strokeStyle = color; g.lineWidth = 1.4; g.shadowColor = color; g.shadowBlur = 6 * (parseFloat(cssv("--glow")) || .25) * 4; g.stroke(); g.shadowBlur = 0; }
+  };
+  const smooth = (a) => a.map((_, i) => (a[i - 2] ?? a[i]) * .1 + (a[i - 1] ?? a[i]) * .2 + a[i] * .4 + (a[i + 1] ?? a[i]) * .2 + (a[i + 2] ?? a[i]) * .1);
+  const cpu = smooth(state.hist.cpu.length ? state.hist.cpu : [0, 0]);
+  area(cpu, cssv("--teal") || "#5FA8A0", true); area(cpu, cssv("--teal") || "#5FA8A0", false);
+  area(smooth(state.hist.gpu.length ? state.hist.gpu : [0, 0]), cssv("--sky") || "#4FA6DC", false);
+  // сеть: осциллограф (приём вверх, отдача вниз) на сетке
+  [g, w, h] = fitCanvas($("c-net"));
+  g.clearRect(0, 0, w, h); grid(g, w, h);
+  const mid = h / 2;
+  g.strokeStyle = cssv("--line-hi"); g.beginPath(); g.moveTo(0, mid + .5); g.lineTo(w, mid + .5); g.stroke();
+  const max = Math.max(64, ...state.hist.net, ...state.hist.up);
+  const wave = (data, sign, color) => {
+    const n = Math.max(2, data.length);
+    g.beginPath();
+    data.forEach((v, i) => {
+      const x = (i / (n - 1)) * w;
+      const amp = (Math.log1p(v) / Math.log1p(max)) * (mid - 4);
+      const jitter = Math.sin(i * 1.7 + performance.now() / 300) * 1.2;
+      const y = mid - sign * (amp + jitter);
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    });
+    g.strokeStyle = color; g.lineWidth = 1.3; g.shadowColor = color; g.shadowBlur = 8 * (parseFloat(cssv("--glow")) || .25) * 3; g.stroke(); g.shadowBlur = 0;
+  };
+  wave(state.hist.net.length ? state.hist.net : [0, 0], 1, cssv("--accent") || "#E0A243");
+  wave(state.hist.up.length ? state.hist.up : [0, 0], -1, cssv("--coral") || "#E0705A");
+  // мини-осциллограф (голос/активность) в левом нижнем углу
+  [g, w, h] = fitCanvas($("mini-osc"));
+  g.clearRect(0, 0, w, h);
+  g.strokeStyle = cssv("--teal"); g.lineWidth = 1; g.beginPath();
+  const t = performance.now() / 500, load = (state.metrics.cpu || 5) / 100;
+  for (let x = 0; x <= w; x += 2) { const y = h / 2 + Math.sin(x / 6 + t * 3) * (h / 2 - 3) * (0.25 + load) * Math.sin(x / w * Math.PI); x ? g.lineTo(x, y) : g.moveTo(x, y); }
+  g.stroke();
 }
 
-// ── Haotica справа: то же окно Haotica во встроенном режиме ──────
+// глобус (каркас) — сеть; клик открывает Network Recon
+$("globe").innerHTML = `<svg viewBox="0 0 40 40" class="hy-icon" style="width:40px;height:40px;stroke-width:1.1">
+  <circle cx="20" cy="20" r="16"/><ellipse class="gl-m" cx="20" cy="20" rx="7" ry="16"/><path d="M4 20h32M6.5 12h27M6.5 28h27"/></svg>`;
+$("globe").onclick = () => HY.openApp("netrecon");
+let globeT = 0;
+setInterval(() => { globeT += 0.08; const m = $("globe").querySelector(".gl-m"); if (m) m.setAttribute("rx", Math.abs(Math.cos(globeT)) * 14 + 1); }, 66);
+
+// эмблема HYPERINA
+$("emblem").innerHTML = `<svg viewBox="0 0 46 40"><path d="M3 3h40L23 37z" fill="none" stroke="currentColor" stroke-width="1.6"/>
+  <path d="M9 7h28L23 31z" fill="none" stroke="currentColor" stroke-width=".8" opacity=".6"/>
+  <path d="M17 11v10M29 11v10M17 16h12" stroke="currentColor" stroke-width="2.2" fill="none"/></svg>`;
+
+// подсказки клавиш (реальные сочетания)
+$("hints").innerHTML = [["CTRL+SHIFT+T", "NEW TAB"], ["CTRL+SHIFT+P", "COMMANDS"], ["CTRL+SHIFT+F", "FIND"], ["?? …", "ASK HAOTICA"], ["CTRL+ALT+B", "PANELS"]]
+  .map(([k, v]) => `<b>${k}</b> : ${v}`).join('<span class="sep">·</span>');
+
+// блок загрузок: модели Haotica, обновления, файлы
+$("dl-icon").append(icon("download", 32));
+$("dl-icon").onclick = () => HY.openApp("updates");
+async function downloads() {
+  const [mods, upd] = await Promise.all([HY.get("/api/models"), HY.get("/api/updates")]);
+  const lines = [];
+  const pbar = (f) => "▓".repeat(Math.round(f * 8)) + "░".repeat(8 - Math.round(f * 8));
+  if (mods && mods.models) {
+    const all = Object.values(mods.models);
+    const need = all.reduce((a, m) => a + m.size, 0), have = all.reduce((a, m) => a + Math.min(m.have, m.size), 0);
+    const f = need ? have / need : 1;
+    lines.push(f >= 1 ? el("div", "NEURAL CORE: ", el("b", { style: { color: "var(--green)" } }, "READY"))
+      : el("div", "MODELS ", el("b", pbar(f)), ` ${Math.floor(f * 100)}%`));
+    lines.push(el("div", "PACKAGE: ", el("b", (all.find((m) => m.role === "main") || all[0] || {}).label?.split("·")[0]?.trim().slice(0, 22) || "—")));
+  }
+  if (upd && upd.ok) lines.push(el("div", "UPDATES: ", el("b", { style: { color: upd.count ? "var(--amber)" : "var(--green)" } }, upd.count ? `${upd.count} AVAILABLE` : "UP TO DATE")));
+  lines.push(el("div", "CONNECTION: ", el("b", state.metrics.net_name ? "ESTABLISHED" : "—")));
+  lines.push(el("div", "SERVICE PROTOCOL: ", el("b", { style: { color: "var(--green)" } }, "ACTIVE")));
+  $("dl-lines").replaceChildren(...lines);
+}
+downloads(); setInterval(downloads, 30000);
+
+// ── Haotica: портрет, голос, короткая связь, карточки команд ─────
+import("/ui/avatar.js").then(({ createAvatar, avatarCss }) => {
+  const st = el("style", avatarCss()); document.head.append(st);
+  state.avatar = createAvatar($("avatar"), { size: 262 });
+  $("avatar").onclick = () => showPanel("haotica");
+});
 const hFrame = $("haotica");
-hFrame.src = "/apps/haotica/index.html?embed=terminal";
-function haoticaPost(msg) { try { hFrame.contentWindow.postMessage({ hyperina: true, ...msg }, location.origin); } catch (e) { /* окно Haotica ещё грузится */ } }
+function hPost(msg) { try { hFrame.contentWindow && hFrame.contentWindow.postMessage({ hyperina: true, ...msg }, location.origin); } catch (e) { /* ещё грузится */ } }
+const voice = { env: new Array(60).fill(0) };
+function drawVoice() {
+  const [g, w, h] = fitCanvas($("voice-wave"));
+  g.clearRect(0, 0, w, h);
+  const c = cssv("--violet") || "#A7A3F0";
+  const bw = w / voice.env.length;
+  voice.env.forEach((v, i) => { const bh = Math.max(1, v * (h - 2)); g.fillStyle = c; g.globalAlpha = .35 + v * .65; g.fillRect(i * bw + 1, (h - bh) / 2, Math.max(1, bw - 2), bh); });
+  g.globalAlpha = 1;
+}
+setInterval(() => { voice.env.push(voice.mouth || 0); voice.env.shift(); voice.mouth = (voice.mouth || 0) * 0.85; drawVoice(); }, 50);
+function setHState(s) {
+  $("h-state").textContent = (s || "idle").toUpperCase();
+  if (state.avatar) state.avatar.setState(s);
+}
+HY.stream(["state", "mouth", "card", "message"], {
+  state: (d) => setHState(d.state),
+  mouth: (d) => { voice.mouth = d.v; if (state.avatar) state.avatar.setMouth(d.v); },
+  card: (c) => showCard(c),
+  message: (m) => { if (m.role === "assistant" && m.final) reply(m.text); },
+}, HY.haoticaUrl);
+function reply(text) {
+  const box = $("h-reply");
+  box.replaceChildren(el("span.who", "HAOTICA"), el("span", ""));
+  HY.decode(box.lastChild, text.slice(0, 600), Math.min(1800, 200 + text.length * 4));
+}
+async function ask(text, context = {}) {
+  if (!text.trim()) return;
+  const t = state.active;
+  $("h-reply").replaceChildren(el("span.who", "YOU"), el("span", text));
+  setHState("thinking");
+  const r = await HY.haotica("POST", "/api/chat", { text, source: "terminal", chat: "terminal",
+    context: { cwd: t ? t.cwd : "", ...context }, wait: true });
+  if (r && r.ok && r.text) reply(r.text);
+  else if (!r || r.status === 0 || r.ok === false) reply(r && r.error ? r.error : "NEURAL CORE OFFLINE — модель ещё загружается или выключена.");
+  setHState("idle");
+}
+$("h-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { const v = e.target.value; e.target.value = ""; ask(v); }
+  if (e.key === "Escape") { e.target.value = ""; state.active && state.active.term.focus(); }
+});
+
+// карточка команды от Haotica: [TAB] вставить в строку / [ESC] отклонить; опасные — только с подтверждением
+function showCard(c) {
+  if (!c || c.kind !== "command") return;
+  document.querySelector(".t-card")?.remove();
+  const risk = (c.risk && c.risk.level) || "write";
+  const card = el("div.t-card",
+    el("div.t", icon("haotica", 14), "HAOTICA // " + (c.title || "КОМАНДА"), el("span.risk." + risk, risk === "danger" ? "DANGER" : risk === "read" ? "READ-ONLY" : "CHANGES")),
+    el("pre", c.command),
+    c.why ? el("div.why", c.why) : null,
+    risk === "danger" ? el("div.why.err", "⚠ " + ((c.risk.reasons || []).join(", ") || "опасная команда")) : null,
+    el("div.act",
+      el("button.hy-btn.primary.small", { onclick: () => accept() }, risk === "danger" ? "ПОНИМАЮ, ВСТАВИТЬ" : "[TAB] ВСТАВИТЬ"),
+      el("button.hy-btn.small", { onclick: () => reject() }, "[ESC] ОТКЛОНИТЬ")));
+  $("terms").append(card);
+  const accept = () => { card.remove(); if (state.active) state.active.input(c.command); HY.haotica("POST", `/api/card/${c.id}/accept`, {}); };
+  const reject = () => { card.remove(); HY.haotica("POST", `/api/card/${c.id}/reject`, {}); state.active && state.active.term.focus(); };
+  const key = (e) => {
+    if (!document.body.contains(card)) return document.removeEventListener("keydown", key, true);
+    if (e.key === "Tab" && risk !== "danger") { e.preventDefault(); e.stopPropagation(); accept(); document.removeEventListener("keydown", key, true); }
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); reject(); document.removeEventListener("keydown", key, true); }
+  };
+  document.addEventListener("keydown", key, true);
+}
+
 window.addEventListener("message", (e) => {
   if (e.origin !== location.origin || !e.data || !e.data.hyperina) return;
   const d = e.data;
-  if (d.type === "insert" && state.active) state.active.input(d.text);       // [TAB] принять — вставить команду, не выполнять
+  if (d.type === "insert" && state.active) state.active.input(d.text);
   if (d.type === "run" && state.active) state.active.input(d.text + "\r");
   if (d.type === "preview") preview(d.path);
   if (d.type === "close-overlay") $("overlay").classList.add("hidden");
 });
 function onFailed(tab, b) {
   renderStatus();
-  haoticaPost({ type: "terminal-block", block: { cmd: b.cmd, code: b.code, ms: Math.round(b.ms), cwd: b.cwd, output: tab.output(b, 160) } });
+  logLine("error", `EXIT ${b.code} // ${b.cmd.slice(0, 40)}`, "FAIL");
+  HY.haotica("POST", "/api/terminal/block", { cmd: b.cmd, code: b.code, ms: Math.round(b.ms), cwd: b.cwd, output: tab.output(b, 160) });
 }
-function askHaotica(tab, b, explicit) {
-  haoticaPost({ type: "ask", explicit, text: `Разбери: команда «${b.cmd}» завершилась с кодом ${b.code}.`,
-    context: { cmd: b.cmd, code: b.code, cwd: b.cwd, output: tab.output(b, 300) } });
-  document.body.classList.remove("no-right"); refit();
+function askHaotica(tab, b) {
+  ask(`Разбери: команда «${b.cmd}» завершилась с кодом ${b.code}.`, { cmd: b.cmd, code: b.code, cwd: b.cwd, output: tab.output(b, 300) });
+}
+
+// строка сеанса
+function renderStatus() {
+  const t = state.active;
+  if (!t) return;
+  const i = state.tabs.indexOf(t) + 1;
+  $("s-title").textContent = `SESSION ${i}`;
+  $("s-path").textContent = "// " + t.cwd.replace(HY.boot.home || "\0", "~");
+  const last = t.blocks[t.blocks.length - 1];
+  $("s-state").textContent = `${t.blocks.length} BLOCKS` + (last ? (last.code ? ` · EXIT ${last.code}` : " · OK") : "");
+  $("s-state").style.color = last && last.code ? "var(--coral)" : "";
 }
 
 // ── Cloud Link и палитра команд ─────────────────────────────────
@@ -561,6 +774,10 @@ function openCloud() {
   o.classList.remove("hidden");
   o.onclick = (e) => { if (e.target === o) o.classList.add("hidden"); };
 }
+function palettePower() {
+  HY.menu(innerWidth / 2 - 120, 160, [["quiet", "ТИХИЙ"], ["balanced", "БАЛАНС"], ["performance", "ПРОИЗВОДИТЕЛЬНОСТЬ"]].map(([v, l]) =>
+    ({ label: l, icon: "bolt", fn: () => HY.setting(state.metrics.on_battery ? "power.profile_battery" : "power.profile_ac", v) })));
+}
 function palette() {
   document.querySelector(".t-palette")?.remove();
   const t = state.active;
@@ -569,17 +786,22 @@ function palette() {
     { label: HY.t("closetab"), key: "Ctrl+Shift+W", icon: "close", fn: () => t && closeTab(t) },
     { label: HY.t("cloud"), key: "/cloud", icon: "cloud", fn: openCloud },
     { label: HY.t("find"), key: "Ctrl+Shift+F", icon: "search", fn: () => t && findBar(t) },
+    { label: "Журнал", key: "", icon: "doc", fn: () => showPanel("log") },
+    { label: "Файлы", key: "", icon: "folder", fn: () => showPanel("files") },
+    { label: "Haotica — чат", key: "", icon: "haotica", fn: () => showPanel("haotica") },
     { label: HY.t("toggle_left"), key: "Ctrl+Alt+B", icon: "layout", fn: () => { document.body.classList.toggle("no-left"); refit(); } },
     { label: HY.t("toggle_right"), key: "Ctrl+Shift+H", icon: "layout", fn: () => { document.body.classList.toggle("no-right"); refit(); } },
+    { label: "CRT-рамка вкл/выкл", key: "", icon: "eye", fn: () => HY.setting("effects.crt_terminal", document.body.classList.contains("no-crt") ? 0.35 : 0) },
     { label: HY.t("prev_block"), key: "Ctrl+Shift+↑", icon: "chevron", fn: () => t && t.jump(-1) },
     { label: HY.t("next_block"), key: "Ctrl+Shift+↓", icon: "chevron", fn: () => t && t.jump(1) },
     { label: HY.t("font_up"), key: "Ctrl+=", icon: "plus", fn: () => setFont(state.fontSize + 1) },
     { label: HY.t("font_down"), key: "Ctrl+-", icon: "minus", fn: () => setFont(state.fontSize - 1) },
     { label: HY.t("clear"), key: "Ctrl+Shift+K", icon: "trash", fn: () => t && t.term.clear() },
-    { label: "Скрытые файлы", key: "", icon: "eye", fn: () => { state.hidden = !state.hidden; loadDir(state.dir); } },
+    { label: "Скрытые файлы", key: "", icon: "eye", fn: () => { state.hidden = !state.hidden; loadDir(state.dir); showPanel("files"); } },
+    { label: "Режим питания…", key: "", icon: "bolt", fn: palettePower },
     { label: HY.t("settings"), key: "", icon: "settings", fn: () => HY.openApp("settings", ["--page", "appearance"]) },
     { label: "Haotica: разобрать последнюю ошибку", key: "", icon: "haotica", fn: () => {
-      const b = t && [...t.blocks].reverse().find((x) => x.code); if (b) askHaotica(t, b, true); } },
+      const b = t && [...t.blocks].reverse().find((x) => x.code); if (b) askHaotica(t, b); } },
   ];
   const inp = el("input", { placeholder: HY.t("palette") + "  (/cloud, /new, …)" });
   const res = el("div.res");
@@ -621,8 +843,9 @@ function findBar(t) {
 }
 
 // ── запуск ───────────────────────────────────────────────────────
-$("preview").replaceChildren(el("div.t-prev-empty", el("div", icon("eye", 32), el("div", { style: { marginTop: "10px" } }, HY.t("pick")))));
+$("p-preview").replaceChildren(el("div.t-prev-empty", el("div", icon("eye", 32), el("div", { style: { marginTop: "10px" } }, HY.t("pick")))));
 renderCats();
+showPanel("log");
 applyCrt();
 const argv = HY.args || [];
 const argOf = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : ""; };
@@ -631,4 +854,5 @@ HY.on("open", (args) => {
   const i = args.indexOf("--run");
   newTab({ cwd: (args[args.indexOf("--cwd") + 1]) || (state.active ? state.active.cwd : ""), command: i >= 0 ? args[i + 1] : "" });
 });
-widgets();
+bars(); mini(); drawCharts();
+setInterval(drawCharts, 120);

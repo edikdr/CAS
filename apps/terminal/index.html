@@ -9,29 +9,85 @@
 </head>
 <body>
 <div class="hy-app">
-  <div class="hy-body" id="body">
-    <aside class="t-left" id="left">
-      <div class="t-pane t-files">
-        <div class="t-pane-head"><span class="caps">FILES</span><span class="grow"></span>
-          <button class="hy-btn ghost icon small" id="f-up" title="Вверх"></button>
-          <button class="hy-btn ghost icon small" id="f-cd" title="Перейти сюда в терминале"></button></div>
-        <div class="t-path mono" id="f-path"></div>
-        <div class="t-cats" id="f-cats"></div>
-        <div class="t-tree scroll" id="f-tree"></div>
+  <div class="crt" id="crt">
+    <!-- шапка: строка статуса в рамках, как у Hyperion -->
+    <header class="t-head" id="head">
+      <div class="t-strip" id="strip1">
+        <div class="box brand"><span class="mark"></span><b>HYPERINA TERMINAL</b><i id="ver">v1.0</i></div>
+        <div class="box"><span class="br">[SECURE ACCESS]</span> SYSTEM STATUS: <b class="ok" id="sys-status">ONLINE</b></div>
+        <div class="drag grow" id="drag1"></div>
+        <div class="box" id="net-box">NETWORK: <b id="net-status">—</b> &nbsp; SECURITY LEVEL: <b id="sec-level">HIGH</b></div>
+        <div class="winbtns" id="winbtns"></div>
       </div>
-      <div class="t-pane t-widgets" id="widgets"></div>
-    </aside>
-    <section class="t-center">
-      <div class="hy-tabs" id="tabs"></div>
-      <div class="t-terms" id="terms"></div>
-      <div class="hy-status" id="status"></div>
-    </section>
-    <aside class="t-right" id="right">
-      <div class="t-pane t-preview" id="preview"></div>
-      <div class="t-pane t-haotica" id="haotica-pane">
-        <iframe id="haotica" title="Haotica"></iframe>
+      <div class="t-strip second" id="strip2">
+        <div class="t-tabs" id="tabs"></div>
+        <div class="drag grow" id="drag2"></div>
+        <div class="box"><span>DATE:</span> <b id="date">—</b></div>
+        <div class="box"><span>TIME:</span> <b id="time">—</b></div>
+        <div class="box"><span>UPTIME:</span> <b id="uptime">—</b></div>
       </div>
-    </aside>
+    </header>
+
+    <main class="t-grid" id="grid">
+      <!-- слева: портрет Haotica, связь с ней, полосы-статы -->
+      <aside class="t-col t-left" id="left">
+        <section class="hud portrait" id="portrait">
+          <div class="hud-tab"><span>SUBJECT // HAOTICA</span><b id="h-state">IDLE</b></div>
+          <div class="avatar-box" id="avatar"></div>
+          <div class="voice" id="voice"><canvas id="voice-wave" width="260" height="22"></canvas></div>
+        </section>
+        <section class="hud link">
+          <div class="h-reply" id="h-reply"><span class="dim">// HAOTICA ONLINE. СПРОСИ ЧТО-НИБУДЬ ИЛИ НАБЕРИ «?? ВОПРОС» В СТРОКЕ.</span></div>
+          <div class="h-ask"><span class="pfx">&gt;&gt;</span><input id="h-input" placeholder="ASK HAOTICA" spellcheck="false" autocomplete="off"></div>
+        </section>
+        <section class="hud vitals" id="vitals">
+          <div class="hud-title">VITALS <i id="power-mode">BALANCED</i></div>
+          <div id="bars"></div>
+        </section>
+        <section class="t-mini" id="mini">
+          <div class="cols mono" id="mini-cols"></div>
+          <canvas id="mini-osc" width="120" height="34"></canvas>
+          <button class="globe" id="globe" title="Network Recon"></button>
+        </section>
+      </aside>
+
+      <!-- центр: графики и сеанс с блоками команд -->
+      <section class="t-col t-center">
+        <div class="t-charts">
+          <div class="hud chart" id="chart-load"><div class="hud-title">LOAD <i>// CPU · GPU</i><b id="load-val">—</b></div><canvas id="c-load"></canvas></div>
+          <div class="hud chart" id="chart-net"><div class="hud-title">SIGNAL <i>// NET I/O</i><b id="net-val">—</b></div><canvas id="c-net"></canvas></div>
+        </div>
+        <div class="hud session" id="session">
+          <div class="s-head"><span class="pipe">|</span><b id="s-title">SESSION 1</b><span id="s-path" class="dim"></span><span class="grant">— ACCESS GRANTED</span><span class="pipe">|</span><span class="grow"></span><span id="s-state" class="dim"></span></div>
+          <div class="s-rule"></div>
+          <div class="t-terms" id="terms"></div>
+        </div>
+      </section>
+
+      <!-- справа: блок загрузок, журнал / файлы / превью / Haotica -->
+      <aside class="t-col t-right" id="right">
+        <section class="hud dl" id="dl">
+          <button class="dl-icon" id="dl-icon" title="Загрузки и модели"></button>
+          <div class="dl-lines mono" id="dl-lines"></div>
+        </section>
+        <section class="hud panel" id="panel">
+          <div class="p-tabs" id="p-tabs"></div>
+          <div class="p-body" id="p-log"></div>
+          <div class="p-body hidden" id="p-files">
+            <div class="t-path mono" id="f-path"></div>
+            <div class="t-cats" id="f-cats"></div>
+            <div class="t-tree scroll" id="f-tree"></div>
+          </div>
+          <div class="p-body hidden" id="p-preview"></div>
+          <div class="p-body hidden" id="p-haotica"><iframe id="haotica" title="Haotica"></iframe></div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="t-foot" id="foot">
+      <div class="hints mono" id="hints"></div>
+      <div class="emblem" id="emblem" title="HYPERINA"></div>
+    </footer>
   </div>
 </div>
 <div class="t-overlay hidden" id="overlay"><iframe id="overlay-frame" title="Cloud Link"></iframe></div>

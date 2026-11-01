@@ -376,6 +376,14 @@ def setup(app: web.Application) -> None:
         util.spawn(["hyperina", "open", "terminal", "--run", "hyperina update"])
         return json_ok()
 
+    async def models_status(_req):
+        from .. import models as _m
+        st = await asyncio.to_thread(_m.status)
+        for role, v in st.items():
+            v["role"] = role
+        return json_ok({"models": st, "engine": str(_m.llama_server() or "")})
+
+    r.add_get("/api/models", models_status)
     r.add_get("/api/updates", updates)
     r.add_post("/api/updates/run", updates_run)
 

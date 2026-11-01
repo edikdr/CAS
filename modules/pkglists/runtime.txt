@@ -1,0 +1,6 @@
+# Зависимости ядра HYPERINA, терминала и приложений
+python-aiohttp python-psutil python-pillow python-numpy python-markdown python-pygments
+python-dbus python-gobject python-secretstorage python-requests python-yaml python-tomli-w
+python-watchdog python-pyudev python-cryptography python-huggingface-hub
+pyside6 pyside6-tools
+ffmpeg ffmpegthumbnailer poppler imagemagick libvips mediainfo chafa aria2 podman

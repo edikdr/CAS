@@ -1,0 +1,4 @@
+# PipeWire + прошивки SOF/UCM для звуковой карты ноутбука
+pipewire pipewire-alsa pipewire-pulse pipewire-jack pipewire-v4l2 lib32-pipewire wireplumber
+sof-firmware alsa-ucm-conf alsa-firmware alsa-utils
+easyeffects lsp-plugins-lv2 playerctl libcanberra sound-theme-freedesktop

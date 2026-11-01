@@ -1,0 +1,4 @@
+# Сеть, Bluetooth, разведка своей сети, файрвол
+networkmanager wpa_supplicant bluez bluez-utils avahi nss-mdns
+nmap arp-scan iperf3 mtr traceroute bind whois iw ethtool
+wireguard-tools networkmanager-openvpn ufw

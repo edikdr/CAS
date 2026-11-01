@@ -1,0 +1,8 @@
+# Базовые утилиты и инструменты сборки
+base-devel sudo git curl wget rsync jq unzip zip 7zip unrar tree less nano neovim openssh
+python python-pip uv reflector pacman-contrib man-db man-pages bash-completion
+zsh zsh-autosuggestions zsh-syntax-highlighting zsh-completions fzf ripgrep fd bat eza
+btop htop fastfetch lsof strace usbutils pciutils dmidecode lm_sensors nvme-cli smartmontools
+efibootmgr sbctl dosfstools ntfs-3g exfatprogs btrfs-progs inotify-tools polkit
+xdg-user-dirs xdg-utils v4l-utils libnotify zram-generator fwupd mkinitcpio
+linux-firmware amd-ucode linux-headers

@@ -1,0 +1,2 @@
+# Программы из AUR
+google-chrome vesktop-bin visual-studio-code-bin spotify spicetify-cli onlyoffice-bin protonup-qt

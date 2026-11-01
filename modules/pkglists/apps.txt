@@ -1,0 +1,5 @@
+# Программы из репозиториев
+discord telegram-desktop obsidian keepassxc qbittorrent flatpak mpv obs-studio
+github-cli git-lfs nodejs npm openrgb
+# Скрытый запасной набор KDE (не показывается в лаунчере)
+dolphin kio-extras ffmpegthumbs kdegraphics-thumbnailers kate gwenview okular ark filelight partitionmanager

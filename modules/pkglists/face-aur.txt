@@ -1,0 +1,2 @@
+# Вход по лицу через ИК-камеру
+linux-enable-ir-emitter howdy

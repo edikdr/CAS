@@ -1,0 +1,5 @@
+# Mesa/RADV для Radeon 8060S (Vulkan — основной бэкенд для LLM), 32-битные драйверы для Steam
+mesa vulkan-radeon vulkan-icd-loader lib32-mesa lib32-vulkan-radeon lib32-vulkan-icd-loader
+vulkan-tools mesa-utils libva-utils radeontop amdgpu_top nvtop
+# сборка llama.cpp с Vulkan
+vulkan-headers shaderc glslang cmake ninja

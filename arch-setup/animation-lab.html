@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лаборатория анимаций HYPERINA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Unbounded:wght@500;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* HYPERINA palette, профиль MIX (OLED). Одна визуальная тема: тёмная. */
+  --bg:#000000; --bg1:#0D0D0B; --bg2:#181714; --line:#3B382F;
+  --ink:#E8DFC9; --dim:#A39B87;
+  --teal:#5FA8A0; --amber:#E0A243; --coral:#E0705A; --green:#8FBF7A; --violet:#A7A3F0; --sky:#4FA6DC;
+  --f-display:'Unbounded','Arial Black',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,'Cascadia Mono',monospace;
+  --f-sans:'IBM Plex Sans',system-ui,'Segoe UI',sans-serif;
+  /* layout: шапка-постер, затем сетка карточек-стендов, внизу микро-анимации и хореография */
+  color-scheme:dark;
+}
+@property --r{syntax:'<length>';inherits:false;initial-value:0px}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-sans);-webkit-font-smoothing:antialiased}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.07;mix-blend-mode:screen;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 20px 64px}
+.mono{font-family:var(--f-mono)}
+
+/* ---------- шапка ---------- */
+header{display:grid;grid-template-columns:1fr auto;gap:16px 32px;align-items:end;border-bottom:1px solid var(--line);padding-bottom:20px;position:relative}
+.hud-top{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 20px;font:500 11px/1 var(--f-mono);letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.hud-top b{color:var(--green);font-weight:500}
+.brand{line-height:.9}
+.brand h1{margin:0;font:800 clamp(44px,9vw,112px)/.9 var(--f-display);letter-spacing:-.01em;color:var(--ink)}
+.brand .outline{display:block;font:800 clamp(22px,4.2vw,52px)/1 var(--f-display);color:transparent;-webkit-text-stroke:1px var(--teal);letter-spacing:.04em;margin-top:6px}
+.lede{max-width:62ch;color:var(--dim);margin:16px 0 0;line-height:1.55}
+.controls{display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+.chips{display:flex;gap:4px;font:500 12px var(--f-mono)}
+.chips span{color:var(--dim);align-self:center;margin-right:6px;letter-spacing:.08em}
+.chip{background:transparent;border:1px solid var(--line);color:var(--dim);font:inherit;padding:6px 10px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:#000;border-color:var(--ink)}
+.chip:focus-visible,.btn:focus-visible,.play:focus-visible,.tog input:focus-visible+span{outline:1px solid var(--amber);outline-offset:3px}
+.btn{position:relative;background:transparent;border:1px solid var(--line);color:var(--ink);font:500 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;padding:10px 16px;cursor:pointer}
+.btn::before,.btn::after{content:"";position:absolute;width:8px;height:8px;border:1px solid var(--amber);opacity:0;transition:transform .12s ease-out,opacity .12s ease-out}
+.btn::before{left:-5px;top:-5px;border-right:0;border-bottom:0;transform:translate(-6px,-6px)}
+.btn::after{right:-5px;bottom:-5px;border-left:0;border-top:0;transform:translate(6px,6px)}
+.btn:hover::before,.btn:hover::after,.btn:focus-visible::before,.btn:focus-visible::after{opacity:1;transform:none}
+.btn.inv{background:var(--ink);color:#000;border-color:var(--ink);clip-path:polygon(0 0,100% 0,calc(100% - 10px) 100%,0 100%);padding-right:24px}
+.btn.inv:active{background:var(--amber);border-color:var(--amber)}
+.note{font:12px var(--f-mono);color:var(--amber);margin:10px 0 0;display:none}
+.rm .note{display:block}
+
+/* ---------- сетка стендов ---------- */
+.sec-h{display:flex;align-items:baseline;gap:14px;margin:44px 0 16px;font:500 12px var(--f-mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+.sec-h h2{margin:0;font:500 22px/1.2 var(--f-display);letter-spacing:.02em;color:var(--ink);text-transform:none}
+.sec-h::after{content:"";flex:1;height:1px;background:var(--line)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:20px}
+.stage{border:1px solid var(--line);background:var(--bg1);display:flex;flex-direction:column;position:relative}
+.stage.yours{border-color:var(--amber)}
+.st-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font:500 11px var(--f-mono);letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+.st-head .idx{color:var(--ink)}
+.st-head h3{margin:0;font:600 13px var(--f-mono);letter-spacing:.16em;color:var(--ink)}
+.tag{margin-left:auto;padding:2px 8px;font-size:10px;color:#000;background:var(--dim)}
+.tag.amber{background:var(--amber)} .tag.teal{background:var(--teal)} .tag.coral{background:var(--coral)} .tag.violet{background:var(--violet)}
+.vp{position:relative;height:290px;display:grid;place-items:center;overflow:hidden;
+  background-color:var(--bg);background-image:radial-gradient(circle,#2a2822 1px,transparent 1.2px);background-size:16px 16px;background-position:8px 8px}
+.st-body{padding:14px;display:flex;flex-direction:column;gap:10px;flex:1}
+.st-body p{margin:0;color:var(--ink);max-width:60ch}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font:12px var(--f-mono);color:var(--dim)}
+.meta dt{color:var(--dim)} .meta dd{margin:0;color:var(--ink)}
+.play{align-self:flex-start;margin-top:auto;background:transparent;border:1px solid var(--ink);color:var(--ink);font:500 12px var(--f-mono);letter-spacing:.12em;padding:8px 14px;cursor:pointer}
+.play:hover{background:var(--ink);color:#000}
+.play[disabled]{opacity:.45;cursor:progress}
+
+/* ---------- образец окна HYPERINA ---------- */
+.win{position:relative;width:min(400px,calc(100% - 32px));padding:12px 14px 10px;display:flex;flex-direction:column;gap:9px;font:11px/1.3 var(--f-mono);color:var(--ink);transform-origin:50% 50%}
+.frame{position:absolute;inset:0;width:100%;height:100%;overflow:visible;z-index:0}
+.frame polygon{fill:var(--bg1);stroke:var(--line);stroke-width:1}
+.win>*:not(.frame){position:relative;z-index:1}
+.node{position:absolute!important;width:5px;height:5px;background:var(--ink);z-index:2}
+.n1{right:-2px;top:-2px}.n2{left:-2px;bottom:-2px}.n3{left:-2px;top:28px}.n4{right:-2px;top:28px}
+.bar{display:flex;justify-content:space-between;align-items:center;padding-bottom:7px;border-bottom:1px solid var(--line);letter-spacing:.12em;color:var(--dim)}
+.bar .ctl{color:var(--ink);letter-spacing:.2em}
+.body{display:grid;grid-template-columns:44% 1fr;gap:12px}
+.left,.right{display:flex;flex-direction:column;gap:7px;min-width:0}
+.chart{border:1px solid var(--line);padding:4px 4px 2px;position:relative}
+.chart svg{display:block;width:100%;height:66px}
+.chart .gl{stroke:#26241f;stroke-width:.6}
+.chart .area{fill:rgba(95,168,160,.14)}
+.chart .cl{fill:none;stroke:var(--teal);stroke-width:1.4;stroke-dasharray:1;stroke-dashoffset:0;vector-effect:non-scaling-stroke}
+.chart .end{fill:var(--amber)}
+.clbl{display:block;font-size:9.5px;color:var(--dim);letter-spacing:.1em;padding:2px 2px 0}
+.plate{align-self:flex-start;background:var(--ink);color:#000;font-weight:600;letter-spacing:.1em;padding:3px 14px 3px 7px;clip-path:polygon(0 0,100% 0,calc(100% - 8px) 100%,0 100%)}
+.row{display:flex;align-items:baseline;gap:6px}
+.row span{color:var(--dim)} .row i{flex:1;border-bottom:1px dotted #5a5647;transform:translateY(-3px)} .row b{font-weight:500;font-variant-numeric:tabular-nums}
+.row.warn b{color:var(--amber)}
+.seg{display:flex;gap:2px}
+.seg span{flex:1;height:6px;border:1px solid var(--line)}
+.seg span.on{background:var(--amber);border-color:var(--amber)}
+.files{display:flex;align-items:center;gap:8px;color:var(--dim)}
+.files svg{width:20px;height:17px}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.keys{font-size:9.5px;letter-spacing:.1em;color:var(--dim)}
+.hatch{width:72px;height:7px;background:repeating-linear-gradient(-45deg,var(--line) 0 2px,transparent 2px 5px)}
+
+/* временные элементы анимаций */
+.fx{position:absolute;pointer-events:none;z-index:5}
+.cline{height:1px;transform-origin:0 50%}
+.cline.v{width:1px;transform-origin:50% 0}
+.brk{width:12px;height:12px;border:1px solid var(--amber)}
+.scan{height:2px;background:var(--ink);box-shadow:0 0 12px 2px rgba(232,223,201,.55)}
+.dith{position:absolute;inset:0;z-index:4;pointer-events:none;
+  background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.85) 0 1px,transparent 1px 3px),repeating-linear-gradient(90deg,rgba(0,0,0,.85) 0 1px,transparent 1px 3px)}
+.dots{position:absolute;inset:-2px;z-index:4;pointer-events:none;--r:0px;
+  background:radial-gradient(circle,transparent var(--r),#000 calc(var(--r) + .7px));background-size:7px 7px}
+.ghost{pointer-events:none;z-index:3}
+
+/* ---------- микро-анимации ---------- */
+.micro{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px}
+.mc{border:1px solid var(--line);background:var(--bg1);padding:14px;display:flex;flex-direction:column;gap:12px;min-height:180px}
+.mc h3{margin:0;font:600 12px var(--f-mono);letter-spacing:.14em;text-transform:uppercase}
+.mc p{margin:0;color:var(--dim);font-size:13.5px}
+.mc .demo{margin-top:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-height:44px}
+.tog{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font:12px var(--f-mono);color:var(--dim)}
+.tog input{position:absolute;opacity:0}
+.tog span{width:52px;height:20px;border:1px solid var(--line);position:relative;border-radius:999px;overflow:hidden}
+.tog span::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(-45deg,var(--teal) 0 2px,transparent 2px 5px);transform:translateX(-100%);transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.tog span::after{content:"";position:absolute;top:3px;left:3px;width:12px;height:12px;background:var(--ink);border-radius:999px;transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.tog input:checked+span::before{transform:none}
+.tog input:checked+span::after{transform:translateX(32px)}
+.prog{display:flex;gap:3px;flex:1;min-width:160px}
+.prog i{flex:1;height:10px;border:1px solid var(--line)}
+.prog i.on{background:var(--green);border-color:var(--green)}
+.prog-l{font:12px var(--f-mono);color:var(--ink);font-variant-numeric:tabular-nums;width:4ch;text-align:right}
+.ntf-box{position:relative;height:84px;overflow:hidden;border:1px dashed var(--line);flex:1;min-width:220px}
+.ntf{position:absolute;right:8px;top:12px;width:min(250px,calc(100% - 16px));background:var(--bg2);border:1px solid var(--line);border-left:3px solid var(--violet);padding:8px 10px 8px 10px;font:11.5px/1.4 var(--f-mono);transform:translateX(120%)}
+.ntf::before{content:"HAOTICA";position:absolute;top:-1px;right:14px;transform:translateY(-100%);background:var(--violet);color:#000;font:600 9px var(--f-mono);letter-spacing:.14em;padding:1px 6px}
+.ntf .cur{display:inline-block;width:6px;height:11px;background:var(--violet);vertical-align:-1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ---------- хореография ---------- */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);background:var(--bg1)}
+td.m{font-family:var(--f-mono);font-size:12.5px;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:20px}
+.pr{border:1px solid var(--line);padding:12px 14px;background:var(--bg1)}
+.pr b{display:block;font:600 13px var(--f-mono);letter-spacing:.14em;margin-bottom:4px}
+.pr span{color:var(--dim);font-size:13.5px}
+.pr.def{border-color:var(--amber)} .pr.def b::after{content:" · по умолчанию";color:var(--amber);font-weight:500;letter-spacing:.06em}
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font:11px var(--f-mono);letter-spacing:.1em;color:var(--dim);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media (max-width:640px){header{grid-template-columns:1fr}.controls{align-items:flex-start}.grid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.btn::before,.btn::after,.tog span::before,.tog span::after{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="hud-top"><span>HYPERINA // ANIMATION LAB</span><span>BUILD 0.1</span><span>PALETTE: MIX</span><span>STATUS: <b>ONLINE</b></span></div>
+    <div class="brand">
+      <h1>HYPERINA</h1>
+      <span class="outline">MOTION SYSTEM</span>
+      <p class="lede">Восемь вариантов анимации окон и элементов интерфейса на одном и том же окне системного монитора. Нажмите «Проиграть» на карточке, чтобы сравнить. Скорость меняется для всех сразу.</p>
+      <p class="note">В системе включено «уменьшение движения». Анимации проигрываются только по нажатию кнопки.</p>
+    </div>
+    <div class="controls">
+      <div class="chips" role="group" aria-label="Скорость анимаций">
+        <span>СКОРОСТЬ</span>
+        <button class="chip" data-s="2" aria-pressed="false">0.5×</button>
+        <button class="chip" data-s="1" aria-pressed="true">1×</button>
+        <button class="chip" data-s="0.5" aria-pressed="false">2×</button>
+      </div>
+      <button class="btn inv" id="playAll">▶ Проиграть все по очереди</button>
+    </div>
+  </header>
+
+  <div class="sec-h"><h2>Открытие и закрытие окон</h2><span>08 вариантов</span></div>
+  <div class="grid" id="grid"></div>
+
+  <div class="sec-h"><h2>Микро-анимации элементов</h2><span>наведение, нажатие, статусы</span></div>
+  <div class="micro">
+    <div class="mc">
+      <h3>Скобки фокуса</h3>
+      <p>При наведении или фокусе с клавиатуры уголки защёлкиваются вокруг кнопки за 120 мс.</p>
+      <div class="demo"><button class="btn">Открыть папку</button><button class="btn">Настройки</button></div>
+    </div>
+    <div class="mc">
+      <h3>Инверсная плашка</h3>
+      <p>Главная кнопка: светлая плашка со срезанным краем. При нажатии на мгновение вспыхивает янтарём.</p>
+      <div class="demo"><button class="btn inv">Применить</button></div>
+    </div>
+    <div class="mc">
+      <h3>Переключатель со штриховкой</h3>
+      <p>Включённое состояние заполняет дорожку штриховкой `////` вслед за ползунком.</p>
+      <div class="demo"><label class="tog"><input type="checkbox" id="tg1" checked><span></span>Жесты</label><label class="tog"><input type="checkbox" id="tg2"><span></span>Сканлайны</label></div>
+    </div>
+    <div class="mc">
+      <h3>Сегментный прогресс</h3>
+      <p>Прогресс идёт сегментами, а не плавной полосой. Пример: загрузка модели в память.</p>
+      <div class="demo"><div class="prog" id="prog"></div><span class="prog-l" id="progL">0%</span></div>
+    </div>
+    <div class="mc">
+      <h3>Уведомление Haotica</h3>
+      <p>Карточка выезжает справа с язычком-именем, текст печатается со скоростью около 4 мс на символ.</p>
+      <div class="demo"><div class="ntf-box"><div class="ntf" id="ntf"><span id="ntfT"></span><span class="cur"></span></div></div><button class="btn" id="ntfBtn">Показать</button></div>
+    </div>
+  </div>
+
+  <div class="sec-h"><h2>Предлагаемая хореография</h2><span>какая анимация где</span></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Событие</th><th>Анимация</th><th>Время</th><th>Почему</th></tr></thead>
+      <tbody>
+        <tr><td>Открытие наших окон: дашборд, настройки, лаунчер, терминал</td><td class="m">01 СБОРКА</td><td class="m">≈ 450 мс</td><td>Ваша идея, главный характер системы</td></tr>
+        <tr><td>Открытие окон других программ: Chrome, Telegram, Steam</td><td class="m">01Б ПАЗЛ</td><td class="m">≈ 450 мс</td><td>Hyprland видит такое окно как одну картинку, поэтому режем её на плитки</td></tr>
+        <tr><td>Меню, всплывающие панели, контекстные окна</td><td class="m">02 ЧЕРТЁЖ</td><td class="m">≈ 350 мс</td><td>Спокойнее сборки, не утомляет при частом использовании</td></tr>
+        <tr><td>Вход, блокировка, превью изображений</td><td class="m">03 СКАН</td><td class="m">≈ 450 мс</td><td>Связка со сканом лица на экране входа</td></tr>
+        <tr><td>Данные, уведомления, ответы Haotica</td><td class="m">04 ДЕКОД</td><td class="m">≈ 500 мс</td><td>Текст «расшифровывается», цифры не прыгают</td></tr>
+        <tr><td>Обои, постерные заголовки, картинки в превью</td><td class="m">05 ПЕЧАТЬ</td><td class="m">≈ 450 мс</td><td>Печатная фактура референсов Escape и SPACE</td></tr>
+        <tr><td>Сон, блокировка, запуск игры, Haotica засыпает</td><td class="m">06 CRT</td><td class="m">260 + 420 мс</td><td>Понятная метафора «выключения»</td></tr>
+        <tr><td>Закрытие окон, удаление файлов</td><td class="m">07 РАСПАД</td><td class="m">≈ 350 мс</td><td>Закрытие быстрее открытия, взгляд не задерживается</td></tr>
+        <tr><td>Ошибка, неизвестное устройство в сети, отказ доступа</td><td class="m">08 ГЛИТЧ</td><td class="m">≈ 280 мс</td><td>Только события, иначе глитч теряет смысл</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="presets">
+    <div class="pr def"><b>ХАОС</b><span>Хореография из таблицы выше: сборка для окон, остальное по ролям.</span></div>
+    <div class="pr"><b>ЧЕРТЁЖ</b><span>Везде спокойное прочерчивание рамок и проявление. Для работы и учёбы.</span></div>
+    <div class="pr"><b>ЛЮМИНОФОР</b><span>Скан и CRT везде, максимум ретро-терминала Hyperion.</span></div>
+    <div class="pr"><b>МИНИМУМ</b><span>Только прозрачность и короткие сдвиги. Для батареи и «уменьшения движения».</span></div>
+  </div>
+
+  <footer><span>HYPERINA // MOTION SYSTEM v0.1</span><span>Все длительности указаны для скорости 1×</span></footer>
+</div>
+
+<script>
+(function(){
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (RM) document.body.classList.add('rm');
+let K = 1; // множитель длительности
+const rand = (a,b) => a + Math.random()*(b-a);
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+const FOLDER = c => `<svg viewBox="0 0 24 20" aria-hidden="true"><path d="M1 3h8l2 2.5h12V19H3.5L1 16.5z" fill="none" stroke="${c}" stroke-width="1.3"/><path d="M1 8h22" stroke="${c}" stroke-width="1" opacity=".6"/></svg>`;
+const PTS = '0,46 12,42 24,47 36,31 48,35 60,23 72,29 84,19 96,27 108,15 120,21 132,11 144,17 160,12';
+const WIN = `
+<div class="win">
+  <svg class="frame" aria-hidden="true"><polygon/></svg>
+  <span class="node pc n1"></span><span class="node pc n2"></span><span class="node pc n3"></span><span class="node pc n4"></span>
+  <div class="bar pc"><span data-t>// SYSTEM MONITOR</span><span class="ctl">–□×</span></div>
+  <div class="body">
+    <div class="left">
+      <div class="chart pc">
+        <svg viewBox="0 0 160 64" preserveAspectRatio="none" aria-hidden="true">
+          <g class="gl"><line x1="0" y1="16" x2="160" y2="16"/><line x1="0" y1="32" x2="160" y2="32"/><line x1="0" y1="48" x2="160" y2="48"/><line x1="40" y1="0" x2="40" y2="64"/><line x1="80" y1="0" x2="80" y2="64"/><line x1="120" y1="0" x2="120" y2="64"/></g>
+          <polygon class="area" points="${PTS} 160,64 0,64"/>
+          <polyline class="cl" pathLength="1" points="${PTS}"/>
+          <circle class="end" cx="158" cy="12" r="2.6"/>
+        </svg>
+        <span class="clbl" data-t>CPU · LAST 60 S</span>
+      </div>
+      <div class="plate pc" data-t>SYSTEM: ONLINE</div>
+    </div>
+    <div class="right">
+      <div class="row pc"><span data-t>CPU</span><i></i><b data-t>78%</b></div>
+      <div class="row pc"><span data-t>GPU</span><i></i><b data-t>41%</b></div>
+      <div class="row pc"><span data-t>GTT</span><i></i><b data-t>18/56G</b></div>
+      <div class="row pc warn"><span data-t>THERMAL</span><i></i><b data-t>72°C</b></div>
+      <div class="seg pc">${'<span class="on"></span>'.repeat(9)}${'<span></span>'.repeat(3)}</div>
+      <div class="files pc">${FOLDER('#5FA8A0')}${FOLDER('#E0A243')}${FOLDER('#A7A3F0')}<span data-t>~/models</span></div>
+    </div>
+  </div>
+  <div class="foot"><span class="keys pc" data-t>▲▼ ВЫБОР · ⏎ ОТКРЫТЬ</span><span class="hatch pc"></span></div>
+</div>`;
+
+const STAGES = [
+  {id:'assembly', n:'01', t:'СБОРКА', tag:['ваша идея','amber'], yours:true,
+   d:'Части окна появляются в случайных местах одновременно, летят под разными углами и собираются на свои места, как пазл. Вокруг вспыхивают «строительные» линии, в конце рамка мигает и защёлкиваются скобки.',
+   where:'наши окна: дашборд, настройки, лаунчер, терминал', time:'≈ 450 мс', ref:'хаотичная сборка'},
+  {id:'tiles', n:'01Б', t:'ПАЗЛ', tag:['ваша идея','amber'], yours:true,
+   d:'Та же сборка для окон других программ. Hyprland видит окно Chrome или Telegram как одну картинку, поэтому её режем на 12 плиток, и они съезжаются на места.',
+   where:'Chrome, Telegram, Steam и любые другие окна', time:'≈ 450 мс', ref:'плагин Hyprland'},
+  {id:'blueprint', n:'02', t:'ЧЕРТЁЖ', tag:['спокойный','teal'],
+   d:'Рамка прочерчивается из угла одной линией, по краям тянутся направляющие, на пересечениях вспыхивают узлы, затем проявляется содержимое сверху вниз.',
+   where:'меню, всплывающие панели, контекстные окна', time:'≈ 350 мс', ref:'Arch, SPACE'},
+  {id:'scan', n:'03', t:'СКАН', tag:['люминофор','violet'],
+   d:'Светящаяся линия проходит сверху вниз, за ней окно проявляется сквозь крупный растр, который быстро становится резким.',
+   where:'вход, блокировка, превью изображений', time:'≈ 450 мс', ref:'Subject A-34, Hyperion'},
+  {id:'decode', n:'04', t:'ДЕКОД', tag:['данные','teal'],
+   d:'Текст перебирает случайные символы и расшифровывается слева направо, график прорисовывается линией.',
+   where:'данные, уведомления, ответы Haotica', time:'≈ 500 мс', ref:'Rider'},
+  {id:'print', n:'05', t:'ПЕЧАТЬ', tag:['постер','amber'],
+   d:'Окно «печатается»: точки растра растут, пока не сольются, а цветные слои сходятся со сдвига, как при плохой приводке.',
+   where:'обои, постерные заголовки, картинки', time:'≈ 450 мс', ref:'Digital Escape, SPACE'},
+  {id:'crt', n:'06', t:'CRT', tag:['выкл / вкл','violet'],
+   d:'Окно гаснет: схлопывается в яркую линию и точку, как старый кинескоп. Включение идёт в обратную сторону. Кнопка показывает оба направления.',
+   where:'сон, блокировка, запуск игры, Haotica засыпает', time:'260 + 420 мс', ref:'Hyperion'},
+  {id:'dissolve', n:'07', t:'РАСПАД', tag:['закрытие','coral'],
+   d:'Закрытие: части окна разлетаются и растворяются в растре. После демонстрации окно возвращается, чтобы можно было повторить.',
+   where:'закрытие окон, удаление файлов', time:'≈ 350 мс', ref:'Subject A-34'},
+  {id:'glitch', n:'08', t:'ГЛИТЧ', tag:['события','coral'],
+   d:'Полосы окна сдвигаются по горизонтали с цветным расслоением и резко встают на место.',
+   where:'ошибка, неизвестное устройство в сети, отказ доступа', time:'≈ 280 мс', ref:'события'}
+];
+
+const grid = document.getElementById('grid');
+STAGES.forEach(s => {
+  const el = document.createElement('article');
+  el.className = 'stage' + (s.yours ? ' yours' : '');
+  el.innerHTML = `
+    <div class="st-head"><span class="idx">${s.n}</span><h3>${s.t}</h3><span class="tag ${s.tag[1]}">${s.tag[0]}</span></div>
+    <div class="vp">${WIN}</div>
+    <div class="st-body">
+      <p>${s.d}</p>
+      <dl class="meta"><dt>где</dt><dd>${s.where}</dd><dt>время</dt><dd>${s.time}</dd><dt>основа</dt><dd>${s.ref}</dd></dl>
+      <button class="play" data-a="${s.id}">▶ Проиграть</button>
+    </div>`;
+  grid.appendChild(el);
+});
+
+function fit(){
+  document.querySelectorAll('.win').forEach(w => {
+    const W = w.offsetWidth, H = w.offsetHeight, c = 12, svg = w.querySelector('.frame');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.querySelector('polygon').setAttribute('points',
+      `${c},.5 ${W-.5},.5 ${W-.5},${H-c} ${W-c},${H-.5} .5,${H-.5} .5,${c}`);
+  });
+}
+fit();
+addEventListener('resize', fit);
+document.fonts && document.fonts.ready.then(fit);
+
+const A = (el, kf, o) => el.animate(kf, Object.assign({fill:'backwards'}, o, {duration:(o.duration||300)*K, delay:(o.delay||0)*K}));
+const done = list => Promise.all(list.map(a => a.finished.catch(()=>{})));
+const fx = (vp, cls, css) => { const d = document.createElement('div'); d.className = 'fx ' + cls; Object.assign(d.style, css); vp.appendChild(d); return d; };
+const box = win => ({x:win.offsetLeft, y:win.offsetTop, w:win.offsetWidth, h:win.offsetHeight});
+
+function brackets(vp, win, delay){
+  const b = box(win), out = [], s = 12, o = 10;
+  const pos = [[b.x-4, b.y-4, -o, -o, '0 0 auto auto'], [b.x+b.w-s+4, b.y-4, o, -o, ''], [b.x-4, b.y+b.h-s+4, -o, o, ''], [b.x+b.w-s+4, b.y+b.h-s+4, o, o, '']];
+  const sides = [['borderRight','borderBottom'],['borderLeft','borderBottom'],['borderRight','borderTop'],['borderLeft','borderTop']];
+  pos.forEach((p,i) => {
+    const d = fx(vp, 'brk', {left:p[0]+'px', top:p[1]+'px'});
+    d.style[sides[i][0]] = '0'; d.style[sides[i][1]] = '0';
+    out.push(A(d, [{transform:`translate(${p[2]}px,${p[3]}px)`, opacity:0},{transform:'none', opacity:1, offset:.4},{transform:'none', opacity:1, offset:.75},{opacity:0}], {duration:520, delay, easing:'cubic-bezier(.2,.9,.2,1)'}));
+    out[out.length-1].finished.then(() => d.remove(), () => d.remove());
+  });
+  return out;
+}
+
+const RUN = {
+  assembly(vp, win){
+    const pcs = [...win.querySelectorAll('.pc')], b = box(win), list = [];
+    pcs.forEach(p => {
+      const dx = rand(-1,1)*b.w*.55, dy = rand(-1,1)*130, r = rand(-32,32), s = rand(.45,1.5);
+      list.push(A(p, [
+        {transform:`translate(${dx}px,${dy}px) rotate(${r}deg) scale(${s})`, opacity:0, filter:'blur(1.5px)'},
+        {opacity:1, offset:.3},
+        {transform:'none', opacity:1, filter:'blur(0px)'}
+      ], {duration:rand(250,360), delay:rand(0,150), easing:'cubic-bezier(.16,1,.3,1)'}));
+    });
+    list.push(A(win.querySelector('.frame'), [{opacity:0},{opacity:0, offset:.5},{opacity:1, offset:.62},{opacity:.15, offset:.7},{opacity:1, offset:.8},{opacity:1}], {duration:520}));
+    const cols = ['#E0A243','#5FA8A0','#E8DFC9','#A7A3F0'];
+    for (let i = 0; i < 12; i++){
+      const v = Math.random() < .4;
+      const d = fx(vp, 'cline' + (v ? ' v' : ''), v
+        ? {left:rand(b.x-30, b.x+b.w+30)+'px', top:rand(b.y-50, b.y+b.h-20)+'px', height:rand(30,120)+'px', background:cols[i%4]}
+        : {left:rand(b.x-60, b.x+b.w-40)+'px', top:rand(b.y-40, b.y+b.h+30)+'px', width:rand(40,180)+'px', background:cols[i%4]});
+      const a = A(d, [{transform:v?'scaleY(0)':'scaleX(0)', opacity:0},{transform:'none', opacity:.9, offset:.45},{opacity:0}], {duration:rand(200,320), delay:rand(0,220), easing:'ease-out'});
+      a.finished.then(() => d.remove(), () => d.remove());
+      list.push(a);
+    }
+    list.push(...brackets(vp, win, 300));
+    return done(list);
+  },
+
+  tiles(vp, win){
+    const b = box(win), cols = 4, rows = 3, list = [], clones = [];
+    win.style.visibility = 'hidden';
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++){
+      const t = win.cloneNode(true);
+      t.classList.add('ghost');
+      const x0 = c*b.w/cols, y0 = r*b.h/rows, x1 = (c+1)*b.w/cols, y1 = (r+1)*b.h/rows;
+      Object.assign(t.style, {position:'absolute', left:b.x+'px', top:b.y+'px', width:b.w+'px', height:b.h+'px', visibility:'visible',
+        clipPath:`inset(${y0}px ${b.w-x1}px ${b.h-y1}px ${x0}px)`});
+      vp.appendChild(t); clones.push(t);
+      list.push(A(t, [
+        {transform:`translate(${rand(-1,1)*b.w*.6}px,${rand(-1,1)*140}px) rotate(${rand(-20,20)}deg)`, opacity:0},
+        {opacity:1, offset:.25},
+        {transform:'none', opacity:1}
+      ], {duration:rand(280,380), delay:rand(0,140), easing:'cubic-bezier(.16,1,.3,1)'}));
+    }
+    list.push(...brackets(vp, win, 300));
+    return done(list).then(() => { clones.forEach(t => t.remove()); win.style.visibility = ''; });
+  },
+
+  blueprint(vp, win){
+    const b = box(win), list = [], poly = win.querySelector('.frame polygon');
+    const L = poly.getTotalLength ? poly.getTotalLength() : 2*(b.w+b.h);
+    list.push(A(poly, [{strokeDasharray:L, strokeDashoffset:L, fillOpacity:0, stroke:'#E8DFC9'},{strokeDasharray:L, strokeDashoffset:0, fillOpacity:0, stroke:'#E8DFC9', offset:.7},{strokeDasharray:L, strokeDashoffset:0, fillOpacity:1, stroke:'#3B382F'}], {duration:380, easing:'cubic-bezier(.6,0,.2,1)'}));
+    const g1 = fx(vp, 'cline', {left:'0px', top:b.y+'px', width:'100%', background:'#5FA8A0'});
+    const g2 = fx(vp, 'cline v', {left:b.x+'px', top:'0px', height:'100%', background:'#5FA8A0'});
+    [g1,g2].forEach(g => { const a = A(g, [{transform:g===g1?'scaleX(0)':'scaleY(0)', opacity:.8},{transform:'none', opacity:.5, offset:.5},{opacity:0}], {duration:420, easing:'ease-out'}); a.finished.then(()=>g.remove(), ()=>g.remove()); list.push(a); });
+    win.querySelectorAll('.node').forEach((n,i) => list.push(A(n, [{transform:'scale(0)'},{transform:'scale(2.2)', offset:.5},{transform:'none'}], {duration:200, delay:200+i*40, easing:'ease-out'})));
+    [...win.querySelectorAll('.pc:not(.node)')].forEach((p,i) => list.push(A(p, [{opacity:0, transform:'translateY(6px)'},{opacity:1, transform:'none'}], {duration:200, delay:240+i*22, easing:'ease-out'})));
+    return done(list);
+  },
+
+  scan(vp, win){
+    const b = box(win), dur = 460*K;
+    const line = fx(vp, 'scan', {left:(b.x-10)+'px', width:(b.w+20)+'px', top:b.y+'px'});
+    const dith = document.createElement('div'); dith.className = 'dith'; win.appendChild(dith);
+    const ease = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2;
+    const list = [A(dith, [{opacity:1},{opacity:.8, offset:.6},{opacity:0}], {duration:560, easing:'steps(5)'}),
+                  A(win, [{filter:'brightness(1.8)'},{filter:'brightness(1)'}], {duration:500})];
+    return new Promise(res => {
+      const t0 = performance.now();
+      (function tick(now){
+        const p = Math.min(1, (now - t0)/dur), y = ease(p)*b.h;
+        win.style.clipPath = `inset(0 0 ${Math.max(0, b.h - y - 1)}px 0)`;
+        line.style.transform = `translateY(${y}px)`;
+        line.style.opacity = p < 1 ? 1 : 0;
+        if (p < 1) requestAnimationFrame(tick); else { win.style.clipPath = ''; res(); }
+      })(t0);
+    }).then(() => done(list)).then(() => { line.remove(); dith.remove(); });
+  },
+
+  decode(vp, win){
+    const GL = '▓▒░#%&@$01<>/\\=+*ABCDEFX';
+    const els = [...win.querySelectorAll('[data-t]')];
+    els.forEach(e => { if (!e.dataset.o) e.dataset.o = e.textContent; });
+    const st = els.map(() => rand(0, .35)), dur = 520*K;
+    const line = win.querySelector('.cl');
+    const list = [A(win, [{opacity:0},{opacity:1}], {duration:120}), A(line, [{strokeDashoffset:1},{strokeDashoffset:0}], {duration:520, easing:'ease-out'})];
+    return new Promise(res => {
+      const t0 = performance.now();
+      (function tick(now){
+        const p = (now - t0)/dur; let fin = true;
+        els.forEach((e,i) => {
+          const o = e.dataset.o, q = Math.min(1, Math.max(0, (p - st[i])/.6)), n = Math.floor(q*o.length);
+          if (q < 1) fin = false;
+          let s = o.slice(0, n);
+          for (let k = n; k < o.length; k++) s += o[k] === ' ' ? ' ' : GL[Math.random()*GL.length|0];
+          e.textContent = s;
+        });
+        if (!fin) requestAnimationFrame(tick); else { els.forEach(e => e.textContent = e.dataset.o); res(); }
+      })(t0);
+    }).then(() => done(list));
+  },
+
+  print(vp, win){
+    const dots = document.createElement('div'); dots.className = 'dots'; win.appendChild(dots);
+    const list = [
+      A(dots, [{'--r':'0px'},{'--r':'5.4px'}], {duration:440, easing:'cubic-bezier(.5,0,.3,1)', fill:'both'}),
+      A(win, [{filter:'drop-shadow(7px 0 0 rgba(95,168,160,.9)) drop-shadow(-7px 2px 0 rgba(224,112,90,.8))'},{filter:'drop-shadow(0 0 0 rgba(95,168,160,0)) drop-shadow(0 0 0 rgba(224,112,90,0))'}], {duration:460, easing:'cubic-bezier(.2,.8,.2,1)'})
+    ];
+    return done(list).then(() => dots.remove());
+  },
+
+  async crt(vp, win){
+    const off = A(win, [
+      {transform:'none', filter:'brightness(1)'},
+      {transform:'scaleY(.012) scaleX(1)', filter:'brightness(3)', offset:.6},
+      {transform:'scaleY(.012) scaleX(.02)', filter:'brightness(5)', offset:.92},
+      {transform:'scaleY(0) scaleX(0)', filter:'brightness(5)'}
+    ], {duration:260, easing:'cubic-bezier(.6,0,.4,1)', fill:'forwards'});
+    await off.finished.catch(()=>{});
+    await wait(300*K);
+    off.cancel();
+    const on = A(win, [
+      {transform:'scaleY(.012) scaleX(.02)', filter:'brightness(5)'},
+      {transform:'scaleY(.012) scaleX(1)', filter:'brightness(3)', offset:.35},
+      {transform:'scaleY(1.03) scaleX(1)', filter:'brightness(1.6)', offset:.8},
+      {transform:'none', filter:'brightness(1)'}
+    ], {duration:420, easing:'cubic-bezier(.2,.7,.2,1)'});
+    return done([on]);
+  },
+
+  async dissolve(vp, win){
+    const dots = document.createElement('div'); dots.className = 'dots'; win.appendChild(dots);
+    const list = [A(dots, [{'--r':'5.4px'},{'--r':'0px'}], {duration:340, easing:'ease-in', fill:'forwards'})];
+    win.querySelectorAll('.pc').forEach(p => list.push(A(p, [{transform:'none', opacity:1, filter:'blur(0px)'},{transform:`translate(${rand(-60,60)}px,${rand(-110,-20)}px) rotate(${rand(-15,15)}deg)`, opacity:0, filter:'blur(3px)'}], {duration:rand(260,360), delay:rand(0,60), easing:'cubic-bezier(.5,0,.8,.4)', fill:'forwards'})));
+    list.push(A(win.querySelector('.frame'), [{opacity:1},{opacity:0}], {duration:300, delay:60, fill:'forwards', easing:'steps(4)'}));
+    await done(list);
+    await wait(500*K);
+    list.forEach(a => a.cancel()); dots.remove();
+    return done([A(win, [{opacity:0},{opacity:1}], {duration:260})]);
+  },
+
+  glitch(vp, win){
+    const b = box(win), bands = 7, list = [], clones = [];
+    for (let i = 0; i < bands; i++){
+      const c = win.cloneNode(true); c.classList.add('ghost');
+      const y0 = i*b.h/bands, y1 = (i+1)*b.h/bands;
+      Object.assign(c.style, {position:'absolute', left:b.x+'px', top:b.y+'px', width:b.w+'px', height:b.h+'px', clipPath:`inset(${y0}px 0 ${b.h-y1}px 0)`});
+      vp.appendChild(c); clones.push(c);
+      const kf = [];
+      for (let k = 0; k < 6; k++){
+        const last = k === 5;
+        kf.push({transform:last ? 'none' : `translateX(${rand(-28,28)}px)`, filter: last ? 'none' : (k%2 ? 'drop-shadow(3px 0 0 #E0705A) drop-shadow(-3px 0 0 #4FA6DC)' : 'brightness(1.6)'), opacity:last ? 0 : 1, easing:'steps(1,end)'});
+      }
+      list.push(A(c, kf, {duration:280}));
+    }
+    list.push(A(win, [{opacity:0, easing:'steps(1,end)'},{opacity:.6, easing:'steps(1,end)'},{opacity:0, easing:'steps(1,end)'},{opacity:1}], {duration:280}));
+    return done(list).then(() => clones.forEach(c => c.remove()));
+  }
+};
+
+async function play(btn){
+  const stage = btn.closest('.stage'), vp = stage.querySelector('.vp'), win = vp.querySelector('.win');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  try { await RUN[btn.dataset.a](vp, win); }
+  finally { btn.disabled = false; }
+}
+grid.addEventListener('click', e => { const b = e.target.closest('.play'); if (b) play(b); });
+
+document.getElementById('playAll').addEventListener('click', async e => {
+  const me = e.currentTarget; if (me.disabled) return; me.disabled = true;
+  for (const b of document.querySelectorAll('.play')){
+    b.closest('.stage').scrollIntoView({behavior: RM ? 'auto' : 'smooth', block:'center'});
+    await wait(350);
+    await play(b);
+    await wait(450*K);
+  }
+  me.disabled = false;
+});
+
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+  K = parseFloat(c.dataset.s);
+  document.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === c ? 'true' : 'false'));
+}));
+
+/* сегментный прогресс */
+const prog = document.getElementById('prog'), progL = document.getElementById('progL');
+const SEG = 16; prog.innerHTML = '<i></i>'.repeat(SEG);
+let pv = 0;
+setInterval(() => {
+  pv = pv >= SEG + 4 ? 0 : pv + 1;
+  const n = Math.min(pv, SEG);
+  prog.querySelectorAll('i').forEach((s,i) => s.classList.toggle('on', i < n));
+  progL.textContent = Math.round(n/SEG*100) + '%';
+}, RM ? 900 : 260);
+
+/* уведомление Haotica */
+const ntf = document.getElementById('ntf'), ntfT = document.getElementById('ntfT');
+const MSG = 'Модель загружена в память: 43 ГБ, 38 ток/с. Готова к работе.';
+let typing = null;
+function showNtf(){
+  clearInterval(typing); ntfT.textContent = '';
+  ntf.animate([{transform:'translateX(120%)'},{transform:'none'}], {duration:240*K, easing:'cubic-bezier(.2,.8,.2,1)', fill:'forwards'});
+  let i = 0;
+  typing = setInterval(() => { ntfT.textContent = MSG.slice(0, ++i); if (i >= MSG.length) clearInterval(typing); }, 12);
+}
+document.getElementById('ntfBtn').addEventListener('click', showNtf);
+showNtf();
+})();
+</script>
+</body>
+</html>

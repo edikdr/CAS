@@ -1,0 +1,195 @@
+# HYPERINA — настройки по умолчанию.
+# Пользовательские значения лежат в ~/.config/hyperina/settings.toml и перекрывают эти.
+
+[appearance]
+profile = "MIX"            # MIX, HYPERION, SUBJECT, ESCAPE, ARCH, RIDER, SPACE, CUSTOM
+ui_scale = 1.6
+density = "normal"         # compact, normal, airy
+font_ui = "IBM Plex Sans"
+font_mono = "IBM Plex Mono"
+font_term = "JetBrains Mono"
+font_size = 10.5
+term_font_size = 12
+chamfer = 8
+radius = 4
+icon_theme = "HYPERINA"
+cursor_theme = "HYPERINA"
+cursor_size = 24
+wallpaper = "statue"       # statue, nebula, contour, plain, custom
+wallpaper_custom = ""
+wallpaper_live = true
+liveliness = 0.65          # 0..1, «живость» фона и интерфейса
+
+[appearance.custom]        # свой профиль (CUSTOM): любые токены палитры
+# ink = "#E8DFC9"
+
+[effects]
+glow = 0.25
+scanlines = 0.02           # только HUD и терминал
+grain = 0.03
+crt_terminal = 0.0         # CRT-рамка терминала
+glitch = 1.0               # интенсивность событийного глитча
+blur = true
+
+[animations]
+preset = "SIGNAL"          # SIGNAL, CHAOS, BLUEPRINT, MINIMAL
+speed = 1.0                # общий множитель скорости
+window = 0.7               # CRT + ГЛИТЧ для окон
+scan = 0.5
+decode = 0.5
+reduce_motion = false
+
+[sound]
+theme = "hyperina"
+volume = 0.55
+ui_sounds = true
+voice_lines = true
+emotions = true
+hover = false
+quiet_hours = true
+quiet_start = "23:00"
+quiet_end = "08:00"
+
+[sound.events]             # каждое событие можно выключить: имя = false
+
+[locale]
+ui_language = "ru"         # ru, en, de
+hud_language = "en"        # en или "ui" (как интерфейс)
+layouts = ["de", "ru"]
+ru_variant = ""            # "" — ЙЦУКЕН, "phonetic" — ЯВЕРТЫ
+switch = "alt_shift"       # alt_shift, super_space, caps
+per_window_layout = true
+lc_time = "ru_RU.UTF-8"
+lc_numeric = "ru_RU.UTF-8"
+lc_monetary = "de_DE.UTF-8"
+lc_paper = "de_DE.UTF-8"
+lc_measurement = "de_DE.UTF-8"
+first_weekday = 1          # 1 = понедельник
+timezone = "auto"
+weather_city = "Berlin"
+spellcheck = ["ru", "de", "en"]
+haotica_language = "ru"
+
+[display]
+refresh = 165
+battery_refresh = 60
+scale = 1.6
+vrr = true
+hdr = false
+bitdepth = 10
+night_light = false
+night_start = "22:00"
+night_end = "07:00"
+night_temperature = 4500
+
+[keyboard]
+backlight = "palette"      # palette, haotica, static, off
+backlight_color = "#E0A243"
+backlight_brightness = 2
+backlight_auto_off = true
+copilot_key = "haotica"
+repeat_delay = 300
+repeat_rate = 35
+
+[touchpad]
+natural_scroll = true
+tap_to_click = true
+speed = 0.0
+disable_while_typing = true
+
+[power]
+profile_ac = "performance"
+profile_battery = "balanced"
+conservation = true
+charge_limit = 80
+lid = "suspend"
+autolock_minutes = 10
+screen_off_minutes = 15
+suspend_minutes = 30
+haotica_on_battery = "normal"   # normal, light (только маленькая модель), off
+
+[haotica]
+enabled = true
+mode = "copilot"           # observer, copilot, agent
+autonomy = "readonly"      # none, readonly, safe
+directness = 0.85
+humor = 0.75
+swearing = "moderate"      # off, moderate, free
+proactive = "sometimes"    # never, sometimes, often
+max_unprompted_per_hour = 6
+voice = true
+voice_backend = "local"    # local, elevenlabs, lines
+voice_speed = 1.0
+memory = true
+avatar = "auto"            # auto (Live2D, если есть модель), svg
+folders_allowed = ["~"]
+folders_denied = ["~/.ssh", "~/.gnupg", "~/.local/share/keyrings"]
+model_main = "main"
+context_size = 32768
+
+[cloud]
+enabled = false
+model = ""
+effort = "medium"
+mode = "ask"               # ask, auto_under, never
+auto_under_usd = 0.02
+budget_request_usd = 0.5
+budget_day_usd = 2.0
+budget_month_usd = 20.0
+helpers_enabled = true
+helper_fast = "deepseek/deepseek-v4.1-flash"
+helper_careful = "anthropic/claude-haiku-5.5"
+helpers_task_usd = 0.05
+helpers_day_usd = 1.0
+helpers_per_hour = 30
+search_backend = "searxng" # searxng, openrouter
+
+[gestures]
+enabled = false
+pause_on_battery = true
+activation = "palm_hold"
+
+[gestures.bindings]
+
+[security]
+face_unlock = true
+face_at_boot = false
+sudo_face = false
+
+[apps]
+show_kde = false
+browser = "google-chrome.desktop"
+terminal = "hyperina-terminal.desktop"
+files = "hyperina-files.desktop"
+editor = "hyperina-editor.desktop"
+viewer = "hyperina-gallery.desktop"
+player = "hyperina-player.desktop"
+
+[notifications]
+dnd = false
+dnd_scheduled = false
+dnd_start = "23:00"
+dnd_end = "08:00"
+
+[desktop]
+widgets = ["dossier", "clock", "globe", "bust"]
+bar_position = "top"
+dock_autohide = false
+workspaces = 6
+hud_log = true
+
+[network]
+recon = true
+recon_interval_minutes = 15
+alert_new_devices = true
+
+[router]
+vendor = ""
+host = ""
+username = ""
+
+[gamemode]
+unload_llm = true
+pause_effects = true
+pause_gestures = true
+pause_recon = true

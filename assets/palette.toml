@@ -1,0 +1,113 @@
+# HYPERINA — палитра. Единственный источник цветов для всех тем системы.
+# Смысловые цвета (ошибка, успех, ИИ…) одинаковы во всех профилях,
+# профиль меняет основной цвет текста и линий, фон и сигнатурный акцент.
+
+[semantic]
+teal   = "#5FA8A0"   # ссылки, файлы, интерактив, общение
+amber  = "#E0A243"   # внимание, активное, соцсети
+coral  = "#E0705A"   # ошибки, опасные действия, игры и медиа
+green  = "#8FBF7A"   # успех, «в порядке», финансы
+violet = "#A7A3F0"   # Haotica, ИИ
+sky    = "#4FA6DC"   # система, сеть, разработка
+
+[categories]
+ai = "violet"
+chat = "teal"
+social = "amber"
+dev = "sky"
+finance = "green"
+media = "coral"
+system = "sky"
+
+[profiles.MIX]
+label  = "MIX — кремовый, бирюза, янтарь"
+bg0    = "#000000"
+bg1    = "#0D0D0B"
+bg2    = "#181714"
+line   = "#3B382F"
+ink    = "#E8DFC9"
+dim    = "#A39B87"
+accent = "#E0A243"
+accent2 = "#5FA8A0"
+
+[profiles.HYPERION]
+label  = "HYPERION — янтарный терминал"
+bg0    = "#000000"
+bg1    = "#0D0A05"
+bg2    = "#18120A"
+line   = "#4A3A1E"
+ink    = "#EDB25A"
+dim    = "#A37A3A"
+accent = "#F2C46D"
+accent2 = "#E0705A"
+
+[profiles.SUBJECT]
+label  = "SUBJECT — фиолетовый люминофор"
+bg0    = "#000000"
+bg1    = "#07070D"
+bg2    = "#101019"
+line   = "#34335A"
+ink    = "#C9C7FF"
+dim    = "#8583BF"
+accent = "#B4B2FF"
+accent2 = "#E8DFC9"
+
+[profiles.ESCAPE]
+label  = "ESCAPE — бирюза и кремовый"
+bg0    = "#000000"
+bg1    = "#050807"
+bg2    = "#0E1312"
+line   = "#2E3B38"
+ink    = "#EFE3C6"
+dim    = "#9EA89A"
+accent = "#4E9C9A"
+accent2 = "#EFE3C6"
+
+[profiles.ARCH]
+label  = "ARCH — кость и сепия"
+bg0    = "#000000"
+bg1    = "#0B0A08"
+bg2    = "#15130F"
+line   = "#3B352B"
+ink    = "#D8C8A8"
+dim    = "#9C8F76"
+accent = "#D8C8A8"
+accent2 = "#A39B87"
+
+[profiles.RIDER]
+label  = "RIDER — мятный фосфор"
+bg0    = "#000000"
+bg1    = "#040806"
+bg2    = "#0B120E"
+line   = "#24382E"
+ink    = "#BFF0D8"
+dim    = "#7FA894"
+accent = "#BFF0D8"
+accent2 = "#8FBF7A"
+
+[profiles.SPACE]
+label  = "SPACE — небесно-голубой постер"
+bg0    = "#000000"
+bg1    = "#04070A"
+bg2    = "#0B1118"
+line   = "#1F3445"
+ink    = "#A6D4F2"
+dim    = "#6C93AD"
+accent = "#4FA6DC"
+accent2 = "#E8DFC9"
+
+[fonts]
+ui      = "IBM Plex Sans"
+mono    = "IBM Plex Mono"
+term    = "JetBrains Mono"
+display = "Unbounded"
+pixel   = "Departure Mono"
+pixel_cyr = "Terminus"
+dot     = "Doto"
+
+[geometry]
+chamfer = 8      # скос углов панелей, px
+radius  = 4      # скругление кнопок и полей
+window_radius = 6
+border  = 1
+gap     = 8

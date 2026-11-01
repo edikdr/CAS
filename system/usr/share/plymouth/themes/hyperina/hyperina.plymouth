@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=HYPERINA
+Description=HYPERINA: загрузка в стиле досье
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/hyperina
+ScriptFile=/usr/share/plymouth/themes/hyperina/hyperina.script

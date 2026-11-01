@@ -1,0 +1,10 @@
+#!/bin/bash
+# Сгенерировать theme/settings.lua из ядра HYPERINA и проверить весь конфиг Hyprland
+cd "$(dirname "$0")/.."
+T=$(mktemp -d)
+HOME=$T HYPERINA_DEV_ROOT=$PWD python3 -c "
+import sys; sys.path.insert(0,'core')
+from hyperina import theme; theme.apply({'hyprland'})" || exit 1
+cp -r config/hypr/. $T/.config/hypr/
+hyprverify $T/.config/hypr | sed -n '/Config parsing result/,$p'
+rm -rf $T

@@ -1,0 +1,8 @@
+[Sound Theme]
+Name=HYPERINA
+Comment=Звуки HYPERINA
+Inherits=freedesktop
+Directories=stereo
+
+[stereo]
+OutputProfile=stereo

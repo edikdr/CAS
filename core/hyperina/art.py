@@ -148,6 +148,11 @@ def render_wallpaper(p: Palette, out_dir: Path, size: tuple[int, int] = (2560, 1
         "profile": p.name,
     }
     (out_dir / "meta.json").write_text(json.dumps(meta))
+    # тайл зерна для живого слоя (анимируется сдвигом)
+    g = Image.effect_noise((256, 256), 60).convert("L")
+    grain = Image.new("RGBA", (256, 256), (*ink, 0))
+    grain.putalpha(g.point(lambda v: max(0, v - 150)))
+    grain.save(out_dir / "grain.png")
     # статичная копия целиком: экран блокировки и запасной вариант без живого слоя
     full = base.copy().convert("RGBA")
     st = Image.open(out_dir / "statue-0.png")

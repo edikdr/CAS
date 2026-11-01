@@ -28,6 +28,8 @@ hl.bind("Print",                run("hyperina screenshot screen"), d("Скрин
 hl.bind(M .. " + SHIFT + S",    run("hyperina screenshot area"), d("Скриншот области"))
 hl.bind(M .. " + SHIFT + W",    run("hyperina screenshot window"), d("Скриншот окна"))
 hl.bind(M .. " + SHIFT + C",    run("hyprpicker -a -f hex"), d("Пипетка цвета"))
+hl.bind(M .. " + ALT + R",      run("hyperina record screen"), d("Запись экрана (повтор — стоп)"))
+hl.bind(M .. " + SHIFT + Print", run("hyperina screenshot area --edit"), d("Скриншот области с разметкой"))
 
 -- окна
 hl.bind(M .. " + Q",            hl.dsp.window.close(), d("Закрыть окно"))
@@ -69,3 +71,7 @@ hl.bind("XF86AudioPlay",         run("playerctl play-pause"), { locked = true })
 hl.bind("XF86AudioPause",        run("playerctl play-pause"), { locked = true })
 hl.bind("XF86KbdBrightnessUp",   run("hyperina keyboard brightness up"),   { locked = true })
 hl.bind("XF86KbdBrightnessDown", run("hyperina keyboard brightness down"), { locked = true })
+
+-- крышка: действие задаётся в «Настройки → Питание» (сон / блокировка / выключить экран / ничего)
+hl.bind("switch:on:Lid Switch",  run("hyperina lid close"), { locked = true })
+hl.bind("switch:off:Lid Switch", run("hyperina lid open"),  { locked = true })

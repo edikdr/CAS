@@ -322,6 +322,14 @@ def transform_body(body: str, k: float = 1.0, dx: float = 0.0, dy: float = 0.0) 
     return _re.sub(r"<(\w+)([^>]*)/>", elem, body)
 
 
+def export_web_glyphs(dest: Path) -> Path:
+    """Библиотека пиктограмм для веб-приложений: apps/_ui/glyphs.js (те же формы, что в оболочке)."""
+    import json as _json
+    dest.write_text("// Автоматически создано из core/hyperina/icons.py: пиктограммы 24×24 (линии, currentColor)\n"
+                    "export const GLYPHS = " + _json.dumps({**GLYPHS, **GLYPHS_UI}, indent=1, ensure_ascii=False) + ";\n")
+    return dest
+
+
 def export_qml_glyphs(dest: Path) -> Path:
     """Библиотека пиктограмм для оболочки: shell/components/Glyphs.js."""
     import json as _json

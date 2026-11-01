@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Терминал — HYPERINA</title>
+<link rel="stylesheet" href="/ui/hy.css">
+<link rel="stylesheet" href="/ui/vendor/xterm/xterm.css">
+<link rel="stylesheet" href="terminal.css">
+</head>
+<body>
+<div class="hy-app">
+  <div class="hy-body" id="body">
+    <aside class="t-left" id="left">
+      <div class="t-pane t-files">
+        <div class="t-pane-head"><span class="caps">FILES</span><span class="grow"></span>
+          <button class="hy-btn ghost icon small" id="f-up" title="Вверх"></button>
+          <button class="hy-btn ghost icon small" id="f-cd" title="Перейти сюда в терминале"></button></div>
+        <div class="t-path mono" id="f-path"></div>
+        <div class="t-cats" id="f-cats"></div>
+        <div class="t-tree scroll" id="f-tree"></div>
+      </div>
+      <div class="t-pane t-widgets" id="widgets"></div>
+    </aside>
+    <section class="t-center">
+      <div class="hy-tabs" id="tabs"></div>
+      <div class="t-terms" id="terms"></div>
+      <div class="hy-status" id="status"></div>
+    </section>
+    <aside class="t-right" id="right">
+      <div class="t-pane t-preview" id="preview"></div>
+      <div class="t-pane t-haotica" id="haotica-pane">
+        <iframe id="haotica" title="Haotica"></iframe>
+      </div>
+    </aside>
+  </div>
+</div>
+<div class="t-overlay hidden" id="overlay"><iframe id="overlay-frame" title="Cloud Link"></iframe></div>
+<script type="module" src="terminal.js"></script>
+</body>
+</html>

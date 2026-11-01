@@ -1,0 +1,12 @@
+[Unit]
+Description=HYPERINA: жесты через камеру (MediaPipe, низкая нагрузка)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/hyperina/bin/hyperina-gestures
+Restart=on-failure
+RestartSec=10
+Nice=10
+CPUQuota=60%

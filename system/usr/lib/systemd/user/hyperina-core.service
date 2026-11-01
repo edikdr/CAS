@@ -1,0 +1,15 @@
+[Unit]
+Description=HYPERINA: ядро (метрики, настройки, API для оболочки и приложений)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/hyperina-core
+Restart=on-failure
+RestartSec=2
+Environment=PYTHONUNBUFFERED=1
+Nice=2
+
+[Install]
+WantedBy=hyperina-session.target

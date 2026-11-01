@@ -2,14 +2,14 @@
 
 -- приложения HYPERINA: маленькие — плавающими окнами
 for _, app in ipairs({ "calculator", "colorpicker", "clock", "weather", "clipboard", "cloud", "power" }) do
-    hl.window_rule({ name = "hy-float-" .. app, match = { class = "^hyperina\\." .. app .. "$" }, float = true, center = true })
+    hl.window_rule({ name = "hy-float-" .. app, match = { class = "^hyperina-" .. app .. "$" }, float = true, center = true })
 end
-hl.window_rule({ name = "hy-calc-size", match = { class = "^hyperina\\.calculator$" }, size = "420 640" })
+hl.window_rule({ name = "hy-calc-size", match = { class = "^hyperina-calculator$" }, size = "420 640" })
 
 -- окно Haotica — справа, во всю высоту
 hl.window_rule({
     name = "hy-haotica",
-    match = { class = "^hyperina\\.haotica$" },
+    match = { class = "^hyperina-haotica$" },
     float = true,
     size = "540 monitor_h-96",
     move = "monitor_w-564 64",

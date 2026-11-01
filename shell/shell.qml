@@ -73,6 +73,7 @@ ShellRoot {
             if (kind === "volume") osdCtl.volume(action);
             else if (kind === "mic") osdCtl.mic(action);
             else if (kind === "brightness") osdCtl.brightness(action);
+            else if (kind === "keyboard") Ui.showOsd("keyboard", parseFloat(action) || 0, false);
         }
         function reloadTheme(): void { Theme.reload(); }
         function log(text: string): void { Ui.pushLog(text); }

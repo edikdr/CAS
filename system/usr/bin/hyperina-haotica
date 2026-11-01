@@ -1,0 +1,4 @@
+#!/bin/sh
+# HYPERINA: hyperina.haotica
+export PYTHONPATH="/usr/lib/hyperina/python${PYTHONPATH:+:$PYTHONPATH}"
+exec /usr/bin/python3 -m hyperina.haotica "$@"

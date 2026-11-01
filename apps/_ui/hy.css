@@ -1,0 +1,343 @@
+/* HYPERINA UI kit — общий стиль приложений.
+   Цвета, шрифты и геометрия приходят из theme.json (hy.js выставляет переменные на лету).
+   Принцип: облик ретро-кибер, поведение как в обычной ОС. Фон OLED — чистый чёрный. */
+
+:root {
+  --bg0: #000000; --bg1: #0D0D0B; --bg2: #181714; --line: #3B382F; --line-hi: #857F6E;
+  --ink: #E8DFC9; --dim: #A39B87; --ink-faint: #1E1D1A; --ink-soft: #2D2B26; --hover: #23221E;
+  --accent: #E0A243; --accent2: #5FA8A0; --accent-dim: #57401D; --selection: #4A3920;
+  --teal: #5FA8A0; --amber: #E0A243; --coral: #E0705A; --green: #8FBF7A; --violet: #A7A3F0; --sky: #4FA6DC;
+  --font-ui: "IBM Plex Sans", "Noto Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", monospace;
+  --font-term: "JetBrains Mono", "IBM Plex Mono", monospace;
+  --font-display: "Unbounded", "IBM Plex Sans", sans-serif;
+  --font-pixel: "Departure Mono", "Terminus", monospace;
+  --fs: 13px;
+  --chamfer: 8px; --radius: 4px; --gap: 8px;
+  --glow: .25; --scanlines: .02; --grain: .03;
+  --spd: 1; --spd-window: .7; --spd-scan: .5; --spd-decode: .5;
+  --t-fast: calc(120ms / var(--spd)); --t-med: calc(220ms / var(--spd)); --t-slow: calc(420ms / var(--spd));
+  --ease: cubic-bezier(.2, .7, .1, 1);
+  --titlebar: 38px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg0); color: var(--ink);
+  font: 400 var(--fs)/1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  overflow: hidden; user-select: none;
+}
+body.transparent { background: transparent; }
+::selection { background: var(--selection); color: var(--ink); }
+a { color: var(--teal); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+input, textarea, select, button { font: inherit; color: inherit; }
+.mono { font-family: var(--font-mono); }
+.caps { text-transform: uppercase; letter-spacing: .14em; }
+.dim { color: var(--dim); }
+.faint { color: var(--line-hi); }
+.accent { color: var(--accent); }
+.ok { color: var(--green); } .warn { color: var(--amber); } .err { color: var(--coral); } .ai { color: var(--violet); }
+.sel { user-select: text; }
+.hidden { display: none !important; }
+.grow { flex: 1 1 auto; min-width: 0; min-height: 0; }
+.row { display: flex; align-items: center; gap: var(--gap); }
+.col { display: flex; flex-direction: column; gap: var(--gap); }
+.wrap { flex-wrap: wrap; }
+.center { display: grid; place-items: center; }
+.scroll { overflow: auto; }
+
+/* полосы прокрутки: тонкие, в цвет линий */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ink-soft); border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--line-hi); background-clip: padding-box; border: 2px solid transparent; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* ── окно ─────────────────────────────────────────────────── */
+.hy-app { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg0);
+  border: 1px solid var(--line); }
+body.transparent .hy-app { background: color-mix(in srgb, var(--bg0) 82%, transparent); }
+.hy-titlebar { height: var(--titlebar); flex: 0 0 var(--titlebar); display: flex; align-items: center;
+  gap: 10px; padding: 0 6px 0 12px; border-bottom: 1px solid var(--line); background: var(--bg1);
+  position: relative; }
+.hy-titlebar .drag { position: absolute; inset: 0; z-index: 0; }
+.hy-titlebar > :not(.drag) { position: relative; z-index: 1; }
+.hy-titlebar .glyph { color: var(--accent); }
+.hy-titlebar .title { font: 600 11px/1 var(--font-mono); letter-spacing: .2em; text-transform: uppercase; white-space: nowrap; }
+.hy-titlebar .title i { font-style: normal; color: var(--dim); font-weight: 400; }
+.hy-titlebar .sub { font: 11px/1 var(--font-mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hy-titlebar .spacer { flex: 1; }
+.hy-titlebar .winbtn { width: 34px; height: 26px; display: grid; place-items: center; border: 0; background: none;
+  color: var(--dim); cursor: pointer; }
+.hy-titlebar .winbtn:hover { color: var(--ink); background: var(--hover); }
+.hy-titlebar .winbtn.close:hover { color: var(--bg0); background: var(--coral); }
+.hy-titlebar .tick { width: 3px; height: 3px; background: var(--ink); position: absolute; right: 4px; top: 4px; }
+.hy-resize { position: fixed; z-index: 1000; }
+.hy-resize.left { left: 0; top: 8px; bottom: 8px; width: 5px; cursor: ew-resize; }
+.hy-resize.right { right: 0; top: 8px; bottom: 8px; width: 5px; cursor: ew-resize; }
+.hy-resize.top { top: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+.hy-resize.bottom { bottom: 0; left: 8px; right: 8px; height: 5px; cursor: ns-resize; }
+.hy-resize.top-left { left: 0; top: 0; width: 9px; height: 9px; cursor: nwse-resize; }
+.hy-resize.top-right { right: 0; top: 0; width: 9px; height: 9px; cursor: nesw-resize; }
+.hy-resize.bottom-left { left: 0; bottom: 0; width: 9px; height: 9px; cursor: nesw-resize; }
+.hy-resize.bottom-right { right: 0; bottom: 0; width: 9px; height: 9px; cursor: nwse-resize; }
+.hy-body { flex: 1 1 auto; min-height: 0; display: flex; position: relative; }
+
+/* ── раскладка: боковая панель + содержимое ───────────────── */
+.hy-side { width: 236px; flex: 0 0 auto; border-right: 1px solid var(--line); background: var(--bg1);
+  display: flex; flex-direction: column; min-height: 0; }
+.hy-main { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.hy-toolbar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line);
+  min-height: 46px; }
+.hy-status { display: flex; align-items: center; gap: 14px; padding: 0 12px; height: 26px; border-top: 1px solid var(--line);
+  font: 11px var(--font-mono); color: var(--dim); background: var(--bg1); white-space: nowrap; overflow: hidden; }
+.hy-status b { color: var(--ink); font-weight: 500; }
+
+.hy-section { padding: 14px 12px 6px; font: 600 10px/1 var(--font-mono); letter-spacing: .22em; color: var(--dim);
+  text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+.hy-section::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+.hy-nav { display: flex; flex-direction: column; padding: 4px 6px; gap: 1px; }
+.hy-nav .item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; cursor: pointer; color: var(--dim);
+  position: relative; border: 1px solid transparent; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hy-nav .item:hover { color: var(--ink); background: var(--hover); }
+.hy-nav .item.on { color: var(--ink); background: var(--ink-faint); border-color: var(--line); }
+.hy-nav .item.on::before { content: ""; position: absolute; left: -1px; top: 6px; bottom: 6px; width: 2px; background: var(--accent); }
+.hy-nav .item .count { margin-left: auto; font: 10px var(--font-mono); color: var(--line-hi); }
+.hy-nav .item .dot { width: 6px; height: 6px; flex: 0 0 6px; }
+
+/* ── кнопки ───────────────────────────────────────────────── */
+.hy-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 30px; padding: 0 12px;
+  border: 1px solid var(--line); background: var(--bg1); color: var(--ink); cursor: pointer; border-radius: var(--radius);
+  font: 500 12px/1 var(--font-ui); white-space: nowrap; transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast); }
+.hy-btn:hover { border-color: var(--line-hi); background: var(--hover); }
+.hy-btn:active { transform: translateY(1px); }
+.hy-btn:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.hy-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg0); font-weight: 600; }
+.hy-btn.primary:hover { filter: brightness(1.08); }
+.hy-btn.ghost { background: transparent; border-color: transparent; color: var(--dim); }
+.hy-btn.ghost:hover { color: var(--ink); background: var(--hover); }
+.hy-btn.danger { border-color: color-mix(in srgb, var(--coral) 55%, var(--line)); color: var(--coral); }
+.hy-btn.danger:hover { background: var(--coral); color: var(--bg0); }
+.hy-btn.icon { width: 30px; padding: 0; }
+.hy-btn.small { height: 24px; padding: 0 8px; font-size: 11px; }
+.hy-btn[disabled] { opacity: .45; pointer-events: none; }
+.hy-btn .k { font: 10px var(--font-mono); color: var(--dim); }
+
+/* ── поля ─────────────────────────────────────────────────── */
+.hy-input, .hy-select, .hy-textarea { height: 30px; padding: 0 10px; border: 1px solid var(--line); background: var(--bg0);
+  border-radius: var(--radius); outline: none; min-width: 0; transition: border-color var(--t-fast); user-select: text; }
+.hy-textarea { height: auto; padding: 8px 10px; resize: vertical; line-height: 1.5; }
+.hy-input:focus, .hy-select:focus, .hy-textarea:focus { border-color: var(--accent); }
+.hy-input::placeholder, .hy-textarea::placeholder { color: var(--line-hi); }
+.hy-input.mono { font-family: var(--font-mono); font-size: 12px; }
+.hy-search { position: relative; display: flex; align-items: center; }
+.hy-search svg { position: absolute; left: 9px; color: var(--dim); pointer-events: none; }
+.hy-search .hy-input { padding-left: 30px; width: 100%; }
+.hy-select { appearance: none; padding-right: 26px; cursor: pointer;
+  background: var(--bg0) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23A39B87' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat right 9px center; }
+.hy-select option { background: var(--bg1); color: var(--ink); }
+
+/* переключатель: прямоугольный «тумблер» с сегментом */
+.hy-toggle { position: relative; width: 38px; height: 20px; flex: 0 0 38px; border: 1px solid var(--line); background: var(--bg0);
+  cursor: pointer; transition: border-color var(--t-fast); }
+.hy-toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 12px; background: var(--line-hi);
+  transition: transform var(--t-med) var(--ease), background var(--t-med); }
+.hy-toggle.on { border-color: var(--accent); }
+.hy-toggle.on::after { transform: translateX(16px); background: var(--accent); }
+
+/* ползунок */
+.hy-range { -webkit-appearance: none; appearance: none; height: 20px; background: transparent; cursor: pointer; min-width: 120px; }
+.hy-range::-webkit-slider-runnable-track { height: 4px; background: linear-gradient(to right, var(--accent) var(--p, 50%), var(--line) var(--p, 50%)); }
+.hy-range::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 16px; margin-top: -6px; background: var(--ink); border: 0; }
+.hy-range:hover::-webkit-slider-thumb { background: var(--accent); }
+
+/* сегментированный выбор */
+.hy-seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.hy-seg button { border: 0; background: none; padding: 0 12px; height: 28px; cursor: pointer; color: var(--dim); font-size: 12px; }
+.hy-seg button + button { border-left: 1px solid var(--line); }
+.hy-seg button:hover { color: var(--ink); background: var(--hover); }
+.hy-seg button.on { background: var(--ink-faint); color: var(--accent); }
+
+/* флажок */
+.hy-check { width: 15px; height: 15px; border: 1px solid var(--line-hi); display: inline-grid; place-items: center; cursor: pointer; flex: 0 0 15px; }
+.hy-check.on { border-color: var(--accent); background: var(--accent); }
+.hy-check.on::after { content: ""; width: 7px; height: 4px; border: 2px solid var(--bg0); border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
+
+/* ── вкладки-трапеции ─────────────────────────────────────── */
+.hy-tabs { display: flex; align-items: flex-end; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--line); min-height: 36px; overflow-x: auto; }
+.hy-tabs::-webkit-scrollbar { height: 0; }
+.hy-tab { position: relative; display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 22px 0 18px; cursor: pointer;
+  color: var(--dim); font: 500 12px/1 var(--font-ui); white-space: nowrap; background: var(--bg1);
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 100%, 0 100%); }
+.hy-tab:hover { color: var(--ink); background: var(--bg2); }
+.hy-tab.on { color: var(--ink); background: var(--bg2); }
+.hy-tab.on::after { content: ""; position: absolute; left: 12px; right: 12px; top: 0; height: 2px; background: var(--accent); }
+.hy-tab .x { opacity: 0; width: 16px; height: 16px; display: grid; place-items: center; color: var(--dim); }
+.hy-tab:hover .x, .hy-tab.on .x { opacity: .8; }
+.hy-tab .x:hover { color: var(--coral); opacity: 1; }
+.hy-tab .badge { width: 6px; height: 6px; background: var(--accent); }
+
+/* ── панели-досье ─────────────────────────────────────────── */
+.hy-card { position: relative; background: var(--bg1); border: 1px solid var(--line);
+  clip-path: polygon(var(--chamfer) 0, 100% 0, 100% calc(100% - var(--chamfer)), calc(100% - var(--chamfer)) 100%, 0 100%, 0 var(--chamfer)); }
+.hy-card > .head { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--line);
+  font: 600 10px/1 var(--font-mono); letter-spacing: .2em; text-transform: uppercase; }
+.hy-card > .head .tag { margin-left: auto; font-weight: 500; color: var(--dim); letter-spacing: .12em; }
+.hy-card > .body { padding: 12px; }
+.hy-card.flat { clip-path: none; }
+.hy-plate { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; background: var(--ink); color: var(--bg0);
+  font: 600 10px/1 var(--font-mono); letter-spacing: .16em; text-transform: uppercase; }
+.hy-plate.accent { background: var(--accent); } .hy-plate.ai { background: var(--violet); }
+.hy-plate.err { background: var(--coral); } .hy-plate.ok { background: var(--green); } .hy-plate.out { background: none; color: var(--dim); border: 1px solid var(--line); }
+.hy-badge { display: inline-flex; align-items: center; gap: 5px; height: 18px; padding: 0 6px; border: 1px solid var(--line);
+  font: 10px/1 var(--font-mono); color: var(--dim); letter-spacing: .06em; white-space: nowrap; }
+.hy-badge.c { border-color: currentColor; }
+
+/* строка досье: KEY ......... VALUE */
+.hy-kv { display: flex; align-items: baseline; gap: 8px; font: 12px/1.9 var(--font-mono); min-width: 0; }
+.hy-kv .k { color: var(--dim); white-space: nowrap; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+.hy-kv .dots { flex: 1; border-bottom: 1px dotted var(--line); transform: translateY(-4px); min-width: 12px; }
+.hy-kv .v { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+
+/* сегментированная полоса (заполнение) */
+.hy-segbar { display: flex; gap: 2px; height: 8px; }
+.hy-segbar i { flex: 1; background: var(--ink-soft); }
+.hy-segbar i.on { background: var(--seg, var(--accent)); }
+.hy-meter { height: 4px; background: var(--ink-faint); position: relative; overflow: hidden; }
+.hy-meter > i { position: absolute; inset: 0 auto 0 0; width: var(--p, 0%); background: var(--seg, var(--accent)); transition: width var(--t-slow) var(--ease); }
+
+/* декор: скобки по углам, штриховка, сетка-чертёж */
+.hy-brackets { position: relative; }
+.hy-brackets::before, .hy-brackets::after { content: ""; position: absolute; width: 10px; height: 10px; pointer-events: none; border: 1px solid var(--line-hi); }
+.hy-brackets::before { left: -1px; top: -1px; border-right: 0; border-bottom: 0; }
+.hy-brackets::after { right: -1px; bottom: -1px; border-left: 0; border-top: 0; }
+.hy-hatch { background: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 6px); }
+.hy-grid { background-image: linear-gradient(var(--ink-faint) 1px, transparent 1px), linear-gradient(90deg, var(--ink-faint) 1px, transparent 1px);
+  background-size: 24px 24px; }
+
+/* ── списки и таблицы ─────────────────────────────────────── */
+.hy-list { display: flex; flex-direction: column; }
+.hy-list .it { display: flex; align-items: center; gap: 10px; padding: 7px 12px; cursor: default; border-bottom: 1px solid var(--ink-faint);
+  min-height: 34px; }
+.hy-list .it:hover { background: var(--hover); }
+.hy-list .it.on { background: var(--ink-faint); box-shadow: inset 2px 0 0 var(--accent); }
+.hy-list .it .meta { margin-left: auto; font: 11px var(--font-mono); color: var(--dim); white-space: nowrap; }
+.hy-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.hy-table th { position: sticky; top: 0; background: var(--bg1); text-align: left; font: 600 10px var(--font-mono); letter-spacing: .14em;
+  text-transform: uppercase; color: var(--dim); padding: 8px 10px; border-bottom: 1px solid var(--line); cursor: pointer; white-space: nowrap; }
+.hy-table td { padding: 6px 10px; border-bottom: 1px solid var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; }
+.hy-table tr:hover td { background: var(--hover); }
+.hy-table tr.on td { background: var(--ink-faint); }
+.hy-table td.num { text-align: right; font-family: var(--font-mono); }
+.hy-cat { width: 3px; align-self: stretch; flex: 0 0 3px; }
+
+/* ── меню, всплывающие окна, уведомления ──────────────────── */
+.hy-menu { position: fixed; z-index: 5000; min-width: 200px; padding: 4px; background: var(--bg1); border: 1px solid var(--line-hi);
+  box-shadow: 0 12px 30px #000c; animation: hy-pop var(--t-fast) var(--ease); }
+.hy-menu .mi { display: flex; align-items: center; gap: 10px; padding: 7px 10px; cursor: pointer; white-space: nowrap; }
+.hy-menu .mi:hover { background: var(--hover); color: var(--ink); }
+.hy-menu .mi.danger { color: var(--coral); }
+.hy-menu .mi .k { margin-left: auto; padding-left: 18px; font: 10px var(--font-mono); color: var(--dim); }
+.hy-menu .sep { height: 1px; background: var(--line); margin: 4px 2px; }
+.hy-modal-back { position: fixed; inset: 0; z-index: 4000; background: #000a; display: grid; place-items: center; animation: hy-fade var(--t-med); }
+.hy-modal { width: min(520px, 92vw); max-height: 86vh; display: flex; flex-direction: column; animation: hy-crt-on calc(380ms / var(--spd-window)) var(--ease) both; }
+.hy-modal > .body { overflow: auto; }
+.hy-modal .actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+.hy-modal.danger > .head { color: var(--coral); }
+.hy-toasts { position: fixed; right: 14px; bottom: 14px; z-index: 6000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.hy-toast { pointer-events: auto; min-width: 260px; max-width: 420px; padding: 10px 12px 10px 14px; background: var(--bg1); border: 1px solid var(--line-hi);
+  border-left: 2px solid var(--accent); font: 12px/1.4 var(--font-ui); box-shadow: 0 10px 24px #000b; animation: hy-slide-in var(--t-med) var(--ease); }
+.hy-toast.err { border-left-color: var(--coral); } .hy-toast.ok { border-left-color: var(--green); } .hy-toast.ai { border-left-color: var(--violet); }
+.hy-toast .t { font: 600 10px var(--font-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--dim); margin-bottom: 3px; }
+.hy-toast .act { margin-top: 8px; display: flex; gap: 6px; }
+.hy-empty { display: grid; place-items: center; gap: 10px; padding: 48px 20px; color: var(--dim); text-align: center; font: 12px var(--font-mono); }
+.hy-empty svg { color: var(--line-hi); }
+.hy-kbd { display: inline-block; padding: 1px 5px; border: 1px solid var(--line); border-bottom-width: 2px; font: 10px var(--font-mono); color: var(--dim); }
+.hy-tip { position: fixed; z-index: 7000; padding: 4px 8px; background: var(--ink); color: var(--bg0); font: 11px var(--font-mono); pointer-events: none; }
+
+/* индикатор ожидания: кольцо сегментов */
+.hy-spin { width: 18px; height: 18px; display: inline-block; background: conic-gradient(var(--accent) 0 30%, var(--line) 30% 100%);
+  -webkit-mask: radial-gradient(circle, transparent 5px, #000 6px); animation: hy-rot calc(900ms / var(--spd)) steps(8) infinite; }
+.hy-skel { background: linear-gradient(90deg, var(--ink-faint), var(--ink-soft), var(--ink-faint)); background-size: 200% 100%; animation: hy-shimmer 1.4s linear infinite; }
+
+/* ── эффекты (дозированно: только по настройкам) ─────────── */
+.hy-scanlines::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 900;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 0 0 / calc(var(--scanlines) * 10)) 2px 3px); }
+.hy-grain::before { content: ""; position: fixed; inset: -50%; pointer-events: none; z-index: 901; opacity: calc(var(--grain) * 6);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: hy-grain calc(1s / 12 * 8) steps(8) infinite; }
+.glow { text-shadow: 0 0 calc(var(--glow) * 18px) color-mix(in srgb, currentColor 60%, transparent); }
+
+/* окно появляется: CRT (вспышка строки → раскрытие) + короткий глитч; скорость окон 0.7× */
+.hy-boot { animation: hy-crt-on calc(420ms / var(--spd-window) / var(--spd)) var(--ease) both; }
+.hy-boot .hy-body { animation: hy-glitch calc(260ms / var(--spd-window) / var(--spd)) steps(2) calc(300ms / var(--spd-window) / var(--spd)) both; }
+.hy-closing { animation: hy-crt-off calc(300ms / var(--spd-window) / var(--spd)) var(--ease) forwards; }
+@keyframes hy-crt-on {
+  0% { transform: scale(1, .004); filter: brightness(4); opacity: .2; }
+  35% { transform: scale(1, .004); filter: brightness(3); opacity: 1; }
+  70% { transform: scale(1, 1.02); filter: brightness(1.4); }
+  100% { transform: none; filter: none; opacity: 1; }
+}
+@keyframes hy-crt-off {
+  0% { transform: none; filter: none; }
+  55% { transform: scale(1, .006); filter: brightness(3); }
+  100% { transform: scale(0, .004); filter: brightness(5); opacity: 0; }
+}
+@keyframes hy-glitch {
+  0% { clip-path: inset(10% 0 62% 0); transform: translate(-6px, 0); }
+  50% { clip-path: inset(58% 0 12% 0); transform: translate(5px, 0); }
+  100% { clip-path: none; transform: none; }
+}
+/* скан и декод: 0.5× */
+.hy-scan { position: relative; overflow: hidden; }
+.hy-scan::after { content: ""; position: absolute; left: 0; right: 0; height: 40%; top: -40%; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--accent) 9%, transparent) 85%, color-mix(in srgb, var(--accent) 40%, transparent));
+  animation: hy-scan calc(1100ms / var(--spd-scan) / var(--spd)) var(--ease) 1 both; }
+@keyframes hy-scan { to { top: 100%; } }
+.hy-enter > * { animation: hy-up var(--t-slow) var(--ease) both; }
+.hy-enter > *:nth-child(2) { animation-delay: 30ms; } .hy-enter > *:nth-child(3) { animation-delay: 60ms; }
+.hy-enter > *:nth-child(4) { animation-delay: 90ms; } .hy-enter > *:nth-child(5) { animation-delay: 120ms; }
+.hy-enter > *:nth-child(n+6) { animation-delay: 150ms; }
+/* «чертёж»: линии рамки дорисовываются при открытии меню и панелей */
+.hy-blueprint { animation: hy-blueprint calc(520ms / var(--spd)) var(--ease) both; }
+@keyframes hy-blueprint {
+  0% { clip-path: inset(0 100% 100% 0); box-shadow: inset 0 0 0 1px var(--accent); }
+  60% { clip-path: inset(0 0 0 0); box-shadow: inset 0 0 0 1px var(--accent); }
+  100% { clip-path: inset(0 0 0 0); box-shadow: inset 0 0 0 1px transparent; }
+}
+@keyframes hy-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes hy-fade { from { opacity: 0; } }
+@keyframes hy-pop { from { opacity: 0; transform: scale(.97); } }
+@keyframes hy-slide-in { from { opacity: 0; transform: translateX(16px); } }
+@keyframes hy-rot { to { transform: rotate(360deg); } }
+@keyframes hy-shimmer { to { background-position: -200% 0; } }
+@keyframes hy-grain { 0% { transform: translate(0, 0); } 25% { transform: translate(-5%, 3%); } 50% { transform: translate(4%, -6%); }
+  75% { transform: translate(-3%, 5%); } 100% { transform: translate(2%, -2%); } }
+@keyframes hy-blink { 50% { opacity: 0; } }
+.blink { animation: hy-blink 1s steps(1) infinite; }
+
+/* меньше движения: из настроек или системы */
+.hy-reduced *, .hy-reduced *::before, .hy-reduced *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; } }
+
+/* значки (линейные пиктограммы 24×24) */
+.hy-icon { width: 16px; height: 16px; flex: 0 0 auto; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: square; stroke-linejoin: miter; }
+.hy-icon.s14 { width: 14px; height: 14px; } .hy-icon.s20 { width: 20px; height: 20px; } .hy-icon.s24 { width: 24px; height: 24px; }
+.hy-icon.s32 { width: 32px; height: 32px; } .hy-icon.s48 { width: 48px; height: 48px; stroke-width: 1.3; }
+
+/* формы настроек: строка «подпись — элемент» */
+.hy-field { display: flex; align-items: center; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--ink-faint); min-height: 52px; }
+.hy-field .label { flex: 1; min-width: 0; }
+.hy-field .label b { display: block; font-weight: 500; color: var(--ink); }
+.hy-field .label small { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; line-height: 1.35; }
+.hy-field .ctl { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.hy-field .val { font: 11px var(--font-mono); color: var(--dim); min-width: 42px; text-align: right; }
+.hy-field.sys .label b::after { content: "SYSTEM"; margin-left: 8px; font: 600 9px var(--font-mono); letter-spacing: .14em; color: var(--amber);
+  border: 1px solid currentColor; padding: 1px 4px; vertical-align: 1px; }
+.hy-swatch { width: 22px; height: 22px; border: 1px solid var(--line); cursor: pointer; flex: 0 0 22px; }
+.hy-swatch.on { outline: 1px solid var(--ink); outline-offset: 2px; }

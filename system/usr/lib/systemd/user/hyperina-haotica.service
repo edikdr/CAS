@@ -1,0 +1,15 @@
+[Unit]
+Description=HYPERINA: Haotica (ассистент: чат, инструменты, память, облачный канал)
+PartOf=graphical-session.target
+After=graphical-session.target hyperina-core.service
+Wants=hyperina-llm-main.service hyperina-llm-fast.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/hyperina-haotica
+Restart=on-failure
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=hyperina-session.target

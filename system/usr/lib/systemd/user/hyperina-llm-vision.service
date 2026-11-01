@@ -1,0 +1,15 @@
+[Unit]
+Description=HYPERINA: модель зрения (по запросу) — llama.cpp (Vulkan)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/hyperina/bin/hyperina-llm vision
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+Nice=5
+# модели живут в общей памяти с GPU: держим их вне swap
+LimitMEMLOCK=infinity
+

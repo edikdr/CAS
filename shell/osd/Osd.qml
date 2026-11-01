@@ -66,7 +66,7 @@ Scope {
             Glyph {
                 anchors.verticalCenter: parent.verticalCenter
                 size: 20
-                name: Ui.osdKind === "brightness" ? "sun" : (Ui.osdKind === "mic" ? "mic" : (Ui.osdMuted ? "mute" : "volume"))
+                name: Ui.osdKind === "brightness" ? "sun" : (Ui.osdKind === "keyboard" ? "keyboard" : (Ui.osdKind === "mic" ? "mic" : (Ui.osdMuted ? "mute" : "volume")))
                 color: Ui.osdMuted ? Theme.coral : Theme.ink
             }
             SegBar {
@@ -75,7 +75,7 @@ Scope {
                 count: 20
                 segHeight: 10
                 value: Ui.osdMuted ? 0 : Ui.osdValue
-                fillColor: Ui.osdKind === "brightness" ? Theme.amber : Theme.accent
+                fillColor: Ui.osdKind === "brightness" ? Theme.amber : (Ui.osdKind === "keyboard" ? Theme.teal : Theme.accent)
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter

@@ -88,6 +88,8 @@ def create_app(core) -> web.Application:
     apps_root = paths.APPS_DIR
     app.router.add_get("/ui/{path:.*}", _static("/ui", apps_root / "_ui"))
     app.router.add_get("/apps/{path:.*}", _static("/apps", apps_root))
+    sounds = paths.SHARE / "sounds" if (paths.SHARE / "sounds").is_dir() else paths.ASSETS / "sounds"
+    app.router.add_get("/sounds/{path:.*}", _static("/sounds", sounds))
     app.router.add_get("/newtab", _static("/newtab", apps_root / "newtab"))
     app.router.add_get("/newtab/{path:.*}", _static("/newtab", apps_root / "newtab"))
 

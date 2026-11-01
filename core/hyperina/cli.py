@@ -109,6 +109,81 @@ def cmd_dev(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_gamemode(a: argparse.Namespace) -> int:
+    from . import client
+    body = {"toggle": True} if a.action == "toggle" else ({} if a.action == "status" else {"on": a.action == "on"})
+    res = client.core("GET" if a.action == "status" else "POST", "/api/gamemode", None if a.action == "status" else body)
+    if res is None:
+        print("ядро HYPERINA не отвечает (systemctl --user status hyperina-core)")
+        return 1
+    print("РЕЖИМ «ИГРА»:", "ВКЛ" if res.get("on") else "ВЫКЛ")
+    return 0
+
+
+def cmd_screenshot(a: argparse.Namespace) -> int:
+    from . import screenshot
+    f = screenshot.shot(a.mode, edit=a.edit)
+    if f:
+        print(f)
+    return 0 if f else 1
+
+
+def cmd_record(a: argparse.Namespace) -> int:
+    from . import screenshot
+    print(screenshot.record_toggle(a.mode, a.audio))
+    return 0
+
+
+def cmd_keyboard(a: argparse.Namespace) -> int:
+    import subprocess
+    step = {"up": "+1", "down": "1-"}.get(a.value, a.value)
+    r = subprocess.run(["brightnessctl", "--device=*::kbd_backlight", "-m", "set", step], capture_output=True, text=True)
+    try:
+        cur, mx = int(r.stdout.split(",")[2]), int(r.stdout.split(",")[4])
+    except (IndexError, ValueError):
+        return 1
+    level = cur / mx if mx else 0
+    subprocess.run(["qs", "-p", str(paths.SHELL_DIR), "ipc", "call", "hyperina", "osd", "keyboard", f"{level:.2f}"],
+                   capture_output=True)
+    config.set_many({"keyboard.backlight_brightness": cur})
+    return 0
+
+
+def cmd_lid(a: argparse.Namespace) -> int:
+    from . import client
+    client.core("POST", "/api/lid", {"state": a.state})
+    return 0
+
+
+def cmd_update(_a: argparse.Namespace) -> int:
+    """Обновление системы в терминале: пакеты, AUR, Flatpak, прошивки."""
+    import shutil
+    import subprocess
+    steps = []
+    if shutil.which("paru"):
+        steps.append(["paru", "-Syu", "--sudoloop"])
+    else:
+        steps.append(["sudo", "pacman", "-Syu"])
+    if shutil.which("flatpak"):
+        steps.append(["flatpak", "update", "-y"])
+    for cmd in steps:
+        print(f"\033[38;2;224;162;67m> {' '.join(cmd)}\033[0m")
+        if subprocess.run(cmd).returncode != 0:
+            print("Шаг завершился с ошибкой — Haotica может разобрать вывод выше.")
+            return 1
+    if shutil.which("fwupdmgr"):
+        subprocess.run(["fwupdmgr", "get-updates"])
+    print("\033[38;2;95;168;160m✓ система обновлена\033[0m")
+    if shutil.which("hyperina"):
+        subprocess.run(["hyperina", "theme", "apply", "--no-reload"], capture_output=True)
+    return 0
+
+
+def cmd_doctor(_a: argparse.Namespace) -> int:
+    from . import doctor
+    return doctor.run()
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="hyperina", description="HYPERINA — управление системой")
     ap.add_argument("--version", action="version", version=f"HYPERINA {__version__}")
@@ -140,8 +215,37 @@ def main(argv: list[str] | None = None) -> int:
     d = sub.add_parser("info", help="пути и версия")
     d.set_defaults(fn=cmd_dev)
 
+    g = sub.add_parser("gamemode", help="режим «Игра»")
+    g.add_argument("action", choices=["on", "off", "toggle", "status"])
+    g.set_defaults(fn=cmd_gamemode)
+
+    sc = sub.add_parser("screenshot", help="скриншот")
+    sc.add_argument("mode", nargs="?", default="screen", choices=["screen", "area", "window"])
+    sc.add_argument("--edit", action="store_true", help="открыть разметку")
+    sc.set_defaults(fn=cmd_screenshot)
+
+    rc = sub.add_parser("record", help="запись экрана (повтор — стоп)")
+    rc.add_argument("mode", nargs="?", default="screen", choices=["screen", "area", "window"])
+    rc.add_argument("--audio", action="store_true")
+    rc.set_defaults(fn=cmd_record)
+
+    kb = sub.add_parser("keyboard", help="подсветка клавиатуры")
+    kb.add_argument("what", choices=["brightness"])
+    kb.add_argument("value", help="up, down или число")
+    kb.set_defaults(fn=cmd_keyboard)
+
+    ld = sub.add_parser("lid", help="событие крышки (из Hyprland)")
+    ld.add_argument("state", choices=["close", "open"])
+    ld.set_defaults(fn=cmd_lid)
+
+    up = sub.add_parser("update", help="обновить систему")
+    up.set_defaults(fn=cmd_update)
+
+    dc = sub.add_parser("doctor", help="проверка системы")
+    dc.set_defaults(fn=cmd_doctor)
+
     # подкоманды других модулей регистрируются сами
-    for mod in ("doctor", "models", "gamemode", "sounds", "haotica_cli"):
+    for mod in ("models", "sounds", "haotica_cli"):
         try:
             m = __import__(f"hyperina.{mod}", fromlist=["register"])
             m.register(sub)

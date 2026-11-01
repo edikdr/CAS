@@ -125,7 +125,7 @@ avatar = "auto"            # auto (Live2D, если есть модель), svg
 folders_allowed = ["~"]
 folders_denied = ["~/.ssh", "~/.gnupg", "~/.local/share/keyrings"]
 model_main = "main"
-context_size = 32768
+context_size = 131072      # 32768, 65536, 131072, 262144 (максимум модели)
 
 [cloud]
 enabled = false

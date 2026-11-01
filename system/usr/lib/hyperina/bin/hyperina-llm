@@ -1,0 +1,4 @@
+#!/bin/sh
+# HYPERINA: запуск llama-server для роли main | fast | vision (параметры — из манифеста и настроек)
+export PYTHONPATH="/usr/lib/hyperina/python${PYTHONPATH:+:$PYTHONPATH}"
+exec /usr/bin/python3 -c 'import sys; from hyperina.models import launch; launch(sys.argv[1])' "${1:-main}"

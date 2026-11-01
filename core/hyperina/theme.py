@@ -93,7 +93,7 @@ def hyprland_settings_lua(s: dict, p: Palette) -> str:
     disp, loc, kb, tp = s.get("display", {}), s.get("locale", {}), s.get("keyboard", {}), s.get("touchpad", {})
     gaps = {"compact": (3, 6), "normal": (6, 12), "airy": (10, 18)}.get(ap.get("density", "normal"), (6, 12))
     layouts = loc.get("layouts", ["de", "ru"])
-    variants = ["phonetic" if (l == "ru" and loc.get("ru_variant") == "phonetic") else "" for l in layouts]
+    variants = ["phonetic" if (lay == "ru" and loc.get("ru_variant") == "phonetic") else "" for lay in layouts]
     switch = {"alt_shift": "grp:alt_shift_toggle", "super_space": "grp:win_space_toggle",
               "caps": "grp:caps_toggle"}.get(loc.get("switch", "alt_shift"), "grp:alt_shift_toggle")
     vals = {

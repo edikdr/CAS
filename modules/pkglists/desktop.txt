@@ -5,4 +5,4 @@ grim slurp wf-recorder wl-clipboard cliphist
 qt6-wayland qt5-wayland qt6-svg qt6-multimedia qt6-multimedia-ffmpeg qt6-shadertools qt6-5compat
 qt6-declarative qt6-imageformats qt6-webengine qt6-webchannel
 kvantum qt6ct gtk3 gtk4 adw-gtk-theme gnome-themes-extra gnome-keyring libsecret
-plymouth papirus-icon-theme xorg-xcursorgen zenity
+plymouth papirus-icon-theme xorg-xcursorgen librsvg zenity

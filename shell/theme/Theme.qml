@@ -99,6 +99,13 @@ Singleton {
         id: fallbackTheme
         path: root.homeDir + "/.config/hyperina/theme.json"
         onLoaded: if (Object.keys(root.t).length === 0) root.parseTheme(text())
+        onLoadFailed: systemTheme.reload()
+    }
+    // системная копия — для экрана входа (пользователь greeter)
+    FileView {
+        id: systemTheme
+        path: "/etc/hyperina/theme.json"
+        onLoaded: if (Object.keys(root.t).length === 0) root.parseTheme(text())
     }
     FileView {
         id: settingsFile

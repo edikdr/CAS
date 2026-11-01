@@ -6,8 +6,6 @@ from __future__ import annotations
 
 import json
 import math
-import shutil
-import subprocess
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -161,139 +159,10 @@ def render_wallpaper(p: Palette, out_dir: Path, size: tuple[int, int] = (2560, 1
     return meta
 
 
-# ── курсоры ──────────────────────────────────────────────────────
-CURSOR_SIZES = (24, 36, 48, 64)
-
-CURSOR_ALIASES = {
-    "default": ["left_ptr", "arrow", "top_left_arrow", "x-cursor", "X_cursor", "context-menu", "copy", "alias",
-                "dnd-copy", "dnd-link", "dnd-move", "dnd-none", "dnd-ask", "move-arrow"],
-    "pointer": ["hand1", "hand2", "pointing_hand", "hand", "e29285e634086352946a0e7090d73106", "9d800788f1b08800ae810202380a0822"],
-    "text": ["xterm", "ibeam", "vertical-text"],
-    "crosshair": ["cross", "tcross", "cell", "plus", "color-picker", "pencil"],
-    "wait": ["watch", "busy"],
-    "progress": ["left_ptr_watch", "half-busy", "08e8e1c95fe2fc01f976f1e063a24ccd", "3ecb610c1bf2410f44200f48c40d3599"],
-    "not-allowed": ["crossed_circle", "no-drop", "forbidden", "circle", "03b6e0fcb3499374a867c041f52298f0"],
-    "move": ["all-scroll", "fleur", "size_all", "grabbing", "closedhand", "dnd-move-hand"],
-    "grab": ["openhand", "pointer-move"],
-    "ns-resize": ["n-resize", "s-resize", "size_ver", "sb_v_double_arrow", "v_double_arrow", "row-resize", "top_side", "bottom_side", "split_v", "00008160000006810000408080010102"],
-    "ew-resize": ["e-resize", "w-resize", "size_hor", "sb_h_double_arrow", "h_double_arrow", "col-resize", "left_side", "right_side", "split_h", "028006030e0e7ebffc7f7070c0600140"],
-    "nwse-resize": ["nw-resize", "se-resize", "size_fdiag", "bd_double_arrow", "top_left_corner", "bottom_right_corner", "c7088f0f3e6c8088236ef8e1e3e70000"],
-    "nesw-resize": ["ne-resize", "sw-resize", "size_bdiag", "fd_double_arrow", "top_right_corner", "bottom_left_corner", "fcf1c3c7cd4491d801f1e1c78f100000"],
-    "help": ["question_arrow", "whats_this", "left_ptr_help", "d9ce0ab605698f320427677b458ad60b", "5c6cd98b3f3ebcb1f9c7f1c204630408"],
-}
-
-
-def _arrow(d: ImageDraw.ImageDraw, s: float, fill, outline) -> None:
-    pts = [(1, 1), (1, 17), (5.2, 13.2), (8.2, 20), (11, 18.8), (8.2, 12.4), (14, 12.4)]
-    pts = [(x * s, y * s) for x, y in pts]
-    d.polygon(pts, fill=fill, outline=outline)
-    d.line(pts + [pts[0]], fill=outline, width=max(1, round(s * 1.1)), joint="curve")
-
-
-def _draw_cursor(name: str, size: int, p: Palette, frame: int = 0) -> tuple["Image.Image", int, int]:
-    s = size / 24
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    ink, acc, cor, blk = (*hex_to_rgb(p["ink"]), 255), (*hex_to_rgb(p["accent"]), 255), (*hex_to_rgb(p["coral"]), 255), (0, 0, 0, 255)
-    w = max(1, round(1.6 * s))
-    c = size / 2
-    if name in ("default", "help", "progress"):
-        _arrow(d, s, ink, blk)
-        d.rectangle((1 * s, 19.5 * s, 4 * s, 21 * s), fill=acc)
-        if name == "help":
-            d.text((14 * s, 12 * s), "?", fill=acc, font=font(max(8, round(10 * s)), "mono_bold"))
-        if name == "progress":
-            _segments(d, 17 * s, 18 * s, 5.2 * s, frame, ink, acc, s)
-        return img, round(s), round(s)
-    if name == "pointer":
-        _arrow(d, s, acc, blk)
-        return img, round(s), round(s)
-    if name == "text":
-        for col, ww in ((blk, w + 2), (ink, w)):
-            d.line((c, 4 * s, c, 20 * s), fill=col, width=ww)
-            d.line((c - 3.5 * s, 4 * s, c + 3.5 * s, 4 * s), fill=col, width=ww)
-            d.line((c - 3.5 * s, 20 * s, c + 3.5 * s, 20 * s), fill=col, width=ww)
-        return img, round(c), round(c)
-    if name == "crosshair":
-        for col, ww in ((blk, w + 2), (ink, w)):
-            d.line((c, 2 * s, c, 9 * s), fill=col, width=ww); d.line((c, 15 * s, c, 22 * s), fill=col, width=ww)
-            d.line((2 * s, c, 9 * s, c), fill=col, width=ww); d.line((15 * s, c, 22 * s, c), fill=col, width=ww)
-        d.rectangle((c - 1.2 * s, c - 1.2 * s, c + 1.2 * s, c + 1.2 * s), fill=acc)
-        return img, round(c), round(c)
-    if name == "wait":
-        _segments(d, c, c, 8 * s, frame, ink, acc, s)
-        return img, round(c), round(c)
-    if name == "not-allowed":
-        r = 8 * s
-        d.ellipse((c - r, c - r, c + r, c + r), outline=blk, width=w + 2)
-        d.ellipse((c - r, c - r, c + r, c + r), outline=cor, width=w)
-        d.line((c - r * 0.7, c + r * 0.7, c + r * 0.7, c - r * 0.7), fill=cor, width=w)
-        return img, round(c), round(c)
-    if name in ("move", "grab"):
-        L = 8 * s
-        for col, ww in ((blk, w + 2), (ink if name == "move" else acc, w)):
-            d.line((c - L, c, c + L, c), fill=col, width=ww); d.line((c, c - L, c, c + L), fill=col, width=ww)
-            for ax, ay, bx, by in ((c - L, c, c - L + 3 * s, c - 3 * s), (c - L, c, c - L + 3 * s, c + 3 * s),
-                                   (c + L, c, c + L - 3 * s, c - 3 * s), (c + L, c, c + L - 3 * s, c + 3 * s),
-                                   (c, c - L, c - 3 * s, c - L + 3 * s), (c, c - L, c + 3 * s, c - L + 3 * s),
-                                   (c, c + L, c - 3 * s, c + L - 3 * s), (c, c + L, c + 3 * s, c + L - 3 * s)):
-                d.line((ax, ay, bx, by), fill=col, width=ww)
-        return img, round(c), round(c)
-    if name.endswith("-resize"):
-        ang = {"ns-resize": 90, "ew-resize": 0, "nwse-resize": 45, "nesw-resize": 135}[name]
-        L = 8 * s
-        dx, dy = math.cos(math.radians(ang)) * L, math.sin(math.radians(ang)) * L
-        a, b = (c - dx, c - dy), (c + dx, c + dy)
-        for col, ww in ((blk, w + 2), (ink, w)):
-            d.line((a, b), fill=col, width=ww)
-            for (px, py), sign in ((a, 1), (b, -1)):
-                for off in (-35, 35):
-                    t = math.radians(ang + off)
-                    d.line((px, py, px + sign * math.cos(t) * 4 * s, py + sign * math.sin(t) * 4 * s), fill=col, width=ww)
-        return img, round(c), round(c)
-    _arrow(d, s, ink, blk)
-    return img, round(s), round(s)
-
-
-def _segments(d: ImageDraw.ImageDraw, cx: float, cy: float, r: float, frame: int, ink, acc, s: float) -> None:
-    for i in range(8):
-        a0 = math.radians(i * 45 + 6)
-        a1 = math.radians(i * 45 + 39)
-        col = acc if (i - frame) % 8 in (0, 1, 2) else (*ink[:3], 110)
-        d.arc((cx - r, cy - r, cx + r, cy + r), math.degrees(a0), math.degrees(a1), fill=(0, 0, 0, 255), width=max(2, round(3.4 * s)))
-        d.arc((cx - r, cy - r, cx + r, cy + r), math.degrees(a0), math.degrees(a1), fill=col, width=max(1, round(2.2 * s)))
-
-
+# ── курсоры: см. cursors.py (SVG-геометрия, симметрия по построению) ──
 def build_cursor_theme(p: Palette, dest: Path) -> Path | None:
-    """Собрать курсоры XCursor в dest/cursors (dest — каталог темы HYPERINA). Нужен xcursorgen."""
-    if not shutil.which("xcursorgen"):
-        return None
-    work = paths.CACHE_DIR / "cursor-build"
-    shutil.rmtree(work, ignore_errors=True)
-    work.mkdir(parents=True)
-    cursors = dest / "cursors"
-    shutil.rmtree(cursors, ignore_errors=True)
-    cursors.mkdir(parents=True)
-    for name in CURSOR_ALIASES:
-        frames = 8 if name in ("wait", "progress") else 1
-        cfg_lines = []
-        for size in CURSOR_SIZES:
-            for fr in range(frames):
-                img, hx, hy = _draw_cursor(name, size, p, fr)
-                fn = work / f"{name}-{size}-{fr}.png"
-                img.save(fn)
-                cfg_lines.append(f"{size} {hx} {hy} {fn}" + (" 90" if frames > 1 else ""))
-        cfg = work / f"{name}.cfg"
-        cfg.write_text("\n".join(cfg_lines) + "\n")
-        subprocess.run(["xcursorgen", str(cfg), str(cursors / name)], check=True)
-        for alias in CURSOR_ALIASES[name]:
-            link = cursors / alias
-            if not link.exists():
-                link.symlink_to(name)
-    if not (dest / "index.theme").exists():
-        (dest / "index.theme").write_text("[Icon Theme]\nName=HYPERINA\nComment=HYPERINA\nInherits=Adwaita\n")
-    shutil.rmtree(work, ignore_errors=True)
-    return dest
+    from . import cursors
+    return cursors.build_cursor_theme(p, dest)
 
 
 # ── заставка загрузки (Plymouth): картинки ───────────────────────

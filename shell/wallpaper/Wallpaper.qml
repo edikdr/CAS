@@ -26,7 +26,7 @@ PanelWindow {
     readonly property bool fullscreenHere: monitor && monitor.activeWorkspace ? monitor.activeWorkspace.hasFullscreen : false
     readonly property bool batteryPause: Theme.onBattery && (Theme.effects.battery_pause !== false)
     readonly property bool live: Theme.wallpaper.live !== false && !Theme.reduceMotion && !fullscreenHere && !batteryPause && Theme.liveliness > 0.01
-    readonly property real L: Theme.liveliness
+    readonly property real lively: Theme.liveliness
 
     FileView {
         path: wall.dir + "meta.json"
@@ -347,7 +347,7 @@ PanelWindow {
         interval: 9000
         onTriggered: {
             wall.event(wall.pick());
-            const factor = Math.max(0.35, (1.35 - wall.L) / 0.7);
+            const factor = Math.max(0.35, (1.35 - wall.lively) / 0.7);
             interval = (6000 + Math.random() * 19000) * factor;
         }
     }

@@ -29,6 +29,7 @@ for _p in /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh \
   [[ -r $_p ]] && . $_p
 done; unset _p
 (( $+commands[fzf] )) && source <(fzf --zsh 2>/dev/null)
+[[ -d ~/.local/bin && ":$PATH:" != *":$HOME/.local/bin:"* ]] && PATH="$HOME/.local/bin:$PATH"
 hy() { command haotica ask "$*" }          # Haotica из любой консоли: hy вопрос / ?? вопрос
 alias '??'='noglob hy'
 # <<< HAOTICA <<<

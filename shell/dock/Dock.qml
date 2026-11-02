@@ -22,8 +22,9 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "haotica-dock"
 
-    readonly property var defaults: ["haotica-terminal", "haotica-files", "google-chrome", "org.telegram.desktop",
-        "vesktop", "steam", "spotify", "code", "obsidian", "haotica-assistant", "haotica-settings"]
+    readonly property var defaults: ["haotica-terminal", "haotica-files", "google-chrome", "haotica-web-chatgpt",
+        "haotica-claude-code", "code", "discord", "org.telegram.desktop", "spotify", "steam",
+        "haotica-assistant", "haotica-settings"]
     readonly property var pinned: (Theme.s.desktop && Theme.s.desktop.dock) ? Theme.s.desktop.dock : defaults
 
     function entryFor(id) { return DesktopEntries.byId(id) || DesktopEntries.heuristicLookup(id); }

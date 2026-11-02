@@ -157,6 +157,33 @@ FALLBACK_MIME = {
 }
 
 
+# предустановленные веб-приложения (окно Chrome --app) и Claude Code; иконки уже есть в теме HAOTICA
+PRESET_WEBAPPS = [
+    # id, имя, адрес, категория (для лаунчера)
+    ("chatgpt", "ChatGPT", "https://chatgpt.com/", "ai"),
+    ("gemini", "Gemini", "https://gemini.google.com/app", "ai"),
+    ("grok", "Grok", "https://grok.com/", "ai"),
+    ("chess", "Chess.com", "https://www.chess.com/", "media"),
+    ("github", "GitHub", "https://github.com/", "dev"),
+]
+
+
+def preset_texts() -> dict[str, str]:
+    """Тексты .desktop предустановленных веб-приложений и лаунчера Claude Code."""
+    out = {}
+    for slug, name, url, cat in PRESET_WEBAPPS:
+        out[f"{WEB_PREFIX}{slug}.desktop"] = "\n".join([
+            "[Desktop Entry]", "Type=Application", f"Name={name}", f"Comment={url}",
+            f"Exec=google-chrome-stable --app={url}", f"Icon={WEB_PREFIX}{slug}",
+            f"StartupWMClass={chrome_app_id(url)}", "Categories=Network;WebBrowser;",
+            f"X-HAOTICA-Category={cat}", f"X-HAOTICA-URL={url}", "X-HAOTICA-Isolated=false", ""])
+    out["haotica-claude-code.desktop"] = "\n".join([
+        "[Desktop Entry]", "Type=Application", "Name=Claude Code", "Comment=Claude Code в терминале HAOTICA",
+        "Exec=haotica-app terminal --run claude", "Icon=haotica-web-claude", "StartupWMClass=haotica-terminal",
+        "Categories=Development;", "Keywords=claude;ai;code;", "X-HAOTICA-Category=ai", ""])
+    return out
+
+
 def existing_apps(apps_dir: Path | None = None) -> list:
     """Приложения реестра, у которых есть интерфейс (apps/<имя>/index.html)."""
     from .apps import registry
@@ -182,12 +209,15 @@ def install_entries(dest: Path, apps_dir: Path | None = None, mimeapps: Path | N
     mimeapps.list: свои приложения там, где они есть, иначе — запасные (Chrome, mpv, KDE)."""
     dest.mkdir(parents=True, exist_ok=True)
     apps = existing_apps(apps_dir)
-    names = {f"haotica-{a.name}.desktop" for a in apps}
+    presets = preset_texts()
+    names = {f"haotica-{a.name}.desktop" for a in apps} | set(presets)
     for old in dest.glob("haotica-*.desktop"):
         if old.name not in names and not old.name.startswith(WEB_PREFIX):
             old.unlink()
     for a in apps:
         (dest / f"haotica-{a.name}.desktop").write_text(desktop_text(a), encoding="utf-8")
+    for fname, text in presets.items():
+        (dest / fname).write_text(text, encoding="utf-8")
     if mimeapps:
         own = {"inode/directory": "haotica-files.desktop"} if any(a.name == "files" for a in apps) else {}
         mime = {**FALLBACK_MIME, **own}

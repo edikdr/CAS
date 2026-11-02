@@ -2,6 +2,7 @@
 // распознавание в выводе), файловая панель с категориями и тегами, превью, системные виджеты
 // из общего сервиса метрик, Haotica в правой панели, палитра команд и Cloud Link.
 import { HY, el, icon } from "/ui/hy.js";
+import { keysDialog } from "/ui/keys.js";
 import { Terminal } from "/ui/vendor/xterm/xterm.mjs";
 import { FitAddon } from "/ui/vendor/xterm/addon-fit.mjs";
 import { WebglAddon } from "/ui/vendor/xterm/addon-webgl.mjs";
@@ -815,12 +816,7 @@ function renderStatus() {
 }
 
 // ── Cloud Link и палитра команд ─────────────────────────────────
-function openCloud() {
-  const o = $("overlay");
-  $("overlay-frame").src = "/apps/cloud/index.html?embed=terminal";
-  o.classList.remove("hidden");
-  o.onclick = (e) => { if (e.target === o) o.classList.add("hidden"); };
-}
+function openCloud() { keysDialog().then(() => state.active && state.active.term.focus()); }
 function palettePower() {
   HY.menu(innerWidth / 2 - 120, 160, [["quiet", "ТИХИЙ"], ["balanced", "БАЛАНС"], ["performance", "ПРОИЗВОДИТЕЛЬНОСТЬ"]].map(([v, l]) =>
     ({ label: l, icon: "bolt", fn: () => HY.setting(state.metrics.on_battery ? "power.profile_battery" : "power.profile_ac", v) })));
@@ -832,6 +828,7 @@ function palette() {
     { label: HY.t("newtab"), key: "Ctrl+Shift+T", icon: "plus", fn: () => newTab({ cwd: t ? t.cwd : "" }) },
     { label: HY.t("closetab"), key: "Ctrl+Shift+W", icon: "close", fn: () => t && closeTab(t) },
     { label: HY.t("cloud"), key: "/cloud", icon: "cloud", fn: openCloud },
+    { label: "API-ключи (OpenRouter, ElevenLabs)", key: "/key", icon: "key", fn: openCloud },
     { label: HY.t("find"), key: "Ctrl+Shift+F", icon: "search", fn: () => t && findBar(t) },
     { label: "Журнал", key: "", icon: "doc", fn: () => showPanel("log") },
     { label: "Файлы", key: "", icon: "folder", fn: () => showPanel("files") },

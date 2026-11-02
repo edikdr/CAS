@@ -1,2 +1,3 @@
 # Программы из AUR
-google-chrome vesktop-bin visual-studio-code-bin spotify spicetify-cli onlyoffice-bin protonup-qt
+google-chrome visual-studio-code-bin spotify claude-code
+vesktop-bin spicetify-cli onlyoffice-bin protonup-qt

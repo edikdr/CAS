@@ -1,5 +1,6 @@
 // HAOTICA — Настройки. Каждое поле пишет в settings.toml через /api/settings (ядро применяет на лету).
 import { HY, el, icon } from "/ui/hy.js";
+import { keysDialog } from "/ui/keys.js";
 
 await HY.start({ title: "Настройки", glyph: "settings" });
 const $ = (id) => document.getElementById(id);
@@ -310,7 +311,22 @@ const PAGES = {
       seg("haotica.swearing", "Мат", null, [["off", "Нет"], ["moderate", "Умеренно"], ["free", "Свободно"]]),
       seg("haotica.proactive", "Сама подсказывает", null, [["never", "Никогда"], ["sometimes", "Иногда"], ["often", "Часто"]]),
       num("haotica.max_unprompted_per_hour", "Подсказок без спроса в час", null, { min: 0, max: 30 }),
-      toggle("haotica.voice", "Голос"), toggle("haotica.memory", "Память о владельце"),
+      toggle("haotica.memory", "Память о владельце"),
+      h2("Голос (Сара)"),
+      toggle("haotica.voice", "Голос", "Отвечает вслух, кроме тихих часов и режима «Игра»"),
+      seg("haotica.voice_backend", "Источник", "Свой — синтез на ноутбуке; при сбое — ElevenLabs, если есть ключ",
+        [["local", "Свой"], ["elevenlabs", "ElevenLabs"], ["lines", "Только реплики"]]),
+      seg("haotica.tts_engine", "Движок", "Chatterbox говорит голосом Сары (образец из ElevenLabs); Piper — лёгкий запасной",
+        [["auto", "Авто"], ["chatterbox", "Chatterbox"], ["piper", "Piper"]]),
+      range("haotica.voice_speed", "Скорость речи", null, { min: 0.7, max: 1.4, step: 0.05, fmt: (v) => v.toFixed(2) + "×" }),
+      el("div.s-actions",
+        el("button.hy-btn.small", { onclick: async () => {
+          HY.toast("Говорю…");
+          const r = await HY.haotica("POST", "/api/voice/test", {}).catch(() => null);
+          HY.toast(r && r.played ? `Голос: ${r.engine || "?"}` : "Голос не прозвучал: служба haotica-tts не запущена и нет ключа ElevenLabs", r && r.played ? "" : "err", [], 7000);
+        } }, icon("volume", 14), " Проверить голос"),
+        el("button.hy-btn.small", { onclick: () => HY.post("/api/sys/service", { unit: "haotica-tts.service", action: "restart" }).then((x) => HY.toast(x.ok ? "Служба голоса перезапущена (Chatterbox грузится до минуты)" : x.error || "Ошибка", x.ok ? "" : "err")) }, icon("reboot", 14), " Перезапустить голос"),
+        el("button.hy-btn.small", { onclick: () => keysDialog() }, icon("key", 14), " API-ключи")),
       text("haotica.folders_allowed", "Доступ к папкам", "Через запятую", { list: true }),
       text("haotica.folders_denied", "Закрытые папки", "~/.ssh, ключи и банковский профиль закрыты всегда", { list: true }),
       h2("Облако (OpenRouter)"),
@@ -373,7 +389,7 @@ const PAGES = {
       el("div.s-actions",
         el("button.hy-btn.small", { onclick: loadSvc }, icon("reboot", 14), " Обновить"),
         el("button.hy-btn.small", { onclick: async () => { const r = await HY.post("/api/diag", {}); HY.toast(r.ok ? "Отчёт: " + r.file : r.error || "Ошибка", r.ok ? "" : "err", [], 9000); } }, icon("doc", 14), " Отчёт для диагностики"),
-        el("button.hy-btn.small", { onclick: () => HY.openApp("terminal", ["--", "haotica", "doctor"]) }, icon("terminal", 14), " haotica doctor"))];
+        el("button.hy-btn.small", { onclick: () => HY.openApp("terminal", ["--run", "haotica doctor"]) }, icon("terminal", 14), " haotica doctor"))];
   } },
 };
 
@@ -398,5 +414,6 @@ find.addEventListener("input", HY.debounce(() => {
   document.querySelectorAll("#page .hy-field, #page .s-row").forEach((f) => { f.style.display = !q || f.textContent.toLowerCase().includes(q) ? "" : "none"; });
 }, 150));
 HY.on("settings-applied", () => {}); // значения подтягиваются при открытии страницы
-const want = (HY.args && HY.args[0]) || (() => { try { return localStorage.getItem("settings.page"); } catch (e) { return null; } })();
+const argPage = HY.args && (HY.args.indexOf("--page") >= 0 ? HY.args[HY.args.indexOf("--page") + 1] : HY.args[0]);
+const want = argPage || (() => { try { return localStorage.getItem("settings.page"); } catch (e) { return null; } })();
 render(PAGES[want] ? want : "appearance");

@@ -50,3 +50,40 @@ async def status() -> dict:
         v = await get(name)
         out[name] = {"label": label, "set": bool(v), "mask": mask(v) if v else ""}
     return out
+
+
+# ── haotica key: ключи из консоли (ввод скрыт, в историю оболочки не попадает) ──
+def _cli(a) -> int:
+    import asyncio
+    import getpass
+    import sys
+    if a.action == "status" or not a.name:
+        for name, st in asyncio.run(status()).items():
+            print(f"  {'✓' if st['set'] else '·'} {name:<11} {st['label']}  {st['mask']}")
+        return 0
+    if a.name not in NAMES:
+        print(f"неизвестный ключ: {a.name}. Есть: {', '.join(NAMES)}", file=sys.stderr)
+        return 2
+    if a.action == "remove":
+        ok = asyncio.run(clear(a.name))
+    else:
+        value = sys.stdin.readline().strip() if not sys.stdin.isatty() else getpass.getpass(f"{NAMES[a.name]}: ").strip()
+        if not value:
+            print("пусто — ничего не изменено", file=sys.stderr)
+            return 1
+        ok = asyncio.run(store(a.name, value))
+    if not ok:
+        print("✗ связка ключей недоступна (нужны gnome-keyring и secret-tool)", file=sys.stderr)
+        return 1
+    if a.name in ("openrouter", "elevenlabs"):
+        from . import client
+        client.haotica("POST", "/api/reload", {}, timeout=5)
+    print(f"✓ {NAMES[a.name]}: {'удалён' if a.action == 'remove' else 'сохранён'}")
+    return 0
+
+
+def register(sub) -> None:
+    p = sub.add_parser("key", help="API-ключи (OpenRouter, ElevenLabs…) в связке ключей")
+    p.add_argument("action", choices=["set", "remove", "status"])
+    p.add_argument("name", nargs="?", default="", help=", ".join(NAMES))
+    p.set_defaults(fn=_cli)

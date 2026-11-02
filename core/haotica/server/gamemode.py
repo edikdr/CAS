@@ -54,7 +54,7 @@ class GameMode:
             if on:
                 self._prev_profile = self.core.metrics.data.get("power_profile", "")
                 if gm.get("unload_llm", True):
-                    await util.arun(["systemctl", "--user", "stop", *LLM_UNITS], 30)
+                    await util.arun(["systemctl", "--user", "stop", *LLM_UNITS, "haotica-tts.service"], 30)
                 if gm.get("pause_gestures", True):
                     await util.arun(["systemctl", "--user", "stop", "haotica-gestures.service"], 10)
                 self.core.recon_paused = bool(gm.get("pause_recon", True))
@@ -65,7 +65,7 @@ class GameMode:
                 self.core.recon_paused = False
                 await self.core.power_profile_for(self.core.metrics.data.get("on_battery", False), s)
                 if s.get("haotica", {}).get("enabled", True):
-                    await util.arun(["systemctl", "--user", "start", "haotica-llm-base.service"], 10)
+                    await util.arun(["systemctl", "--user", "start", "haotica-llm-base.service", "haotica-tts.service"], 10)
                 if s.get("gestures", {}).get("enabled", False):
                     await util.arun(["systemctl", "--user", "start", "haotica-gestures.service"], 10)
                 self.core.events.add("game", "GAME MODE // OFF — NEURAL CORE RELOADING")

@@ -61,7 +61,7 @@ PY
   # Модели (haotica-llm-*) запускает сама Haotica, когда файлы скачаны.
   enable_user_unit_global haotica-agent.service
   sudo_run systemctl --global disable haotica-llm-base.service haotica-llm-fast.service haotica-llm-deep.service \
-    haotica-tts.service haotica-gestures.service >/dev/null 2>&1 || true
+    haotica-gestures.service >/dev/null 2>&1 || true
   if [[ "$DRY_RUN" != 1 ]] && ! /usr/bin/haotica --version >/dev/null 2>&1; then
     die "haotica не запускается: python3 -m haotica.cli — проверьте журнал"
   fi

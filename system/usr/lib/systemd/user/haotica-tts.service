@@ -1,5 +1,5 @@
 [Unit]
-Description=HAOTICA: голос Haotica (Chatterbox, ROCm)
+Description=HAOTICA: голос Haotica (Chatterbox с голосом Сары, запасной Piper)
 PartOf=graphical-session.target
 After=graphical-session.target
 

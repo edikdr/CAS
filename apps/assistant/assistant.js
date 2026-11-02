@@ -1,6 +1,7 @@
 // HAOTICA — окно ассистента. ?embed=terminal — панель внутри терминала (без рамки, разговор «terminal»).
 import { HY, el, icon } from "/ui/hy.js";
 import { createAvatar, avatarCss } from "/ui/avatar.js";
+import { keysDialog } from "/ui/keys.js";
 
 const qs = new URLSearchParams(location.search);
 const embed = qs.get("embed") || "";
@@ -15,6 +16,8 @@ const st = document.createElement("style"); st.textContent = avatarCss(); docume
 let avatar = null;
 try { avatar = createAvatar($("av"), { size: embed ? 40 : 64, interactive: false, crt: 0.25 }); } catch (e) { /* без аватара */ }
 $("clear").append(icon("trash", 14));
+$("keys").append(icon("key", 14));
+$("keys").onclick = () => keysDialog();
 
 // ── отрисовка сообщений ─────────────────────────────────────────
 function esc(s) { return s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }

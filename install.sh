@@ -30,7 +30,8 @@ HAOTICA installer ${HY_VERSION}
   --only 15,30       выполнить только указанные модули (номера или имена)
   --skip 55,60       пропустить модули
   --force            выполнить заново даже уже сделанные модули
-  --no-models        не скачивать модели ИИ (~50 ГБ), можно позже: haotica models pull
+  --no-models        не скачивать модели ИИ (~70 ГБ), можно позже: haotica models download
+  --no-voice-hq      без Chatterbox (голос Сары на GPU, ~6 ГБ): только Piper и ElevenLabs
   --list             список модулей и их состояние
   --help             эта справка
 
@@ -38,7 +39,7 @@ HAOTICA installer ${HY_VERSION}
 EOF
 }
 
-ONLY="" SKIP="" LIST=0 NO_MODELS=0
+ONLY="" SKIP="" LIST=0 NO_MODELS=0 NO_VOICE_HQ=0
 while (($#)); do
   case "$1" in
     --dry-run) DRY_RUN=1 ;;
@@ -47,13 +48,14 @@ while (($#)); do
     --skip) SKIP="$2"; shift ;;
     --force) FORCE=1 ;;
     --no-models) NO_MODELS=1 ;;
+    --no-voice-hq) NO_VOICE_HQ=1 ;;
     --list) LIST=1 ;;
     --help|-h) usage; exit 0 ;;
     *) ui_err "Неизвестный параметр: $1"; usage; exit 2 ;;
   esac
   shift
 done
-export DRY_RUN ASSUME_YES FORCE NO_MODELS
+export DRY_RUN ASSUME_YES FORCE NO_MODELS NO_VOICE_HQ
 
 # ── базовые проверки ────────────────────────────────────────────
 [[ -f /etc/arch-release ]] || die "Это не Arch Linux. HAOTICA ставится только поверх Arch."

@@ -11,6 +11,7 @@ import logging
 import shutil
 import time
 
+import aiohttp
 from aiohttp import web
 
 from .. import client, models, paths, secrets, util
@@ -261,6 +262,23 @@ def setup(app: web.Application) -> None:
     R.add_get("/api/models", models_get)
     R.add_post("/api/models/download", models_download)
     R.add_post("/api/models/verify", models_verify)
+    async def voice_test(r):
+        d = await _body(r)
+        a = A(r)
+        engine = ""
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=2)) as sess, \
+                    sess.get(f"http://{paths.HOST}:{paths.PORT_TTS}/health") as h:
+                engine = (await h.json(content_type=None)).get("engine", "")
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError):
+            pass
+        if not a.voice:
+            return err("голос недоступен")
+        text = str(d.get("text") or "Привет. Это мой голос. Если звучит странно — это не я, это колонки.")
+        played = await a.voice.say(text[:300])
+        return ok({"played": played, "engine": engine or ("elevenlabs" if played else "")})
+
+    R.add_post("/api/voice/test", voice_test)
     R.add_route("OPTIONS", "/{tail:.*}", lambda r: web.Response(status=204))
 
 

@@ -94,7 +94,7 @@ class Applier:
             on = config.get("gestures.enabled", False, new)
             await util.arun(["systemctl", "--user", "start" if on else "stop", "haotica-gestures.service"])
         if _hit(keys, ("apps.show_kde",)):
-            await asyncio.to_thread(self.kde_visibility, config.get("apps.show_kde", False, new))
+            await asyncio.to_thread(self.kde_visibility, config.get("apps.show_kde", True, new))
         if _hit(keys, ("apps.browser", "apps.files", "apps.editor", "apps.viewer", "apps.player", "apps.terminal")):
             await self.default_apps(new)
         if _hit(keys, ("locale.per_window_layout",)):

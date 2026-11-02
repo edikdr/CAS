@@ -1,0 +1,9 @@
+.m-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; padding: 14px; overflow: auto; }
+.m-tile { border: 1px solid var(--line); background: var(--bg1); padding: 10px 12px; }
+.m-tile .t { display: flex; justify-content: space-between; font: 600 10px var(--font-mono); letter-spacing: .18em; color: var(--dim); }
+.m-tile .v { font: 500 22px var(--font-mono); color: var(--ink); margin: 4px 0; }
+.m-tile canvas { width: 100%; height: 60px; display: block; }
+.m-tile .sub { font: 11px var(--font-mono); color: var(--dim); }
+.m-procs { flex: 1; overflow: auto; }
+.m-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.m-bar .hy-input { width: 260px; }

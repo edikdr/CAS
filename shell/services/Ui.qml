@@ -10,6 +10,7 @@ Singleton {
     property bool controlOpen: false
     property bool clipboardOpen: false
     property bool powerOpen: false
+    property bool haoticaOpen: false
     property bool dnd: false
     property string osdKind: ""
     property real osdValue: 0
@@ -33,7 +34,7 @@ Singleton {
 
     function closeAll() {
         launcherOpen = false; dashboardOpen = false; notificationsOpen = false;
-        controlOpen = false; clipboardOpen = false; powerOpen = false;
+        controlOpen = false; clipboardOpen = false; powerOpen = false; haoticaOpen = false;
     }
     function showOsd(kind, value, muted) {
         osdKind = kind; osdValue = value; osdMuted = muted === true; osdSerial++;

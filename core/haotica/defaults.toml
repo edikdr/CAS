@@ -164,13 +164,13 @@ face_at_boot = false
 sudo_face = false
 
 [apps]
-show_kde = false
+show_kde = true            # пока своих приложений нет — запасные KDE видны
 browser = "google-chrome.desktop"
 terminal = "haotica-terminal.desktop"
 files = "haotica-files.desktop"
-editor = "haotica-editor.desktop"
-viewer = "haotica-gallery.desktop"
-player = "haotica-player.desktop"
+editor = "org.kde.kate.desktop"
+viewer = "org.kde.gwenview.desktop"
+player = "mpv.desktop"
 
 [notifications]
 dnd = false

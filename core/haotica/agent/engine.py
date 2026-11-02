@@ -66,7 +66,7 @@ class State:
             labels = {r: e["label"] for r, e in models.load_manifest()["models"].items()}
         except Exception:  # noqa: BLE001
             pass
-        return {"state": self.value, "line": self.line, "llm_state": st, "llm_tps": llm.tps, "llm_role": role,
+        return {"state": self.value, "line": self.line, "text": self.line, "llm_state": st, "llm_tps": llm.tps, "llm_role": role,
                 "llm_model": labels.get(role, role), "switching": llm.switching,
                 "cloud_assist": a.cloud.assist_active > 0, "busy": a.busy, "cards": len(a.cards), "ts": int(time.time())}
 

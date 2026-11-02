@@ -8,10 +8,12 @@ import asyncio
 import hmac
 import json
 import logging
+import shutil
+import time
 
 from aiohttp import web
 
-from .. import client, models, paths, secrets
+from .. import client, models, paths, secrets, util
 from .engine import Agent
 
 log = logging.getLogger("haotica.agent.http")
@@ -228,6 +230,32 @@ def setup(app: web.Application) -> None:
     R.add_get("/api/cloud/resolve", cloud_resolve)
     R.add_get("/api/llm/status", llm_status)
     R.add_post("/api/llm/use", llm_use)
+    async def models_get(r):
+        return ok({"models": models.status(), "engine": str(models.llama_server() or ""),
+                   "verify": r.app.get("verify", {})})
+
+    async def models_download(r):
+        d = await _body(r)
+        roles = [x for x in (d.get("roles") or [d.get("role")]) if x in models.CATALOG]
+        cmd = ["haotica", "models", "download", *roles]
+        if shutil.which("systemd-run"):
+            cmd = ["systemd-run", "--user", "--collect", "--unit=haotica-models-download", "-p", "Nice=10", *cmd]
+        rc, _, e = await util.arun(cmd, 15)
+        if rc != 0 and "already" not in e and "loaded" not in e:
+            util.spawn(["haotica", "models", "download", *roles])
+        return ok({"started": roles or "all"})
+
+    async def models_verify(r):
+        async def run():
+            r.app["verify"] = {"running": True}
+            rc, out, e = await util.arun(["haotica", "models", "verify"], 7200)
+            r.app["verify"] = {"running": False, "ok": rc == 0, "output": (out or e)[-2000:], "ts": int(time.time())}
+        A(r).bg(run())
+        return ok({"running": True})
+
+    R.add_get("/api/models", models_get)
+    R.add_post("/api/models/download", models_download)
+    R.add_post("/api/models/verify", models_verify)
     R.add_route("OPTIONS", "/{tail:.*}", lambda r: web.Response(status=204))
 
 

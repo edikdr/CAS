@@ -20,6 +20,7 @@ import "lock"
 import "glitch"
 import "polkit"
 import "clipboard"
+import "haotica"
 
 // ┌─ HAOTICA // SHELL ────────────────────────────────────────────┐
 // │ Оболочка рабочего стола: обои, HUD, панель, док и оверлеи.      │
@@ -49,6 +50,7 @@ ShellRoot {
     Dashboard {}
     PowerMenu { onLockRequested: lockScreen.engage() }
     ClipboardPanel {}
+    HaoticaPanel {}
     LockScreen { id: lockScreen }
     GlitchOverlay {}
     PolkitDialog {}
@@ -67,7 +69,8 @@ ShellRoot {
         function control(action: string): void { shell.toggle("controlOpen", action); }
         function clipboard(action: string): void { shell.toggle("clipboardOpen", action); }
         function power(action: string): void { shell.toggle("powerOpen", action); }
-        function haotica(action: string): void { Quickshell.execDetached(["haotica", "open", "assistant", action === "open" ? "" : "--toggle"]); }
+        function haotica(action: string): void { shell.toggle("haoticaOpen", action); }
+        function assistant(): void { Quickshell.execDetached(["haotica", "open", "assistant"]); }
         function lock(): void { lockScreen.engage(); }
         function osd(kind: string, action: string): void {
             if (kind === "volume") osdCtl.volume(action);

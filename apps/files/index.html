@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Файлы</title>
+<link rel="stylesheet" href="/ui/hy.css"><link rel="stylesheet" href="files.css">
+</head><body>
+<div class="hy-app">
+  <div class="hy-body">
+    <aside class="hy-side"><div class="hy-section">МЕСТА</div><div class="hy-nav" id="places"></div></aside>
+    <main class="hy-main">
+      <div class="hy-toolbar">
+        <button class="hy-btn ghost icon small" id="back" title="Назад"></button>
+        <button class="hy-btn ghost icon small" id="up" title="Вверх"></button>
+        <input class="hy-input f-path" id="path" spellcheck="false">
+        <div class="hy-search f-q"><input class="hy-input" id="q" placeholder="Поиск…"></div>
+        <button class="hy-btn ghost icon small" id="hidden" title="Скрытые файлы"></button>
+        <button class="hy-btn ghost icon small" id="mkdir" title="Новая папка"></button>
+      </div>
+      <div class="f-split">
+        <div class="scroll f-list"><table class="hy-table"><thead><tr><th>ИМЯ</th><th style="width:110px">РАЗМЕР</th><th style="width:150px">ИЗМЕНЁН</th></tr></thead><tbody id="rows"></tbody></table></div>
+        <div class="f-prev scroll" id="prev"></div>
+      </div>
+      <div class="hy-status" id="status"></div>
+    </main>
+  </div>
+</div>
+<script type="module" src="files.js"></script>
+</body></html>

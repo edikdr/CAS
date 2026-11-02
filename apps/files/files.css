@@ -1,0 +1,11 @@
+.f-path { flex: 1; font-family: var(--font-mono); }
+.f-q { width: 220px; }
+.f-split { flex: 1; display: flex; min-height: 0; }
+.f-list { flex: 1; overflow: auto; }
+.f-list td:first-child { display: flex; align-items: center; gap: 8px; }
+.f-list tr { cursor: default; user-select: none; }
+.f-prev { width: 320px; border-left: 1px solid var(--line); padding: 12px; overflow: auto; font-size: 12px; }
+.f-prev img { max-width: 100%; display: block; margin: 8px 0; }
+.f-prev pre, .f-prev .code { font: 11px var(--font-mono); white-space: pre-wrap; max-height: 60vh; overflow: auto; }
+.f-prev h3 { font: 600 12px var(--font-mono); margin: 0 0 6px; word-break: break-all; }
+.f-prev .meta { color: var(--dim); font: 11px var(--font-mono); }

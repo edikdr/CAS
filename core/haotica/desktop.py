@@ -136,3 +136,76 @@ def webapp_delete(app_id: str) -> bool:
         f.unlink()
         return True
     return False
+
+
+# ── установка: .desktop собственных приложений и запасные программы по умолчанию ──
+FALLBACK_MIME = {
+    "x-scheme-handler/http": "google-chrome.desktop", "x-scheme-handler/https": "google-chrome.desktop",
+    "text/html": "google-chrome.desktop", "inode/directory": "haotica-files.desktop",
+    "application/pdf": "org.kde.okular.desktop", "application/epub+zip": "org.kde.okular.desktop",
+    "text/plain": "org.kde.kate.desktop", "text/markdown": "org.kde.kate.desktop",
+    "application/x-shellscript": "org.kde.kate.desktop", "text/x-python": "org.kde.kate.desktop",
+    "application/json": "org.kde.kate.desktop", "application/toml": "org.kde.kate.desktop",
+    "image/png": "org.kde.gwenview.desktop", "image/jpeg": "org.kde.gwenview.desktop",
+    "image/webp": "org.kde.gwenview.desktop", "image/gif": "org.kde.gwenview.desktop",
+    "image/avif": "org.kde.gwenview.desktop", "image/svg+xml": "org.kde.gwenview.desktop",
+    "video/mp4": "mpv.desktop", "video/x-matroska": "mpv.desktop", "video/webm": "mpv.desktop",
+    "video/quicktime": "mpv.desktop", "audio/mpeg": "mpv.desktop", "audio/flac": "mpv.desktop",
+    "audio/ogg": "mpv.desktop", "audio/x-wav": "mpv.desktop",
+    "application/zip": "org.kde.ark.desktop", "application/x-tar": "org.kde.ark.desktop",
+    "application/x-7z-compressed": "org.kde.ark.desktop", "application/vnd.rar": "org.kde.ark.desktop",
+}
+
+
+def existing_apps(apps_dir: Path | None = None) -> list:
+    """Приложения реестра, у которых есть интерфейс (apps/<имя>/index.html)."""
+    from .apps import registry
+    root = apps_dir or paths.APPS_DIR
+    return [a for a in registry.APPS.values() if (root / a.name / "index.html").is_file()]
+
+
+def desktop_text(app) -> str:
+    lines = ["[Desktop Entry]", "Type=Application", f"Name={app.en}", f"Name[ru]={app.ru}", f"Name[de]={app.en}",
+             f"Comment={app.comment}", f"Exec=haotica-app {app.name} %U", f"Icon=haotica-{app.name}",
+             f"StartupWMClass=haotica-{app.name}", f"Categories={app.xdg}", "Terminal=false"]
+    if app.mime:
+        lines.append("MimeType=" + ";".join(app.mime) + ";")
+    if app.keywords:
+        lines.append("Keywords=" + app.keywords)
+    if app.hidden:
+        lines.append("NoDisplay=true")
+    return "\n".join(lines) + "\n"
+
+
+def install_entries(dest: Path, apps_dir: Path | None = None, mimeapps: Path | None = None) -> list[str]:
+    """Записать haotica-<имя>.desktop только для существующих приложений; убрать устаревшие;
+    mimeapps.list: свои приложения там, где они есть, иначе — запасные (Chrome, mpv, KDE)."""
+    dest.mkdir(parents=True, exist_ok=True)
+    apps = existing_apps(apps_dir)
+    names = {f"haotica-{a.name}.desktop" for a in apps}
+    for old in dest.glob("haotica-*.desktop"):
+        if old.name not in names and not old.name.startswith(WEB_PREFIX):
+            old.unlink()
+    for a in apps:
+        (dest / f"haotica-{a.name}.desktop").write_text(desktop_text(a), encoding="utf-8")
+    if mimeapps:
+        own = {"inode/directory": "haotica-files.desktop"} if any(a.name == "files" for a in apps) else {}
+        mime = {**FALLBACK_MIME, **own}
+        mimeapps.parent.mkdir(parents=True, exist_ok=True)
+        mimeapps.write_text("[Default Applications]\n" + "".join(f"{k}={v}\n" for k, v in sorted(mime.items())),
+                            encoding="utf-8")
+    return sorted(names)
+
+
+def _cli(a) -> int:
+    out = install_entries(Path(a.dest), Path(a.apps) if a.apps else None, Path(a.mimeapps) if a.mimeapps else None)
+    print("\n".join(out))
+    return 0
+
+
+def register(sub) -> None:
+    p = sub.add_parser("desktop", help="создать .desktop-файлы приложений HAOTICA")
+    p.add_argument("--dest", default=str(paths.XDG_DATA / "applications"))
+    p.add_argument("--apps", default="", help="папка приложений (по умолчанию установленная)")
+    p.add_argument("--mimeapps", default="", help="куда записать mimeapps.list")
+    p.set_defaults(fn=_cli)

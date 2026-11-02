@@ -4,3 +4,4 @@ python-dbus python-gobject python-secretstorage python-requests python-yaml pyth
 python-watchdog python-pyudev python-cryptography python-huggingface-hub
 pyside6 pyside6-tools
 ffmpeg ffmpegthumbnailer poppler imagemagick libvips mediainfo chafa aria2 podman
+python-dateutil python-fonttools

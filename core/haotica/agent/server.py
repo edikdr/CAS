@@ -237,9 +237,14 @@ def setup(app: web.Application) -> None:
     async def models_download(r):
         d = await _body(r)
         roles = [x for x in (d.get("roles") or [d.get("role")]) if x in models.CATALOG]
+        if not roles:
+            rc, _, _e = await util.arun(["systemctl", "--user", "start", "--no-block", "haotica-models.service"], 15)
+            if rc == 0:
+                return ok({"started": "all"})
         cmd = ["haotica", "models", "download", *roles]
         if shutil.which("systemd-run"):
-            cmd = ["systemd-run", "--user", "--collect", "--unit=haotica-models-download", "-p", "Nice=10", *cmd]
+            cmd = ["systemd-run", "--user", "--collect", f"--unit=haotica-models-{'-'.join(roles) or 'all'}",
+                   "-p", "Nice=10", *cmd]
         rc, _, e = await util.arun(cmd, 15)
         if rc != 0 and "already" not in e and "loaded" not in e:
             util.spawn(["haotica", "models", "download", *roles])

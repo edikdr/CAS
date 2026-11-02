@@ -41,7 +41,7 @@ detect_bootloader() {
 
 detect_secure_boot() {
   local v
-  v="$(od -An -t u1 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c 2>/dev/null | awk '{print $NF}')"
+  v="$(od -An -t u1 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c 2>/dev/null | awk '{print $NF}' || true)"
   case "$v" in
     1) echo enabled ;;
     0) echo disabled ;;
@@ -83,7 +83,7 @@ detect_all() {
   HW_RAM_KIB="$(awk '/MemTotal/{print $2}' /proc/meminfo)"
   HW_RAM_GIB=$(( (HW_RAM_KIB + 524288) / 1048576 ))
 
-  HW_GPU="$(lspci -nn 2>/dev/null | grep -E 'VGA|Display|3D' | head -1 | sed -E 's/^[0-9a-f:.]+ [^:]+: //')"
+  HW_GPU="$(lspci -nn 2>/dev/null | grep -E 'VGA|Display|3D' | head -1 | sed -E 's/^[0-9a-f:.]+ [^:]+: //' || true)"
   HW_GPU_AMD=0
   [[ "$HW_GPU" == *AMD* || "$HW_GPU" == *ATI* ]] && HW_GPU_AMD=1
   HW_UMA_VRAM_MB=0; HW_GTT_MB=0
@@ -103,15 +103,15 @@ detect_all() {
   HW_ROOT_FS="$(findmnt -no FSTYPE / 2>/dev/null || echo unknown)"
   HW_ROOT_LUKS=0
   if lsblk -sno TYPE "$(findmnt -no SOURCE / 2>/dev/null | sed 's/\[.*//')" 2>/dev/null | grep -q crypt; then HW_ROOT_LUKS=1; fi
-  HW_KERNELS="$(pacman -Qq linux linux-lts linux-zen linux-hardened 2>/dev/null | xargs)"
+  HW_KERNELS="$(pacman -Qq linux linux-lts linux-zen linux-hardened 2>/dev/null | xargs || true)"
   HW_KERNEL_RUNNING="$(uname -r)"
 
-  HW_WIFI="$(lspci -nnk 2>/dev/null | grep -A3 -iE 'network controller' | grep -iE 'network controller' | head -1 | sed -E 's/^[0-9a-f:.]+ [^:]+: //')"
-  HW_WIFI_DRIVER="$(lspci -nnk 2>/dev/null | grep -A3 -iE 'network controller' | awk -F': ' '/Kernel driver in use/{print $2; exit}')"
-  HW_AUDIO_CODEC="$(grep -h '^Codec:' /proc/asound/card*/codec#* 2>/dev/null | head -1 | sed 's/^Codec: //')"
+  HW_WIFI="$(lspci -nnk 2>/dev/null | grep -A3 -iE 'network controller' | grep -iE 'network controller' | head -1 | sed -E 's/^[0-9a-f:.]+ [^:]+: //' || true)"
+  HW_WIFI_DRIVER="$(lspci -nnk 2>/dev/null | grep -A3 -iE 'network controller' | awk -F': ' '/Kernel driver in use/{print $2; exit}' || true)"
+  HW_AUDIO_CODEC="$(grep -h '^Codec:' /proc/asound/card*/codec#* 2>/dev/null | head -1 | sed 's/^Codec: //' || true)"
   detect_cameras
 
-  HW_BATTERY="$(compgen -G '/sys/class/power_supply/BAT*' | head -1)"
+  HW_BATTERY="$(compgen -G '/sys/class/power_supply/BAT*' | head -1 || true)"
   HW_ON_AC=1
   local ac
   for ac in /sys/class/power_supply/{AC,ADP,ACAD}*/online; do
@@ -134,6 +134,7 @@ detect_all() {
            "${HW_BATTERY:-/nonexistent}/charge_types"; do
     [[ -e "$c" ]] && { HW_CHARGE_CTRL="$c"; break; }
   done
+  return 0
 }
 
 detect_save() {

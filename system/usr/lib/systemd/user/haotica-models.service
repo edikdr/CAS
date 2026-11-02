@@ -1,0 +1,17 @@
+[Unit]
+Description=HAOTICA: загрузка моделей Haotica (докачка, проверка SHA-256)
+After=network-online.target haotica-core.service
+ConditionPathExists=!%h/.config/haotica/no-models
+
+[Service]
+Type=oneshot
+Nice=10
+IOSchedulingClass=idle
+# по порядку важности: подсказки → основная → глубокая; каждая докачивается с места обрыва
+ExecStart=-/usr/bin/haotica models download fast
+ExecStart=-/usr/bin/haotica models download base
+ExecStart=-/usr/bin/haotica models download deep
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=haotica-session.target

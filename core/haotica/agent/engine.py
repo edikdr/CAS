@@ -127,21 +127,28 @@ class Agent:
         return t
 
     async def _tick(self) -> None:
+        n = 0
         while True:
             try:
                 self.state.write()
+                n += 1
+                if n % 10 == 0 and config.get("haotica.enabled", True) and not self.llm.paused and not self._game_on():
+                    await self._warmup(quick=True)
             except Exception:  # noqa: BLE001
                 log.exception("state")
             await asyncio.sleep(3)
 
-    async def _warmup(self) -> None:
-        """Поднять base при старте, если файл модели уже скачан."""
-        if self.download_state("base"):
-            return
-        try:
-            await self.llm.ensure("base", 600)
-        except Exception:  # noqa: BLE001
-            log.warning("base не поднялась при старте")
+    async def _warmup(self, quick: bool = False) -> None:
+        """Поднять base и fast, когда их файлы скачаны (при старте и после загрузки моделей)."""
+        for role in ("fast", self.llm.main if self.llm.main in models.MAIN_ROLES else "base"):
+            if self.download_state(role) or self.llm.state.get(role) not in ("offline", "sleep"):
+                continue
+            if quick and self.llm.state.get(role) == "sleep":
+                continue                      # выгружена намеренно (deep ⇄ base) — не трогаем
+            try:
+                self.bg(self.llm.ensure(role, 600)) if quick else await self.llm.ensure(role, 600)
+            except Exception:  # noqa: BLE001
+                log.warning("%s не поднялась", role)
 
     def _game_on(self) -> bool:
         m = util.load_json(paths.RUNTIME_DIR / "metrics.json", {}) or {}

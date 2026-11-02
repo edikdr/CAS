@@ -125,7 +125,7 @@ def download_file(repo: str, file: str, size: int, sha256: str) -> bool:
         return False
     url = HF.format(repo=repo, file=file)
     if util.which("aria2c"):
-        cmd = ["aria2c", "-x", "8", "-s", "8", "-k", "64M", "--continue=true", "--file-allocation=falloc",
+        cmd = ["aria2c", "-x", "8", "-s", "8", "-k", "64M", "--continue=true", "--file-allocation=none",
                "--auto-file-renaming=false", "--allow-overwrite=false", "--summary-interval=0",
                "--console-log-level=warn", "--download-result=hide", f"--checksum=sha-256={sha256}",
                "--max-tries=20", "--retry-wait=5", "-d", str(paths.MODELS_DIR), "-o", file, url]

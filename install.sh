@@ -106,6 +106,8 @@ SUDO_KEEPALIVE=$!
 trap 'kill "$SUDO_KEEPALIVE" 2>/dev/null || true' EXIT
 
 state_init
+# на свежем Arch lspci ещё нет — без него не определить GPU и Wi-Fi
+have lspci || sudo_run pacman -S --needed --noconfirm pciutils usbutils >/dev/null 2>&1 || true
 detect_all
 detect_save
 

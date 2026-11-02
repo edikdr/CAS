@@ -24,7 +24,7 @@ mod_run() {
   install_root_file "$HY_ROOT/system/usr/share/sounds/haotica/index.theme" /usr/share/sounds/haotica/index.theme
   install_root_file "$HY_ROOT/system/etc/pam.d/haotica-lock" /etc/pam.d/haotica-lock
   [[ -d "$HY_ROOT/assets/sounds" ]] && install_root_tree "$HY_ROOT/assets/sounds" /usr/share/sounds/haotica/stereo
-  [[ -f "$HY_ROOT/docs/README.md" ]] && install_root_file "$HY_ROOT/docs/README.md" /usr/share/doc/haotica/README.md
+  [[ -f "$HY_ROOT/README.md" ]] && install_root_file "$HY_ROOT/README.md" /usr/share/doc/haotica/README.md
   sudo_run install -d -m 0755 "$HY_ETC" "$HY_PREFIX_OPT"
   sudo_run python3 -m compileall -q "$HY_PREFIX_LIB/python" >/dev/null 2>&1 || true
 

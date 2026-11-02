@@ -11,7 +11,7 @@
 | Оболочка | Quickshell 0.3+ (QML) | `shell/` → `/usr/share/haotica/shell` |
 | Экран входа | greetd + Hyprland + Quickshell | `greeter/` → `/usr/share/haotica/greeter` |
 | Ядро | Python 3 (aiohttp), сервис `haotica-core` | `core/haotica` → `/usr/lib/haotica/python` |
-| Haotica | Python, сервис `haotica` | `core/haotica/ai` |
+| Haotica | Python, сервис `haotica-agent` | `core/haotica/agent` |
 | Приложения | PySide6 QtWebEngine + HTML/CSS/JS | `apps/` → `/usr/share/haotica/apps` |
 | Модели | llama.cpp (Vulkan), Chatterbox TTS (ROCm gfx1151) | `/opt/haotica` |
 | Привилегированные действия | `haotica-helper` через polkit | `core/haotica/helper` |
@@ -35,13 +35,15 @@
 | Юнит | Что делает | Адрес |
 |---|---|---|
 | `haotica-core.service` | API ядра, метрики, настройки, файлы, сеть, роутер, звуки | `127.0.0.1:47800` |
-| `haotica.service` | Haotica: чат, инструменты, облако, память | `127.0.0.1:47810` |
-| `haotica-llm-main.service` | llama-server, основная модель | `127.0.0.1:47821` |
-| `haotica-llm-fast.service` | llama-server, модель подсказок | `127.0.0.1:47822` |
-| `haotica-llm-vision.service` | llama-server, зрение (по требованию) | `127.0.0.1:47823` |
-| `haotica-tts.service` | синтез речи голосом Сары | `127.0.0.1:47830` |
-| `haotica-searxng.service` | локальный метапоиск (podman) | `127.0.0.1:47840` |
-| `haotica-apps.service` | хост окон приложений (QtWebEngine) | сокет `$XDG_RUNTIME_DIR/haotica/apps.sock` |
+| `haotica-agent.service` | Haotica: чат, инструменты, карточки, облако, память | `127.0.0.1:47810` |
+| `haotica-llm-base.service` | llama-server, base (Qwen3.8-27B + зрение), запускает Haotica | `127.0.0.1:47821` |
+| `haotica-llm-fast.service` | llama-server, подсказки в строке (Qwen3-1.7B) | `127.0.0.1:47822` |
+| `haotica-llm-deep.service` | llama-server, deep (Qwen3-Coder-Next 80B), по очереди с base | `127.0.0.1:47824` |
+| `haotica-models.service` | фоновая загрузка/докачка моделей при входе | — |
+| `haotica-shell.service` | Quickshell-оболочка; всё поднимает `haotica-session.target` из Hyprland | — |
+| `haotica-tts.service` | синтез речи голосом Сары (пока не ставится) | `127.0.0.1:47830` |
+| `haotica-searxng.service` | локальный метапоиск (podman, пока не ставится) | `127.0.0.1:47840` |
+| `haotica-app <имя>` | хост окна приложения (QtWebEngine), процесс на приложение | сокет `$XDG_RUNTIME_DIR/haotica/app-<имя>.sock` |
 | `haotica-gestures.service` | жесты камеры (MediaPipe), по умолчанию выключен | — |
 | `haotica-helper` (системный, D-Bus/polkit) | привилегированные действия по белому списку | `pkexec /usr/lib/haotica/bin/haotica-helper` |
 

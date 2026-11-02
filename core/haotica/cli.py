@@ -279,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
     dc.set_defaults(fn=cmd_doctor)
 
     # подкоманды других модулей регистрируются сами
-    for mod in ("models", "sounds", "agent_cli"):
+    for mod in ("models", "sounds", "agent.agent_cli"):
         try:
             m = __import__(f"haotica.{mod}", fromlist=["register"])
             m.register(sub)

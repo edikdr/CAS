@@ -108,7 +108,11 @@ class LLM:
                     await util.arun(["systemctl", "--user", "stop", UNIT.format(other)], 60)
                     self.state[other] = "sleep"
                 self.main = role
-                return await self.ensure(role, timeout)
+                ok = await self.ensure(role, timeout)
+                if not ok and role == "deep":
+                    self.main = "base"                 # deep не поднялась — откат на base
+                    asyncio.create_task(self.ensure("base", timeout))
+                return ok
             finally:
                 self.switching = ""
 
@@ -120,7 +124,11 @@ class LLM:
             return await self._starting[role]
 
         async def boot() -> bool:
-            await util.arun(["systemctl", "--user", "start", UNIT.format(role)], 30)
+            rc, _, err = await util.arun(["systemctl", "--user", "start", UNIT.format(role)], 30)
+            if rc != 0 and await self.health(role) == "offline":
+                log.warning("не удалось запустить %s: %s", role, err.strip()[:200])
+                self.state[role] = "error"
+                return False
             t0 = time.time()
             while time.time() - t0 < timeout:
                 st = await self.health(role)

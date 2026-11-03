@@ -62,11 +62,12 @@ detect_cameras() {
     # пропускаем metadata-узлы без форматов изображения
     if [[ -n "$fmts" ]] && ! grep -qE "'(YUYV|MJPG|GREY|NV12|Y8|Y16)'" <<<"$fmts"; then continue; fi
     if grep -qiE "ir|infrared" <<<"$name" || grep -q "'GREY'" <<<"$fmts"; then
-      [[ -z "$HW_CAM_IR" ]] && HW_CAM_IR="$dev"
+      if [[ -z "$HW_CAM_IR" ]]; then HW_CAM_IR="$dev"; fi
     else
-      [[ -z "$HW_CAM_RGB" ]] && HW_CAM_RGB="$dev"
+      if [[ -z "$HW_CAM_RGB" ]]; then HW_CAM_RGB="$dev"; fi
     fi
   done
+  return 0
 }
 
 detect_all() {

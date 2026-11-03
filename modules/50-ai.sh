@@ -32,7 +32,7 @@ ai_build_llama() {
   sudo_run install -d "$LLAMA_PREFIX/bin"
   local b
   for b in llama-server llama-cli llama-bench; do
-    [[ -x "$src/build/bin/$b" ]] && sudo_run install -m 0755 "$src/build/bin/$b" "$LLAMA_PREFIX/bin/$b"
+    if [[ -x "$src/build/bin/$b" ]]; then sudo_run install -m 0755 "$src/build/bin/$b" "$LLAMA_PREFIX/bin/$b"; fi
   done
   sudo_sh "echo $LLAMA_TAG > $LLAMA_PREFIX/.version"
   rm -rf "$src"

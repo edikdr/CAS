@@ -12,7 +12,7 @@ ai_build_llama() {
     ui_ok "llama.cpp $LLAMA_TAG уже собран"
     return 0
   fi
-  pac_install base-devel git cmake ninja vulkan-headers vulkan-icd-loader shaderc glslang
+  pac_install base-devel git cmake ninja pkgconf vulkan-headers spirv-headers vulkan-icd-loader shaderc glslang
   local src="$HY_HOME/.cache/haotica/build/llama.cpp"
   ui_info "Собираю llama.cpp $LLAMA_TAG с Vulkan (5–10 минут)"
   if [[ "$DRY_RUN" == 1 ]]; then

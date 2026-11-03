@@ -411,3 +411,78 @@ export const HY = {
 };
 
 window.HY = HY;
+
+
+// ── совместимость для дополнительных приложений (gemini-apps) ──
+const _origStart = HY.start.bind(HY);
+HY.start = async function(optsOrFn = {}) {
+  if (typeof optsOrFn === "function") {
+    await _origStart({ chrome: false });
+    const root = document.getElementById("app") || document.body;
+    return await optsOrFn({ root, theme: this.theme, settings: this.settings });
+  }
+  return await _origStart(optsOrFn);
+};
+
+HY.el = function(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag || "div");
+  if (attrs && typeof attrs === "object") {
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === undefined || v === null || v === false) continue;
+      if (k === "class" || k === "className") node.className = String(v);
+      else if (k === "text") node.textContent = String(v);
+      else if (k === "html") node.innerHTML = String(v);
+      else if (k === "style" && typeof v === "object") Object.assign(node.style, v);
+      else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2).toLowerCase(), v);
+      else node.setAttribute(k, String(v));
+    }
+  }
+  const list = Array.isArray(children) ? children : [children];
+  for (const c of list) {
+    if (c === null || c === undefined || c === false) continue;
+    node.append(typeof c === "Node" || c instanceof Node ? c : String(c));
+  }
+  return node;
+};
+
+HY.icon = function(name, opts = {}) {
+  const size = typeof opts === "number" ? opts : (opts.size || 16);
+  const map = { files: "folder", netrecon: "radar", calculator: "calc", archives: "archive", disks: "disk", colorpicker: "picker", screenshot: "camera", browser: "globe", assistant: "haotica" };
+  return icon(map[name] || name, size, (opts && opts.class) || "");
+};
+
+HY.kvRow = function(k, v, opts = {}) {
+  return HY.kv(k, String(v ?? ""), opts && opts.accent ? "var(--accent)" : undefined);
+};
+
+HY.segBar = function(opts = {}) {
+  return HY.segbar(((opts.value ?? 50) / 100), opts.segments || 20);
+};
+
+HY.setTheme = async function(themeName) {
+  return await HY.setting("appearance.profile", String(themeName).toUpperCase());
+};
+
+HY.buildWindowChrome = function(opts = {}) {
+  const win = HY.el("div", { class: "hy-app" });
+  const actBtns = (opts.actions || []).map((a) =>
+    HY.el("button", { class: "hy-btn small", onClick: a.onClick }, [a.label])
+  );
+  const bar = el("div.hy-titlebar",
+    el("div.drag", {
+      onmousedown: (e) => { if (e.button === 0 && e.detail === 1 && HY.bridge) HY.bridge.startMove(); },
+      ondblclick: () => HY.bridge && HY.bridge.toggleMaximize(),
+    }),
+    icon(opts.glyph || "sparkle", 16, "glyph"),
+    el("span.title", opts.title || document.title || "HAOTICA"),
+    el("span.sub", opts.code || opts.statusLabel || ""),
+    el("span.spacer"),
+    ...actBtns,
+    el("button.winbtn", { title: HY.t("minimize"), onclick: () => HY.bridge && HY.bridge.minimize() }, icon("minus", 14)),
+    el("button.winbtn", { title: HY.t("maximize"), onclick: () => HY.bridge && HY.bridge.toggleMaximize() }, icon("layout", 14)),
+    el("button.winbtn.close", { title: HY.t("close"), onclick: () => HY.close() }, icon("close", 14)),
+  );
+  win.append(bar);
+  HY.edges();
+  return { windowEl: win };
+};

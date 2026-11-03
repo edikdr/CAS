@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HAOTICA // АРХИВАТОР</title>
+  <link rel="stylesheet" href="/ui/hy.css" />
+</head>
+<body>
+  <script type="module">
+    import { HY } from "/ui/hy.js";
+    const ARCHIVE_ITEMS = [
+      { name: 'haotica-os-hyprina-backup.tar.zst', ratio: '3.4x (zstd -19)', size: '148 MB', files: 412, status: 'ПРОВЕРЕН SHA256' },
+      { name: 'eduard-dotfiles-hyprland.tar.zst', ratio: '2.9x (zstd -15)', size: '18.4 MB', files: 86, status: 'ПРОВЕРЕН SHA256' },
+      { name: 'chrome-ublock-policies.zip', ratio: '2.1x (deflate)', size: '42 KB', files: 6, status: 'ГОТОВ К РАСПАКОВКЕ' }
+    ];
+
+    HY.start(async ({ root }) => {
+      let current = ARCHIVE_ITEMS[0];
+      const chrome = HY.buildWindowChrome({
+        title: 'АРХИВАТОР // ZSTD · TAR · 7Z · ZIP',
+        code: 'APP-ARCHIVES // MULTI-THREAD ZSTD',
+        statusLabel: '24 ПОТОКА RYZEN AI',
+        statusColor: 'ok',
+        actions: [
+          {
+            label: 'РАСПАКОВАТЬ В ~/Projects',
+            onClick: () => HY.toast('РАСПАКОВКА ЗАВЕРШЕНА', `${current.name} извлечён со скоростью 1.8 GB/s`, 'ok')
+          }
+        ]
+      });
+
+      const body = HY.el('div', { class: 'hy-main', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } });
+      chrome.windowEl.appendChild(body);
+      root.appendChild(chrome.windowEl);
+
+      function render() {
+        body.innerHTML = '';
+        body.appendChild(HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '8px' } }, [
+          HY.el('div', { class: 'hy-card-header' }, [
+            HY.el('span', { class: 'hy-card-title', text: 'АРХИВЫ ВЛАДЕЛЬЦА ЕДУАРДА' }),
+            HY.el('span', { class: 'hy-card-code', text: `${ARCHIVE_ITEMS.length} ПАКЕТА` })
+          ]),
+          ...ARCHIVE_ITEMS.map(a => HY.el('div', {
+            class: 'hy-card',
+            style: { cursor: 'pointer', borderColor: current.name === a.name ? 'var(--accent)' : 'var(--border-subtle)' },
+            onClick: () => { current = a; render(); }
+          }, [
+            HY.kvRow(a.name, a.size, { accent: current.name === a.name }),
+            HY.kvRow('СЖАТИЕ', `${a.ratio} · ${a.files} файлов`)
+          ]))
+        ]));
+
+        body.appendChild(HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, [
+          HY.el('div', { class: 'hy-card-header' }, [
+            HY.el('span', { class: 'hy-card-title', text: 'ИНСПЕКЦИЯ АРХИВА' }),
+            HY.el('span', { class: 'hy-card-code', text: current.status })
+          ]),
+          HY.kvRow('ФАЙЛ', current.name, { accent: true }),
+          HY.kvRow('АЛГОРИТМ', current.ratio),
+          HY.kvRow('КОЛИЧЕСТВО ОБЪЕКТОВ', String(current.files)),
+          HY.segBar({ value: 100, segments: 20 }),
+          HY.el('button', {
+            class: 'hy-btn primary',
+            onClick: () => HY.toast('ПРОВЕРКА ЦЕЛОСТНОСТИ', `Контрольная сумма ${current.name} совпадает.`, 'ok')
+          }, [HY.el('span', { text: 'ПРОВЕРИТЬ КОНТРОЛЬНУЮ СУММУ SHA-256' })])
+        ]));
+      }
+      render();
+    });
+  </script>
+</body>
+</html>

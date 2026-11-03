@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HAOTICA // ПИПЕТКА И ПАЛИТРА</title>
+  <link rel="stylesheet" href="/ui/hy.css" />
+</head>
+<body>
+  <script type="module">
+    import { HY } from "/ui/hy.js";
+    const SWATCHES = [
+      { hex: '#000000', name: 'OLED Pure Void', hsl: 'hsl(0, 0%, 0%)' },
+      { hex: '#FF5A1F', name: 'Haotica Copper Flame', hsl: 'hsl(16, 100%, 56%)' },
+      { hex: '#FFB020', name: 'Subject Amber Phosphor', hsl: 'hsl(39, 100%, 56%)' },
+      { hex: '#00E5B0', name: 'Escape Vector Teal', hsl: 'hsl(166, 100%, 45%)' },
+      { hex: '#38B6FF', name: 'Arch Engineering Cyan', hsl: 'hsl(201, 100%, 61%)' },
+      { hex: '#FF2A54', name: 'Rider Crimson Alert', hsl: 'hsl(348, 100%, 58%)' }
+    ];
+
+    HY.start(async ({ root }) => {
+      let active = SWATCHES[1];
+      const chrome = HY.buildWindowChrome({
+        title: 'ПИПЕТКА ЭКРАНА // HYPRPICKER WAYLAND',
+        code: 'APP-COLORPICKER // HEX · RGB · HSL',
+        statusLabel: active.hex,
+        statusColor: 'ok'
+      });
+
+      const body = HY.el('div', { class: 'hy-main', style: { display: 'grid', gridTemplateColumns: '260px 1fr', gap: '12px' } });
+      chrome.windowEl.appendChild(body);
+      root.appendChild(chrome.windowEl);
+
+      function render() {
+        body.innerHTML = '';
+        body.appendChild(HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, [
+          HY.el('div', { style: { height: '120px', background: active.hex, border: '1px solid var(--border-strong)' } }),
+          HY.kvRow('HEX', active.hex, { accent: true }),
+          HY.kvRow('НАЗВАНИЕ', active.name),
+          HY.kvRow('HSL', active.hsl),
+          HY.el('button', {
+            class: 'hy-btn primary',
+            onClick: () => {
+              navigator.clipboard && navigator.clipboard.writeText(active.hex).catch(() => {});
+              HY.toast('HEX СКОПИРОВАН', active.hex, 'ok');
+            }
+          }, [HY.el('span', { text: 'КОПИРОВАТЬ HEX' })])
+        ]));
+
+        body.appendChild(HY.el('div', { class: 'hy-card', style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '10px' } },
+          SWATCHES.map(s => HY.el('div', {
+            class: 'hy-card',
+            style: { cursor: 'pointer', borderColor: active.hex === s.hex ? 'var(--accent)' : 'var(--border-subtle)' },
+            onClick: () => { active = s; render(); }
+          }, [
+            HY.el('div', { style: { height: '38px', background: s.hex, marginBottom: '6px', border: '1px solid rgba(255,255,255,0.15)' } }),
+            HY.el('div', { style: { fontFamily: 'var(--font-mono)', fontWeight: '700', fontSize: '12px' }, text: s.hex }),
+            HY.el('div', { class: 'hy-sub', text: s.name })
+          ]))
+        ));
+      }
+      render();
+    });
+  </script>
+</body>
+</html>

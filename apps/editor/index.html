@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Редактор кода — HAOTICA</title>
+<link rel="stylesheet" href="/ui/hy.css">
+<style>
+  .e-body { flex: 1; min-height: 0; display: flex; }
+  .e-left { width: 248px; flex: 0 0 248px; border-right: 1px solid var(--line); background: var(--bg1); display: flex; flex-direction: column; min-height: 0; }
+  .e-center { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--bg0); }
+  .e-right { width: 340px; flex: 0 0 340px; border-left: 1px solid var(--line); background: var(--bg1); display: flex; flex-direction: column; min-height: 0; }
+  .e-code-wrap { flex: 1; min-height: 0; display: flex; position: relative; overflow: hidden; background: var(--bg0); }
+  .e-gutter {
+    width: 48px; flex: 0 0 48px; padding: 14px 8px 14px 0; text-align: right;
+    font: 12px/1.6 var(--font-term); color: var(--line-hi); background: var(--bg1);
+    border-right: 1px solid var(--line); user-select: none; overflow: hidden;
+  }
+  .e-stage { flex: 1; position: relative; min-width: 0; min-height: 0; }
+  .e-textarea {
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0; padding: 14px 16px;
+    background: transparent; color: var(--ink); caret-color: var(--accent);
+    font: 12.5px/1.6 var(--font-term); outline: none; resize: none; white-space: pre; overflow: auto;
+  }
+  .e-ghost-bar {
+    position: absolute; right: 14px; bottom: 10px; z-index: 5;
+    display: flex; align-items: center; gap: 8px; padding: 5px 10px;
+    background: rgba(13, 13, 11, 0.94); border: 1px solid var(--violet);
+    font: 11px var(--font-mono); color: var(--violet);
+  }
+  .e-ghost-bar code { color: var(--ink); background: var(--bg2); padding: 1px 6px; }
+  .e-term { height: 155px; flex: 0 0 155px; border-top: 1px solid var(--line); background: var(--bg1); display: flex; flex-direction: column; }
+  .e-term-out { flex: 1; padding: 8px 12px; font: 11.5px/1.5 var(--font-term); color: var(--ink); overflow: auto; white-space: pre-wrap; background: var(--bg0); }
+  .e-ai-top { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .e-ai-log { flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .e-msg { padding: 8px 10px; border: 1px solid var(--line); background: var(--bg0); font-size: 12px; line-height: 1.45; }
+  .e-msg.ai { border-left: 2px solid var(--violet); }
+  .e-msg.user { border-left: 2px solid var(--accent); }
+  .e-msg .who { font: 600 10px var(--font-mono); color: var(--dim); letter-spacing: .14em; margin-bottom: 4px; display: block; }
+</style>
+</head>
+<body>
+<div class="hy-app">
+  <div class="hy-body">
+    <div class="e-body">
+      <!-- ЛЕВАЯ КОЛОНКА (как в терминале Hyperion: файлы + телеметрия + локалки) -->
+      <aside class="e-left">
+        <div class="hy-section">ФАЙЛЫ ПРОЕКТА</div>
+        <div class="hy-nav scroll" style="max-height: 220px" id="fileTree"></div>
+        <div class="hy-section">СИМВОЛЫ (AST)</div>
+        <div class="hy-nav scroll" style="max-height: 140px" id="symList"></div>
+        <div class="hy-section">ЛОКАЛЬНЫЕ МОДЕЛИ ИИ</div>
+        <div style="padding: 6px 12px" id="llmMetrics"></div>
+        <div class="hy-section">ЖЕЛЕЗО STRIX HALO</div>
+        <div style="padding: 6px 12px; margin-top: auto; padding-bottom: 10px" id="hwMetrics"></div>
+      </aside>
+
+      <!-- ЦЕНТРАЛЬНАЯ КОЛОНКА: трапециевидные вкладки + код + Qwen3-1.7B автодополнение + консоль -->
+      <main class="e-center">
+        <div class="hy-tabs" id="tabBar"></div>
+        <div class="hy-toolbar">
+          <span class="hy-plate out" id="langPlate">PYTHON</span>
+          <span class="mono dim" style="font-size:11px" id="curFilePath">core/haotica/agent/persona.py</span>
+          <span class="grow"></span>
+          <span class="hy-badge" style="color:var(--teal)" title="Локальная модель Qwen3-1.7B · Q4_K_M на порту 47822">FAST: Qwen3-1.7B GHOST ✓</span>
+          <button class="hy-btn small" id="ghostBtn" title="Вставить подсказку Qwen3-1.7B ([Alt+G])">✨ Ghost [TAB]</button>
+          <button class="hy-btn small primary" id="runCodeBtn">▶ ЗАПУСТИТЬ / ПРОВЕРИТЬ</button>
+        </div>
+
+        <div class="e-code-wrap">
+          <div class="e-gutter" id="lineGutter">1</div>
+          <div class="e-stage">
+            <textarea class="e-textarea scroll" id="codeArea" spellcheck="false"></textarea>
+            <div class="e-ghost-bar" id="ghostBar">
+              <span>QWEN3-1.7B (47822):</span>
+              <code id="ghostPreview">def verify_owner_eduard(face_id: str) -> bool:</code>
+              <button class="hy-btn small primary" id="acceptGhostBtn">[TAB] Вставить</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="e-term">
+          <div class="hy-toolbar" style="min-height:30px; padding: 2px 10px">
+            <span style="font:600 10px var(--font-mono); letter-spacing:.16em; color:var(--accent)">ВЫВОД И ДИАГНОСТИКА // RUFF &amp; LLAMA-BENCH</span>
+            <span class="grow"></span>
+            <button class="hy-btn ghost small" id="clearOutBtn">Очистить</button>
+          </div>
+          <div class="e-term-out" id="termOut"></div>
+        </div>
+
+        <div class="hy-status">
+          <span id="cursorPos">СТР 1, СТЛБ 1</span>
+          <span>КОДИРОВКА: <b>UTF-8</b></span>
+          <span>FAST LLM: <b>Qwen3-1.7B-Q4_K_M (:47822)</b></span>
+          <span>MAIN LLM: <b id="stMainModel">Qwen3.8-27B-UD-Q4_K_M (:47821)</b></span>
+          <span class="grow"></span>
+          <span>ВЛАДЕЛЕЦ: <b>EDUARD / ЕДУАРД</b></span>
+        </div>
+      </main>
+
+      <!-- ПРАВАЯ КОЛОНКА: встроенный ИИ-ассистент кода (base 27B ⇄ deep Coder-Next 80B) -->
+      <aside class="e-right">
+        <div class="e-ai-top">
+          <div id="miniAv"></div>
+          <div class="grow">
+            <div style="display:flex; align-items:center; justify-content:space-between">
+              <b style="font:600 11px var(--font-mono); letter-spacing:.14em">HAOTICA // CODE AI</b>
+              <button class="hy-plate ai" style="border:0; cursor:pointer" id="roleToggleBtn" title="Переключить BASE (Qwen3.8-27B) ⇄ DEEP (Qwen3-Coder-Next 80B)">BASE · 27B</button>
+            </div>
+            <div style="font:10px var(--font-mono); color:var(--dim); margin-top:3px" id="aiSubStatus">READY · 46.8 TOK/S · DFLASH DRAFT</div>
+          </div>
+        </div>
+
+        <div style="padding: 6px 10px; border-bottom: 1px solid var(--line); display:flex; flex-wrap:wrap; gap:5px">
+          <button class="hy-btn small" data-act="refactor">/deep Рефакторинг</button>
+          <button class="hy-btn small" data-act="explain">Объяснить код</button>
+          <button class="hy-btn small" data-act="bugs">Найти уязвимости</button>
+          <button class="hy-btn small" data-act="tests">Сгенерировать тесты</button>
+          <button class="hy-btn small" data-act="cloud">Cloud Helper (Haiku 5.5)</button>
+        </div>
+
+        <div class="e-ai-log scroll" id="aiChatLog"></div>
+
+        <div style="padding: 8px 10px; border-top: 1px solid var(--line); display:flex; gap:6px">
+          <input class="hy-input mono grow" id="aiCodeInput" placeholder="/deep или вопрос по коду…">
+          <button class="hy-btn small primary" id="aiCodeSend">→</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { HY, el, icon } from "/ui/hy.js";
+import { createAvatar, avatarCss } from "/ui/avatar.js";
+
+await HY.start({ title: "Редактор кода", glyph: "code" });
+const $ = (id) => document.getElementById(id);
+
+const st = document.createElement("style"); st.textContent = avatarCss(); document.head.append(st);
+const avatar = createAvatar($("miniAv"), { size: 46, interactive: false });
+
+const FILES = [
+  {
+    name: "persona.py",
+    path: "core/haotica/agent/persona.py",
+    lang: "PYTHON",
+    symbols: ["OWNER_NAME", "STRANGER_FACE_LINE_RU", "greeting()", "face_stranger_complaint()", "system_prompt()"],
+    ghost: `\ndef verify_owner_eduard(face_match: float, subject: str) -> dict:\n    if subject.lower() == "eduard" and face_match >= 0.90:\n        return {"ok": True, "greeting": greeting("ru")}\n    return face_stranger_complaint()\n`,
+    code: `"""Характер Haotica и системная инструкция модели (§16 спецификации).
+Владелец ноутбука — Eduard / Едуард.
+Если кто-то другой пытается разблокировать ноутбук через скан лица:
+жалобным и недовольным тоном: «Ты не Едуард, киш отсюда»."""
+from __future__ import annotations
+
+OWNER_NAME = "Eduard"
+OWNER_NAME_RU = "Едуард"
+STRANGER_FACE_LINE_RU = "Ты не Едуард, киш отсюда"
+STRANGER_FACE_TONE_RU = "жалобным и недовольным тоном"
+
+def greeting(lang: str = "ru") -> str:
+    if lang == "ru":
+        return f"Добро пожаловать, {OWNER_NAME_RU}! Рада вас видеть, все системы в норме."
+    return f"Welcome back, {OWNER_NAME}! All systems nominal."
+
+def face_stranger_complaint() -> dict:
+    return {
+        "ok": False,
+        "owner": False,
+        "state": "warning",
+        "tone": STRANGER_FACE_TONE_RU,
+        "text": STRANGER_FACE_LINE_RU,
+        "display": f"({STRANGER_FACE_TONE_RU}) «{STRANGER_FACE_LINE_RU}»",
+    }
+`
+  },
+  {
+    name: "models.py",
+    path: "core/haotica/models.py",
+    lang: "PYTHON",
+    symbols: ["CATALOG", "_QWEN38_EXTRA", "SAMPLING", "server_args()", "launch()"],
+    ghost: `\n# Спекулятивный драфт DFlash ускоряет Qwen3.8-27B до ~48 tok/s на Radeon 8060S\n`,
+    code: `"""Каталог локальных моделей HAOTICA под Strix Halo (64 ГБ общей памяти, Vulkan)."""
+
+_QWEN38 = "unsloth/Qwen3.8-27B-GGUF"
+_QWEN38_EXTRA = {
+    "mmproj": {"repo": "ggml-org/Qwen3.8-27B-GGUF", "file": "mmproj-Qwen3.8-27B-Q8_0.gguf"},
+    "draft":  {"repo": "ggml-org/Qwen3.8-27B-GGUF", "file": "dflash-Qwen3.8-27B-Q8_0.gguf", "type": "draft-dflash"},
+}
+
+CATALOG = {
+    "base": [
+        {"id": "qwen3.8-27b-ud-q4km", "label": "Qwen3.8-27B · UD-Q4_K_M", "ctx_max": 262144, **_QWEN38_EXTRA},
+        {"id": "qwen3.8-27b-ud-q5km", "label": "Qwen3.8-27B · UD-Q5_K_M", "ctx_max": 262144, **_QWEN38_EXTRA},
+    ],
+    "deep": [
+        {"id": "qwen3-coder-next-iq4xs", "label": "Qwen3-Coder-Next 80B-A3B · IQ4_XS", "ctx_max": 262144},
+    ],
+    "fast": [
+        {"id": "qwen3-1.7b-q4km", "label": "Qwen3-1.7B · Q4_K_M (подсказки в строке)", "ctx_max": 32768},
+    ],
+}
+`
+  },
+  {
+    name: "haotica-adblock.json",
+    path: "system/etc/opt/chrome/policies/managed/haotica-adblock.json",
+    lang: "JSON",
+    symbols: ["ExtensionInstallForcelist", "ExtensionSettings", "AdsSettingForIntrusiveAdsSites"],
+    ghost: `\n  "BlockThirdPartyCookies": true\n`,
+    code: `{
+  "ExtensionInstallForcelist": [
+    "ddkjiahejlhfcafbddmgiahcphecmpfh;https://clients2.google.com/service/update2/crx",
+    "cjpalhdlnbpafiamejdnhcphjbkeiagm;https://clients2.google.com/service/update2/crx"
+  ],
+  "ExtensionSettings": {
+    "ddkjiahejlhfcafbddmgiahcphecmpfh": {
+      "installation_mode": "force_installed",
+      "toolbar_pin": "force_pinned"
+    },
+    "cjpalhdlnbpafiamejdnhcphjbkeiagm": {
+      "installation_mode": "force_installed",
+      "toolbar_pin": "force_pinned"
+    }
+  },
+  "AdsSettingForIntrusiveAdsSites": 2
+}`
+  },
+  {
+    name: "LockScreen.qml",
+    path: "shell/lock/LockScreen.qml",
+    lang: "QML",
+    symbols: ["Scope", "PamContext", "WlSessionLock", "ownerName", "haoticaComplaint"],
+    ghost: `\n// При несовпадении ИК-скана лица Haotica произносит жалобным тоном: «Ты не Едуард, киш отсюда»\n`,
+    code: `// HAOTICA // SUBJECT A-34 LOCK SCREEN (Owner: Eduard / Едуард)
+Scope {
+    readonly property string ownerName: "EDUARD / ЕДУАРД"
+    property string haoticaTone: "жалобным и недовольным тоном"
+    property string haoticaComplaint: "Ты не Едуард, киш отсюда"
+}`
+  }
+];
+
+let curFile = 0;
+let aiRole = "base"; // base (Qwen3.8-27B) or deep (Qwen3-Coder-Next 80B)
+let pendingDiff = null;
+
+function renderAll() {
+  const f = FILES[curFile];
+  HY.sub(f.path);
+  $("langPlate").textContent = f.lang;
+  $("curFilePath").textContent = f.path;
+  $("ghostPreview").textContent = f.ghost.trim().split("\n")[0];
+
+  $("fileTree").replaceChildren(...FILES.map((item, i) =>
+    el("div.item" + (i === curFile ? ".on" : ""), { onclick: () => selectFile(i) },
+      icon("code", 14), el("span", item.name))
+  ));
+
+  $("tabBar").replaceChildren(...FILES.map((item, i) =>
+    el("div.hy-tab" + (i === curFile ? ".on" : ""), { onclick: () => selectFile(i) },
+      icon("code", 12), el("span", item.name))
+  ));
+
+  $("symList").replaceChildren(...f.symbols.map((sym) =>
+    el("div.item", { onclick: () => jumpToSymbol(sym) }, icon("sparkle", 12), el("span.mono", { style: { fontSize: "11px" } }, sym))
+  ));
+
+  $("llmMetrics").replaceChildren(
+    HY.kv("BASE (:47821)", aiRole === "base" ? "READY · 19 ГБ" : "STANDBY", aiRole === "base" ? "var(--green)" : "var(--dim)"),
+    HY.kv("DEEP (:47824)", aiRole === "deep" ? "READY · 43 ГБ" : "ON-DEMAND", aiRole === "deep" ? "var(--violet)" : "var(--dim)"),
+    HY.kv("FAST (:47822)", "READY · 1.1 ГБ", "var(--teal)"),
+    HY.kv("DRAFT SPEC", aiRole === "base" ? "DFlash Q8_0" : "ngram-mod", "var(--amber)")
+  );
+
+  $("hwMetrics").replaceChildren(
+    HY.kv("CPU RYZEN 392", "14%", "var(--ink)"),
+    HY.kv("GPU 8060S", "28% · 49°C", "var(--teal)"),
+    HY.kv("UMA / GTT", aiRole === "base" ? "24.6 / 56 ГиБ" : "46.8 / 56 ГиБ", "var(--accent)"),
+    HY.segbar(aiRole === "base" ? 0.44 : 0.83, 18, "var(--accent)")
+  );
+}
+
+function selectFile(i) {
+  FILES[curFile].code = $("codeArea").value;
+  curFile = i;
+  $("codeArea").value = FILES[i].code;
+  updateGutter();
+  renderAll();
+}
+
+function updateGutter() {
+  const txt = $("codeArea").value;
+  const lines = txt.split("\n").length;
+  $("lineGutter").innerHTML = Array.from({ length: lines }, (_, i) => i + 1).join("<br>");
+}
+
+function jumpToSymbol(sym) {
+  const clean = sym.replace("()", "");
+  const idx = $("codeArea").value.indexOf(clean);
+  if (idx >= 0) {
+    $("codeArea").focus();
+    $("codeArea").setSelectionRange(idx, idx + clean.length);
+  }
+}
+
+$("codeArea").addEventListener("input", () => {
+  FILES[curFile].code = $("codeArea").value;
+  updateGutter();
+});
+$("codeArea").addEventListener("scroll", () => {
+  $("lineGutter").scrollTop = $("codeArea").scrollTop;
+});
+$("codeArea").addEventListener("keyup", () => {
+  const pos = $("codeArea").selectionStart;
+  const before = $("codeArea").value.slice(0, pos).split("\n");
+  $("cursorPos").textContent = `СТР ${before.length}, СТЛБ ${before[before.length - 1].length + 1}`;
+});
+
+// ── Принятие Ghost-подсказки от Qwen3-1.7B ───────────────────
+function acceptGhost() {
+  const g = FILES[curFile].ghost;
+  $("codeArea").value = $("codeArea").value.trimEnd() + "\n" + g;
+  FILES[curFile].code = $("codeArea").value;
+  updateGutter();
+  HY.toast("Подсказка Qwen3-1.7B вставлена в код", "ok");
+}
+$("acceptGhostBtn").onclick = acceptGhost;
+$("ghostBtn").onclick = acceptGhost;
+
+// ── Переключение BASE (Qwen3.8-27B) ⇄ DEEP (Qwen3-Coder-Next 80B) ──
+function switchRole(targetRole) {
+  aiRole = targetRole;
+  const isDeep = aiRole === "deep";
+  $("roleToggleBtn").textContent = isDeep ? "DEEP · 80B" : "BASE · 27B";
+  $("aiSubStatus").textContent = isDeep
+    ? "QWEN3-CODER-NEXT 80B-A3B · 26.4 TOK/S · NGRAM-MOD"
+    : "QWEN3.8-27B-UD-Q4_K_M · 46.8 TOK/S · DFLASH DRAFT";
+  $("stMainModel").textContent = isDeep
+    ? "Qwen3-Coder-Next-IQ4_XS (:47824)"
+    : "Qwen3.8-27B-UD-Q4_K_M (:47821)";
+  renderAll();
+}
+
+$("roleToggleBtn").onclick = () => {
+  switchRole(aiRole === "base" ? "deep" : "base");
+  HY.toast(`Переключена локальная модель: ${aiRole.toUpperCase()}`, "ai");
+};
+
+// ── Выполнение / проверка кода ───────────────────────────────
+$("runCodeBtn").onclick = () => {
+  const f = FILES[curFile];
+  const now = new Date().toLocaleTimeString("ru-RU");
+  $("termOut").textContent =
+    `[${now}] $ ruff check ${f.path} && python3 -m py_compile ${f.path}\n` +
+    `✓ Сигнатуры и синтаксис в порядке (${f.name})\n` +
+    `✓ Проверка правил владельца: OWNER="Eduard / Едуард", реакция на чужое лицо активна.\n` +
+    `✓ Локальный контур: ${aiRole === "base" ? "Qwen3.8-27B (127.0.0.1:47821)" : "Qwen3-Coder-Next 80B (127.0.0.1:47824)"} — 0 ошибок.`;
+  HY.toast("Проверка кода успешно завершена", "ok");
+};
+$("clearOutBtn").onclick = () => { $("termOut").textContent = ""; };
+
+// ── Карточки патчей от локального ИИ ([TAB] Применить / [ESC] Отклонить) ──
+function pushAiPatch(title, explanation, patchCode, useDeep = false) {
+  if (useDeep && aiRole !== "deep") switchRole("deep");
+  if (avatar) avatar.setState("thinking");
+  setTimeout(() => { if (avatar) avatar.setState("idle"); }, 900);
+
+  pendingDiff = patchCode;
+  const card = el("div.hy-ai-card",
+    el("div.head", el("span", `⚙ ${title}`), el("span", `${aiRole.toUpperCase()} · PATCH`)),
+    el("div", { style: { fontSize: "12px", marginBottom: "6px" } }, explanation),
+    el("pre", patchCode),
+    el("div.acts",
+      el("button.hy-btn.small.primary", { onclick: () => applyPatch(card, patchCode) }, "[TAB] Применить патч"),
+      el("button.hy-btn.small.ghost", { onclick: () => { pendingDiff = null; card.remove(); } }, "[ESC] Отклонить")
+    )
+  );
+  $("aiChatLog").append(card);
+  $("aiChatLog").scrollTop = $("aiChatLog").scrollHeight;
+}
+
+function applyPatch(card, patchCode) {
+  $("codeArea").value = $("codeArea").value.trimEnd() + "\n\n" + patchCode + "\n";
+  FILES[curFile].code = $("codeArea").value;
+  updateGutter();
+  pendingDiff = null;
+  card.replaceWith(el("div.e-msg.ai", el("span.who", `HAOTICA · ${aiRole.toUpperCase()}`), "✓ Патч применён к файлу Едуарда."));
+  if (avatar) { avatar.setState("happy"); setTimeout(() => avatar.setState("idle"), 1400); }
+  HY.toast("Патч применён в буфер редактора", "ok");
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Tab" && pendingDiff && document.activeElement !== $("codeArea")) {
+    e.preventDefault();
+    const card = $("aiChatLog").querySelector(".hy-ai-card");
+    if (card) applyPatch(card, pendingDiff);
+  } else if (e.key === "Escape" && pendingDiff) {
+    const card = $("aiChatLog").querySelector(".hy-ai-card");
+    if (card) { pendingDiff = null; card.remove(); }
+  }
+});
+
+document.querySelectorAll("[data-act]").forEach((btn) => {
+  btn.onclick = () => {
+    const act = btn.dataset.act;
+    const f = FILES[curFile];
+    if (act === "refactor") {
+      pushAiPatch(
+        "DEEP REFACTOR // CODER-NEXT 80B",
+        `Едуард, я переключилась на глубокую модель Qwen3-Coder-Next 80B-A3B и подготовила типизированный хелпер для ${f.name}:`,
+        `def guard_session_for_eduard(user: str, face_verified: bool) -> dict:\n    """Гарантирует вежливое приветствие Едуарда и блокировку посторонних."""\n    if user.lower() in ("eduard", "едуард") and face_verified:\n        return {"ok": True, "state": "happy", "msg": greeting("ru")}\n    return face_stranger_complaint()`,
+        true
+      );
+    } else if (act === "explain") {
+      $("aiChatLog").append(el("div.e-msg.ai",
+        el("span.who", `HAOTICA · ${aiRole.toUpperCase()}`),
+        `Едуард, файл ${f.path} связывает системную конфигурацию HAOTICA с локальными службами. Секреты фильтруются до отправки в контекст.`
+      ));
+      $("aiChatLog").scrollTop = $("aiChatLog").scrollHeight;
+    } else if (act === "bugs") {
+      pushAiPatch(
+        "АУДИТ БЕЗОПАСНОСТИ",
+        `Едуард, проверила ${f.name} — добавила явную защиту от пустого идентификатора камеры при сканировании лица:`,
+        `assert OWNER_NAME == "Eduard", "Владелец системы должен быть только Eduard / Едуард"`
+      );
+    } else if (act === "tests") {
+      pushAiPatch(
+        "UNIT-ТЕСТЫ",
+        `Едуард, сгенерировала самопроверку для ${f.name}:`,
+        `def _self_test_eduard_persona() -> None:\n    res = face_stranger_complaint()\n    assert res["text"] == "Ты не Едуард, киш отсюда"\n    assert "жалобным" in res["tone"]`
+      );
+    } else if (act === "cloud") {
+      $("aiChatLog").append(el("div.e-msg.ai",
+        el("span.who", "CLOUD HELPER · CLAUDE HAIKU 5.5 (БЕЗ ЛИЧНЫХ ДАННЫХ)"),
+        `Едуард, облачный помощник проверил публичную спецификацию Chrome Enterprise Policy: ID расширений uBlock Origin Lite (ddkjiahejlhfcafbddmgiahcphecmpfh) и uBlock Origin (cjpalhdlnbpafiamejdnhcphjbkeiagm) актуальны.`
+      ));
+      $("aiChatLog").scrollTop = $("aiChatLog").scrollHeight;
+    }
+  };
+});
+
+$("aiCodeSend").onclick = () => {
+  const q = $("aiCodeInput").value.trim();
+  if (!q) return;
+  $("aiCodeInput").value = "";
+  $("aiChatLog").append(el("div.e-msg.user", el("span.who", "EDUARD"), q));
+  const wantDeep = q.startsWith("/deep") || /рефактор|архитектур|глубок/i.test(q);
+  pushAiPatch(
+    wantDeep ? "DEEP CODE PATCH (80B)" : "BASE CODE PATCH (27B)",
+    `Едуард, с удовольствием подготовила решение по запросу «${q.replace(/^\/deep\s*/i, "")}»:`,
+    `# Выполнено по поручению Едуарда (${wantDeep ? "Qwen3-Coder-Next 80B" : "Qwen3.8-27B"})\neduard_verified = True`,
+    wantDeep
+  );
+};
+$("aiCodeInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("aiCodeSend").click(); });
+
+$("aiChatLog").append(el("div.e-msg.ai",
+  el("span.who", "HAOTICA · BASE · QWEN3.8-27B"),
+  "Приветствую вас, Едуард! Локальные модели готовы: Qwen3-1.7B подсказывает в строке ([TAB]), Qwen3.8-27B отвечает мгновенно, а для тяжёлого рефакторинга введите /deep (включится Qwen3-Coder-Next 80B)."
+));
+
+$("codeArea").value = FILES[0].code;
+updateGutter();
+renderAll();
+$("runCodeBtn").click();
+</script>
+</body>
+</html>

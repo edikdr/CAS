@@ -1,0 +1,24 @@
+[connection]
+id=Vodafone-D37C
+uuid=74d5df5c-9148-4ffa-b905-1c9ecc41d37c
+type=wifi
+autoconnect=true
+autoconnect-priority=100
+interface-name=wlan0
+
+[wifi]
+mode=infrastructure
+ssid=Vodafone-D37C
+
+[wifi-security]
+key-mgmt=wpa-psk
+# PSK is injected from libsecret / /etc/haotica/secrets/wifi.env at install time (no cleartext secret in git)
+psk-flags=1
+
+[ipv4]
+method=auto
+dns=192.168.0.1;1.1.1.1;
+
+[ipv6]
+addr-gen-mode=stable-privacy
+method=auto

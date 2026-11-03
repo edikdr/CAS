@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HAOTICA // БУФЕР ОБМЕНА</title>
+  <link rel="stylesheet" href="/ui/hy.css" />
+</head>
+<body>
+  <script type="module">
+    import { HY } from "/ui/hy.js";
+    const CLIPS = [
+      { id: 1, pinned: true, tag: 'PERSONA', text: 'Ты не Едуард, киш отсюда', time: 'Закреплено · Face Scan Guard' },
+      { id: 2, pinned: true, tag: 'CMD', text: 'export HSA_OVERRIDE_GFX_VERSION=11.5.1 && llama-server -m Qwen3.8-27B.gguf', time: 'Закреплено · ROCm' },
+      { id: 3, pinned: false, tag: 'CHROME', text: 'chrome://policy — uBlock Origin (cjpalhdlnbpafiamejdnhcphjbkeiagm)', time: '10 мин назад' },
+      { id: 4, pinned: false, tag: 'PALETTE', text: 'BACKGROUND=#000000 ACCENT=#FF5A1F AMBER=#FFB020', time: '24 мин назад' }
+    ];
+
+    HY.start(async ({ root }) => {
+      const chrome = HY.buildWindowChrome({
+        title: 'БУФЕР ОБМЕНА // CLIPHIST WAYLAND',
+        code: 'APP-CLIPBOARD // SUPER+V',
+        statusLabel: `${CLIPS.length} ЗАПИСЕЙ`,
+        statusColor: 'ok'
+      });
+
+      const body = HY.el('div', { class: 'hy-main', style: { display: 'flex', flexDirection: 'column', gap: '10px' } });
+      chrome.windowEl.appendChild(body);
+      root.appendChild(chrome.windowEl);
+
+      function render() {
+        body.innerHTML = '';
+        CLIPS.forEach(c => {
+          body.appendChild(HY.el('div', { class: 'hy-card', style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' } }, [
+            HY.el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } }, [
+              HY.el('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, [
+                HY.el('span', { class: 'hy-badge accent', text: c.tag }),
+                HY.el('span', { class: 'hy-sub', text: c.time })
+              ]),
+              HY.el('div', { style: { fontFamily: 'var(--font-code)', fontSize: '12px' }, text: c.text })
+            ]),
+            HY.el('button', {
+              class: 'hy-btn primary',
+              onClick: () => {
+                navigator.clipboard && navigator.clipboard.writeText(c.text).catch(() => {});
+                HY.toast('СКОПИРОВАНО', c.text, 'ok');
+              }
+            }, [HY.el('span', { text: 'КОПИРОВАТЬ' })])
+          ]));
+        });
+      }
+      render();
+    });
+  </script>
+</body>
+</html>

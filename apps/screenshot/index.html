@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HAOTICA // СНИМОК ЭКРАНА И OCR</title>
+  <link rel="stylesheet" href="/ui/hy.css" />
+</head>
+<body>
+  <script type="module">
+    import { HY } from "/ui/hy.js";
+    HY.start(async ({ root }) => {
+      let ocrResult = 'DOSSIER // SUBJECT: EDUARD (ЕДУАРД)\nHARDWARE: RYZEN AI MAX+ 392 · RADEON 8060S\nADBLOCK: uBlock Origin Force-Installed\nFACE GUARD: «Ты не Едуард, киш отсюда»';
+
+      const chrome = HY.buildWindowChrome({
+        title: 'СНИМОК ЭКРАНА // GRIM + SLURP + QWEN3.8-27B VISION OCR',
+        code: 'APP-SCREENSHOT // WAYLAND CAPTURE',
+        statusLabel: 'VISION READY',
+        statusColor: 'ok',
+        actions: [
+          {
+            label: 'НОВЫЙ ЗАХВАТ ОБЛАСТИ',
+            onClick: () => HY.toast('СНИМОК СОХРАНЁН', '~/Pictures/Screenshots/haotica-capture.png', 'ok')
+          }
+        ]
+      });
+
+      const previewCanvas = HY.el('canvas', { width: 460, height: 240, style: { width: '100%', height: '240px', border: '1px solid var(--border-subtle)', background: '#050505' } });
+
+      const body = HY.el('div', { class: 'hy-main', style: { display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: '12px' } }, [
+        HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, [
+          HY.el('div', { class: 'hy-card-header' }, [
+            HY.el('span', { class: 'hy-card-title', text: 'ЗАХВАЧЕННЫЙ КАДР РАБОЧЕГО СТОЛА' }),
+            HY.el('span', { class: 'hy-card-code', text: '2880×1800 PNG' })
+          ]),
+          previewCanvas
+        ]),
+        HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, [
+          HY.el('div', { class: 'hy-card-header' }, [
+            HY.el('span', { class: 'hy-card-title', text: 'РАСПОЗНАННЫЙ ТЕКСТ (QWEN3.8-27B VISION)' }),
+            HY.el('span', { class: 'hy-card-code', text: 'OCR RU/EN' })
+          ]),
+          HY.el('textarea', { class: 'hy-textarea', style: { flex: '1', fontFamily: 'var(--font-code)', fontSize: '11px' }, value: ocrResult }),
+          HY.el('button', {
+            class: 'hy-btn primary',
+            onClick: () => {
+              navigator.clipboard && navigator.clipboard.writeText(ocrResult).catch(() => {});
+              HY.toast('ТЕКСТ СКОПИРОВАН', 'Результат OCR помещён в буфер обмена Едуарда', 'ok');
+            }
+          }, [HY.el('span', { text: 'СКОПИРОВАТЬ ТЕКСТ В БУФЕР' })])
+        ])
+      ]);
+
+      chrome.windowEl.appendChild(body);
+      root.appendChild(chrome.windowEl);
+
+      const ctx = previewCanvas.getContext('2d');
+      ctx.strokeStyle = '#FF5A1F';
+      ctx.strokeRect(18, 18, 424, 204);
+      ctx.fillStyle = '#FFB020';
+      ctx.font = '12px "JetBrains Mono", monospace';
+      ctx.fillText('HAOTICA // CAPTURE REGION [2880x1800]', 32, 46);
+      ctx.fillStyle = '#F5F2EB';
+      ctx.fillText('SUBJECT: EDUARD (ЕДУАРД) · VERIFIED OWNER', 32, 82);
+      ctx.fillText('CHROME POLICY: uBlock Origin ACTIVE', 32, 112);
+      ctx.fillText('STRANGER GUARD: «Ты не Едуард, киш отсюда»', 32, 142);
+    });
+  </script>
+</body>
+</html>

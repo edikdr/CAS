@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Галерея — HAOTICA</title>
+<link rel="stylesheet" href="/ui/hy.css">
+<style>
+  .g-stage { flex: 1; display: grid; place-items: center; background: var(--bg0); position: relative; overflow: hidden; padding: 16px; }
+  .g-stage canvas { max-width: 100%; max-height: 100%; border: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<div class="hy-app">
+  <div class="hy-body">
+    <aside class="hy-side">
+      <div class="hy-section">АРТ И ОБОИ СИСТЕМЫ</div>
+      <div class="hy-nav" id="imgList"></div>
+      <div class="hy-section">КОНВЕРТЕР СТИЛЯ</div>
+      <div style="padding: 8px 12px; display:flex; flex-direction:column; gap:6px" id="filterBox"></div>
+    </aside>
+    <main class="hy-main">
+      <div class="hy-toolbar">
+        <span class="hy-plate accent" id="imgTitle">STATUE // POINT CLOUD</span>
+        <span class="grow"></span>
+        <button class="hy-btn small primary" id="setWallBtn">Установить на рабочий стол</button>
+      </div>
+      <div class="g-stage">
+        <canvas id="artCanvas" width="680" height="420"></canvas>
+      </div>
+      <div class="hy-status">
+        <span>РАЗРЕШЕНИЕ: <b>2560×1600 (OLED 10-BIT)</b></span>
+        <span>ВЛАДЕЛЕЦ: <b>EDUARD / ЕДУАРД</b></span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { HY, el, icon } from "/ui/hy.js";
+
+await HY.start({ title: "Галерея", glyph: "image" });
+const $ = (id) => document.getElementById(id);
+
+const ITEMS = [
+  { name: "Statue_PointCloud.png", mode: "statue" },
+  { name: "Creation_of_Adam_Code.png", mode: "adam" },
+  { name: "Subject_A34_Grid.png", mode: "grid" },
+  { name: "Haotica_Gears_Emblem.png", mode: "gears" },
+];
+const FILTERS = [
+  ["orig", "ОРИГИНАЛ (MIX)"],
+  ["amber", "ФОСФОР (HYPERION)"],
+  ["violet", "ЛЮМИНОФОР (SUBJECT)"],
+  ["dither", "1-БИТ ДИЗЕРИНГ"],
+];
+
+let cur = 0, filter = "orig";
+
+function render() {
+  $("imgTitle").textContent = ITEMS[cur].name.toUpperCase();
+  $("imgList").replaceChildren(...ITEMS.map((it, i) =>
+    el("div.item" + (i === cur ? ".on" : ""), { onclick: () => { cur = i; render(); } },
+      icon("image", 14), el("span", it.name))
+  ));
+  $("filterBox").replaceChildren(...FILTERS.map(([k, label]) =>
+    el("button.hy-btn.small" + (filter === k ? ".primary" : ""), { onclick: () => { filter = k; render(); } }, label)
+  ));
+  drawArt();
+}
+
+function drawArt() {
+  const cv = $("artCanvas");
+  const g = cv.getContext("2d");
+  const w = cv.width, h = cv.height;
+  g.fillStyle = "#050504";
+  g.fillRect(0, 0, w, h);
+
+  const c1 = filter === "amber" ? "#E0A243" : filter === "violet" ? "#A7A3F0" : filter === "dither" ? "#EFE3C6" : "#E0A243";
+  const c2 = filter === "amber" ? "#A37A3A" : filter === "violet" ? "#5FA8A0" : "#5FA8A0";
+
+  // Сетка
+  g.strokeStyle = "rgba(255,255,255,0.05)";
+  for (let x = 0; x < w; x += 24) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+  for (let y = 0; y < h; y += 24) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+
+  const m = ITEMS[cur].mode;
+  g.strokeStyle = c1;
+  g.fillStyle = c1;
+  if (m === "statue") {
+    for (let i = 0; i < 420; i++) {
+      const a = i * 0.25;
+      const y = 60 + (i / 420) * 300;
+      const r = 38 + Math.sin(i * 0.04) * 28;
+      const x = w / 2 + Math.cos(a) * r;
+      g.fillRect(x, y, 2.5, 2.5);
+    }
+  } else if (m === "adam") {
+    g.font = "12px 'IBM Plex Mono', monospace";
+    for (let i = 0; i < 90; i++) {
+      const t = i / 90;
+      g.fillStyle = i % 2 ? c1 : c2;
+      g.fillText("01λΔΩ"[i % 5], 60 + t * 240, h / 2 - (1 - t) * 50 + Math.sin(t * 5) * 18);
+      g.fillText("HAOTICA"[i % 7], w - 60 - t * 240, h / 2 + (1 - t) * 50 - Math.sin(t * 5) * 18);
+    }
+  } else if (m === "grid") {
+    for (let r = 30; r <= 150; r += 20) {
+      g.beginPath(); g.arc(w / 2, h / 2, r, 0, Math.PI * 2); g.stroke();
+    }
+  } else {
+    g.lineWidth = 2;
+    for (const [cx, cy, r] of [[240, 210, 75], [390, 170, 55], [420, 275, 45]]) {
+      g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
+    }
+  }
+
+  g.fillStyle = c2;
+  g.font = "600 11px 'IBM Plex Mono', monospace";
+  g.fillText(`HAOTICA // ${ITEMS[cur].name.toUpperCase()} // FILTER: ${filter.toUpperCase()}`, 18, h - 16);
+}
+
+$("setWallBtn").onclick = () => HY.toast(`Обои ${ITEMS[cur].name} применены к рабочему столу Едуарда`, "ok");
+render();
+</script>
+</body>
+</html>

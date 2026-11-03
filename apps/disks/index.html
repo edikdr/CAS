@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HAOTICA // ДИСКИ И НАКОПИТЕЛИ</title>
+  <link rel="stylesheet" href="/ui/hy.css" />
+</head>
+<body>
+  <script type="module">
+    import { HY } from "/ui/hy.js";
+    HY.start(async ({ root }) => {
+      const chrome = HY.buildWindowChrome({
+        title: 'ДИСКИ И BTRFS ТОМА // NVME SMART DOSSIER',
+        code: 'APP-DISKS // SAMSUNG PM9A1 2TB',
+        statusLabel: 'SMART: PASSED (99% LIFE)',
+        statusColor: 'ok',
+        actions: [
+          {
+            label: '+ BTRFS СНИМОК (@SNAPSHOT)',
+            onClick: () => HY.toast('BTRFS SNAPSHOT', 'Создан снимок /.snapshots/eduard-manual-' + Date.now().toString().slice(-4), 'ok')
+          }
+        ]
+      });
+
+      const voxelCanvas = HY.el('canvas', { width: 420, height: 220, style: { width: '100%', height: '220px', border: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.5)' } });
+
+      const body = HY.el('div', { class: 'hy-main', style: { display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: '12px' } }, [
+        HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, [
+          HY.el('div', { class: 'hy-card-header' }, [
+            HY.el('span', { class: 'hy-card-title', text: '3D ВОКСЕЛЬНАЯ КАРТА БЛОКОВ NVME0N1' }),
+            HY.el('span', { class: 'hy-card-code', text: 'PCIe 4.0 x4 · 7100 MB/S' })
+          ]),
+          voxelCanvas,
+          HY.kvRow('ТОМ / (BTRFS @)', '412 GB / 1000 GB (zstd:3)', { accent: true }),
+          HY.segBar({ value: 41, segments: 22 }),
+          HY.kvRow('ТОМ /home/eduard (@home)', '284 GB / 1000 GB (веса GGUF + проекты)'),
+          HY.segBar({ value: 28, segments: 22 })
+        ]),
+        HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '8px' } }, [
+          HY.el('div', { class: 'hy-card-header' }, [
+            HY.el('span', { class: 'hy-card-title', text: 'ТЕЛЕМЕТРИЯ SMART // NVME0N1' }),
+            HY.el('span', { class: 'hy-card-code', text: '37°C · ЗДОРОВ' })
+          ]),
+          HY.kvRow('МОДЕЛЬ', 'Samsung PM9A1 NVMe 2.0 TB', { accent: true }),
+          HY.kvRow('ТЕМПЕРАТУРА КОНТРОЛЛЕРА', '37 °C (норма < 70 °C)'),
+          HY.kvRow('ИЗНОС ЯЧЕЕК (PERCENTAGE USED)', '1 % (остаток ресурса 99 %)'),
+          HY.kvRow('ЗАПИСАНО ДАННЫХ (TBW)', '6.4 TB'),
+          HY.kvRow('ОШИБКИ МЕДИА И ЦЕЛОСТНОСТИ', '0 (Zero media errors)', { accent: true }),
+          HY.kvRow('АВТО-СНИМКИ SNAPPER', 'Активны перед каждым обновлением pacman')
+        ])
+      ]);
+
+      chrome.windowEl.appendChild(body);
+      root.appendChild(chrome.windowEl);
+
+      const ctx = voxelCanvas.getContext('2d');
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#FF5A1F';
+      ctx.clearRect(0, 0, 420, 220);
+      for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 14; c++) {
+          const used = (r * 14 + c) < 36;
+          const x = 24 + c * 27;
+          const y = 26 + r * 30;
+          ctx.fillStyle = used ? accent : 'rgba(255,255,255,0.08)';
+          ctx.fillRect(x, y, 21, 22);
+          ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+          ctx.strokeRect(x, y, 21, 22);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

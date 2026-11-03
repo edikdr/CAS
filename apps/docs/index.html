@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Редактор документов — HAOTICA</title>
+<link rel="stylesheet" href="/ui/hy.css">
+<style>
+  .d-layout { flex: 1; min-height: 0; display: flex; }
+  .d-work { flex: 1; min-width: 0; min-height: 0; display: flex; }
+  .d-pane { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .d-pane + .d-pane { border-left: 1px solid var(--line); }
+  .d-editor {
+    flex: 1; width: 100%; border: 0; background: var(--bg0); color: var(--ink);
+    padding: 20px 24px; font: 14px/1.65 var(--font-ui); outline: none; resize: none;
+  }
+  .d-preview {
+    flex: 1; padding: 22px 28px; background: var(--bg0); color: var(--ink);
+    font: 14px/1.68 var(--font-ui); user-select: text;
+  }
+  .d-preview h1 { font: 700 22px/1.25 var(--font-display); color: var(--accent); letter-spacing: .04em; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin: 0 0 14px; text-transform: uppercase; }
+  .d-preview h2 { font: 600 15px/1.3 var(--font-mono); color: var(--teal); letter-spacing: .12em; text-transform: uppercase; margin: 18px 0 8px; }
+  .d-preview h3 { font: 600 13px/1.3 var(--font-mono); color: var(--violet); margin: 14px 0 6px; }
+  .d-preview blockquote { margin: 10px 0; padding: 10px 14px; border-left: 2px solid var(--accent); background: var(--bg1); color: var(--ink); font-style: italic; }
+  .d-preview pre { padding: 10px 12px; background: var(--bg1); border: 1px solid var(--line); font: 12px/1.5 var(--font-mono); overflow-x: auto; }
+  .d-preview code { font: 12px var(--font-mono); background: var(--bg2); padding: 1px 5px; color: var(--amber); }
+  .d-preview table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  .d-preview th, .d-preview td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; }
+  .d-preview th { background: var(--bg1); font: 600 10px var(--font-mono); color: var(--dim); letter-spacing: .12em; text-transform: uppercase; }
+  .d-ai-side { width: 310px; flex: 0 0 310px; border-left: 1px solid var(--line); background: var(--bg1); display: flex; flex-direction: column; min-height: 0; }
+  .d-ai-log { flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .d-ai-msg { padding: 8px 10px; border: 1px solid var(--line); background: var(--bg0); font-size: 12px; line-height: 1.45; }
+  .d-ai-msg.ai { border-left: 2px solid var(--violet); }
+  .d-toc-item { padding: 5px 12px; font: 11px var(--font-mono); color: var(--dim); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .d-toc-item:hover { color: var(--accent); background: var(--hover); }
+</style>
+</head>
+<body>
+<div class="hy-app">
+  <div class="hy-body">
+    <aside class="hy-side">
+      <div class="hy-section">ДОКУМЕНТЫ ЕДУАРДА</div>
+      <div style="padding: 4px 8px">
+        <button class="hy-btn small primary" style="width:100%" id="newDocBtn"></button>
+      </div>
+      <div class="hy-nav" id="docList"></div>
+      <div class="hy-section">ШАБЛОНЫ ДОСЬЕ</div>
+      <div class="hy-nav" id="tplList"></div>
+      <div class="hy-section">ОГЛАВЛЕНИЕ</div>
+      <div class="scroll grow" id="tocBox"></div>
+    </aside>
+
+    <main class="hy-main">
+      <div class="hy-toolbar">
+        <button class="hy-btn small ghost" data-ins="# ">H1</button>
+        <button class="hy-btn small ghost" data-ins="## ">H2</button>
+        <button class="hy-btn small ghost" data-ins="### ">H3</button>
+        <button class="hy-btn small ghost" data-wrap="**"><b>B</b></button>
+        <button class="hy-btn small ghost" data-wrap="*"><i>I</i></button>
+        <button class="hy-btn small ghost" data-wrap="`">CODE</button>
+        <button class="hy-btn small ghost" id="insTableBtn">ТАБЛИЦА</button>
+        <button class="hy-btn small ghost" id="insDossierBtn">ДОСЬЕ-БЛОК</button>
+        <span class="grow"></span>
+        <div id="viewSeg"></div>
+        <button class="hy-btn small" id="exportMdBtn">.MD</button>
+        <button class="hy-btn small primary" id="saveDocBtn"></button>
+      </div>
+
+      <div class="d-layout">
+        <div class="d-work" id="workArea">
+          <div class="d-pane" id="editPane">
+            <textarea class="d-editor scroll" id="docInput" spellcheck="false"></textarea>
+          </div>
+          <div class="d-pane" id="prevPane">
+            <div class="d-preview scroll" id="docPreview"></div>
+          </div>
+        </div>
+
+        <aside class="d-ai-side">
+          <div class="hy-section">ЛОКАЛЬНЫЙ ИИ · ДОКУМЕНТЫ</div>
+          <div style="padding: 4px 10px; display:flex; align-items:center; justify-content:space-between; gap:6px">
+            <span class="hy-plate ai" id="docAiRole">BASE · QWEN3.8-27B</span>
+            <span class="hy-badge" style="color:var(--green)">44.2 T/S · DFLASH</span>
+          </div>
+          <div style="padding: 6px 10px; display:flex; flex-wrap:wrap; gap:5px">
+            <button class="hy-btn small" data-ai="continue">Продолжить</button>
+            <button class="hy-btn small" data-ai="summary">Выжимка досье</button>
+            <button class="hy-btn small" data-ai="style">Улучшить стиль</button>
+            <button class="hy-btn small" data-ai="translate_de">Перевод DE</button>
+            <button class="hy-btn small" data-ai="Checklist">Чек-лист задач</button>
+          </div>
+          <div class="d-ai-log scroll" id="aiLog"></div>
+          <div style="padding: 8px 10px; border-top: 1px solid var(--line); display:flex; gap:6px">
+            <input class="hy-input grow" id="aiPrompt" placeholder="Поручить Haotica по тексту…">
+            <button class="hy-btn small primary" id="aiSendBtn">→</button>
+          </div>
+        </aside>
+      </div>
+
+      <div class="hy-status">
+        <span id="stPath">~/Documents/Dossier_Eduard.md</span>
+        <span>СЛОВ: <b id="stWords">0</b></span>
+        <span>СИМВОЛОВ: <b id="stChars">0</b></span>
+        <span>ЧТЕНИЕ: <b id="stRead">1 мин</b></span>
+        <span class="grow"></span>
+        <span>ВЛАДЕЛЕЦ: <b>EDUARD / ЕДУАРД</b></span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { HY, el, icon } from "/ui/hy.js";
+
+await HY.start({ title: "Редактор документов", glyph: "doc" });
+const $ = (id) => document.getElementById(id);
+
+$("newDocBtn").append(icon("plus", 14), "Новый документ");
+$("saveDocBtn").append(icon("check", 14), "СОХРАНИТЬ");
+
+const DOCS = [
+  {
+    name: "Dossier_Subject_Eduard.md",
+    path: "~/Documents/Dossier_Subject_Eduard.md",
+    content: `# DOSSIER // SUBJECT A-34 — EDUARD (ЕДУАРД)
+
+## 1. ПРОФИЛЬ ВЛАДЕЛЬЦА И АППАРАТНЫЙ КОНТУР
+Настоящее досье закрепляет права полного доступа за владельцем системы **Eduard (Едуард)**.
+
+| ПАРАМЕТР | ЗНАЧЕНИЕ | СТАТУС |
+|---|---|---|
+| ВЛАДЕЛЕЦ | Eduard / Едуард | VERIFIED ✓ |
+| ПЛАТФОРМА | Lenovo Legion 7 15ASH11 (Strix Halo) | ONLINE |
+| ПРОЦЕССОР / GPU | Ryzen AI Max+ 392 · Radeon 8060S (40 CU) | 56 GiB UMA |
+| БРАУЗЕР | Google Chrome + uBlock Origin AdBlock | FORCE_PINNED |
+
+## 2. ПРОТОКОЛ ИДЕНТИФИКАЦИИ ЛИЦА
+> При распознавании лица Едуарда ассистент Haotica вежливо приветствует владельца по имени. При попытке разблокировки посторонним лицом включается блокировка и голосовая реакция (жалобным и недовольным тоном): «Ты не Едуард, киш отсюда».
+
+## 3. ЛОКАЛЬНЫЙ СТЕК ИИ
+- **Base (`127.0.0.1:47821`):** \`Qwen3.8-27B · UD-Q4_K_M\` + \`mmproj\` + \`dflash-Qwen3.8-27B-Q8_0\`
+- **Deep (`127.0.0.1:47824`):** \`Qwen3-Coder-Next 80B-A3B · IQ4_XS\` (\`--spec-type ngram-mod\`)
+- **Fast (`127.0.0.1:47822`):** \`Qwen3-1.7B · Q4_K_M\` (подсказки в строке терминала и редактора кода)`
+  },
+  {
+    name: "Haotica_Architecture_Notes.md",
+    path: "~/Documents/Haotica_Architecture_Notes.md",
+    content: `# АРХИТЕКТУРНЫЕ ЗАМЕТКИ HAOTICA OS
+
+## 1. ЕДИНЫЙ ВИЗУАЛЬНЫЙ ЯЗЫК
+Все базовые приложения системы используют OLED-чёрный фон \`#000000\`, скошенные панели \`--chamfer: 8px\` и живую палитру из \`palette.toml\`.
+
+## 2. ИЗОЛЯЦИЯ И БЕЗОПАСНОСТЬ
+- Банковский профиль **Sparkasse** открывается в полностью изолированном контуре без доступа ИИ.
+- В Google Chrome предустановлен **uBlock Origin / uBlock Origin Lite** через системную политику \`/etc/opt/chrome/policies/managed/haotica-adblock.json\`.`
+  },
+  {
+    name: "Sprint_Plan_2026.md",
+    path: "~/Documents/Sprint_Plan_2026.md",
+    content: `# ПЛАН ЗАДАЧ ЕДУАРДА
+
+## Приоритет P0
+- Проверить сборку \`llama.cpp b12032\` с Vulkan и драфтом \`draft-dflash\`
+- Протестировать переключение \`base ⇄ deep\` по таймеру простоя 10 минут
+- Проверить радар осадков и погодный виджет Берлина`
+  }
+];
+
+let curIdx = 0;
+let viewMode = "split";
+let aiRole = "base";
+
+$("viewSeg").append(HY.seg([["edit", "РЕДАКТОР"], ["split", "SPLIT"], ["read", "ДОСЬЕ"]], "split", (v) => {
+  viewMode = v;
+  $("editPane").classList.toggle("hidden", v === "read");
+  $("prevPane").classList.toggle("hidden", v === "edit");
+}));
+
+function mdToHtml(md) {
+  let h = md
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+    .replace(/^&gt; (.+)$/gm, "<blockquote>$1</blockquote>")
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/\*([^*]+)\*/g, "<i>$1</i>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  // Таблицы Markdown
+  h = h.replace(/(?:^\|.+\|\n)+/gm, (block) => {
+    const lines = block.trim().split("\n").filter((l) => !/^\|[\s:-]+\|$/.test(l.replace(/\|/g, "|")));
+    if (!lines.length) return block;
+    const rows = lines.map((line, idx) => {
+      const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+      const tag = idx === 0 ? "th" : "td";
+      return "<tr>" + cells.map((c) => `<${tag}>${c}</${tag}>`).join("") + "</tr>";
+    });
+    return `<table>${rows.join("")}</table>`;
+  });
+
+  h = h.replace(/^- (.+)$/gm, "• $1<br>");
+  return h.replace(/\n\n+/g, "<br><br>");
+}
+
+function updateStatsAndPreview() {
+  const txt = $("docInput").value;
+  DOCS[curIdx].content = txt;
+  $("docPreview").innerHTML = mdToHtml(txt);
+  const words = txt.trim() ? txt.trim().split(/\s+/).length : 0;
+  $("stWords").textContent = String(words);
+  $("stChars").textContent = String(txt.length);
+  $("stRead").textContent = `${Math.max(1, Math.ceil(words / 180))} мин`;
+
+  // Оглавление
+  const toc = $("tocBox");
+  toc.replaceChildren();
+  const matches = [...txt.matchAll(/^(#{1,3})\s+(.+)$/gm)];
+  for (const m of matches) {
+    const lvl = m[1].length;
+    toc.append(el("div.d-toc-item", {
+      style: { paddingLeft: `${8 + (lvl - 1) * 10}px` },
+      onclick: () => {
+        const pos = m.index || 0;
+        $("docInput").focus();
+        $("docInput").setSelectionRange(pos, pos);
+      }
+    }, `${"▪".repeat(lvl)} ${m[2]}`));
+  }
+}
+
+function renderList() {
+  const d = DOCS[curIdx];
+  HY.sub(d.path);
+  $("stPath").textContent = d.path;
+  $("docList").replaceChildren(...DOCS.map((doc, i) =>
+    el("div.item" + (i === curIdx ? ".on" : ""), { onclick: () => { curIdx = i; $("docInput").value = DOCS[i].content; renderList(); updateStatsAndPreview(); } },
+      icon("doc", 14), el("span", doc.name))
+  ));
+}
+
+const TEMPLATES = [
+  { label: "Досье SUBJECT", text: `\n\n## ДОСЬЕ // ОБЪЕКТ\n| ПОЛЕ | ЗНАЧЕНИЕ |\n|---|---|\n| ВЛАДЕЛЕЦ | Едуард (Eduard) |\n| СТАТУС | VERIFIED |\n` },
+  { label: "Протокол ИИ", text: `\n\n> **ПРОТОКОЛ HAOTICA:** Выполнено локальной моделью Qwen3.8-27B без отправки данных в облако.\n` },
+];
+$("tplList").replaceChildren(...TEMPLATES.map((t) =>
+  el("div.item", { onclick: () => { $("docInput").value += t.text; updateStatsAndPreview(); HY.toast("Шаблон вставлен", "ok"); } },
+    icon("sparkle", 14), el("span", t.label))
+));
+
+document.querySelectorAll("[data-ins]").forEach((b) => {
+  b.onclick = () => {
+    const ta = $("docInput");
+    const s = ta.selectionStart;
+    ta.setRangeText(b.dataset.ins, s, s, "end");
+    updateStatsAndPreview();
+  };
+});
+document.querySelectorAll("[data-wrap]").forEach((b) => {
+  b.onclick = () => {
+    const ta = $("docInput");
+    const w = b.dataset.wrap;
+    const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd) || "текст";
+    ta.setRangeText(`${w}${sel}${w}`, ta.selectionStart, ta.selectionEnd, "end");
+    updateStatsAndPreview();
+  };
+});
+
+$("insTableBtn").onclick = () => {
+  $("docInput").value += `\n\n| КОЛОНКА 1 | КОЛОНКА 2 | СТАТУС |\n|---|---|---|\n| Модуль | Qwen3.8-27B | READY |\n`;
+  updateStatsAndPreview();
+};
+$("insDossierBtn").onclick = () => {
+  $("docInput").value += `\n\n> **DOSSIER NOTE // EDUARD:** Запись подтверждена локальным ядром HAOTICA.\n`;
+  updateStatsAndPreview();
+};
+
+$("newDocBtn").onclick = async () => {
+  const name = await HY.prompt("Новый документ", "Note_Eduard.md");
+  if (!name) return;
+  const clean = name.endsWith(".md") ? name : name + ".md";
+  DOCS.push({ name: clean, path: `~/Documents/${clean}`, content: `# ${clean.replace(".md", "").toUpperCase()}\n\nДокумент создан владельцем **Едуард (Eduard)**.\n` });
+  curIdx = DOCS.length - 1;
+  $("docInput").value = DOCS[curIdx].content;
+  renderList();
+  updateStatsAndPreview();
+};
+
+$("saveDocBtn").onclick = () => HY.toast(`Сохранено: ${DOCS[curIdx].path}`, "ok");
+$("exportMdBtn").onclick = () => {
+  const blob = new Blob([$("docInput").value], { type: "text/markdown" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = DOCS[curIdx].name;
+  a.click();
+  HY.toast(`Экспортировано: ${DOCS[curIdx].name}`, "ok");
+};
+
+// ── Локальный ИИ в редакторе документов с карточками [TAB] / [ESC] ──
+let activeCardPatch = null;
+
+function addAiProposal(title, summary, patchText) {
+  activeCardPatch = patchText;
+  const card = el("div.hy-ai-card",
+    el("div.head", el("span", `⚙ ${title}`), el("span", aiRole.toUpperCase())),
+    el("div", { style: { fontSize: "12px", marginBottom: "6px" } }, summary),
+    el("pre", patchText),
+    el("div.acts",
+      el("button.hy-btn.small.primary", { onclick: () => acceptPatch(card, patchText) }, "[TAB] Принять в документ"),
+      el("button.hy-btn.small.ghost", { onclick: () => { activeCardPatch = null; card.remove(); } }, "[ESC] Отклонить")
+    )
+  );
+  $("aiLog").append(card);
+  $("aiLog").scrollTop = $("aiLog").scrollHeight;
+}
+
+function acceptPatch(card, patchText) {
+  $("docInput").value += "\n\n" + patchText;
+  updateStatsAndPreview();
+  activeCardPatch = null;
+  card.replaceWith(el("div.d-ai-msg.ai", "✓ Вставлено в документ Едуарда."));
+  HY.toast("Изменение от Haotica применено", "ok");
+}
+
+document.addEventListener("keydown", (e) => {
+  if (!activeCardPatch) return;
+  if (e.key === "Tab" && document.activeElement !== $("docInput")) {
+    e.preventDefault();
+    const card = $("aiLog").querySelector(".hy-ai-card");
+    if (card) acceptPatch(card, activeCardPatch);
+  } else if (e.key === "Escape") {
+    const card = $("aiLog").querySelector(".hy-ai-card");
+    if (card) { activeCardPatch = null; card.remove(); }
+  }
+});
+
+$("docAiRole").onclick = () => {
+  aiRole = aiRole === "base" ? "deep" : "base";
+  $("docAiRole").textContent = aiRole === "base" ? "BASE · QWEN3.8-27B" : "DEEP · CODER-NEXT 80B";
+  HY.toast(`Модель документов: ${$("docAiRole").textContent}`, "ai");
+};
+
+function runAiAction(kind, customPrompt = "") {
+  const presets = {
+    continue: {
+      title: "ПРОДОЛЖЕНИЕ ТЕКСТА",
+      msg: "Едуард, я подготовила продолжение раздела в стиле досье HAOTICA:",
+      patch: `## ДОПОЛНЕНИЕ // АВТОНОМНЫЙ КОНТУР\nВсе операции чтения и индексации документов выполняются локально через \`Qwen3.8-27B\` без передачи содержимого во внешние сети.`
+    },
+    summary: {
+      title: "КРАТКАЯ ВЫЖИМКА",
+      msg: "Едуард, вот сжатое резюме текущего документа:",
+      patch: `> **РЕЗЮМЕ ДОКУМЕНТА:** В документе зафиксированы параметры системы владельца **Едуарда**, конфигурация локальных моделей (\`base\` 27B / \`deep\` 80B / \`fast\` 1.7B) и правила биометрической защиты.`
+    },
+    style: {
+      title: "РЕДАКТУРА СТИЛЯ",
+      msg: "Едуард, формулировки приведены к строгому техническому стандарту:",
+      patch: `### ТЕХНИЧЕСКОЕ ЗАКЛЮЧЕНИЕ\nКонфигурация проверена и соответствует спецификации \`HAOTICA v0.12\`.`
+    },
+    translate_de: {
+      title: "ПЕРЕВОД НА НЕМЕЦКИЙ (DE)",
+      msg: "Едуард, подготовила перевод ключевого блока на немецкий язык:",
+      patch: `> **DOSSIER-ZUSAMMENFASSUNG (DE):** Eigentümer des Systems ist **Eduard**. Alle lokalen KI-Modelle (\`Qwen3.8-27B\`, \`Qwen3-Coder-Next 80B\`) laufen vollständig lokal über Vulkan.`
+    },
+    Checklist: {
+      title: "ЧЕК-ЛИСТ ЗАДАЧ",
+      msg: "Едуард, выделила контрольный список шагов из документа:",
+      patch: `### КОНТРОЛЬНЫЙ СПИСОК\n- [x] Профиль владельца Едуард активирован\n- [x] Политика uBlock Origin для Chrome установлена\n- [ ] Проверить отклик \`deep\` модели на 128K контексте`
+    }
+  };
+  const item = presets[kind] || {
+    title: "ОТВЕТ HAOTICA",
+    msg: `Едуард, по вашему запросу «${customPrompt}» подготовлен фрагмент:`,
+    patch: `> **HAOTICA // ${customPrompt.toUpperCase()}**\nРаздел сформирован локальной моделью \`${aiRole === "base" ? "Qwen3.8-27B" : "Qwen3-Coder-Next 80B"}\` специально для Едуарда.`
+  };
+  addAiProposal(item.title, item.msg, item.patch);
+}
+
+document.querySelectorAll("[data-ai]").forEach((b) => { b.onclick = () => runAiAction(b.dataset.ai); });
+$("aiSendBtn").onclick = () => {
+  const q = $("aiPrompt").value.trim();
+  if (!q) return;
+  $("aiPrompt").value = "";
+  runAiAction("custom", q);
+};
+$("aiPrompt").addEventListener("keydown", (e) => { if (e.key === "Enter") $("aiSendBtn").click(); });
+
+$("aiLog").append(el("div.d-ai-msg.ai", "Здравствуйте, Едуард! Я готова помогать с редактированием документов, досье и переводом через локальные модели Qwen3.8-27B и Coder-Next 80B."));
+
+$("docInput").value = DOCS[0].content;
+$("docInput").addEventListener("input", updateStatsAndPreview);
+renderList();
+updateStatsAndPreview();
+</script>
+</body>
+</html>

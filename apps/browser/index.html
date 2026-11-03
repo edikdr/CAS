@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Google Chrome (Haotica AdBlock) — HAOTICA</title>
+<link rel="stylesheet" href="/ui/hy.css">
+<style>
+  .b-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg1); border-bottom: 1px solid var(--line); }
+  .b-url { flex: 1; display: flex; align-items: center; gap: 8px; background: var(--bg0); border: 1px solid var(--line); padding: 0 10px; height: 32px; }
+  .b-url input { flex: 1; border: 0; background: transparent; color: var(--ink); font: 12px var(--font-mono); outline: none; }
+  .b-shield {
+    display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px;
+    border: 1px solid var(--green); background: color-mix(in srgb, var(--green) 14%, var(--bg1));
+    color: var(--green); font: 600 11px var(--font-mono); cursor: pointer;
+  }
+  .b-viewport { flex: 1; min-height: 0; display: flex; background: var(--bg0); position: relative; }
+  .b-page { flex: 1; padding: 22px; overflow: auto; }
+  .b-adblock-pop {
+    width: 340px; border-left: 1px solid var(--line); background: var(--bg1);
+    padding: 14px; display: flex; flex-direction: column; gap: 12px; overflow: auto;
+  }
+  .b-stat-big { font: 700 32px/1 var(--font-display); color: var(--green); }
+</style>
+</head>
+<body>
+<div class="hy-app">
+  <div class="hy-body" style="flex-direction:column">
+    <div class="hy-tabs" id="bTabs"></div>
+    <div class="b-bar">
+      <div class="b-url">
+        <span style="color:var(--green); font:600 10px var(--font-mono)">HTTPS //</span>
+        <input id="urlIn" value="chrome://policy/haotica-adblock" spellcheck="false">
+      </div>
+      <button class="b-shield" id="shieldBtn" title="Предустановленный uBlock Origin / uBlock Origin Lite">
+        <span id="shieldIcon"></span>
+        <span>uBLOCK ORIGIN: АКТИВЕН</span>
+        <span class="hy-plate ok" id="blockedBadge">428 BLOCKED</span>
+      </button>
+    </div>
+
+    <div class="b-viewport">
+      <div class="b-page scroll" id="pageContent"></div>
+      <aside class="b-adblock-pop" id="adPanel">
+        <div style="display:flex; align-items:center; justify-content:space-between">
+          <span style="font:600 11px var(--font-mono); letter-spacing:.16em; color:var(--green)">uBLOCK ORIGIN // SHIELD</span>
+          <span class="hy-plate ok">FORCE_PINNED</span>
+        </div>
+        <div class="hy-card">
+          <div class="head">ЗАБЛОКИРОВАНО НА СТРАНИЦЕ И В СЕССИИ</div>
+          <div class="body">
+            <div class="b-stat-big" id="totalBlocked">1 482</div>
+            <div class="dim mono" style="font-size:11px; margin-top:4px">рекламных баннеров, трекеров и телеметрии</div>
+            <div style="margin-top:10px" id="blockBar"></div>
+          </div>
+        </div>
+
+        <div class="hy-card">
+          <div class="head">АКТИВНЫЕ СПИСКИ ФИЛЬТРОВ</div>
+          <div class="body" id="filterLists"></div>
+        </div>
+
+        <div class="hy-card">
+          <div class="head">СИСТЕМНАЯ ПОЛИТИКА CHROME</div>
+          <div class="body">
+            <div class="dim" style="font-size:11px; line-height:1.45">
+              Установлено в <code>/etc/opt/chrome/policies/managed/haotica-adblock.json</code> модулем <code>40-apps.sh</code>:
+            </div>
+            <pre style="font:10.5px/1.4 var(--font-mono); background:var(--bg0); padding:8px; border:1px solid var(--line); overflow:auto; margin:8px 0 0">ddkjiahejlhfcafbddmgiahcphecmpfh (uBOL)
+cjpalhdlnbpafiamejdnhcphjbkeiagm (uBO)
+mode: "force_installed"
+pin:  "force_pinned"</pre>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="hy-status">
+      <span>БРАУЗЕР: <b>GOOGLE CHROME STABLE (HAOTICA POLICY)</b></span>
+      <span>ADBLOCK: <b style="color:var(--green)">uBLOCK ORIGIN + uBOL ПРЕДУСТАНОВЛЕНЫ</b></span>
+      <span class="grow"></span>
+      <span>ВЛАДЕЛЕЦ: <b>EDUARD / ЕДУАРД</b></span>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { HY, el, icon } from "/ui/hy.js";
+
+await HY.start({ title: "Google Chrome (AdBlock)", glyph: "globe" });
+const $ = (id) => document.getElementById(id);
+$("shieldIcon").append(icon("shield", 14));
+
+const TABS = [
+  {
+    title: "AdBlock & Policies",
+    url: "chrome://policy/haotica-adblock",
+    blocked: 0,
+    render: () => el("div",
+      el("div.hy-card", { style: { marginBottom: "14px" } },
+        el("div.head", icon("shield", 14), "СТАТУС ПРЕДУСТАНОВЛЕННОГО БЛОКИРОВЩИКА РЕКЛАМЫ (CHROME)"),
+        el("div.body",
+          HY.kv("РАСШИРЕНИЕ 1", "uBlock Origin (cjpalhdlnbpafiamejdnhcphjbkeiagm)", "var(--green)"),
+          HY.kv("РАСШИРЕНИЕ 2", "uBlock Origin Lite MV3 (ddkjiahejlhfcafbddmgiahcphecmpfh)", "var(--green)"),
+          HY.kv("РЕЖИМ УСТАНОВКИ", "force_installed + force_pinned (Enterprise Policy)", "var(--accent)"),
+          HY.kv("PRIVACY SANDBOX ADS", "ПОЛНОСТЬЮ ОТКЛЮЧЕНО (0 телеметрии)", "var(--teal)"),
+          HY.kv("DNS-OVER-HTTPS", "ВКЛЮЧЕНО", "var(--ink)")
+        )
+      ),
+      el("div.hy-card",
+        el("div.head", icon("code", 14), "ТЕСТ БЛОКИРОВКИ РЕКЛАМЫ И ТРЕКЕРОВ В РЕАЛЬНОМ ВРЕМЕНИ"),
+        el("div.body",
+          el("p", { style: { marginTop: 0 } }, "Нажмите кнопку ниже, чтобы симулировать загрузку тяжёлого портала с рекламными сетями (DoubleClick, Google Ads, Taboola, Яндекс.Директ):"),
+          el("button.hy-btn.primary", { onclick: simulateAdBlock }, "Проверить перехват рекламы uBlock Origin"),
+          el("div", { id: "simLog", style: { marginTop: "12px", font: "11.5px/1.55 var(--font-mono)" } })
+        )
+      )
+    )
+  },
+  {
+    title: "HuggingFace · Qwen3.8-27B",
+    url: "https://huggingface.co/unsloth/Qwen3.8-27B-GGUF",
+    blocked: 14,
+    render: () => el("div.hy-card",
+      el("div.head", icon("haotica", 14), "UNSLOTH / QWEN3.8-27B-GGUF (ЛОКАЛЬНЫЙ РЕПОЗИТОРИЙ МОДЕЛЕЙ)"),
+      el("div.body",
+        HY.kv("ФАЙЛ BASE", "Qwen3.8-27B-UD-Q4_K_M.gguf (16.46 ГБ)", "var(--green)"),
+        HY.kv("ФАЙЛ ЗРЕНИЯ", "mmproj-Qwen3.8-27B-Q8_0.gguf (629 МБ)", "var(--teal)"),
+        HY.kv("ФАЙЛ ДРАФТА", "dflash-Qwen3.8-27B-Q8_0.gguf (2.05 ГБ)", "var(--amber)"),
+        HY.kv("ФАЙЛ DEEP", "Qwen3-Coder-Next-IQ4_XS.gguf (42.68 ГБ)", "var(--violet)")
+      )
+    )
+  },
+  {
+    title: "🔒 Sparkasse (Isolated)",
+    url: "https://sparkasse.de [ISOLATED PROFILE — NO AI]",
+    blocked: 9,
+    render: () => el("div.hy-card", { style: { borderColor: "var(--coral)" } },
+      el("div.head", { style: { color: "var(--coral)" } }, icon("lock", 14), "ИЗОЛИРОВАННЫЙ БАНКОВСКИЙ ПРОФИЛЬ ВЛАДЕЛЬЦА ЕДУАРДА"),
+      el("div.body",
+        el("p", "Согласно разделу §3 спецификации HAOTICA, банковский профиль Sparkasse запускается в отдельном контейнере браузера."),
+        HY.kv("ДОСТУП HAOTICA AI", "ЗАБЛОКИРОВАН (safety.ALWAYS_DENIED)", "var(--coral)"),
+        HY.kv("ЗАХВАТ ЭКРАНА / БУФЕР", "ИЗОЛИРОВАН", "var(--green)"),
+        HY.kv("uBLOCK ORIGIN", "АКТИВЕН (строгий режим)", "var(--green)")
+      )
+    )
+  }
+];
+
+let curTab = 0;
+let totalBlockedCount = 1482;
+
+const FILTERS = [
+  ["uBlock filters — Ads & Privacy", true],
+  ["EasyList + EasyPrivacy", true],
+  ["RU AdList + Counters", true],
+  ["Peter Lowe's Ad & Tracking Server List", true],
+  ["uBlock Annoyances & Cookie Banners", true],
+];
+
+$("filterLists").replaceChildren(...FILTERS.map(([name, on]) =>
+  el("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid var(--ink-faint)", fontSize: "12px" } },
+    el("span", name),
+    HY.toggle(on, () => HY.toast("Список фильтров обновлён", "ok"))
+  )
+));
+
+$("blockBar").append(HY.segbar(0.88, 20, "var(--green)"));
+
+function simulateAdBlock() {
+  const blockedUrls = [
+    "✗ BLOCKED [uBO] https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js",
+    "✗ BLOCKED [uBO] https://securepubads.g.doubleclick.net/tag/js/gpt.js",
+    "✗ BLOCKED [uBO] https://cdn.taboola.com/libtrc/loader.js",
+    "✗ BLOCKED [uBO] https://mc.yandex.ru/metrika/tag.js",
+    "✗ BLOCKED [uBO] https://connect.facebook.net/en_US/fbevents.js",
+  ];
+  totalBlockedCount += blockedUrls.length;
+  $("totalBlocked").textContent = totalBlockedCount.toLocaleString("ru-RU");
+  $("blockedBadge").textContent = `${totalBlockedCount} BLOCKED`;
+  const box = document.getElementById("simLog");
+  if (box) {
+    box.innerHTML = blockedUrls.map((l) => `<div style="color:var(--coral)">${l}</div>`).join("") +
+      `<div style="color:var(--green); margin-top:6px">✓ Страница очищена за 1.8 мс. Сэкономлено 4.2 МБ трафика.</div>`;
+  }
+  HY.toast("uBlock Origin заблокировал 5 рекламных трекеров", "ok");
+}
+
+function renderTabs() {
+  const t = TABS[curTab];
+  $("urlIn").value = t.url;
+  $("bTabs").replaceChildren(...TABS.map((tab, i) =>
+    el("div.hy-tab" + (i === curTab ? ".on" : ""), { onclick: () => { curTab = i; renderTabs(); } },
+      icon("globe", 12), el("span", tab.title))
+  ));
+  $("pageContent").replaceChildren(t.render());
+}
+
+$("shieldBtn").onclick = () => {
+  $("adPanel").classList.toggle("hidden");
+};
+
+renderTabs();
+</script>
+</body>
+</html>

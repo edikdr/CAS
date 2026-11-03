@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Плеер — HAOTICA</title>
+<link rel="stylesheet" href="/ui/hy.css">
+<style>
+  .p-stage { flex: 1; position: relative; background: var(--bg0); display: flex; flex-direction: column; overflow: hidden; }
+  .p-stage canvas { width: 100%; flex: 1; display: block; }
+  .p-controls { padding: 12px 16px; border-top: 1px solid var(--line); background: var(--bg1); display: flex; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+<div class="hy-app">
+  <div class="hy-body">
+    <aside class="hy-side">
+      <div class="hy-section">ПЛЕЙЛИСТ ЕДУАРДА</div>
+      <div class="hy-nav" id="trackNav"></div>
+      <div class="hy-section">АУДИО-ТРАКТ</div>
+      <div style="padding: 6px 12px">
+        <div class="hy-kv"><span class="k">ЦАП</span><span class="dots"></span><span class="v">ALC3306 SOF</span></div>
+        <div class="hy-kv"><span class="k">ПРЕСЕТ</span><span class="dots"></span><span class="v" style="color:var(--teal)">EasyEffects Legion</span></div>
+        <div class="hy-kv"><span class="k">ФОРМАТ</span><span class="dots"></span><span class="v">24-bit / 96 kHz</span></div>
+      </div>
+    </aside>
+    <main class="hy-main">
+      <div class="hy-toolbar">
+        <span class="hy-plate accent" id="nowTrackPlate">SYNTH // HYPERION PULSE</span>
+        <span class="grow"></span>
+        <span class="hy-badge" style="color:var(--teal)" id="playStateBadge">PLAYING</span>
+      </div>
+      <div class="p-stage">
+        <canvas id="specCanvas"></canvas>
+      </div>
+      <div class="p-controls">
+        <div style="display:flex; align-items:center; gap:10px">
+          <span class="mono dim" style="font-size:11px" id="curTime">00:18</span>
+          <input type="range" class="hy-range" style="flex:1" min="0" max="100" value="32" id="seekRange">
+          <span class="mono dim" style="font-size:11px" id="totTime">03:42</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between">
+          <div style="display:flex; gap:8px">
+            <button class="hy-btn small" id="prevBtn">⏮</button>
+            <button class="hy-btn small primary" id="playBtn">⏸ ПАУЗА</button>
+            <button class="hy-btn small" id="nextBtn">⏭</button>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px">
+            <span class="mono dim" style="font-size:11px">ГРОМКОСТЬ</span>
+            <input type="range" class="hy-range" min="0" max="100" value="65">
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { HY, el, icon } from "/ui/hy.js";
+
+await HY.start({ title: "Плеер", glyph: "play" });
+const $ = (id) => document.getElementById(id);
+
+const TRACKS = [
+  { title: "01 · Hyperion Phosphor Drift", dur: "03:42" },
+  { title: "02 · Subject A-34 Boot Sequence", dur: "02:58" },
+  { title: "03 · Strix Halo 64GB Ambient", dur: "04:15" },
+  { title: "04 · Berlin Night Rain (Lo-Fi)", dur: "03:19" },
+];
+
+let cur = 0, playing = true, t = 0;
+
+function renderList() {
+  $("nowTrackPlate").textContent = TRACKS[cur].title.toUpperCase();
+  $("totTime").textContent = TRACKS[cur].dur;
+  $("trackNav").replaceChildren(...TRACKS.map((tr, i) =>
+    el("div.item" + (i === cur ? ".on" : ""), { onclick: () => { cur = i; renderList(); } },
+      icon("music", 14), el("span", tr.title))
+  ));
+}
+
+function drawSpectrum() {
+  const cv = $("specCanvas");
+  if (cv) {
+    const w = cv.clientWidth || 600, h = cv.clientHeight || 340;
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const g = cv.getContext("2d");
+    g.fillStyle = "#000000";
+    g.fillRect(0, 0, w, h);
+
+    if (playing) t += 0.06;
+    const bars = 42;
+    const bw = (w - 80) / bars;
+    for (let i = 0; i < bars; i++) {
+      const amp = playing
+        ? (Math.sin(i * 0.35 + t) * 0.35 + Math.cos(i * 0.18 - t * 1.4) * 0.35 + 0.45) * (h * 0.55)
+        : 10;
+      const x = 40 + i * bw;
+      const y = h - 40 - amp;
+      g.fillStyle = i % 3 === 0 ? "#E0A243" : "#5FA8A0";
+      g.fillRect(x, y, bw - 4, amp);
+    }
+
+    // Осциллограмма сверху
+    g.strokeStyle = "#A7A3F0";
+    g.lineWidth = 1.6;
+    g.beginPath();
+    for (let x = 40; x < w - 40; x += 4) {
+      const y = 70 + Math.sin(x * 0.04 + t * 2) * (playing ? 22 : 2);
+      x === 40 ? g.moveTo(x, y) : g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+  requestAnimationFrame(drawSpectrum);
+}
+
+$("playBtn").onclick = () => {
+  playing = !playing;
+  $("playBtn").textContent = playing ? "⏸ ПАУЗА" : "▶ ИГРАТЬ";
+  $("playStateBadge").textContent = playing ? "PLAYING" : "PAUSED";
+};
+$("prevBtn").onclick = () => { cur = (cur - 1 + TRACKS.length) % TRACKS.length; renderList(); };
+$("nextBtn").onclick = () => { cur = (cur + 1) % TRACKS.length; renderList(); };
+
+renderList();
+requestAnimationFrame(drawSpectrum);
+</script>
+</body>
+</html>

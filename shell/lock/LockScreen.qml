@@ -48,11 +48,13 @@ Scope {
         onCompleted: result => {
             if (result === PamResult.Success) {
                 root.status = "ACCESS GRANTED";
+                root.message = "Добро пожаловать, Едуард!";
                 root.failed = false;
                 Sound.play("access");
                 unlockDelay.restart();
             } else {
                 root.status = "ACCESS DENIED";
+                root.message = "Haotica (жалобно и недовольно): «Ты не Едуард, киш отсюда»";
                 root.failed = true;
                 Sound.play("error");
                 retry.restart();

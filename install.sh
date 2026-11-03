@@ -19,6 +19,9 @@ source "$HY_ROOT/lib/pkg.sh"
 # shellcheck source=lib/detect.sh
 source "$HY_ROOT/lib/detect.sh"
 
+# любая необработанная ошибка вне модулей: показать, где именно остановились (иначе set -e молчит)
+trap 'ui_err "Установщик остановился: строка $LINENO: $BASH_COMMAND"' ERR
+
 usage() {
   cat <<EOF
 HAOTICA installer ${HY_VERSION}

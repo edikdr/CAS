@@ -243,7 +243,7 @@ class Cloud:
             alive = await asyncio.gather(*(self.search.exists(s["url"]) for s in sources))
             return {"ok": True, "answer": parsed.get("answer", ""), "facts": parsed.get("facts", []),
                     "confidence": parsed.get("confidence"), "gaps": parsed.get("gaps", ""),
-                    "sources": [{"title": s["title"], "url": s["url"], "alive": ok} for s, ok in zip(sources, alive)],
+                    "sources": [{"title": s["title"], "url": s["url"], "alive": ok} for s, ok in zip(sources, alive, strict=False)],
                     "removed": removed, "models": [fast, model], "cost": round(spent_task + a.get("cost", 0), 5)}
         finally:
             self.assist_active -= 1

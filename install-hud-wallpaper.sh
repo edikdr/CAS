@@ -14,7 +14,7 @@ import os
 import subprocess
 import time
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
@@ -201,7 +201,7 @@ f_log = get_font(15, False)
 d.text((int(W * 0.77), H - 245), "NET // VODAFONE-D37C  .  1 MS", font=f_log, fill=teal)
 
 # 5. ЛОГ СОБЫТИЙ ВНИЗУ ПО ЦЕНТРУ
-now = datetime.now()
+now = datetime.now() + timedelta(minutes=5)
 log_x, log_y = int(W * 0.355), H - 365
 for idx, (ts, msg) in enumerate([
     (now.strftime("%H:%M:23"), "> PARTICLE FLOW ............ 1"),
@@ -211,7 +211,7 @@ for idx, (ts, msg) in enumerate([
     d.text((log_x, log_y + idx * 24), ts, font=f_log, fill=lineHi)
     d.text((log_x + 95, log_y + idx * 24), msg, font=f_log, fill=dim)
 
-# 6. КРУПНЫЕ ЧАСЫ СПРАВА ВВЕРХУ (16:46 + SUNDAY 01.11.2026)
+# 6. КРУПНЫЕ ЧАСЫ СПРАВА ВВЕРХУ (+5 минут)
 f_clock = get_font(132, True)
 f_day   = get_font(14, True)
 f_date  = get_font(17, False)
@@ -241,104 +241,6 @@ d.polygon([
 ], fill=ink)
 d.text((row_start_x + 13, plate_y + 5), day_txt, font=f_day, fill=bg0)
 d.text((row_start_x + day_w + 16, plate_y + 4), date_txt, font=f_date, fill=dim)
-
-# 7. ВИДЖЕТ SYSTEM // DOSSIER
-card_w, card_h = 540, 410
-card_x = W - 82 - card_w
-card_y = plate_y + 52
-ch = 10
-
-card_poly = [
-    (card_x + ch, card_y), (card_x + card_w - ch, card_y),
-    (card_x + card_w, card_y + ch), (card_x + card_w, card_y + card_h - ch),
-    (card_x + card_w - ch, card_y + card_h), (card_x + ch, card_y + card_h),
-    (card_x, card_y + card_h - ch), (card_x, card_y + ch),
-]
-d.polygon(card_poly, fill=bg1, outline=line)
-for nx, ny in [(card_x, card_y), (card_x + card_w - 4, card_y), (card_x, card_y + card_h - 4), (card_x + card_w - 4, card_y + card_h - 4)]:
-    d.rectangle((nx, ny, nx + 4, ny + 4), fill=ink)
-
-f_card_title = get_font(16, False)
-f_card_row   = get_font(15, False)
-f_card_val   = get_font(15, True)
-
-d.text((card_x + 22, card_y + 18), "SYSTEM // DOSSIER", font=f_card_title, fill=ink)
-tag_x0, tag_y0, tag_w, tag_h = card_x + card_w - 138, card_y + 14, 116, 26
-d.polygon([
-    (tag_x0 + 6, tag_y0), (tag_x0 + tag_w, tag_y0),
-    (tag_x0 + tag_w - 6, tag_y0 + tag_h), (tag_x0, tag_y0 + tag_h),
-], fill=dim)
-d.text((tag_x0 + 16, tag_y0 + 5), "BALANCED", font=f_day, fill=bg0)
-
-d.line((card_x + 18, card_y + 52, card_x + card_w - 18, card_y + 52), fill=line, width=1)
-
-# Спарклайн CPU
-sp_x0, sp_y0, sp_w, sp_h = card_x + 22, card_y + 66, card_w - 44, 52
-vals = [0.35, 0.37, 0.36, 0.34, 0.38, 0.32, 0.56, 0.42, 0.38, 0.62, 0.36, 0.40, 0.37, 0.39, 0.37]
-pts = []
-for i, v in enumerate(vals):
-    px_s = sp_x0 + int(i / (len(vals) - 1) * sp_w)
-    py_s = sp_y0 + sp_h - int(v * (sp_h - 10)) - 4
-    pts.append((px_s, py_s))
-
-spark_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-dsp = ImageDraw.Draw(spark_layer)
-fill_poly = pts + [(pts[-1][0], sp_y0 + sp_h), (pts[0][0], sp_y0 + sp_h)]
-dsp.polygon(fill_poly, fill=(*teal, 38))
-dsp.line(pts, fill=(*teal, 235), width=2)
-dsp.rectangle((pts[-1][0] - 3, pts[-1][1] - 3, pts[-1][0] + 3, pts[-1][1] + 3), fill=(*amber, 255))
-base = Image.alpha_composite(base.convert("RGBA"), spark_layer).convert("RGB")
-d = ImageDraw.Draw(base)
-
-cpu_pct = int(psutil.cpu_percent(interval=0.1)) if psutil else 37
-mem_used_gb = (psutil.virtual_memory().used / (1024**3)) if psutil else 12.4
-mem_tot_gb  = (psutil.virtual_memory().total / (1024**3)) if psutil else 64.0
-temp_c = 46
-if psutil and hasattr(psutil, "sensors_temperatures"):
-    try:
-        temps = psutil.sensors_temperatures() or {}
-        for entries in temps.values():
-            if entries:
-                temp_c = int(entries[0].current)
-                break
-    except Exception:
-        pass
-
-def draw_dossier_row(y_pos, key_str, val_str, val_color=ink):
-    d.text((card_x + 22, y_pos), key_str, font=f_card_row, fill=dim)
-    vb = d.textbbox((0, 0), val_str, font=f_card_val)
-    vw = vb[2] - vb[0]
-    kb = d.textbbox((0, 0), key_str, font=f_card_row)
-    kw = kb[2] - kb[0]
-    dot_start = card_x + 22 + kw + 12
-    dot_end   = card_x + card_w - 22 - vw - 12
-    for dx in range(dot_start, dot_end, 7):
-        d.rectangle((dx, y_pos + 12, dx + 1, y_pos + 13), fill=line)
-    d.text((card_x + card_w - 22 - vw, y_pos), val_str, font=f_card_val, fill=val_color)
-
-ry = card_y + 130
-draw_dossier_row(ry, "CPU", f"{cpu_pct}%"); ry += 34
-draw_dossier_row(ry, "GPU . 8060S", "12%"); ry += 34
-draw_dossier_row(ry, "GTT", f"{mem_used_gb:.1f} / {mem_tot_gb:.0f} GB"); ry += 32
-
-seg_count = 24
-seg_gap = 4
-seg_w = (card_w - 44 - (seg_count - 1) * seg_gap) // seg_count
-active_segs = max(1, int((mem_used_gb / max(1.0, mem_tot_gb)) * seg_count))
-for i in range(seg_count):
-    sx0 = card_x + 22 + i * (seg_w + seg_gap)
-    if i < active_segs:
-        d.rectangle((sx0, ry, sx0 + seg_w, ry + 9), fill=violet, outline=line)
-    else:
-        d.rectangle((sx0, ry, sx0 + seg_w, ry + 9), outline=line, width=1)
-ry += 24
-
-draw_dossier_row(ry, "THERMAL", f"{temp_c} C"); ry += 34
-draw_dossier_row(ry, "FAN", "2400 RPM"); ry += 34
-draw_dossier_row(ry, "NEURAL CORE", "ONLINE", violet); ry += 38
-
-f_hint = get_font(12, False)
-d.text((card_x + 22, ry), "SELECT : UP/DOWN    ENTER : DASHBOARD   /////////////", font=f_hint, fill=dim)
 
 # Чередуем a/b, чтобы GNOME Shell гарантированно обновлял обои без кэширования старого файла
 slot = "a" if int(time.time() // 20) % 2 == 0 else "b"

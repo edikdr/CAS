@@ -44,7 +44,7 @@ sudo apt-get install -y \
   build-essential git cmake ninja-build pkg-config curl wget rsync jq \
   zsh tmux wl-clipboard xclip \
   python3 python3-venv python3-pip python3-dev \
-  libvulkan-dev vulkan-tools glslang-tools spirv-headers spirv-tools mesa-vulkan-drivers \
+  libvulkan-dev vulkan-tools shaderc libshaderc-dev glslang-tools spirv-headers spirv-tools mesa-vulkan-drivers \
   libxcb-cursor0 libegl1 libgl1 libxkbcommon-x11-0 libdbus-1-3 libnss3 \
   fonts-jetbrains-mono || true
 
@@ -116,15 +116,28 @@ else
   rm -rf "$BUILD_TMP"
   mkdir -p "$(dirname "$BUILD_TMP")"
   if git clone --depth 1 https://github.com/ggml-org/llama.cpp.git "$BUILD_TMP"; then
+    GLSLC_BIN="$(which glslc 2>/dev/null || true)"
+    CMAKE_VK_ARGS="-DGGML_VULKAN=ON"
+    if [[ -n "$GLSLC_BIN" ]]; then
+      CMAKE_VK_ARGS="$CMAKE_VK_ARGS -DVulkan_GLSLC_EXECUTABLE=$GLSLC_BIN"
+    fi
     cmake -S "$BUILD_TMP" -B "$BUILD_TMP/build" -G Ninja \
       -DCMAKE_BUILD_TYPE=Release \
-      -DGGML_VULKAN=ON \
+      $CMAKE_VK_ARGS \
       -DGGML_NATIVE=ON \
       -DBUILD_SHARED_LIBS=OFF \
       -DLLAMA_CURL=OFF \
       -DLLAMA_BUILD_TESTS=OFF \
       -DLLAMA_BUILD_EXAMPLES=OFF \
-      -DLLAMA_BUILD_SERVER=ON
+      -DLLAMA_BUILD_SERVER=ON || {
+        warn "Vulkan сборка не удалась, собираю llama-server с оптимизацией под CPU Zen 5 (OpenMP)..."
+        cmake -S "$BUILD_TMP" -B "$BUILD_TMP/build" -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DGGML_VULKAN=OFF \
+          -DGGML_NATIVE=ON \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DLLAMA_BUILD_SERVER=ON
+      }
     cmake --build "$BUILD_TMP/build" --config Release -j "$(nproc)" --target llama-server llama-cli
     sudo install -d "$LLAMA_PREFIX/bin"
     sudo install -m 0755 "$BUILD_TMP/build/bin/llama-server" "$LLAMA_PREFIX/bin/llama-server"

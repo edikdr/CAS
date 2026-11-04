@@ -50,11 +50,15 @@ def run() -> int:
         ok = "RADV" in r.stdout
         line("VULKAN RADV", "ok" if ok else "fail", "Radeon 8060S" if ok else "нет устройства Vulkan")
         fails += 0 if ok else 1
-    r = util.run(["systemctl", "is-enabled", "greetd.service"], 5)
-    line("GREETER greetd", "ok" if r.stdout.strip() == "enabled" else "fail", r.stdout.strip() or "нет")
-    fails += 0 if r.stdout.strip() == "enabled" else 1
-    for unit, need in (("haotica-core", True), ("haotica-shell", True), ("haotica-agent", True),
+    full = not paths.DEV_ROOT                 # полная система HAOTICA; в «терминальной» версии (Ubuntu) нет greetd и оболочки
+    if full:
+        r = util.run(["systemctl", "is-enabled", "greetd.service"], 5)
+        line("GREETER greetd", "ok" if r.stdout.strip() == "enabled" else "fail", r.stdout.strip() or "нет")
+        fails += 0 if r.stdout.strip() == "enabled" else 1
+    for unit, need in (("haotica-core", True), ("haotica-shell", full), ("haotica-agent", True),
                        ("haotica-llm-base", False), ("haotica-llm-fast", False), ("haotica-models", False)):
+        if unit == "haotica-shell" and not full:
+            continue
         r = util.run(["systemctl", "--user", "is-active", f"{unit}.service"], 5)
         st = r.stdout.strip() or "нет сеанса"
         bad = need and st not in ("active", "activating")
@@ -87,7 +91,8 @@ def run() -> int:
     st = os.statvfs(str(paths.HOME))
     free = st.f_bavail * st.f_frsize / 1e9
     line("DISK FREE", "ok" if free > 40 else ("warn" if free > 10 else "fail"), f"{free:.0f} ГБ")
-    charge = util.run(["/usr/lib/haotica/bin/haotica-charge-limit", "status"], 5).stdout.strip()
-    line("CHARGE LIMIT", "ok" if charge and charge != "нет" else "warn", charge or "нет управления")
+    if full:
+        charge = util.run(["/usr/lib/haotica/bin/haotica-charge-limit", "status"], 5).stdout.strip()
+        line("CHARGE LIMIT", "ok" if charge and charge != "нет" else "warn", charge or "нет управления")
     print()
     return 1 if fails else 0

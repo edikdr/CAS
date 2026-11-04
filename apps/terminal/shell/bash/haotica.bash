@@ -23,3 +23,5 @@ PROMPT_COMMAND="__hy_save=\$?;${PROMPT_COMMAND:+$PROMPT_COMMAND;}__hy_precmd"
 PS1="$PS1\[\e]133;B\a\]"
 if [[ -n $HAOTICA_RUN ]]; then __hy_run=$HAOTICA_RUN; unset HAOTICA_RUN; history -s "$__hy_run"; eval "$__hy_run"; fi
 alias ls='ls --color=auto --hyperlink=auto'
+# Haotica прямо из строки: hy вопрос
+hy() { command haotica ask "$*"; }

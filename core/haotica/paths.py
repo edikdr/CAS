@@ -41,7 +41,7 @@ else:
 PALETTE_FILE = ASSETS / "palette.toml"
 DEFAULTS_FILE = Path(__file__).with_name("defaults.toml")
 SYSTEM_ETC = Path("/etc/haotica")
-OPT = Path("/opt/haotica")
+OPT = Path(os.environ.get("HAOTICA_OPT", "/opt/haotica"))
 
 HOST = "127.0.0.1"
 PORT_CORE = 47800

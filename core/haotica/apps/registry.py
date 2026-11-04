@@ -83,6 +83,10 @@ APPS: dict[str, App] = {a.name: a for a in [
         "haotica", "ai", transparent=True, hidden=True),
     App("updates", "Обновления", "Updates", "Обновления системы, AUR и Flatpak", (900, 640), "download", "system",
         keywords="upgrade;обновить;", xdg="System;", hidden=True),
+    App("keybinds", "Клавиши", "Keybinds", "Билдер клавиш и раскладка ISO-DE QWERTZ", (1120, 740),
+        "keyboard", "system", keywords="keys;shortcuts;hyprland;хоткеи;клавиши;", xdg="Settings;"),
+    App("browser", "Браузер (Щит)", "Browser Shield", "Статус щита uBlock Origin и профиль Sparkasse", (1160, 760),
+        "globe", "system", keywords="chrome;adblock;ublock;браузер;", xdg="Network;WebBrowser;"),
 ]}
 
 

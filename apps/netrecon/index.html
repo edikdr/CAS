@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HAOTICA // NETWORK RECON (VODAFONE-D37C)</title>
+  <link rel="stylesheet" href="/ui/hy.css" />
+  <style>
+    .net-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 12px;
+      height: calc(100vh - 102px);
+      min-height: 480px;
+    }
+    canvas.radar-sphere {
+      width: 100%;
+      flex: 1;
+      min-height: 280px;
+      background: radial-gradient(circle at center, rgba(255,90,31,0.08), rgba(0,0,0,0.85));
+      border: 1px solid var(--border-subtle);
+      cursor: grab;
+    }
+  </style>
+</head>
+<body>
+  <script type="module">
+    import { HY } from "/ui/hy.js";
+    const ROUTER_INFO = {
+      vendor: 'Vodafone Station',
+      model: 'CGA6444VF (HW 1.00)',
+      ssid: 'Vodafone-D37C',
+      wifiSecretKey: 'wifi_vodafone_d37c',
+      gatewayUrl: 'http://192.168.0.1',
+      gatewayIp: '192.168.0.1',
+      adminSecretKey: 'router_vodafone_admin'
+    };
+
+    const NODES = [
+      { ip: '192.168.0.1',   name: 'Vodafone Station CGA6444VF (SSID: Vodafone-D37C)', role: 'GATEWAY ROUTER', rtt: '0.6 ms', ports: '53, 80, 443 (Keyring Auth)', lat: 0.08, lon: 0.2, trust: 'AUTO-CONNECTED' },
+      { ip: '192.168.0.20',  name: 'haotica-legion (Ноутбук Едуарда · Ryzen AI)', role: 'OWNER HOST', rtt: '0.1 ms', ports: '7770 (hy), 8080 (llama)', lat: -0.32, lon: 1.2, trust: 'OWNER' },
+      { ip: '192.168.0.34',  name: 'Eduard-Phone', role: 'MOBILE', rtt: '2.4 ms', ports: 'KDE Connect 1716', lat: 0.48, lon: 2.3, trust: 'VERIFIED' },
+      { ip: '192.168.0.50',  name: 'Media-Display-LAN1', role: 'LAN PORT 1', rtt: '0.9 ms', ports: '8008, 8443', lat: -0.45, lon: 3.6, trust: 'VERIFIED' }
+    ];
+
+    HY.start(async ({ root }) => {
+      let selected = NODES[0];
+      let pendingRouterPatch = null;
+      let yaw = 0.4;
+
+      const chrome = HY.buildWindowChrome({
+        title: 'NETWORK RECON // АВТОПОДКЛЮЧЕНИЕ К VODAFONE-D37C (192.168.0.1)',
+        code: 'APP-NETRECON // CGA6444VF',
+        statusLabel: 'WIFI: Vodafone-D37C (ПОДКЛЮЧЕНО)',
+        statusColor: 'ok',
+        actions: [
+          {
+            label: 'КЛЮЧИ WI-FI / РОУТЕРА (LIBSECRET)',
+            onClick: () => {
+              if (window.HYKeys) {
+                window.HYKeys.openModal({ provider: 'vodafone_router', title: 'СЕКРЕТЫ VODAFONE-D37C (LIBSECRET KEYRING)' });
+              } else {
+                HY.toast('LIBSECRET KEYRING', 'Учётные данные хранятся в системной связке ключей Едуарда (не в открытом коде).', 'ok');
+              }
+            }
+          },
+          {
+            label: 'ПЕРЕПОДКЛЮЧИТЬ NMCLI',
+            onClick: () => HY.toast('NMCLI WIFI CONNECTED', `Автоподключение к ${ROUTER_INFO.ssid} (шлюз ${ROUTER_INFO.gatewayIp}) активно.`, 'ok')
+          }
+        ]
+      });
+
+      const body = HY.el('div', { class: 'hy-main' });
+      chrome.windowEl.appendChild(body);
+      root.appendChild(chrome.windowEl);
+
+      const sphereCanvas = HY.el('canvas', { class: 'radar-sphere' });
+
+      function drawSphere() {
+        const ctx = sphereCanvas.getContext('2d');
+        const w = sphereCanvas.width = sphereCanvas.clientWidth || 500;
+        const h = sphereCanvas.height = sphereCanvas.clientHeight || 320;
+        const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.36;
+        ctx.clearRect(0, 0, w, h);
+
+        const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#FF5A1F';
+        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+        ctx.lineWidth = 1;
+
+        for (let i = 0; i < 6; i++) {
+          const a = yaw + (i * Math.PI) / 6;
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, Math.abs(Math.cos(a)) * R, R, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        NODES.forEach(n => {
+          const angle = n.lon + yaw;
+          const x = cx + Math.cos(angle) * Math.cos(n.lat) * R;
+          const y = cy + Math.sin(n.lat) * R;
+          ctx.strokeStyle = accent;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+
+          ctx.fillStyle = n.ip === selected.ip ? '#FFB020' : accent;
+          ctx.beginPath();
+          ctx.arc(x, y, n.ip === selected.ip ? 6 : 4, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#F5F2EB';
+          ctx.font = '10px "JetBrains Mono", monospace';
+          ctx.fillText(`${n.ip} (${n.role})`, x + 9, y + 3);
+        });
+      }
+
+      function render() {
+        body.innerHTML = '';
+        const layout = HY.el('div', { class: 'net-grid' }, [
+          HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, [
+            HY.el('div', { class: 'hy-card-header' }, [
+              HY.el('span', { class: 'hy-card-title', text: '3D РАДАР СЕТИ VODAFONE-D37C (192.168.0.0/24)' }),
+              HY.el('span', { class: 'hy-badge ok', text: 'AUTOCONNECT: ACTIVE' })
+            ]),
+            sphereCanvas,
+            HY.el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } },
+              NODES.map(n => HY.el('button', {
+                class: 'hy-btn' + (selected.ip === n.ip ? ' primary' : ''),
+                onClick: () => { selected = n; render(); }
+              }, [HY.el('span', { text: `${n.ip} · ${n.role}` })]))
+            )
+          ]),
+
+          HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' } }, [
+            HY.el('div', { class: 'hy-card-header' }, [
+              HY.el('span', { class: 'hy-card-title', text: 'ДОСЬЕ РОУТЕРА VODAFONE STATION (CGA6444VF)' }),
+              HY.el('span', { class: 'hy-card-code', text: 'DOCSIS 3.1' })
+            ]),
+            HY.kvRow('ИМЯ СЕТИ (SSID)', ROUTER_INFO.ssid, { accent: true }),
+            HY.kvRow('ПАРОЛЬ WI-FI (WPA2/WPA3)', 'Хранится в libsecret (keyring://wifi/Vodafone-D37C)', { accent: true }),
+            HY.kvRow('АДРЕС ШЛЮЗА (ROUTER ACCESS)', ROUTER_INFO.gatewayUrl),
+            HY.kvRow('ДОСТУП АДМИН-ПАНЕЛИ', 'Хранится в libsecret (keyring://router/Vodafone-D37C)'),
+            HY.kvRow('МОДЕЛЬ', ROUTER_INFO.model),
+            HY.kvRow('ПРОФИЛЬ NETWORKMANAGER', '/etc/NetworkManager/system-connections/Vodafone-D37C.nmconnection'),
+            HY.el('div', { style: { display: 'flex', gap: '8px', marginTop: '6px' } }, [
+              HY.el('button', {
+                class: 'hy-btn primary',
+                onClick: () => {
+                  pendingRouterPatch = {
+                    title: 'АВТОНАСТРОЙКА ШЛЮЗА VODAFONE CGA6444VF (192.168.0.1)',
+                    diff: `Target: ${ROUTER_INFO.gatewayUrl} (Auth via libsecret keyring)\n+ Wi-Fi SSID: ${ROUTER_INFO.ssid} (Auto-connect priority=100)\n+ Reserve DHCP Lease: 192.168.0.20 -> haotica-legion (Eduard)\n+ Firewall & DNS-over-HTTPS: ACTIVE`
+                  };
+                  render();
+                }
+              }, [HY.icon('assistant', { size: 14 }), HY.el('span', { text: 'СИНХРОНИЗИРОВАТЬ VODAFONE-D37C (192.168.0.1)' })])
+            ]),
+            pendingRouterPatch ? HY.el('div', { class: 'hy-ai-card' }, [
+              HY.el('div', { class: 'hy-ai-card-head' }, [
+                HY.el('span', { text: pendingRouterPatch.title }),
+                HY.el('span', { text: '[TAB] ПРИНЯТЬ / [ESC] ОТМЕНА' })
+              ]),
+              HY.el('pre', { style: { fontFamily: 'var(--font-code)', fontSize: '11px', margin: '6px 0', whiteSpace: 'pre-wrap' }, text: pendingRouterPatch.diff }),
+              HY.el('div', { style: { display: 'flex', gap: '8px' } }, [
+                HY.el('button', {
+                  class: 'hy-btn primary',
+                  onClick: () => {
+                    pendingRouterPatch = null;
+                    HY.toast('VODAFONE-D37C СИНХРОНИЗИРОВАН', 'Профиль автоподключения и резерв IP 192.168.0.20 для Едуарда активны.', 'ok');
+                    render();
+                  }
+                }, [HY.el('span', { text: '[TAB] ПРИМЕНИТЬ КОНФИГ' })]),
+                HY.el('button', {
+                  class: 'hy-btn ghost',
+                  onClick: () => { pendingRouterPatch = null; render(); }
+                }, [HY.el('span', { text: '[ESC] ОТКЛОНИТЬ' })])
+              ])
+            ]) : null
+          ])
+        ]);
+
+        body.appendChild(layout);
+        requestAnimationFrame(drawSphere);
+      }
+
+      render();
+      setInterval(() => {
+        yaw += 0.03;
+        drawSphere();
+      }, 90);
+    });
+  </script>
+</body>
+</html>

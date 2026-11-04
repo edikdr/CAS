@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Часы — HAOTICA</title>
+<link rel="stylesheet" href="/ui/hy.css">
+<style>
+  .clk-big { font: 700 48px/1 var(--font-mono); color: var(--accent); letter-spacing: .06em; text-align: center; padding: 18px 0 8px; }
+</style>
+</head>
+<body>
+<div class="hy-app">
+  <div class="hy-body" style="flex-direction:column">
+    <div class="hy-toolbar">
+      <div id="clkSeg"></div>
+      <span class="grow"></span>
+      <span class="hy-badge">CHRONO // SYNC</span>
+    </div>
+    <div class="scroll grow" style="padding:14px" id="clkStage"></div>
+  </div>
+</div>
+
+<script type="module">
+import { HY, el } from "/ui/hy.js";
+
+await HY.start({ title: "Часы", glyph: "clock" });
+const $ = (id) => document.getElementById(id);
+
+let tab = "world";
+let timerLeft = 300, timerRun = false;
+let swMs = 0, swRun = false, laps = [];
+
+$("clkSeg").append(HY.seg([["world", "МИРОВОЕ ВРЕМЯ"], ["timer", "ТАЙМЕР"], ["sw", "СЕКУНДОМЕР"]], "world", (v) => { tab = v; render(); }));
+
+const ZONES = [
+  ["BERLIN (ВЛАДЕЛЕЦ ЕДУАРД)", "Europe/Berlin"],
+  ["LONDON (UTC+0)", "Europe/London"],
+  ["KYIV (EET)", "Europe/Kyiv"],
+  ["NEW YORK (EST)", "America/New_York"],
+  ["TOKYO (JST)", "Asia/Tokyo"],
+];
+
+function fmtSec(s) {
+  const m = Math.floor(s / 60).toString().padStart(2, "0");
+  const r = (s % 60).toString().padStart(2, "0");
+  return `${m}:${r}`;
+}
+
+function render() {
+  const st = $("clkStage");
+  st.replaceChildren();
+  if (tab === "world") {
+    const now = new Date();
+    st.append(
+      el("div.hy-card", { style: { marginBottom: "12px" } },
+        el("div.head", "ЛОКАЛЬНОЕ ВРЕМЯ // BERLIN"),
+        el("div.body",
+          el("div.clk-big", { id: "mainClock" }, now.toLocaleTimeString("ru-RU")),
+          el("div.mono.dim", { style: { textAlign: "center", fontSize: "12px" } }, now.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long", year: "numeric" }))
+        )
+      ),
+      el("div.hy-card",
+        el("div.head", "ЧАСОВЫЕ ПОЯСА"),
+        el("div.body", ...ZONES.map(([label, tz]) =>
+          HY.kv(label, new Intl.DateTimeFormat("ru-RU", { timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(now), "var(--teal)")
+        ))
+      )
+    );
+  } else if (tab === "timer") {
+    st.append(
+      el("div.hy-card",
+        el("div.head", "СЕГМЕНТНЫЙ ТАЙМЕР"),
+        el("div.body",
+          el("div.clk-big", fmtSec(timerLeft)),
+          el("div", { style: { margin: "12px 0" } }, HY.segbar(timerLeft / 300, 24, "var(--accent)")),
+          el("div", { style: { display: "flex", justifyContent: "center", gap: "8px", marginTop: "14px" } },
+            el("button.hy-btn.primary", { onclick: () => { timerRun = !timerRun; render(); } }, timerRun ? "ПАУЗА" : "СТАРТ"),
+            el("button.hy-btn", { onclick: () => { timerRun = false; timerLeft = 300; render(); } }, "СБРОС 05:00"),
+            el("button.hy-btn", { onclick: () => { timerLeft += 60; render(); } }, "+1 МИН")
+          )
+        )
+      )
+    );
+  } else {
+    st.append(
+      el("div.hy-card",
+        el("div.head", "СЕКУНДОМЕР"),
+        el("div.body",
+          el("div.clk-big", (swMs / 1000).toFixed(2) + " с"),
+          el("div", { style: { display: "flex", justifyContent: "center", gap: "8px", marginTop: "12px" } },
+            el("button.hy-btn.primary", { onclick: () => { swRun = !swRun; render(); } }, swRun ? "СТОП" : "СТАРТ"),
+            el("button.hy-btn", { onclick: () => { laps.unshift((swMs / 1000).toFixed(2) + " с"); render(); } }, "КРУГ"),
+            el("button.hy-btn.ghost", { onclick: () => { swRun = false; swMs = 0; laps = []; render(); } }, "СБРОС")
+          ),
+          el("div", { style: { marginTop: "12px" } }, ...laps.map((l, i) => HY.kv(`КРУГ #${laps.length - i}`, l)))
+        )
+      )
+    );
+  }
+}
+
+setInterval(() => {
+  if (timerRun && timerLeft > 0) {
+    timerLeft--;
+    if (timerLeft === 0) { timerRun = false; HY.toast("Едуард, время таймера истекло!", "ai"); }
+  }
+  if (swRun) swMs += 100;
+  render();
+}, 1000);
+
+render();
+</script>
+</body>
+</html>

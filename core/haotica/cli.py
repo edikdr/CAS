@@ -107,6 +107,20 @@ def build_assets(p, s) -> None:
         link.unlink()
     link.symlink_to(wall.name)          # относительная: переживает перенос домашней папки
     print(f"✓ обои: {wall}")
+    try:
+        pics_dir = paths.HOME / "Pictures" / "Haotica-Wallpapers"
+        pics_dir.mkdir(parents=True, exist_ok=True)
+        full_png = wall / "full.png"
+        if full_png.exists():
+            dst_png = pics_dir / f"haotica-{p.name.lower()}.png"
+            shutil.copy2(full_png, dst_png)
+            uri = f"file://{dst_png}"
+            if shutil.which("gsettings"):
+                subprocess.run(["gsettings", "set", "org.gnome.desktop.background", "picture-uri", uri], capture_output=True)
+                subprocess.run(["gsettings", "set", "org.gnome.desktop.background", "picture-uri-dark", uri], capture_output=True)
+                subprocess.run(["gsettings", "set", "org.gnome.desktop.screensaver", "picture-uri", uri], capture_output=True)
+    except Exception:
+        pass
     if export_portraits():
         print("✓ портрет Haotica")
 

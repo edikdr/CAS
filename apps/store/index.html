@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HAOTICA // МАГАЗИН ПАКЕТОВ</title>
+  <link rel="stylesheet" href="/ui/hy.css" />
+</head>
+<body>
+  <script type="module">
+    import { HY } from "/ui/hy.js";
+    const PACKAGES = [
+      { name: 'google-chrome + ublock-origin-policy', repo: 'HAOTICA-CORE', ver: '136.0.7103', installed: true, desc: 'Google Chrome с предустановленным блокировщиком рекламы uBlock Origin и профилем Sparkasse.' },
+      { name: 'llama.cpp-rocm-strix-halo', repo: 'HAOTICA-AI', ver: 'b5120-gfx1151', installed: true, desc: 'Локальный сервер инференса для Qwen3.8-27B, Qwen3-Coder-Next 80B и Qwen3-1.7B с поддержкой DFlash.' },
+      { name: 'howdy-ir-eduard-guard', repo: 'HAOTICA-SEC', ver: '3.0.1-r4', installed: true, desc: 'ИК-биометрия лица владельца Едуарда с голосовой отбивкой чужаков («Ты не Едуард, киш отсюда»).' },
+      { name: 'hyprland-git', repo: 'EXTRA', ver: '0.48.1', installed: true, desc: 'Тайлинговый Wayland-композитор с 165 Гц VRR и кастомными шейдерами Haotica.' },
+      { name: 'obsidian-wayland', repo: 'FLATPAK', ver: '1.8.9', installed: true, desc: 'База знаний Markdown, синхронизированная с приложением Заметки Haotica.' },
+      { name: 'blender-rocm-hip', repo: 'EXTRA', ver: '4.4.0', installed: false, desc: '3D-пакет с аппаратным рендерингом HIP на Radeon 8060S.' }
+    ];
+
+    HY.start(async ({ root }) => {
+      let query = '';
+      const chrome = HY.buildWindowChrome({
+        title: 'МАГАЗИН ПАКЕТОВ // PACMAN · AUR · FLATPAK',
+        code: 'APP-STORE // ARCH REPOS',
+        statusLabel: 'БАЗЫ СИНХРОНИЗИРОВАНЫ',
+        statusColor: 'ok'
+      });
+
+      const body = HY.el('div', { class: 'hy-main', style: { display: 'flex', flexDirection: 'column', gap: '12px' } });
+      chrome.windowEl.appendChild(body);
+      root.appendChild(chrome.windowEl);
+
+      function render() {
+        body.innerHTML = '';
+        const list = PACKAGES.filter(p => !query || p.name.toLowerCase().includes(query.toLowerCase()) || p.desc.toLowerCase().includes(query.toLowerCase()));
+
+        body.appendChild(HY.el('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, [
+          HY.el('input', {
+            class: 'hy-input',
+            placeholder: 'Поиск пакетов pacman / AUR / Flatpak…',
+            value: query,
+            onInput: (e) => { query = e.target.value; render(); }
+          }),
+          HY.el('span', { class: 'hy-badge accent', text: `${list.length} ПАКЕТОВ` })
+        ]));
+
+        body.appendChild(HY.el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '10px' } },
+          list.map(pkg => HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '8px' } }, [
+            HY.el('div', { class: 'hy-card-header' }, [
+              HY.el('span', { class: 'hy-card-title', text: pkg.name }),
+              HY.el('span', { class: 'hy-badge ' + (pkg.installed ? 'ok' : 'accent'), text: pkg.installed ? 'УСТАНОВЛЕН' : pkg.repo })
+            ]),
+            HY.el('div', { style: { fontSize: '11px', color: 'var(--fg-dim)', lineHeight: '1.45', flex: '1' }, text: pkg.desc }),
+            HY.kvRow('ВЕРСИЯ', pkg.ver),
+            HY.el('button', {
+              class: 'hy-btn ' + (pkg.installed ? 'ghost' : 'primary'),
+              onClick: () => {
+                pkg.installed = !pkg.installed;
+                HY.toast(pkg.installed ? 'ПАКЕТ УСТАНОВЛЕН' : 'ПАКЕТ УДАЛЁН', pkg.name, 'ok');
+                render();
+              }
+            }, [HY.el('span', { text: pkg.installed ? 'ПЕРЕУСТАНОВИТЬ / ПРОВЕРИТЬ' : 'УСТАНОВИТЬ ПАКЕТ' })])
+          ]))
+        ));
+      }
+
+      render();
+    });
+  </script>
+</body>
+</html>

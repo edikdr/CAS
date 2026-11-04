@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Календарь — HAOTICA</title>
+<link rel="stylesheet" href="/ui/hy.css">
+<style>
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; padding: 12px; flex: 1; }
+  .cal-head { font: 600 10px var(--font-mono); color: var(--dim); text-align: center; padding: 4px 0; letter-spacing: .16em; }
+  .cal-cell {
+    border: 1px solid var(--line); background: var(--bg1); padding: 8px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; min-height: 76px;
+  }
+  .cal-cell:hover { border-color: var(--line-hi); background: var(--hover); }
+  .cal-cell.today { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .cal-cell .num { font: 600 12px var(--font-mono); color: var(--ink); }
+  .cal-ev { font: 10px var(--font-mono); padding: 2px 5px; background: color-mix(in srgb, var(--violet) 22%, var(--bg0)); border-left: 2px solid var(--violet); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+</head>
+<body>
+<div class="hy-app">
+  <div class="hy-body">
+    <aside class="hy-side">
+      <div class="hy-section">ПОВЕСТКА ЕДУАРДА</div>
+      <div style="padding: 4px 8px">
+        <button class="hy-btn small primary" style="width:100%" id="addEvBtn">+ Новое событие</button>
+      </div>
+      <div class="scroll grow" style="padding: 8px" id="agendaList"></div>
+    </aside>
+    <main class="hy-main">
+      <div class="hy-toolbar">
+        <span class="hy-plate accent">НОЯБРЬ 2026 // ПЛАНИРОВЩИК</span>
+        <span class="hy-badge">BERLIN (CET)</span>
+        <span class="grow"></span>
+        <button class="hy-btn small ai" id="aiBriefBtn">Брифинг расписания от Haotica</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="hy-status">
+        <span>СИНХРОНИЗАЦИЯ: <b>ЛОКАЛЬНЫЙ КАЛЕНДАРЬ + CALDAV</b></span>
+        <span>ВЛАДЕЛЕЦ: <b>EDUARD / ЕДУАРД</b></span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { HY, el } from "/ui/hy.js";
+
+await HY.start({ title: "Календарь", glyph: "calendar" });
+const $ = (id) => document.getElementById(id);
+
+const EVENTS = [
+  { day: 3, time: "10:00", title: "Ревью ветки hyprina-os", cat: "dev" },
+  { day: 3, time: "14:30", title: "Тест Qwen3.8-27B + DFlash на 8060S", cat: "ai" },
+  { day: 5, time: "16:00", title: "Проверка uBlock Origin политики Chrome", cat: "sys" },
+  { day: 8, time: "19:00", title: "Личное время Едуарда", cat: "personal" },
+  { day: 12, time: "11:00", title: "Обновление ядра Linux 6.18 Strix Halo", cat: "sys" },
+];
+
+function render() {
+  const days = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
+  const grid = $("calGrid");
+  grid.replaceChildren(...days.map((d) => el("div.cal-head", d)));
+
+  for (let d = 1; d <= 30; d++) {
+    const evs = EVENTS.filter((e) => e.day === d);
+    const cell = el("div.cal-cell" + (d === 3 ? ".today" : ""), {
+      onclick: async () => {
+        const t = await HY.prompt(`Событие на ${d} ноября`, "");
+        if (t) { EVENTS.push({ day: d, time: "12:00", title: t, cat: "ai" }); render(); }
+      }
+    },
+      el("div.num", d === 3 ? `${d} · СЕГОДНЯ` : String(d)),
+      ...evs.map((e) => el("div.cal-ev", `${e.time} ${e.title}`))
+    );
+    grid.append(cell);
+  }
+
+  $("agendaList").replaceChildren(...EVENTS.map((e) =>
+    el("div.hy-card", { style: { marginBottom: "8px", padding: "8px 10px" } },
+      el("div.mono", { style: { fontSize: "10px", color: "var(--accent)" } }, `${e.day} НОЯ · ${e.time}`),
+      el("div", { style: { fontSize: "12px", marginTop: "2px" } }, e.title)
+    )
+  ));
+}
+
+$("addEvBtn").onclick = async () => {
+  const title = await HY.prompt("Новое событие для Едуарда", "Встреча / Задача");
+  if (!title) return;
+  EVENTS.push({ day: 3, time: "18:00", title, cat: "ai" });
+  render();
+};
+$("aiBriefBtn").onclick = () => {
+  HY.toast("Haotica: «Едуард, сегодня у вас 2 ключевые задачи: ревью hyprina-os в 10:00 и тест Qwen3.8-27B в 14:30.»", "ai");
+};
+
+render();
+</script>
+</body>
+</html>

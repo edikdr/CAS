@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Заметки — HAOTICA</title>
+<link rel="stylesheet" href="/ui/hy.css">
+<style>
+  .n-split { flex: 1; min-height: 0; display: flex; }
+  .n-ed { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .n-ed textarea { flex: 1; border: 0; background: var(--bg0); color: var(--ink); padding: 16px 20px; font: 13.5px/1.6 var(--font-ui); outline: none; resize: none; }
+  .n-graph-side { width: 320px; border-left: 1px solid var(--line); background: var(--bg1); display: flex; flex-direction: column; }
+  .n-graph-box { height: 240px; border-bottom: 1px solid var(--line); background: var(--bg0); position: relative; }
+  .n-graph-box canvas { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<div class="hy-app">
+  <div class="hy-body">
+    <aside class="hy-side">
+      <div class="hy-section">БАЗА ~/NOTES (OBSIDIAN)</div>
+      <div style="padding: 4px 8px"><button class="hy-btn small primary" style="width:100%" id="newNoteBtn">+ Заметка</button></div>
+      <div class="hy-nav" id="notesNav"></div>
+      <div class="hy-section">ТЕГИ</div>
+      <div style="padding: 6px 12px; display:flex; flex-wrap:wrap; gap:6px" id="tagsBox"></div>
+    </aside>
+
+    <main class="hy-main">
+      <div class="hy-toolbar">
+        <span class="hy-plate accent" id="noteTitlePlate">HAOTICA_CORE.MD</span>
+        <span class="grow"></span>
+        <button class="hy-btn small ai" id="aiLinkBtn">Связать и обобщить (Qwen3.8-27B)</button>
+      </div>
+      <div class="n-split">
+        <div class="n-ed">
+          <textarea id="noteArea" spellcheck="false"></textarea>
+        </div>
+        <aside class="n-graph-side">
+          <div class="hy-section">ГРАФ СВЯЗЕЙ [[WIKI-LINKS]]</div>
+          <div class="n-graph-box"><canvas id="graphCanvas"></canvas></div>
+          <div class="hy-section">ОБРАТНЫЕ ССЫЛКИ</div>
+          <div class="scroll grow" style="padding:8px 12px; font-size:12px" id="backlinksBox"></div>
+        </aside>
+      </div>
+      <div class="hy-status">
+        <span>ХРАНИЛИЩЕ: <b>~/Notes (Obsidian Vault)</b></span>
+        <span>ВЛАДЕЛЕЦ: <b>EDUARD / ЕДУАРД</b></span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { HY, el, icon } from "/ui/hy.js";
+
+await HY.start({ title: "Заметки", glyph: "notes" });
+const $ = (id) => document.getElementById(id);
+
+const NOTES = [
+  {
+    title: "01_Профиль_Едуарда.md",
+    tags: ["#eduard", "#security", "#face-unlock"],
+    links: ["02_Локальные_Модели.md", "03_Chrome_AdBlock.md"],
+    body: `# Профиль владельца: Едуард (Eduard)\n\nСвязанные заметки: [[02_Локальные_Модели.md]], [[03_Chrome_AdBlock.md]]\n\n- Владелец системы: **Едуард / Eduard**\n- Приветствие Haotica: всегда вежливое и по имени.\n- Если скан лица не совпадает с Едуардом: жалоба жалобным и недовольным тоном:\n  «Ты не Едуард, киш отсюда»`
+  },
+  {
+    title: "02_Локальные_Модели.md",
+    tags: ["#llm", "#qwen", "#vulkan"],
+    links: ["01_Профиль_Едуарда.md"],
+    body: `# Локальные модели Strix Halo (64 ГБ)\n\nСвязано с [[01_Профиль_Едуарда.md]]\n\n- **base:** Qwen3.8-27B · UD-Q4_K_M + mmproj + DFlash драфт (:47821)\n- **deep:** Qwen3-Coder-Next 80B-A3B · IQ4_XS (:47824)\n- **fast:** Qwen3-1.7B · Q4_K_M (:47822)`
+  },
+  {
+    title: "03_Chrome_AdBlock.md",
+    tags: ["#chrome", "#ublock", "#privacy"],
+    links: ["01_Профиль_Едуарда.md"],
+    body: `# Google Chrome + uBlock Origin\n\nСвязано с [[01_Профиль_Едуарда.md]]\n\nПредустановлено через политику \`/etc/opt/chrome/policies/managed/haotica-adblock.json\`.\nРасширения \`uBlock Origin\` и \`uBlock Origin Lite\` принудительно закреплены в панели.`
+  }
+];
+
+let cur = 0;
+
+function render() {
+  const n = NOTES[cur];
+  $("noteTitlePlate").textContent = n.title.toUpperCase();
+  $("noteArea").value = n.body;
+  $("notesNav").replaceChildren(...NOTES.map((it, i) =>
+    el("div.item" + (i === cur ? ".on" : ""), { onclick: () => { NOTES[cur].body = $("noteArea").value; cur = i; render(); } },
+      icon("notes", 14), el("span", it.title))
+  ));
+  $("tagsBox").replaceChildren(...n.tags.map((t) => el("span.hy-badge", { style: { color: "var(--teal)" } }, t)));
+  $("backlinksBox").replaceChildren(...n.links.map((l) =>
+    el("div", { style: { padding: "6px 0", borderBottom: "1px solid var(--ink-faint)", color: "var(--accent)", cursor: "pointer" },
+      onclick: () => { const idx = NOTES.findIndex((x) => x.title === l); if (idx >= 0) { cur = idx; render(); } }
+    }, `[[${l}]]`)
+  ));
+  drawGraph();
+}
+
+function drawGraph() {
+  const cv = $("graphCanvas");
+  const w = cv.clientWidth || 300, h = cv.clientHeight || 230;
+  cv.width = w; cv.height = h;
+  const g = cv.getContext("2d");
+  g.clearRect(0, 0, w, h);
+  const pts = NOTES.map((_, i) => {
+    const a = (i / NOTES.length) * Math.PI * 2 - Math.PI / 2;
+    return [w / 2 + Math.cos(a) * 72, h / 2 + Math.sin(a) * 64];
+  });
+  g.strokeStyle = "#3B382F";
+  g.lineWidth = 1.2;
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      g.beginPath(); g.moveTo(pts[i][0], pts[i][1]); g.lineTo(pts[j][0], pts[j][1]); g.stroke();
+    }
+  }
+  pts.forEach(([x, y], i) => {
+    g.fillStyle = i === cur ? "#E0A243" : "#5FA8A0";
+    g.beginPath(); g.arc(x, y, i === cur ? 6 : 4.5, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#E8DFC9";
+    g.font = "10px 'IBM Plex Mono', monospace";
+    g.textAlign = "center";
+    g.fillText(NOTES[i].title.slice(0, 16), x, y - 10);
+  });
+}
+
+$("newNoteBtn").onclick = async () => {
+  const name = await HY.prompt("Имя заметки", "04_Идея_Едуарда.md");
+  if (!name) return;
+  NOTES.push({ title: name, tags: ["#eduard"], links: ["01_Профиль_Едуарда.md"], body: `# ${name}\n\nСвязано с [[01_Профиль_Едуарда.md]]\n` });
+  cur = NOTES.length - 1;
+  render();
+};
+$("aiLinkBtn").onclick = () => {
+  $("noteArea").value += `\n\n> **Синтез Haotica (Qwen3.8-27B):** Заметка связана с профилем владельца **Едуарда** и проиндексирована в локальной базе \`memory.db\`.`;
+  NOTES[cur].body = $("noteArea").value;
+  HY.toast("Заметка дополнена локальной моделью Qwen3.8-27B", "ai");
+};
+
+render();
+</script>
+</body>
+</html>

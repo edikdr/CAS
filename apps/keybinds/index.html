@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HAOTICA // БИЛДЕР КЛАВИШ (ISO-DE QWERTZ)</title>
+  <link rel="stylesheet" href="/ui/hy.css" />
+  <style>
+    .kb-studio {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 12px;
+      height: calc(100vh - 102px);
+      min-height: 500px;
+    }
+    .kb-chassis {
+      background: #070709;
+      border: 1px solid var(--border-strong);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.9);
+    }
+    .kb-row {
+      display: flex;
+      gap: 4px;
+      width: 100%;
+    }
+    .kb-key {
+      position: relative;
+      height: 38px;
+      flex: 1;
+      min-width: 28px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3px 5px;
+      cursor: pointer;
+      transition: all 90ms ease;
+      user-select: none;
+    }
+    .kb-key.fn-row {
+      height: 27px;
+      font-size: 9px;
+    }
+    .kb-key:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .kb-key.bound {
+      border-color: rgba(255, 176, 32, 0.65);
+      background: rgba(255, 176, 32, 0.08);
+    }
+    .kb-key.selected {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #050505;
+      font-weight: 700;
+      box-shadow: 0 0 14px var(--accent-glow);
+    }
+    .kb-key .sub {
+      font-size: 8px;
+      opacity: 0.72;
+      display: flex;
+      justify-content: space-between;
+    }
+    .kb-key.selected .sub {
+      opacity: 0.95;
+      color: #050505;
+    }
+    .kb-badge-dot {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--amber);
+    }
+    .bind-item {
+      display: grid;
+      grid-template-columns: 150px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 9px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .bind-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+  </style>
+</head>
+<body>
+  <script type="module">
+    import { HY } from "/ui/hy.js";
+    // Exact Lenovo AMD ISO-DE QWERTZ Keyboard Matrix from Eduard's laptop photo
+    const KEYBOARD_ROWS = [
+      // Row 0: Function row
+      [
+        { code: 'Escape', label: 'esc', sub: 'fn lock', fn: true, w: 1.1 },
+        { code: 'F1', label: 'F1', sub: '🔇', fn: true },
+        { code: 'F2', label: 'F2', sub: '🔉', fn: true },
+        { code: 'F3', label: 'F3', sub: '🔊', fn: true },
+        { code: 'F4', label: 'F4', sub: '🎙×', fn: true },
+        { code: 'F5', label: 'F5', sub: '☀-', fn: true },
+        { code: 'F6', label: 'F6', sub: '☀+', fn: true },
+        { code: 'F7', label: 'F7', sub: '🖥', fn: true },
+        { code: 'F8', label: 'F8', sub: '✈', fn: true },
+        { code: 'F9', label: 'F9', sub: '☆', fn: true },
+        { code: 'F10', label: 'F10', sub: '🖱×', fn: true },
+        { code: 'F11', label: 'F11', sub: '⊞', fn: true },
+        { code: 'F12', label: 'F12', sub: '🖩', fn: true },
+        { code: 'Insert', label: 'einfg', sub: '', fn: true },
+        { code: 'Print', label: 'druck', sub: '✂', fn: true },
+        { code: 'Delete', label: 'entf', sub: '', fn: true, w: 1.15 }
+      ],
+      // Row 1: Number row (German ISO)
+      [
+        { code: 'dead_circumflex', label: '^', sub: '°' },
+        { code: '1', label: '1', sub: '!' },
+        { code: '2', label: '2', sub: '" ²' },
+        { code: '3', label: '3', sub: '§ ³' },
+        { code: '4', label: '4', sub: '$' },
+        { code: '5', label: '5', sub: '%' },
+        { code: '6', label: '6', sub: '&' },
+        { code: '7', label: '7', sub: '/ {' },
+        { code: '8', label: '8', sub: '( [' },
+        { code: '9', label: '9', sub: ') ]' },
+        { code: '0', label: '0', sub: '= }' },
+        { code: 'ssharp', label: 'ß', sub: '? \\' },
+        { code: 'dead_acute', label: '´', sub: '`' },
+        { code: 'BackSpace', label: '⌫', sub: 'BACK', w: 1.8 }
+      ],
+      // Row 2: QWERTZ row (note Z in top row, Ü and +*~ on right)
+      [
+        { code: 'Tab', label: '⇥', sub: 'TAB', w: 1.4 },
+        { code: 'Q', label: 'Q', sub: '@' },
+        { code: 'W', label: 'W', sub: '' },
+        { code: 'E', label: 'E', sub: '€' },
+        { code: 'R', label: 'R', sub: '' },
+        { code: 'T', label: 'T', sub: '' },
+        { code: 'Z', label: 'Z', sub: 'DE' },
+        { code: 'U', label: 'U', sub: '' },
+        { code: 'I', label: 'I', sub: '' },
+        { code: 'O', label: 'O', sub: '' },
+        { code: 'P', label: 'P', sub: '' },
+        { code: 'udiaeresis', label: 'Ü', sub: '' },
+        { code: 'plus', label: '+', sub: '* ~' },
+        { code: 'Return', label: '↵', sub: 'ISO ENTER', w: 1.45 }
+      ],
+      // Row 3: Home row (A..L, Ö, Ä, #')
+      [
+        { code: 'Caps_Lock', label: '⇪', sub: 'CAPS', w: 1.65 },
+        { code: 'A', label: 'A', sub: '' },
+        { code: 'S', label: 'S', sub: '' },
+        { code: 'D', label: 'D', sub: '' },
+        { code: 'F', label: 'F', sub: '' },
+        { code: 'G', label: 'G', sub: '' },
+        { code: 'H', label: 'H', sub: '' },
+        { code: 'J', label: 'J', sub: '' },
+        { code: 'K', label: 'K', sub: '' },
+        { code: 'L', label: 'L', sub: '' },
+        { code: 'odiaeresis', label: 'Ö', sub: '' },
+        { code: 'adiaeresis', label: 'Ä', sub: '' },
+        { code: 'numbersign', label: '#', sub: "'" },
+        { code: 'Return', label: '↵', sub: '', w: 1.15 }
+      ],
+      // Row 4: Bottom row (Left Shift, ISO < > |, Y, X, C, V, B, N, M µ, ,;, .:, -_, Right Shift)
+      [
+        { code: 'Shift_L', label: '⇧', sub: 'SHIFT', w: 1.2 },
+        { code: 'less', label: '<', sub: '> |' },
+        { code: 'Y', label: 'Y', sub: 'DE' },
+        { code: 'X', label: 'X', sub: '' },
+        { code: 'C', label: 'C', sub: '' },
+        { code: 'V', label: 'V', sub: '' },
+        { code: 'B', label: 'B', sub: '' },
+        { code: 'N', label: 'N', sub: '' },
+        { code: 'M', label: 'M', sub: 'µ' },
+        { code: 'comma', label: ',', sub: ';' },
+        { code: 'period', label: '.', sub: ':' },
+        { code: 'minus', label: '-', sub: '_' },
+        { code: 'Shift_R', label: '⇧', sub: 'R-SHIFT', w: 2.15 }
+      ],
+      // Row 5: Lenovo Bottom Modifiers (strg, fn, Win/Super, alt, Space, alt gr, Copilot, Arrows)
+      [
+        { code: 'Control_L', label: 'strg', sub: 'CTRL', w: 1.3 },
+        { code: 'Fn', label: 'fn', sub: 'LENOVO', w: 1.0 },
+        { code: 'Super_L', label: '⊞', sub: 'SUPER', w: 1.1 },
+        { code: 'Alt_L', label: 'alt', sub: '', w: 1.1 },
+        { code: 'Space', label: 'SPACE', sub: '⛭ BACKLIGHT', w: 4.5 },
+        { code: 'ISO_Level3_Shift', label: 'alt gr', sub: 'LVL3', w: 1.2 },
+        { code: 'Menu', label: '❖', sub: 'COPILOT', w: 1.1 },
+        { code: 'Left', label: '◀', sub: '', w: 0.95 },
+        { code: 'UpDown', label: '▲/▼', sub: '', w: 0.95 },
+        { code: 'Right', label: '▶', sub: '', w: 0.95 }
+      ]
+    ];
+
+    const INITIAL_BINDS = [
+      { mod: 'SUPER', key: 'Return', action: 'Открыть Терминал Hyperion', cmd: 'haotica-open terminal', cat: 'CORE' },
+      { mod: 'SUPER', key: 'E', action: 'Открыть Редактор кода (AI)', cmd: 'haotica-open editor', cat: 'DEV' },
+      { mod: 'SUPER', key: 'D', action: 'Открыть Редактор документов', cmd: 'haotica-open docs', cat: 'OFFICE' },
+      { mod: 'SUPER', key: 'B', action: 'Google Chrome (uBlock Origin)', cmd: 'haotica-open browser', cat: 'NET' },
+      { mod: 'SUPER', key: 'W', action: 'Погода и Доплеровский радар', cmd: 'haotica-open weather', cat: 'DAILY' },
+      { mod: 'SUPER', key: 'less', action: 'Вызвать ассистента Haotica (клавиша < > |)', cmd: 'haotica-open assistant', cat: 'ISO-DE' },
+      { mod: 'SUPER', key: 'udiaeresis', action: 'Следующий рабочий стол (клавиша Ü)', cmd: 'hyprctl dispatch workspace e+1', cat: 'ISO-DE' },
+      { mod: 'SUPER', key: 'odiaeresis', action: 'Предыдущий рабочий стол (клавиша Ö)', cmd: 'hyprctl dispatch workspace e-1', cat: 'ISO-DE' },
+      { mod: 'SUPER', key: 'adiaeresis', action: 'Плавающий режим окна (клавиша Ä)', cmd: 'hyprctl dispatch togglefloating', cat: 'ISO-DE' },
+      { mod: 'SUPER', key: 'ssharp', action: 'Полный экран 165Hz OLED (клавиша ß)', cmd: 'hyprctl dispatch fullscreen 1', cat: 'ISO-DE' },
+      { mod: 'SUPER', key: 'Y', action: 'Буфер обмена (нижний ряд QWERTZ Y)', cmd: 'haotica-open clipboard', cat: 'ISO-DE' },
+      { mod: 'SUPER', key: 'Z', action: 'Отмена / История ИИ-патчей (верхний ряд Z)', cmd: 'haotica-ai-undo', cat: 'ISO-DE' },
+      { mod: 'NONE',  key: 'Print', action: 'Снимок экрана + Qwen Vision OCR (druck)', cmd: 'haotica-open screenshot', cat: 'FN-ROW' },
+      { mod: 'NONE',  key: 'F12', action: 'Калькулятор (клавиша F12 🖩)', cmd: 'haotica-open calculator', cat: 'FN-ROW' },
+      { mod: 'SUPER', key: 'L', action: 'Экран блокировки Face Scan (Едуард)', cmd: 'haotica-lock', cat: 'SECURITY' }
+    ];
+
+    HY.start(async ({ root }) => {
+      let binds = [...INITIAL_BINDS];
+      let selectedKey = 'less';
+      let selectedMod = 'SUPER';
+      let actionLabel = 'Вызвать ассистента Haotica (клавиша < > |)';
+      let actionCmd = 'haotica-open assistant';
+      let pendingConfigDiff = null;
+
+      const chrome = HY.buildWindowChrome({
+        title: 'БИЛДЕР КЛАВИШ // LENOVO LEGION ISO-DE QWERTZ STUDIO',
+        code: 'APP-KEYBINDS // DE-QWERTZ 105-KEY',
+        statusLabel: 'РАСКЛАДКА: DE (QWERTZ) + RU',
+        statusColor: 'ok',
+        actions: [
+          {
+            label: 'ЭКСПОРТ В HYPRLAND.CONF',
+            onClick: () => {
+              pendingConfigDiff = binds
+                .map(b => `bind = ${b.mod === 'NONE' ? '' : b.mod}, ${b.key}, exec, ${b.cmd} # ${b.action}`)
+                .join('\n');
+              render();
+            }
+          }
+        ]
+      });
+
+      const body = HY.el('div', { class: 'hy-main' });
+      chrome.windowEl.appendChild(body);
+      root.appendChild(chrome.windowEl);
+
+      function selectKeyObj(code) {
+        selectedKey = code;
+        const found = binds.find(b => b.key.toLowerCase() === code.toLowerCase());
+        if (found) {
+          selectedMod = found.mod;
+          actionLabel = found.action;
+          actionCmd = found.cmd;
+        } else {
+          actionLabel = `Пользовательское действие для [${code}]`;
+          actionCmd = `haotica-open terminal`;
+        }
+        render();
+      }
+
+      // Listen to real keyboard presses so Eduard can press keys directly
+      window.addEventListener('keydown', (e) => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+        const k = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+        const map = { '<': 'less', '>': 'less', 'Ü': 'udiaeresis', 'Ö': 'odiaeresis', 'Ä': 'adiaeresis', 'ß': 'ssharp', 'Enter': 'Return', 'Control': 'Control_L' };
+        selectKeyObj(map[k] || k);
+      });
+
+      function render() {
+        body.innerHTML = '';
+        const boundSet = new Set(binds.map(b => b.key.toLowerCase()));
+
+        const kbChassis = HY.el('div', { class: 'kb-chassis' },
+          KEYBOARD_ROWS.map(row => HY.el('div', { class: 'kb-row' },
+            row.map(k => {
+              const isSelected = selectedKey.toLowerCase() === k.code.toLowerCase();
+              const isBound = boundSet.has(k.code.toLowerCase());
+              return HY.el('div', {
+                class: 'kb-key' + (k.fn ? ' fn-row' : '') + (isBound ? ' bound' : '') + (isSelected ? ' selected' : ''),
+                style: { flex: String(k.w || 1) },
+                onClick: () => selectKeyObj(k.code)
+              }, [
+                isBound ? HY.el('span', { class: 'kb-badge-dot' }) : null,
+                HY.el('div', { style: { fontWeight: '700' }, text: k.label }),
+                HY.el('div', { class: 'sub' }, [
+                  HY.el('span', { text: k.sub }),
+                  isBound ? HY.el('span', { text: '★' }) : null
+                ])
+              ]);
+            })
+          ))
+        );
+
+        const leftPane = HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' } }, [
+          HY.el('div', { class: 'hy-card-header' }, [
+            HY.el('span', { class: 'hy-card-title', text: 'ФИЗИЧЕСКАЯ МАТРИЦА КЛАВИАТУРЫ ЕДУАРДА (ISO-DE QWERTZ)' }),
+            HY.el('span', { class: 'hy-badge accent', text: 'ALT+SHIFT: DE ⇄ RU' })
+          ]),
+          kbChassis,
+          HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '8px' } }, [
+            HY.el('div', { class: 'hy-card-header' }, [
+              HY.el('span', { class: 'hy-card-title', text: `КОНСТРУКТОР БИНДА ДЛЯ КЛАВИШИ [${selectedKey.toUpperCase()}]` }),
+              HY.el('span', { class: 'hy-card-code', text: `${selectedMod} + ${selectedKey}` })
+            ]),
+            HY.el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } },
+              ['SUPER', 'SUPER+SHIFT', 'STRG', 'STRG+ALT', 'ALT_GR', 'FN', 'NONE'].map(m => HY.el('button', {
+                class: 'hy-btn' + (selectedMod === m ? ' primary' : ''),
+                onClick: () => { selectedMod = m; render(); }
+              }, [HY.el('span', { text: m })]))
+            ),
+            HY.el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } }, [
+              HY.el('input', {
+                class: 'hy-input',
+                placeholder: 'Описание действия…',
+                value: actionLabel,
+                onInput: (e) => { actionLabel = e.target.value; }
+              }),
+              HY.el('input', {
+                class: 'hy-input',
+                placeholder: 'Команда Hyprland / Haotica…',
+                value: actionCmd,
+                onInput: (e) => { actionCmd = e.target.value; }
+              })
+            ]),
+            HY.el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } }, [
+              HY.el('button', {
+                class: 'hy-btn primary',
+                onClick: () => {
+                  const idx = binds.findIndex(b => b.key.toLowerCase() === selectedKey.toLowerCase() && b.mod === selectedMod);
+                  const entry = { mod: selectedMod, key: selectedKey, action: actionLabel, cmd: actionCmd, cat: 'CUSTOM' };
+                  if (idx >= 0) binds[idx] = entry; else binds.unshift(entry);
+                  HY.toast('БИНД СОХРАНЁН', `${selectedMod} + ${selectedKey} → ${actionLabel}`, 'ok');
+                  render();
+                }
+              }, [HY.el('span', { text: 'СОХРАНИТЬ БИНД КЛАВИШИ' })]),
+              ...[
+                ['Терминал', 'haotica-open terminal'],
+                ['Редактор кода + ИИ', 'haotica-open editor'],
+                ['Chrome (uBlock)', 'haotica-open browser'],
+                ['Спросить Haotica', 'haotica-open assistant'],
+                ['Снимок + OCR', 'haotica-open screenshot']
+              ].map(([lbl, cmd]) => HY.el('button', {
+                class: 'hy-btn ghost',
+                onClick: () => {
+                  actionLabel = lbl;
+                  actionCmd = cmd;
+                  render();
+                }
+              }, [HY.el('span', { text: '+ ' + lbl })]))
+            ])
+          ])
+        ]);
+
+        const rightPane = HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' } }, [
+          HY.el('div', { class: 'hy-card-header' }, [
+            HY.el('span', { class: 'hy-card-title', text: 'АКТИВНЫЕ ХОТКЕИ (ISO-DE АДАПТАЦИЯ)' }),
+            HY.el('span', { class: 'hy-card-code', text: `${binds.length} БИНДОВ` })
+          ]),
+          HY.kvRow('МОДЕЛЬ КЛАВИАТУРЫ', 'ISO 105-Key DE QWERTZ (Z/Y, Ü/Ö/Ä/ß, <>|)', { accent: true }),
+          HY.kvRow('КОНФИГ HYPRLAND', '/etc/hypr/input-de-qwertz.conf'),
+          pendingConfigDiff ? HY.el('div', { class: 'hy-ai-card' }, [
+            HY.el('div', { class: 'hy-ai-card-head' }, [
+              HY.el('span', { text: 'ПАТЧ HYPRLAND KEYBINDS.CONF' }),
+              HY.el('span', { text: '[TAB] ПРИМЕНИТЬ / [ESC] СКРЫТЬ' })
+            ]),
+            HY.el('pre', { style: { fontFamily: 'var(--font-code)', fontSize: '10px', maxHeight: '130px', overflowY: 'auto', whiteSpace: 'pre-wrap' }, text: pendingConfigDiff }),
+            HY.el('div', { style: { display: 'flex', gap: '8px', marginTop: '6px' } }, [
+              HY.el('button', {
+                class: 'hy-btn primary',
+                onClick: () => {
+                  pendingConfigDiff = null;
+                  HY.toast('HYPRCTL RELOAD', 'Все бинды ISO-DE QWERTZ применены в Hyprland без перезагрузки.', 'ok');
+                  render();
+                }
+              }, [HY.el('span', { text: '[TAB] ПРИМЕНИТЬ В HYPRLAND' })]),
+              HY.el('button', {
+                class: 'hy-btn ghost',
+                onClick: () => { pendingConfigDiff = null; render(); }
+              }, [HY.el('span', { text: '[ESC] ЗАКРЫТЬ' })])
+            ])
+          ]) : null,
+          HY.el('div', { style: { flex: '1', overflowY: 'auto', border: '1px solid var(--border-subtle)' } },
+            binds.map((b, i) => HY.el('div', {
+              class: 'bind-item',
+              onClick: () => selectKeyObj(b.key)
+            }, [
+              HY.el('span', { class: 'hy-badge accent', text: `${b.mod === 'NONE' ? '' : b.mod + ' + '}${b.key}` }),
+              HY.el('div', {}, [
+                HY.el('div', { style: { fontWeight: '600' }, text: b.action }),
+                HY.el('div', { style: { fontSize: '10px', color: 'var(--fg-dim)' }, text: b.cmd })
+              ]),
+              HY.el('button', {
+                class: 'hy-btn ghost',
+                style: { padding: '2px 7px', fontSize: '10px' },
+                onClick: (e) => {
+                  e.stopPropagation();
+                  binds.splice(i, 1);
+                  render();
+                }
+              }, [HY.el('span', { text: '×' })])
+            ]))
+          )
+        ]);
+
+        body.appendChild(HY.el('div', { class: 'kb-studio' }, [leftPane, rightPane]));
+      }
+
+      render();
+    });
+  </script>
+</body>
+</html>

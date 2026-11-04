@@ -66,11 +66,20 @@ class Bridge(QObject):
     @Slot()
     def minimize(self) -> None:
         # в Hyprland нет «свернуть»: убираем окно на скрытый рабочий стол, док вернёт его
-        util.spawn(["hyprctl", "dispatch", "movetoworkspacesilent", "special:minimized"])
+        if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
+            util.spawn(["hyprctl", "dispatch", "movetoworkspacesilent", "special:minimized"])
+        else:
+            self.win.showMinimized()
 
     @Slot()
     def toggleMaximize(self) -> None:
-        util.spawn(["hyprctl", "dispatch", "fullscreen", "1"])
+        if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
+            util.spawn(["hyprctl", "dispatch", "fullscreen", "1"])
+        else:
+            if self.win.isMaximized():
+                self.win.showNormal()
+            else:
+                self.win.showMaximized()
 
     @Slot()
     def startMove(self) -> None:

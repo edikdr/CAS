@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Погода — HAOTICA</title>
+<link rel="stylesheet" href="/ui/hy.css">
+<style>
+  .w-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; }
+  .w-hero { display: flex; align-items: center; justify-content: space-between; padding: 16px; }
+  .w-temp { font: 700 46px/1 var(--font-display); color: var(--accent); letter-spacing: -0.02em; }
+  .w-cond { font: 600 12px/1.4 var(--font-mono); color: var(--ink); text-transform: uppercase; letter-spacing: .14em; margin-top: 6px; }
+  .w-sub { font: 11px var(--font-mono); color: var(--dim); margin-top: 4px; }
+  .w-radar-box { position: relative; height: 230px; background: var(--bg0); border: 1px solid var(--line); overflow: hidden; }
+  .w-radar-box canvas { width: 100%; height: 100%; display: block; }
+  .w-radar-hud { position: absolute; left: 10px; top: 8px; font: 10px var(--font-mono); color: var(--teal); letter-spacing: .12em; pointer-events: none; }
+  .w-radar-ctl { position: absolute; left: 10px; right: 10px; bottom: 8px; display: flex; align-items: center; gap: 8px; background: rgba(13,13,11,.88); padding: 4px 8px; border: 1px solid var(--line); }
+  .w-hour-box { height: 96px; width: 100%; display: block; }
+  .w-bar-wrap { display: flex; align-items: center; gap: 8px; width: 180px; font: 11px var(--font-mono); }
+  .w-bar-track { flex: 1; height: 5px; background: var(--ink-faint); position: relative; }
+  .w-bar-fill { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, var(--teal), var(--accent)); }
+</style>
+</head>
+<body>
+<div class="hy-app">
+  <div class="hy-body">
+    <aside class="hy-side">
+      <div class="hy-section">ЛОКАЦИИ</div>
+      <div class="hy-nav" id="cities"></div>
+      <div class="hy-section">АТМОСФЕРА</div>
+      <div style="padding: 6px 12px" id="atmo"></div>
+      <div class="hy-section">СВОДКА HAOTICA</div>
+      <div style="padding: 8px 12px; font-size: 12px; line-height: 1.45; color: var(--ink)" id="aiNote"></div>
+      <div style="padding: 4px 12px; margin-top: auto; padding-bottom: 12px">
+        <button class="hy-btn ai" style="width:100%" id="askAiBtn"></button>
+      </div>
+    </aside>
+    <main class="hy-main">
+      <div class="hy-toolbar">
+        <span class="hy-plate accent" id="cityPlate">BERLIN // DE</span>
+        <span class="hy-badge" id="coordBadge">52.5200° N · 13.4050° E</span>
+        <span class="hy-badge" style="color:var(--green)" id="aqiBadge">AQI 22 · ОТЛИЧНО</span>
+        <span class="grow"></span>
+        <div id="unitSeg"></div>
+        <button class="hy-btn ghost small" id="refreshBtn"></button>
+      </div>
+      <div class="scroll grow">
+        <div class="w-grid">
+          <div class="hy-card">
+            <div class="head"><span id="hCurIcon"></span> СЕЙЧАС В ГОРОДЕ <span class="tag" id="updTime">LIVE</span></div>
+            <div class="w-hero">
+              <div>
+                <div class="w-temp" id="curTemp">+14°</div>
+                <div class="w-cond" id="curCond">ПЕРЕМЕННАЯ ОБЛАЧНОСТЬ</div>
+                <div class="w-sub" id="curFeels">ОЩУЩАЕТСЯ КАК +12° · ВЕТЕР 14 КМ/Ч ЗЮЗ</div>
+              </div>
+              <div id="heroIcon" style="color:var(--accent)"></div>
+            </div>
+            <div style="padding: 0 12px 12px">
+              <div style="font: 600 10px var(--font-mono); color: var(--dim); letter-spacing: .16em; margin-bottom: 6px">ПОЧАСОВОЙ ПРОГНОЗ (24 Ч)</div>
+              <canvas class="w-hour-box" id="hourCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="hy-card">
+            <div class="head"><span id="hRadIcon"></span> РАДАР ОСАДКОВ <span class="tag" id="radTag">DOPPLER // 120 КМ</span></div>
+            <div class="body" style="padding:10px">
+              <div class="w-radar-box">
+                <canvas id="radarCanvas"></canvas>
+                <div class="w-radar-hud" id="radarHud">SCAN: ACTIVE · SWEEP 360° · DBZ: 18..42</div>
+                <div class="w-radar-ctl">
+                  <button class="hy-btn ghost icon small" id="radPlay"></button>
+                  <span style="font:10px var(--font-mono); color:var(--amber); min-width:58px" id="radTime">СЕЙЧАС</span>
+                  <input type="range" class="hy-range" style="flex:1" min="-120" max="120" step="15" value="0" id="radRange">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 0 12px 12px">
+          <div class="hy-card">
+            <div class="head"><span id="hCalIcon"></span> ПРОГНОЗ НА 7 ДНЕЙ <span class="tag">МЕТЕО-ДОСЬЕ</span></div>
+            <table class="hy-table">
+              <thead>
+                <tr>
+                  <th>ДЕНЬ</th>
+                  <th>УСЛОВИЯ</th>
+                  <th>ВЕРОЯТНОСТЬ ОСАДКОВ</th>
+                  <th>ВЕТЕР</th>
+                  <th style="width:210px">ДИАПАЗОН ТЕМПЕРАТУР</th>
+                </tr>
+              </thead>
+              <tbody id="daysBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="hy-status">
+        <span>СТАНЦИЯ: <b id="stCode">EDDB-METAR</b></span>
+        <span>ВЛАДЕЛЕЦ: <b>ЕДУАРД (EDUARD)</b></span>
+        <span>РЕЖИМ: <b>ЛОКАЛЬНЫЙ РАДАР + МЕТЕО-ПОТОК</b></span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import { HY, el, icon } from "/ui/hy.js";
+
+await HY.start({ title: "Погода", glyph: "weather" });
+const $ = (id) => document.getElementById(id);
+
+$("hCurIcon").append(icon("sun", 14));
+$("hRadIcon").append(icon("radar", 14));
+$("hCalIcon").append(icon("calendar", 14));
+$("heroIcon").append(icon("weather", 48));
+$("refreshBtn").append(icon("reboot", 14), "ОБНОВИТЬ");
+$("askAiBtn").append(icon("haotica", 14), "Сводка от Haotica");
+$("radPlay").append(icon("play", 12));
+
+const CITIES = [
+  {
+    name: "Berlin", country: "DE", coord: "52.5200° N · 13.4050° E", station: "EDDB-METAR",
+    temp: 14, feels: 12, cond: "ПЕРЕМЕННАЯ ОБЛАЧНОСТЬ", wind: "14 км/ч ЗЮЗ", pressure: "1016 гПа",
+    humidity: "64%", uv: "3 (УМЕР.)", dew: "+7°C", aqi: "22 · ОТЛИЧНО",
+    ai: "Едуард, в Берлине сегодня свежо (+14°C), к 19:00 возможен лёгкий фронт с запада. Если пойдёте гулять — захватите лёгкую куртку.",
+    hours: [11, 10, 10, 12, 14, 15, 16, 15, 13, 12, 11, 10],
+    days: [
+      { d: "ПН · СЕГОДНЯ", c: "Переменная облачность", pop: 20, w: "14 км/ч", min: 8, max: 16 },
+      { d: "ВТ · ЗАВТРА", c: "Небольшой дождь", pop: 65, w: "19 км/ч", min: 7, max: 13 },
+      { d: "СР", c: "Ясно, прохладно", pop: 10, w: "11 км/ч", min: 6, max: 15 },
+      { d: "ЧТ", c: "Солнечно", pop: 5, w: "9 км/ч", min: 8, max: 18 },
+      { d: "ПТ", c: "Облачно с прояснениями", pop: 25, w: "15 км/ч", min: 9, max: 17 },
+      { d: "СБ", c: "Вечерний ливень", pop: 75, w: "22 км/ч", min: 7, max: 14 },
+      { d: "ВС", c: "Чистое небо", pop: 10, w: "12 км/ч", min: 7, max: 16 },
+    ]
+  },
+  {
+    name: "München", country: "DE", coord: "48.1351° N · 11.5820° E", station: "EDDM-METAR",
+    temp: 17, feels: 16, cond: "СОЛНЕЧНО · ФЁН С АЛЬП", wind: "9 км/ч ЮВ", pressure: "1021 гПа",
+    humidity: "52%", uv: "4 (СРЕД.)", dew: "+6°C", aqi: "18 · ЧИСТЫЙ",
+    ai: "Едуард, в Мюнхене тёплый альпийский ветер (+17°C), видимость отличная, осадков на радаре нет.",
+    hours: [12, 11, 13, 15, 17, 18, 18, 16, 14, 13, 12, 11],
+    days: [
+      { d: "ПН · СЕГОДНЯ", c: "Ясно", pop: 5, w: "9 км/ч", min: 9, max: 18 },
+      { d: "ВТ · ЗАВТРА", c: "Солнечно", pop: 10, w: "10 км/ч", min: 10, max: 19 },
+      { d: "СР", c: "Грозовой фронт", pop: 80, w: "24 км/ч", min: 8, max: 14 },
+      { d: "ЧТ", c: "Переменная облачность", pop: 30, w: "12 км/ч", min: 7, max: 15 },
+      { d: "ПТ", c: "Ясно", pop: 10, w: "8 км/ч", min: 8, max: 17 },
+      { d: "СБ", c: "Солнечно", pop: 5, w: "7 км/ч", min: 9, max: 19 },
+      { d: "ВС", c: "Малооблачно", pop: 15, w: "11 км/ч", min: 9, max: 18 },
+    ]
+  },
+  {
+    name: "Frankfurt", country: "DE", coord: "50.1109° N · 8.6821° E", station: "EDDF-METAR",
+    temp: 15, feels: 14, cond: "МАЛООБЛАЧНО", wind: "16 км/ч З", pressure: "1018 гПа",
+    humidity: "58%", uv: "3 (УМЕР.)", dew: "+7°C", aqi: "25 · НОРМА",
+    ai: "Едуард, во Франкфурте спокойная погода (+15°C), без резких перепадов давления.",
+    hours: [11, 11, 12, 14, 15, 16, 16, 15, 13, 12, 11, 10],
+    days: [
+      { d: "ПН · СЕГОДНЯ", c: "Малооблачно", pop: 15, w: "16 км/ч", min: 9, max: 16 },
+      { d: "ВТ · ЗАВТРА", c: "Облачно", pop: 40, w: "18 км/ч", min: 8, max: 15 },
+      { d: "СР", c: "Дождь утром", pop: 60, w: "20 км/ч", min: 7, max: 14 },
+      { d: "ЧТ", c: "Ясно", pop: 10, w: "11 км/ч", min: 8, max: 17 },
+      { d: "ПТ", c: "Солнечно", pop: 5, w: "9 км/ч", min: 9, max: 18 },
+      { d: "СБ", c: "Переменная облачность", pop: 25, w: "14 км/ч", min: 9, max: 16 },
+      { d: "ВС", c: "Ясно", pop: 10, w: "10 км/ч", min: 8, max: 17 },
+    ]
+  },
+  {
+    name: "Wien", country: "AT", coord: "48.2082° N · 16.3738° E", station: "LOWW-METAR",
+    temp: 16, feels: 15, cond: "ЯСНО · ЛЁГКИЙ БРИЗ", wind: "12 км/ч СЗ", pressure: "1020 гПа",
+    humidity: "54%", uv: "4 (СРЕД.)", dew: "+6°C", aqi: "19 · ОТЛИЧНО",
+    ai: "Едуард, в Вене +16°C и чистое небо. Отличный вечер для прогулки.",
+    hours: [12, 11, 12, 14, 16, 17, 17, 15, 14, 13, 12, 11],
+    days: [
+      { d: "ПН · СЕГОДНЯ", c: "Ясно", pop: 10, w: "12 км/ч", min: 9, max: 17 },
+      { d: "ВТ · ЗАВТРА", c: "Малооблачно", pop: 20, w: "14 км/ч", min: 9, max: 18 },
+      { d: "СР", c: "Кратковременный дождь", pop: 55, w: "18 км/ч", min: 8, max: 15 },
+      { d: "ЧТ", c: "Солнечно", pop: 5, w: "10 км/ч", min: 8, max: 17 },
+      { d: "ПТ", c: "Ясно", pop: 5, w: "9 км/ч", min: 9, max: 19 },
+      { d: "СБ", c: "Переменная облачность", pop: 20, w: "13 км/ч", min: 10, max: 18 },
+      { d: "ВС", c: "Солнечно", pop: 10, w: "11 км/ч", min: 9, max: 18 },
+    ]
+  }
+];
+
+let curIdx = 0;
+let unit = "C";
+let radPlay = true;
+let radOffset = 0;
+
+function fmtT(c) {
+  const v = unit === "F" ? Math.round(c * 9 / 5 + 32) : c;
+  return (v > 0 && unit === "C" ? "+" : "") + v + "°" + unit;
+}
+
+$("unitSeg").append(HY.seg([["C", "°C"], ["F", "°F"]], "C", (v) => { unit = v; render(); }));
+
+function render() {
+  const c = CITIES[curIdx];
+  HY.sub(`${c.name} · ${fmtT(c.temp)}`);
+  $("cities").replaceChildren(...CITIES.map((ct, i) =>
+    el("div.item" + (i === curIdx ? ".on" : ""), { onclick: () => { curIdx = i; render(); } },
+      icon("weather", 14), el("span", ct.name), el("span.count", fmtT(ct.temp)))
+  ));
+
+  $("cityPlate").textContent = `${c.name.toUpperCase()} // ${c.country}`;
+  $("coordBadge").textContent = c.coord;
+  $("aqiBadge").textContent = `AQI ${c.aqi}`;
+  $("stCode").textContent = c.station;
+  $("curTemp").textContent = fmtT(c.temp);
+  HY.decode($("curCond"), c.cond, 360);
+  $("curFeels").textContent = `ОЩУЩАЕТСЯ КАК ${fmtT(c.feels)} · ВЕТЕР ${c.wind}`;
+
+  $("atmo").replaceChildren(
+    HY.kv("ДАВЛЕНИЕ", c.pressure),
+    HY.kv("ВЛАЖНОСТЬ", c.humidity),
+    HY.kv("ТОЧКА РОСЫ", c.dew),
+    HY.kv("УФ-ИНДЕКС", c.uv, "var(--amber)"),
+    HY.kv("ВОЗДУХ", c.aqi, "var(--green)")
+  );
+
+  $("aiNote").textContent = `«${c.ai}»`;
+
+  const tbody = $("daysBody");
+  tbody.replaceChildren();
+  for (const d of c.days) {
+    const left = ((d.min - 4) / 18) * 100;
+    const width = ((d.max - d.min) / 18) * 100;
+    tbody.append(el("tr",
+      el("td.mono", d.d),
+      el("td", d.c),
+      el("td.mono", { style: { color: d.pop >= 50 ? "var(--sky)" : "var(--dim)" } }, d.pop + "%"),
+      el("td.mono", d.w),
+      el("td", el("div.w-bar-wrap",
+        el("span", { style: { width: "34px", textAlign: "right", color: "var(--dim)" } }, fmtT(d.min)),
+        el("div.w-bar-track", el("div.w-bar-fill", { style: { left: `${Math.max(0, left)}%`, width: `${Math.max(12, width)}%` } })),
+        el("span", { style: { width: "34px", color: "var(--ink)" } }, fmtT(d.max))
+      ))
+    ));
+  }
+  drawHours(c.hours);
+}
+
+function drawHours(hrs) {
+  const cv = $("hourCanvas");
+  const dpr = devicePixelRatio || 1;
+  const w = cv.clientWidth || 420, h = cv.clientHeight || 96;
+  cv.width = w * dpr; cv.height = h * dpr;
+  const g = cv.getContext("2d");
+  g.scale(dpr, dpr);
+  g.clearRect(0, 0, w, h);
+
+  const min = Math.min(...hrs) - 2, max = Math.max(...hrs) + 2;
+  const pts = hrs.map((v, i) => [24 + (i / (hrs.length - 1)) * (w - 48), h - 24 - ((v - min) / (max - min)) * (h - 46)]);
+
+  g.strokeStyle = "rgba(224,162,67,0.18)";
+  g.lineWidth = 1;
+  for (let y = 18; y < h - 20; y += 22) { g.beginPath(); g.moveTo(10, y); g.lineTo(w - 10, y); g.stroke(); }
+
+  g.beginPath();
+  pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y));
+  g.strokeStyle = "#E0A243";
+  g.lineWidth = 2;
+  g.stroke();
+
+  g.lineTo(pts[pts.length - 1][0], h - 20);
+  g.lineTo(pts[0][0], h - 20);
+  g.closePath();
+  const grad = g.createLinearGradient(0, 10, 0, h - 20);
+  grad.addColorStop(0, "rgba(224,162,67,0.28)");
+  grad.addColorStop(1, "rgba(224,162,67,0.0)");
+  g.fillStyle = grad;
+  g.fill();
+
+  g.font = "10px 'IBM Plex Mono', monospace";
+  g.textAlign = "center";
+  pts.forEach(([x, y], i) => {
+    g.fillStyle = "#E0A243";
+    g.fillRect(x - 2, y - 2, 4, 4);
+    g.fillStyle = "#E8DFC9";
+    g.fillText(fmtT(hrs[i]), x, y - 7);
+    g.fillStyle = "#A39B87";
+    g.fillText(`${(i * 2).toString().padStart(2, "0")}:00`, x, h - 6);
+  });
+}
+
+// ── Анимация доплеровского радара осадков ─────────────────────
+let sweepAngle = 0;
+function tickRadar() {
+  const cv = $("radarCanvas");
+  if (cv) {
+    const dpr = devicePixelRatio || 1;
+    const w = cv.clientWidth || 420, h = cv.clientHeight || 230;
+    if (cv.width !== w * dpr || cv.height !== h * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+    const g = cv.getContext("2d");
+    g.save();
+    g.scale(dpr, dpr);
+    g.fillStyle = "#060807";
+    g.fillRect(0, 0, w, h);
+
+    const cx = w / 2, cy = h / 2 - 6;
+    const maxR = Math.min(w, h) * 0.44;
+
+    // Концентрические кольца радара и перекрестие
+    g.strokeStyle = "rgba(95,168,160,0.22)";
+    g.lineWidth = 1;
+    for (const f of [0.33, 0.66, 1]) {
+      g.beginPath(); g.arc(cx, cy, maxR * f, 0, Math.PI * 2); g.stroke();
+    }
+    g.beginPath(); g.moveTo(cx - maxR - 14, cy); g.lineTo(cx + maxR + 14, cy);
+    g.moveTo(cx, cy - maxR - 14); g.lineTo(cx, cy + maxR + 14); g.stroke();
+
+    // Очаги осадков (смещаются со временем radOffset)
+    const shift = radOffset * 0.35;
+    const cells = [
+      { x: cx - 38 + shift, y: cy - 18 + shift * 0.3, r: 28, c: "rgba(79,166,220,0.34)" },
+      { x: cx - 32 + shift, y: cy - 14 + shift * 0.3, r: 14, c: "rgba(143,191,122,0.45)" },
+      { x: cx + 26 + shift * 0.8, y: cy + 22 - shift * 0.2, r: 22, c: "rgba(79,166,220,0.28)" },
+      { x: cx + 8 + shift * 0.5, y: cy - 34, r: 16, c: "rgba(224,162,67,0.32)" },
+    ];
+    for (const cell of cells) {
+      const rg = g.createRadialGradient(cell.x, cell.y, 2, cell.x, cell.y, cell.r);
+      rg.addColorStop(0, cell.c);
+      rg.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = rg;
+      g.beginPath(); g.arc(cell.x, cell.y, cell.r, 0, Math.PI * 2); g.fill();
+    }
+
+    // Луч сканера
+    if (radPlay) sweepAngle = (sweepAngle + 0.03) % (Math.PI * 2);
+    g.beginPath();
+    g.moveTo(cx, cy);
+    g.arc(cx, cy, maxR, sweepAngle - 0.35, sweepAngle);
+    g.closePath();
+    g.fillStyle = "rgba(95,168,160,0.22)";
+    g.fill();
+
+    // Центральная метка города
+    g.fillStyle = "#E0A243";
+    g.fillRect(cx - 2.5, cy - 2.5, 5, 5);
+    g.restore();
+  }
+  requestAnimationFrame(tickRadar);
+}
+
+$("radPlay").onclick = () => { radPlay = !radPlay; };
+$("radRange").oninput = (e) => {
+  radOffset = parseInt(e.target.value, 10);
+  $("radTime").textContent = radOffset === 0 ? "СЕЙЧАС" : (radOffset > 0 ? `+${radOffset} МИН` : `${radOffset} МИН`);
+};
+$("refreshBtn").onclick = () => { render(); HY.toast("Метеоданные обновлены", "ok"); };
+$("askAiBtn").onclick = () => {
+  const c = CITIES[curIdx];
+  HY.toast(`Haotica: «${c.ai}»`, "ai");
+};
+
+window.addEventListener("resize", () => render());
+render();
+requestAnimationFrame(tickRadar);
+</script>
+</body>
+</html>

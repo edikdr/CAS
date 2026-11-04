@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HAOTICA // CLOUD LINK</title>
+  <link rel="stylesheet" href="/ui/hy.css" />
+</head>
+<body>
+  <script type="module">
+    import { HY } from "/ui/hy.js";
+    HY.start(async ({ root }) => {
+      let enabled = false;
+      let dailyCap = 2.50;
+      let spentToday = 0.14;
+
+      const chrome = HY.buildWindowChrome({
+        title: 'CLOUD LINK // ОПЦИОНАЛЬНЫЙ МОСТ OPENROUTER',
+        code: 'APP-CLOUD // LOCAL-FIRST POLICY',
+        statusLabel: enabled ? 'CLOUD HELPER READY' : '100% OFFLINE LOCAL',
+        statusColor: enabled ? 'warn' : 'ok',
+        actions: [
+          {
+            label: 'КЛЮЧИ API (KEYRING)',
+            onClick: () => window.HYKeys && window.HYKeys.openModal({ provider: 'openrouter', title: 'OPENROUTER API KEY (LIBSECRET)' })
+          }
+        ]
+      });
+
+      const body = HY.el('div', { class: 'hy-main', style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } });
+      chrome.windowEl.appendChild(body);
+      root.appendChild(chrome.windowEl);
+
+      function render() {
+        body.innerHTML = '';
+        body.appendChild(HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, [
+          HY.el('div', { class: 'hy-card-header' }, [
+            HY.el('span', { class: 'hy-card-title', text: 'ПОЛИТИКА LOCAL-FIRST (ДЛЯ ЕДУАРДА)' }),
+            HY.el('span', { class: 'hy-card-code', text: enabled ? 'HYBRID' : 'LOCAL ONLY' })
+          ]),
+          HY.kvRow('ОСНОВНОЙ ДВИЖОК (ЛОКАЛЬНО)', 'Qwen3.8-27B + Qwen3-Coder-Next 80B (0.00 €)', { accent: true }),
+          HY.kvRow('ОБЛАЧНЫЙ ПОМОЩНИК #1', 'deepseek/deepseek-v4.1-flash (OpenRouter)'),
+          HY.kvRow('ОБЛАЧНЫЙ ПОМОЩНИК #2', 'anthropic/claude-haiku-5.5 (OpenRouter)'),
+          HY.kvRow('ДНЕВНОЙ ЛИМИТ РАСХОДОВ', `$${dailyCap.toFixed(2)} (израсходовано $${spentToday.toFixed(2)})`),
+          HY.segBar({ value: Math.round((spentToday / dailyCap) * 100), segments: 20 }),
+          HY.el('button', {
+            class: 'hy-btn primary',
+            onClick: () => {
+              enabled = !enabled;
+              HY.toast('CLOUD LINK', enabled ? 'Облачный мост разрешён по запросу Едуарда' : 'Полностью автономный локальный режим', 'ok');
+              render();
+            }
+          }, [HY.el('span', { text: enabled ? 'ОТКЛЮЧИТЬ ОБЛАЧНЫЙ МОСТ (ВЕРНУТЬСЯ В OFFLINE)' : 'РАЗРЕШИТЬ ОБЛАЧНЫЙ МОСТ ПО ЗАПРОСУ' })])
+        ]));
+
+        body.appendChild(HY.el('div', { class: 'hy-card', style: { display: 'flex', flexDirection: 'column', gap: '10px' } }, [
+          HY.el('div', { class: 'hy-card-header' }, [
+            HY.el('span', { class: 'hy-card-title', text: 'ЖУРНАЛ ЗАПРОСОВ И ПРИВАТНОСТИ' }),
+            HY.el('span', { class: 'hy-card-code', text: 'ZERO TELEMETRY' })
+          ]),
+          HY.el('div', { style: { fontSize: '12px', color: 'var(--fg-dim)', lineHeight: '1.55' }, text: 'Ни один локальный файл Едуарда не покидает ноутбук без явного нажатия [TAB] в карточке облачного делегирования. Ключи хранятся в системной связке libsecret.' }),
+          HY.kvRow('ПОСЛЕДНИЙ ВЫЗОВ', 'Локальный стек Qwen3.8-27B (0 байт отправлено вовне)', { accent: true }),
+          HY.kvRow('СТАТУС СВЯЗКИ LIBSECRET', 'Зашифровано ключом входа Едуарда')
+        ]));
+      }
+
+      render();
+    });
+  </script>
+</body>
+</html>

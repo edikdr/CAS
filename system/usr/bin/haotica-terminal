@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Запуск терминала Haotica (с автоподъёмом ядра и ИИ-агента на Ubuntu)
+systemctl --user start haotica-core.service haotica-agent.service 2>/dev/null || true
+exec /usr/bin/haotica-app terminal "$@"

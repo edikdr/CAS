@@ -1,4 +1,6 @@
 #!/bin/sh
 # HAOTICA: haotica.server
 export PYTHONPATH="/usr/lib/haotica/python${PYTHONPATH:+:$PYTHONPATH}"
-exec /usr/bin/python3 -m haotica.server "$@"
+PY="/opt/haotica/venv/bin/python3"
+[ -x "$PY" ] || PY="/usr/bin/python3"
+exec "$PY" -m haotica.server "$@"

@@ -201,7 +201,7 @@ f_log = get_font(15, False)
 d.text((int(W * 0.77), H - 245), "NET // VODAFONE-D37C  .  1 MS", font=f_log, fill=teal)
 
 # 5. ЛОГ СОБЫТИЙ ВНИЗУ ПО ЦЕНТРУ
-now = datetime.now() + timedelta(minutes=5)
+now = datetime.now() + timedelta(minutes=-4)
 log_x, log_y = int(W * 0.355), H - 365
 for idx, (ts, msg) in enumerate([
     (now.strftime("%H:%M:23"), "> PARTICLE FLOW ............ 1"),

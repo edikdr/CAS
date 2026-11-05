@@ -1137,7 +1137,7 @@ const VITALS = [
 function bars() {
   const m = state.metrics;
   if (!$("bars").children.length) {
-    $("bars").append(...VITALS.map(([k, c]) => el("div.bar", { style: { "--c": `var(${c})` }, title: k,
+    $("bars").append(...VITALS.map(([k, c]) => el("div.bar" + (IS_WIN && !FEAT.temps && (k === "TEMP" || k === "FAN") ? ".hidden" : ""), { style: { "--c": `var(${c})` }, title: k,
       onclick: () => (k === "TEMP" || k === "FAN" || k === "BAT") && FEAT.power_profiles ? palettePower() : k === "AI" ? showPanel("haotica") : HY.openApp("sysmon") },
       el("span.pt"), el("span.k", k), el("div.track", el("i")), el("span.v", "—"))));
   }

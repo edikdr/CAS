@@ -278,7 +278,10 @@ body.no-left .t-left, body.no-right .t-right { display: none; }
 .hidden { display: none !important; }
 
 /* мини-чат Haotica под аватаром (W2): занимает свободное место колонки, VITALS — компактно */
-.link.chatbox { flex: 1 1 280px; min-height: 220px; display: flex; flex-direction: column; padding: 8px 10px 8px; }
+.link.chatbox { flex: 1 1 280px; min-height: 150px; display: flex; flex-direction: column; padding: 8px 10px 8px; }
+.t-left { overflow: hidden; }
+.t-left .portrait, .t-left .vitals, .t-left .t-mini { flex-shrink: 0; }
+@media (max-height: 900px) { .t-left .t-mini { display: none; } }
 .link.chatbox > .hc { flex: 1; min-height: 0; }
 .t-left .vitals { flex: 0 0 auto; }
 

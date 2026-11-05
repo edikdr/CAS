@@ -86,10 +86,16 @@ jobs:
           & dist\HaoticaTerminal\haotica.exe llama status
           & dist\HaoticaTerminal\haotica.exe doctor; Write-Output "doctor: $LASTEXITCODE"
           $core = Start-Process dist\HaoticaTerminal\HaoticaTerminal.exe -ArgumentList "--module","haotica.server" -PassThru
-          Start-Sleep 8
-          $tok = Get-Content "$env:HAOTICA_HOME\state\token"
-          $p = Invoke-RestMethod -Headers @{ "X-Haotica-Token" = $tok } http://127.0.0.1:47800/api/platform
-          if ($p.features.platform -ne "windows") { throw "ядро из сборки не ответило" }
+          Start-Sleep 10
+          try {
+            $tok = Get-Content "$env:HAOTICA_HOME\state\token"
+            $p = Invoke-RestMethod -Headers @{ "X-Haotica-Token" = $tok } http://127.0.0.1:47800/api/platform
+            if ($p.features.platform -ne "windows") { throw "ядро из сборки не ответило" }
+          } catch {
+            Write-Output "== core.log"; Get-Content "$env:HAOTICA_HOME\logs\core.log" -ErrorAction SilentlyContinue | Select-Object -Last 40
+            Write-Output "== процесс жив: $(-not $core.HasExited) код: $($core.ExitCode)"
+            throw
+          }
           $page = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:47800/apps/terminal/index.html
           if ($page.StatusCode -ne 200) { throw "нет страницы терминала в сборке" }
           Stop-Process -Id $core.Id -Force

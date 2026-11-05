@@ -21,9 +21,9 @@ hidden = ["haotica.server.__main__", "haotica.agent.__main__", "haotica.tts.serv
 excludes = ["tkinter", "torch", "matplotlib", "IPython", "pytest"]
 icon = str(ROOT / "assets" / "icons" / "haotica.ico") if (ROOT / "assets" / "icons" / "haotica.ico").exists() else None
 
-a1 = Analysis([str(ROOT / "packaging/windows/entry_terminal.py")], pathex=[str(ROOT / "core")], datas=datas,
+a1 = Analysis([str(ROOT / "packaging/windows/entry_terminal.py")], pathex=[str(ROOT / "core"), str(ROOT / "packaging/windows")], datas=datas,
               hiddenimports=hidden, excludes=excludes)
-a2 = Analysis([str(ROOT / "packaging/windows/entry_cli.py")], pathex=[str(ROOT / "core")], hiddenimports=hidden,
+a2 = Analysis([str(ROOT / "packaging/windows/entry_cli.py")], pathex=[str(ROOT / "core"), str(ROOT / "packaging/windows")], hiddenimports=hidden,
               excludes=excludes + ["PySide6"])
 pyz1, pyz2 = PYZ(a1.pure), PYZ(a2.pure)
 exe1 = EXE(pyz1, a1.scripts, [], exclude_binaries=True, name="HaoticaTerminal", console=False, icon=icon,

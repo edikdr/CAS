@@ -44,9 +44,11 @@ def checks() -> list[dict]:
     add("PYTHON", "ok", f"{platform.python_version()} {'(сборка)' if getattr(sys, 'frozen', False) else ''}")
     try:
         import PySide6
-        add("QT / WEBENGINE", "ok", PySide6.__version__)
-    except ImportError:
-        add("QT / WEBENGINE", "fail", "PySide6 не установлен")
+        ver = getattr(PySide6, "__version__", "") or "есть"
+        add("QT / WEBENGINE", "ok", ver)
+    except Exception:  # noqa: BLE001 — в консольном haotica.exe Qt нет: проверяет окно
+        add("QT / WEBENGINE", "ok" if getattr(sys, "frozen", False) else "fail",
+            "в составе HaoticaTerminal.exe" if getattr(sys, "frozen", False) else "PySide6 не установлен")
     try:
         import winpty  # noqa: F401
         add("CONPTY (pywinpty)", "ok")
@@ -109,6 +111,10 @@ C = {"ok": "\033[38;2;127;178;106m", "warn": "\033[38;2;224;162;67m", "fail": "\
 def run() -> int:
     if os.name == "nt":
         os.system("")                                   # включить VT-цвета в старой консоли
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     print(f"\n  {C['warn']}HAOTICA TERMINAL // DIAGNOSTICS{C['rst']}\n")
     fails = 0
     for c in checks():

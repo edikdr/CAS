@@ -12,6 +12,7 @@ import { Unicode11Addon } from "/ui/vendor/xterm/addon-unicode11.mjs";
 import { SearchAddon } from "/ui/vendor/xterm/addon-search.mjs";
 import { ImageAddon } from "/ui/vendor/xterm/addon-image.mjs";
 import { ClipboardAddon } from "/ui/vendor/xterm/addon-clipboard.mjs";
+import { ChatView } from "/ui/chat.js";
 
 HY.i18n({
   ru: { newtab: "Новая вкладка", closetab: "Закрыть вкладку", exited: "процесс завершён (код {code}) — Enter: перезапуск",
@@ -1106,56 +1107,74 @@ function setHState(s) {
   $("h-state").textContent = (s || "idle").toUpperCase();
   if (state.avatar) state.avatar.setState(s);
 }
-HY.stream(["state", "mouth", "card", "message"], {
+HY.stream(["state", "mouth"], {
   state: (d) => setHState(d.state),
   mouth: (d) => { voice.mouth = d.v; if (state.avatar) state.avatar.setMouth(d.v); },
-  card: (c) => showCard(c),
-  message: (m) => { if (m.role === "assistant" && m.final) reply(m.text); },
 }, HY.haoticaUrl);
-function reply(text) {
-  const box = $("h-reply");
-  box.replaceChildren(el("span.who", "HAOTICA"), el("span", ""));
-  HY.decode(box.lastChild, text.slice(0, 600), Math.min(1800, 200 + text.length * 4));
-}
+
+// мини-чат под аватаром: тот же чат, что во вкладке HAOTICA справа и в окне ассистента
+const chat = new ChatView($("chat"), {
+  mini: true, source: "terminal", key: "terminal",
+  context: () => { const t = cur(); return { cwd: t ? t.cwd : "", shell: t ? t.kind : "", os: IS_WIN ? "windows" : "linux", pane: t ? t.id : "" }; },
+  onRun: (code) => cur() && cur().input(code.replace(/\r?\n/g, IS_WIN ? "\r" : "\n") + "\r"),
+  onInsert: (code) => cur() && cur().input(code),
+  onExpand: (id) => { showPanel("haotica"); hPost({ type: "open-chat", chat: id }); },
+  onEscape: () => cur() && cur().term.focus(),
+  onState: (s) => setHState(s.state),
+});
+window.__hyChatAttach = (paths) => chat.addAttachments(paths);
 async function ask(text, context = {}) {
   if (!text.trim()) return;
-  const t = cur();
-  $("h-reply").replaceChildren(el("span.who", "YOU"), el("span", text));
-  setHState("thinking");
-  const r = await HY.haotica("POST", "/api/chat", { text, source: "terminal", chat: "terminal",
-    context: { cwd: t ? t.cwd : "", ...context }, wait: true });
-  if (r && r.ok && r.text) reply(r.text);
-  else if (!r || r.status === 0 || r.ok === false) reply(r && r.error ? r.error : "NEURAL CORE OFFLINE — модель ещё загружается или выключена.");
-  setHState("idle");
+  if (context.path) chat.addAttachments([context.path]);
+  await chat.ask(text, context, false).catch(() => {});
 }
-$("h-input").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") { const v = e.target.value; e.target.value = ""; ask(v); }
-  if (e.key === "Escape") { e.target.value = ""; cur() && cur().term.focus(); }
-});
 
-// карточка команды от Haotica: [TAB] вставить в строку / [ESC] отклонить; опасные — только с подтверждением
-function showCard(c) {
-  if (!c || c.kind !== "command") return;
-  document.querySelector(".t-card")?.remove();
-  const risk = (c.risk && c.risk.level) || "write";
-  const card = el("div.t-card",
-    el("div.t", icon("haotica", 14), "HAOTICA // " + (c.title || "КОМАНДА"), el("span.risk." + risk, risk === "danger" ? "DANGER" : risk === "read" ? "READ-ONLY" : "CHANGES")),
-    el("pre", c.command),
-    c.why ? el("div.why", c.why) : null,
-    risk === "danger" ? el("div.why.err", "⚠ " + ((c.risk.reasons || []).join(", ") || "опасная команда")) : null,
-    el("div.act",
-      el("button.hy-btn.primary.small", { onclick: () => accept() }, risk === "danger" ? "ПОНИМАЮ, ВСТАВИТЬ" : "[TAB] ВСТАВИТЬ"),
-      el("button.hy-btn.small", { onclick: () => reject() }, "[ESC] ОТКЛОНИТЬ")));
-  $("terms").append(card);
-  const accept = () => { card.remove(); if (cur()) cur().input(c.command); HY.haotica("POST", `/api/card/${c.id}/accept`, {}); };
-  const reject = () => { card.remove(); HY.haotica("POST", `/api/card/${c.id}/reject`, {}); cur() && cur().term.focus(); };
-  const key = (e) => {
-    if (!document.body.contains(card)) return document.removeEventListener("keydown", key, true);
-    if (e.key === "Tab" && risk !== "danger") { e.preventDefault(); e.stopPropagation(); accept(); document.removeEventListener("keydown", key, true); }
-    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); reject(); document.removeEventListener("keydown", key, true); }
-  };
-  document.addEventListener("keydown", key, true);
+// ── Haotica выполняет команды в настоящей вкладке (W3, terminal_run) ─────────
+const execs = new Map();       // exec_id → { pane, t0 }
+function haoticaPane(where) {
+  if (where === "active" && cur()) return cur();
+  let t = state.tabs.find((x) => x.name === "HAOTICA");
+  if (!t) {
+    const back = state.active;
+    t = newTab({ cwd: cur() ? cur().cwd : "", name: "HAOTICA" });
+    t.name = "HAOTICA"; renderTabs();
+    if (back && back !== t) activate(back);                  // не уводим фокус владельца из его вкладки
+  }
+  return t.pane;
 }
+async function onExec(x) {
+  const pane = haoticaPane(x.tab === "active" ? "active" : "haotica");
+  const fail = (error, exit = -2) => HY.haotica("POST", "/api/terminal/result", { exec_id: x.id, exit, error, duration: 0, cwd: pane ? pane.cwd : "" });
+  if (!pane) return fail("нет вкладки");
+  const ready = await pane.waitPrompt(20000);
+  if (!ready || pane.cur) return fail("вкладка занята другой программой");
+  if (pane.term.buffer.active.type === "alternate") return fail("во вкладке открыта полноэкранная программа");
+  execs.set(x.id, { pane, t0: performance.now() });
+  pane.execId = x.id;
+  logLine("haotica", `HAOTICA $ ${x.command.slice(0, 60)}`, "RUN");
+  if (state.active !== pane.tab) { pane.tab.activity = true; renderTabs(); }
+  pane.input(x.command.replace(/\r?\n/g, " ") + "\r");
+  if (pane.kind === "cmd") {                                   // у cmd нет кода выхода: ждём следующее приглашение
+    const t0 = performance.now(), start = pane.term.registerMarker(0);
+    pane.atPrompt = false;
+    await pane.waitPrompt(Math.max(5000, (x.timeout || 120) * 1000));
+    const fake = { out: start, start, end: pane.term.registerMarker(0) };
+    execs.delete(x.id);
+    HY.haotica("POST", "/api/terminal/result", { exec_id: x.id, exit: null, duration: Math.round(performance.now() - t0),
+      cwd: pane.cwd, output_tail: pane.output(fake, 300).slice(-12000), note: "cmd: код выхода недоступен" });
+  }
+}
+HY.on("block", ({ pane, block }) => {
+  if (!block.exec || !execs.has(block.exec)) return;
+  execs.delete(block.exec);
+  logLine(block.code ? "error" : "ok", `HAOTICA EXIT ${block.code} // ${block.cmd.slice(0, 40)}`, block.code ? "FAIL" : "OK");
+  HY.haotica("POST", "/api/terminal/result", { exec_id: block.exec, exit: block.code, duration: Math.round(block.ms), cwd: block.cwd || pane.cwd,
+    output_tail: block.alt ? "" : pane.output(block, 300).slice(-12000), alt: !!block.alt });
+});
+HY.stream(["exec", "exec_cancel"], {
+  exec: (x) => onExec(x),
+  exec_cancel: (x) => { const e = execs.get(x.id); if (e && e.pane.sid) HY.bridge.ptyWrite(e.pane.sid, "\x03"); },
+}, HY.haoticaUrl);
 
 window.addEventListener("message", (e) => {
   if (e.origin !== location.origin || !e.data || !e.data.haotica) return;
@@ -1171,7 +1190,7 @@ function onFailed(tab, b) {
   HY.haotica("POST", "/api/terminal/block", { cmd: b.cmd, code: b.code, ms: Math.round(b.ms), cwd: b.cwd, output: tab.output(b, 160) });
 }
 function askHaotica(tab, b) {
-  ask(`Разбери: команда «${b.cmd}» завершилась с кодом ${b.code}.`, { cmd: b.cmd, code: b.code, cwd: b.cwd, output: tab.output(b, 300) });
+  chat.send(`Разбери: команда «${b.cmd}» завершилась с кодом ${b.code}.`, { cmd: b.cmd, code: b.code, cwd: b.cwd, output: tab.output(b, 300) });
 }
 
 // строка сеанса

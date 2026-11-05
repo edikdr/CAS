@@ -27,7 +27,9 @@ from .llm import LLM
 from .memory import Memory
 
 log = logging.getLogger("haotica.engine")
-MAX_ROUNDS = 10
+MAX_ROUNDS = 12                 # шагов инструментов за ход (цепочка команд в терминале)
+EXEC_TIMEOUT = 120              # сек ожидания команды в терминале по умолчанию; дольше — «запустить и опрашивать»
+OUTPUT_LIMIT = 12_000           # символов вывода команды, которые уходят модели
 HISTORY_TURNS = 40
 SUMMARY_AT = 48
 KEEP_AFTER_SUMMARY = 16
@@ -100,6 +102,11 @@ class Agent:
         self._unprompted: list[float] = []
         self._tasks: set[asyncio.Task] = set()
         self._dl_cache: tuple[float, dict] = (0.0, {})
+        self.cancels: dict[str, asyncio.Event] = {}     # чат → «стоп»
+        self.plan_ok: dict[str, bool] = {}              # чат → владелец разрешил весь план (кроме опасного)
+        self.execs: dict[str, asyncio.Future] = {}      # exec_id → результат команды из терминала
+        self.exec_meta: dict[str, dict] = {}
+        self.terminal_seen = 0.0                        # когда терминал последний раз подтвердил подписку
 
     # ── жизненный цикл ─────────────────────────────────────────
     async def start(self) -> None:
@@ -163,7 +170,7 @@ class Agent:
             except Exception:  # noqa: BLE001
                 self._dl_cache = (now, {})
         st = self._dl_cache[1].get(role)
-        if not st or st.get("ready"):
+        if not st or st.get("ready") or self.llm.state.get(role) == "ready":   # сервер модели уже отвечает
             return ""
         if st.get("have"):
             return f"downloading {int(100 * st['have'] / max(1, st['size']))}%"
@@ -172,12 +179,13 @@ class Agent:
     # ── карточки разрешений ────────────────────────────────────
     def make_card(self, name: str, args: dict, risk: dict, chat: str, source: str) -> dict:
         cid = uuid.uuid4().hex[:12]
-        kind = {"suggest_command": "command", "run_command": "run", "cloud_ask": "cloud"}.get(name, "action")
+        kind = {"suggest_command": "command", "run_command": "run", "terminal_run": "run", "cloud_ask": "cloud"}.get(name, "action")
         title = {"command": "КОМАНДА", "run": "ВЫПОЛНИТЬ", "cloud": "CLOUD REQUEST"}.get(kind, "ДЕЙСТВИЕ")
         card = {"id": cid, "kind": kind, "tool": name, "title": title, "chat": chat, "source": source,
                 "text": tools.describe(name, args), "command": str(args.get("command", "")),
                 "why": str(args.get("reason") or args.get("why") or ""), "risk": risk,
-                "args": {k: v for k, v in args.items() if k != "content"}, "ts": int(time.time())}
+                "args": {k: v for k, v in args.items() if k != "content"}, "ts": int(time.time()),
+                "plan": name == "terminal_run" and risk.get("level") != "danger"}
         if name == "write_file":
             card["preview"] = str(args.get("content", ""))[:2000]
         if name == "cloud_ask":
@@ -189,21 +197,136 @@ class Agent:
         fut: asyncio.Future = asyncio.get_running_loop().create_future()
         self.cards[card["id"]] = {"card": card, "future": fut}
         self.hub.publish("card", card, keep=False)
+        self.hub.publish("message", {"chat": card.get("chat"), "role": "card", "card": card}, keep=False)
         self.state.set("warning")
+        cancel = self.cancels.get(card.get("chat", ""))
         try:
-            return bool(await asyncio.wait_for(fut, CARD_TIMEOUT))
-        except asyncio.TimeoutError:
+            waiters = [fut] + ([asyncio.ensure_future(cancel.wait())] if cancel else [])
+            done, pending = await asyncio.wait(waiters, timeout=CARD_TIMEOUT, return_when=asyncio.FIRST_COMPLETED)
+            for p in pending:
+                if p is not fut:
+                    p.cancel()
+            if fut in done:
+                res = fut.result()
+                if res == "plan":                       # «выполнить весь план»: дальше изменения без карточек
+                    self.plan_ok[card.get("chat", "")] = True
+                    return True
+                return bool(res)
             return False
         finally:
             self.cards.pop(card["id"], None)
             self.hub.publish("card_done", {"id": card["id"]}, keep=False)
 
-    def resolve_card(self, cid: str, accept: bool) -> bool:
+    def resolve_card(self, cid: str, accept: bool | str) -> bool:
         c = self.cards.get(cid)
         if not c or c["future"].done():
             return False
+        if accept == "plan" and not c["card"].get("plan"):
+            accept = True                               # опасное «планом» не разрешается
         c["future"].set_result(accept)
         return True
+
+    # ── стоп и команды в терминале ─────────────────────────────
+    def stop_turn(self, chat: str = "") -> dict:
+        """Кнопка «стоп» / Esc: прервать ход, отклонить ожидающие карточки, Ctrl+C команде в терминале."""
+        chats = [chat] if chat else list(self.cancels)
+        for c in chats:
+            ev = self.cancels.get(c)
+            if ev:
+                ev.set()
+        for c in list(self.cards.values()):
+            if (not chat or c["card"].get("chat") == chat) and not c["future"].done():
+                c["future"].set_result(False)
+        for eid, meta in list(self.exec_meta.items()):
+            if (not chat or meta.get("chat") == chat) and eid in self.execs and not self.execs[eid].done():
+                self.hub.publish("exec_cancel", {"id": eid}, keep=False)
+        return {"stopped": chats}
+
+    async def terminal_exec(self, args: dict, ctx: dict) -> dict:
+        """terminal_run: команда уходит в настоящую вкладку терминала (событие exec), результат — POST /api/terminal/result."""
+        cmd = str(args.get("command", "")).strip()
+        if not cmd:
+            return {"error": "пустая команда"}
+        if not self.hub_has_exec_listener():
+            return {"error": "терминал HAOTICA не открыт — открой его, чтобы я могла выполнять команды"}
+        eid = uuid.uuid4().hex[:12]
+        timeout = max(5, min(1800, int(args.get("timeout") or EXEC_TIMEOUT)))
+        fut: asyncio.Future = asyncio.get_running_loop().create_future()
+        self.execs[eid] = fut
+        tab = str(args.get("tab") or config.get("terminal.haotica_tab", "separate") or "separate")
+        meta = {"id": eid, "chat": ctx.get("chat", ""), "command": cmd, "reason": str(args.get("reason", "")),
+                "tab": tab, "timeout": timeout, "pane": ctx.get("pane", ""), "ts": time.time()}
+        self.exec_meta[eid] = meta
+        self.hub.publish("exec", meta, keep=False)
+        self.state.set("speaking", f"$ {cmd[:120]}")
+        cancel = self.cancels.get(meta["chat"])
+        waiters = [fut] + ([asyncio.ensure_future(cancel.wait())] if cancel else [])
+        done, pending = await asyncio.wait(waiters, timeout=timeout, return_when=asyncio.FIRST_COMPLETED)
+        for p in pending:
+            if p is not fut:
+                p.cancel()
+        if fut not in done:
+            if cancel and cancel.is_set():
+                self.hub.publish("exec_cancel", {"id": eid}, keep=False)
+                return {"exec_id": eid, "status": "cancelled", "note": "владелец остановил"}
+            return {"exec_id": eid, "status": "running",
+                    "note": f"команда выполняется дольше {timeout} с; проверь позже инструментом terminal_poll"}
+        return self._exec_result(eid, fut.result())
+
+    def hub_has_exec_listener(self) -> bool:
+        """Открыт ли терминал, который принимает команды Haotica (подписан на тему exec)."""
+        try:
+            return any("exec" in topics for _q, topics in list(self.hub._subs))
+        except Exception:  # noqa: BLE001
+            return False
+
+    def _exec_result(self, eid: str, r: dict) -> dict:
+        out = safety.redact(str(r.get("output_tail", "") or ""))
+        if len(out) > OUTPUT_LIMIT:
+            out = "…\n" + out[-OUTPUT_LIMIT:]
+        if r.get("alt"):
+            out = "[полноэкранная программа: вывод не передаётся]"
+        res = {"exec_id": eid, "exit": r.get("exit"), "duration_ms": r.get("duration"), "cwd": r.get("cwd", ""),
+               "output_tail": out}
+        if r.get("error"):
+            res["error"] = str(r["error"])[:300]
+        meta = self.exec_meta.get(eid, {})
+        self._journal({"ts": int(time.time()), "chat": meta.get("chat"), "command": meta.get("command"),
+                       "exit": res.get("exit"), "ms": res.get("duration_ms"), "cwd": res.get("cwd"),
+                       "error": res.get("error", "")})
+        return res
+
+    async def terminal_poll(self, eid: str, wait: float = 30) -> dict:
+        fut = self.execs.get(eid)
+        if not fut:
+            return {"error": "нет такой команды"}
+        try:
+            r = await asyncio.wait_for(asyncio.shield(fut), wait)
+        except asyncio.TimeoutError:
+            return {"exec_id": eid, "status": "running"}
+        return self._exec_result(eid, r)
+
+    def terminal_result(self, d: dict) -> bool:
+        eid = str(d.get("exec_id", ""))
+        fut = self.execs.get(eid)
+        if not fut or fut.done():
+            return False
+        fut.set_result(d)
+        self.bg(self._forget_exec(eid))
+        return True
+
+    async def _forget_exec(self, eid: str) -> None:
+        await asyncio.sleep(3600)
+        self.execs.pop(eid, None)
+        self.exec_meta.pop(eid, None)
+
+    def _journal(self, rec: dict) -> None:
+        try:
+            paths.LOG_DIR.mkdir(parents=True, exist_ok=True)
+            with open(paths.LOG_DIR / "agent-steps.jsonl", "a", encoding="utf-8") as f:
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        except OSError:
+            pass
 
     def pending_cards(self) -> list[dict]:
         return [c["card"] for c in self.cards.values()]
@@ -222,8 +345,45 @@ class Agent:
         for h in self.memory.history(chat, HISTORY_TURNS):
             if h["role"] in ("user", "assistant") and h["content"]:
                 msgs.append({"role": h["role"], "content": safety.redact(h["content"])})
-        msgs.append({"role": "user", "content": safety.redact(self._with_context(text, context or {}))})
+        att_text, images = self._attachments(context or {})
+        user_text = safety.redact(self._with_context(text, context or {}) + att_text)
+        if images:                      # изображения — частями сообщения (зрение у base)
+            msgs.append({"role": "user", "content": [{"type": "text", "text": user_text}, *images]})
+        else:
+            msgs.append({"role": "user", "content": user_text})
         return msgs
+
+    def _attachments(self, ctx: dict) -> tuple[str, list[dict]]:
+        """Вложения из чата: текст (до 20 КБ, секреты вычищаются), изображения (для base), папки — листингом."""
+        files = [str(f) for f in (ctx.get("files") or [])][:8]
+        if not files:
+            return "", []
+        ha = config.get("haotica", {}) or {}
+        parts, images = [], []
+        for f in files:
+            ok, why = safety.path_allowed(f, ha.get("folders_allowed", ["~"]), ha.get("folders_denied", []))
+            if not ok:
+                parts.append(f"[вложение {f}: недоступно — {why}]")
+                continue
+            p = Path(f)
+            try:
+                if p.is_dir():
+                    names = sorted(x.name + ("/" if x.is_dir() else "") for x in list(p.iterdir())[:300])
+                    parts.append(f"Папка {p}:\n" + "\n".join(names[:200]))
+                elif p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp") and p.stat().st_size < 12 * 2 ** 20:
+                    mime = mimetypes.guess_type(str(p))[0] or "image/png"
+                    images.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,"
+                                                                    + base64.b64encode(p.read_bytes()).decode()}})
+                    parts.append(f"[изображение {p.name}]")
+                else:
+                    raw = p.read_bytes()[:20_000]
+                    if b"\x00" in raw[:4000]:
+                        parts.append(f"[{p.name}: двоичный файл, {p.stat().st_size} байт]")
+                    else:
+                        parts.append(f"Файл {p}:\n```\n{raw.decode('utf-8', 'replace')}\n```")
+            except OSError as e:
+                parts.append(f"[вложение {f}: {e}]")
+        return "\n\n[вложения]\n" + "\n\n".join(parts), images
 
     @staticmethod
     def _with_context(text: str, ctx: dict) -> str:
@@ -236,10 +396,18 @@ class Agent:
         return text + ("\n\n[контекст]\n" + "\n".join(extra) if extra else "")
 
     # ── ход разговора ──────────────────────────────────────────
-    async def turn(self, text: str, source: str = "panel", chat: str = "", context: dict | None = None) -> AsyncIterator[dict]:
-        """События хода: delta, tool, card, error, done{text, role}."""
+    async def turn(self, text: str, source: str = "panel", chat: str = "", context: dict | None = None,
+                   retry: bool = False) -> AsyncIterator[dict]:
+        """События хода: delta, tool, step, card, error, done{text, role}. retry — ответить заново на последний вопрос."""
         chat = chat or source or "panel"
         context = context or {}
+        if retry:
+            last = self.memory.last_user(chat)
+            if not last:
+                yield {"type": "error", "error": "нечего повторять"}
+                return
+            self.memory.drop_after(chat, last["id"])
+            text = last["content"]
         want = ""
         m = WANT_RX.match(text)
         if m:
@@ -260,17 +428,21 @@ class Agent:
             return
         async with self._turn_lock:
             self.busy = True
+            self.cancels[chat] = asyncio.Event()
+            self.plan_ok.pop(chat, None)
             try:
-                async for ev in self._turn(text, source, chat, context, want):
+                async for ev in self._turn(text, source, chat, context, want, retry):
                     yield ev
             finally:
                 self.busy = False
+                self.cancels.pop(chat, None)
+                self.plan_ok.pop(chat, None)
                 self.state.set("idle")
 
-    async def _turn(self, text, source, chat, context, want) -> AsyncIterator[dict]:
+    async def _turn(self, text, source, chat, context, want, retry=False) -> AsyncIterator[dict]:
         self.memory.chat(chat, source)
         msgs = self.build_messages(chat, text, context)
-        ctx_tokens = sum(len(x["content"]) for x in msgs) // 3
+        ctx_tokens = sum(len(x["content"]) if isinstance(x["content"], str) else 2000 for x in msgs) // 3
         role = self.llm.route(text, ctx_tokens, source, want)
         dl = self.download_state(role)
         if dl and role == "deep" and not self.download_state("base"):
@@ -281,8 +453,12 @@ class Agent:
             self.state.set("sleep", err)
             yield {"type": "error", "error": err, "llm_state": dl}
             return
-        self.memory.add(chat, "user", text, {"source": source})
-        self.hub.publish("message", {"chat": chat, "role": "user", "text": text, "source": source}, keep=False)
+        if not retry:
+            self.memory.add(chat, "user", text, {"source": source})
+            self.hub.publish("message", {"chat": chat, "role": "user", "text": text, "source": source}, keep=False)
+        else:   # build_messages уже содержит вопрос из истории — убираем дубль
+            if len(msgs) >= 2 and msgs[-2].get("role") == "user" and msgs[-2]["content"] == msgs[-1]["content"]:
+                msgs.pop(-2)
         self.state.set("reading")
         if not await self.llm.use(role, 600):
             err = f"модель {role} не запустилась (journalctl --user -u haotica-llm-{role})"
@@ -290,15 +466,24 @@ class Agent:
             yield {"type": "error", "error": err}
             return
         mode = config.get("haotica.mode", "copilot")
-        schemas = tools.schemas(mode) if config.get("haotica.enabled", True) else None
+        schemas = tools.schemas(mode, terminal=self.hub_has_exec_listener()) if config.get("haotica.enabled", True) else None
         think = role == "base" and (len(text) > 400 or bool(re.search(r"(?i)подумай|почему|объясни|think", text)))
-        final, used = "", []
+        final, used, steps = "", [], []
+        cancel = self.cancels.get(chat)
+        recent: list[str] = []
+        stopped = False
         for _round in range(MAX_ROUNDS):
+            if cancel and cancel.is_set():
+                stopped = True
+                break
             self.state.set("thinking")
             buf, calls = "", []
             try:
                 async for ev in self.llm.chat(msgs, schemas, role, max_tokens=4096 if role == "deep" else 2048,
                                               think=think):
+                    if cancel and cancel.is_set():
+                        stopped = True
+                        break
                     if ev["type"] == "delta":
                         if not buf:
                             self.state.set("speaking")
@@ -314,6 +499,9 @@ class Agent:
                 yield {"type": "error", "error": err}
                 return
             buf = _strip_think(buf)
+            if stopped:
+                final = (buf + "\n\n" if buf else "") + "⏹ Остановлено."
+                break
             if not calls:
                 final = buf
                 break
@@ -321,22 +509,75 @@ class Agent:
                 {"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": c["arguments"] or "{}"}}
                 for c in calls]})
             for c in calls:
-                res = await self._call_tool(c, chat, source, context)
+                if cancel and cancel.is_set():
+                    res = {"error": "владелец остановил"}
+                    stopped = True
+                else:
+                    sig = c["name"] + (c.get("arguments") or "")
+                    recent.append(sig)
+                    if recent[-3:].count(sig) == 3:          # одно и то же трижды подряд — зацикливание
+                        res = {"error": "зацикливание: этот шаг уже был трижды подряд, остановись и объясни владельцу"}
+                    else:
+                        res = await self._call_tool(c, chat, source, context)
                 used.append(c["name"])
+                step = self._step(c, res)
+                steps.append(step)
+                self.hub.publish("message", {"chat": chat, "role": "step", "step": step}, keep=False)
                 yield {"type": "tool", "name": c["name"], "ok": "error" not in res}
+                yield {"type": "step", "step": step}
                 msgs.append({"role": "tool", "tool_call_id": c["id"], "name": c["name"],
                              "content": safety.redact(json.dumps(res, ensure_ascii=False, default=str))[:24000]})
+            if stopped:
+                final = "⏹ Остановлено."
+                break
         else:
             final = final or "Слишком много шагов подряд — остановилась. Уточни задачу."
         final = final.strip() or "…"
-        self.memory.add(chat, "assistant", final, {"role": role, "tools": used})
-        self.hub.publish("message", {"chat": chat, "role": "assistant", "text": final, "final": True, "model": role},
-                         keep=False)
+        mid = self.memory.add(chat, "assistant", final, {"role": role, "tools": used, "steps": steps})
+        self.hub.publish("message", {"chat": chat, "role": "assistant", "text": final, "final": True, "model": role,
+                                     "id": mid, "steps": steps}, keep=False)
         self.state.set("idle", final.splitlines()[0] if final else "")
         if self.voice and source not in ("cli", "complete") and len(final) < 500:
             self.bg(self._say(final))
         self.bg(self._maybe_summarize(chat))
-        yield {"type": "done", "text": final, "role": role, "tools": used}
+        self.bg(self._autotitle(chat))
+        yield {"type": "done", "text": final, "role": role, "tools": used, "steps": steps, "id": mid}
+
+    @staticmethod
+    def _step(c: dict, res: dict) -> dict:
+        try:
+            a = json.loads(c.get("arguments") or "{}")
+        except ValueError:
+            a = {}
+        st = {"tool": c["name"], "ok": "error" not in res, "ts": int(time.time())}
+        if a.get("command"):
+            st["command"] = str(a["command"])[:400]
+        if "exit" in res:
+            st["exit"] = res.get("exit")
+        if res.get("duration_ms") is not None:
+            st["ms"] = res.get("duration_ms")
+        if res.get("status"):
+            st["status"] = res["status"]
+        if res.get("error"):
+            st["error"] = str(res["error"])[:200]
+        return st
+
+    async def _autotitle(self, chat: str) -> None:
+        """Название чата быстрой моделью после первого ответа (если человек не назвал его сам)."""
+        c = self.memory.get_chat(chat)
+        if not c or c.get("titled") or self.llm.state.get("fast") != "ready":
+            return
+        hist = self.memory.history(chat, 4)
+        if not hist:
+            return
+        dump = "\n".join(f"{h['role']}: {h['content'][:300]}" for h in hist)
+        t = await self.llm.complete([
+            {"role": "system", "content": "Придумай название чата: 2–5 слов, без кавычек и точки. Только название."},
+            {"role": "user", "content": safety.redact(dump)}], role="fast", max_tokens=16, timeout=6)
+        t = _strip_think(t).strip().strip('"«»').splitlines()[0][:60] if t else ""
+        if t:
+            self.memory.update_chat(chat, title=t, auto=True)
+            self.hub.publish("message", {"chat": chat, "role": "title", "title": t}, keep=False)
 
     async def _call_tool(self, c: dict, chat: str, source: str, context: dict) -> dict:
         name = c["name"]
@@ -348,7 +589,13 @@ class Agent:
             return {"error": "аргументы не в JSON"}
         if name not in tools.NAMES:
             return {"error": f"нет инструмента {name}"}
-        need, risk = self.tools.needs_card(name, args)
+        tool_ctx = {"cwd": context.get("cwd") or str(paths.HOME), "chat": chat, "source": source,
+                    "shell": context.get("shell", ""), "pane": context.get("pane", "")}
+        need, risk = self.tools.needs_card(name, args, tool_ctx)
+        if risk.get("level") == "denied":
+            return {"error": "отказано: " + ", ".join(risk.get("reasons", [])) + " — эта зона закрыта для Haotica всегда"}
+        if need and self.plan_ok.get(chat) and risk.get("level") in ("write", "read") and name == "terminal_run":
+            need = False                       # владелец разрешил весь план; опасное всё равно спрашиваем
         if need:
             card = self.make_card(name, args, risk, chat, source)
             ok = await self.ask_card(card)
@@ -357,8 +604,7 @@ class Agent:
                 return {"error": "владелец отклонил"}
             if name == "suggest_command":
                 return {"ok": True, "note": "владелец принял команду; она вставлена в строку терминала"}
-        return await self.tools.run(name, args, {"cwd": context.get("cwd") or str(paths.HOME), "chat": chat,
-                                                 "source": source})
+        return await self.tools.run(name, args, tool_ctx)
 
     async def _say(self, text: str) -> None:
         try:
@@ -381,11 +627,13 @@ class Agent:
         if txt:
             self.memory.set_summary(chat, _strip_think(txt), KEEP_AFTER_SUMMARY)
 
-    async def ask(self, text: str, source: str = "panel", chat: str = "", context: dict | None = None) -> dict:
+    async def ask(self, text: str, source: str = "panel", chat: str = "", context: dict | None = None,
+                  retry: bool = False) -> dict:
         out: dict = {"ok": False}
-        async for ev in self.turn(text, source, chat, context):
+        async for ev in self.turn(text, source, chat, context, retry):
             if ev["type"] == "done":
-                out = {"ok": True, "text": ev["text"], "model": ev.get("role"), "tools": ev.get("tools", [])}
+                out = {"ok": True, "text": ev["text"], "model": ev.get("role"), "tools": ev.get("tools", []),
+                       "steps": ev.get("steps", []), "id": ev.get("id")}
             elif ev["type"] == "error":
                 out = {"ok": False, "error": ev["error"], **({"llm_state": ev["llm_state"]} if "llm_state" in ev else {})}
         return out

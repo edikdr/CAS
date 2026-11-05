@@ -1,6 +1,7 @@
 """Характер Haotica и системная инструкция модели (§16 спецификации)."""
 from __future__ import annotations
 
+import os
 import platform
 import time
 
@@ -71,6 +72,19 @@ MODE_HINT = {
 }
 
 
+SHELL_NAMES = {"pwsh": "PowerShell", "cmd": "cmd.exe", "wsl": "bash (WSL)", "bash": "bash", "zsh": "zsh"}
+TERMINAL_RU = """Ты встроена в HAOTICA Terminal. Цепочки команд выполняй сама инструментом terminal_run — команда вводится \
+в настоящую вкладку терминала, владелец видит её и вывод, ты получаешь код выхода и хвост вывода. Пиши команды для \
+текущей оболочки ({shell}){win}. По одной команде на шаг, проверяй код выхода, при ошибке — разберись и исправь, \
+не повторяй одно и то же. Изменения подтверждает владелец карточкой, опасное — всегда отдельно. Интерактивные \
+программы (редакторы, less, ssh без команды) не запускай без вопроса."""
+TERMINAL_EN = """You are built into HAOTICA Terminal. Run command chains yourself with the terminal_run tool — the command \
+is typed into a real terminal tab, the owner sees it and its output, you get the exit code and the output tail. Write \
+commands for the current shell ({shell}){win}. One command per step, check the exit code, on failure investigate and \
+fix, do not repeat the same thing. Changes are confirmed by the owner with a card, dangerous ones always separately. \
+Do not start interactive programs (editors, less, ssh without a command) without asking."""
+
+
 def system_prompt(settings: dict, context: dict, memories: list[str]) -> str:
     ha = settings.get("haotica", {})
     lang = settings.get("locale", {}).get("haotica_language", "ru")
@@ -85,20 +99,29 @@ def system_prompt(settings: dict, context: dict, memories: list[str]) -> str:
         tone.append("Шути редко." if lang == "ru" else "Joke rarely.")
     elif humor > 0.85:
         tone.append("Шути чаще." if lang == "ru" else "Joke more often.")
+    on_win = os.name == "nt" or context.get("os") == "windows"
+    if on_win:                 # HAOTICA Terminal для Windows: не Arch/Hyprland
+        tpl = tpl.replace("Arch Linux + Hyprland", "Windows 11").replace("операционной системы HAOTICA", "терминала HAOTICA")
     parts = [tpl.format(swear=swear, lang_name=LANG_NAMES.get(settings.get("locale", {}).get("haotica_language", "ru"), "русский"))]
+    if context.get("source") == "terminal" or on_win:
+        sh = SHELL_NAMES.get(str(context.get("shell") or ("pwsh" if on_win else "bash")), str(context.get("shell") or "bash"))
+        win = ("; ОС — Windows: пути вида C:\\…, не используй sudo и команды Linux вне WSL" if lang == "ru"
+               else "; the OS is Windows: paths like C:\\…, no sudo or Linux commands outside WSL") if on_win else ""
+        parts.append((TERMINAL_RU if lang == "ru" else TERMINAL_EN).format(shell=sh, win=win))
     parts.append(MODE_HINT.get(ha.get("mode", "copilot"), MODE_HINT["copilot"])[lang])
     if tone:
         parts.append(" ".join(tone))
     now = time.localtime()
     ctx = [f"Сейчас: {time.strftime('%A, %d.%m.%Y %H:%M', now)}" if lang == "ru" else f"Now: {time.strftime('%A %Y-%m-%d %H:%M', now)}",
-           f"Система: {platform.node()}, ядро {platform.release()}"]
+           f"Система: {platform.node()}, {platform.system()} {platform.release()}"]
     m = context.get("metrics") or {}
     if m:
         ctx.append(f"CPU {m.get('cpu', 0):.0f}%, GPU {m.get('gpu', 0)}%, GTT {m.get('gtt_used_gb', 0)}/{m.get('gtt_total_gb', 0)} ГБ, "
                    f"батарея {m.get('battery', '—')}%{' (зарядка)' if m.get('charging') else ''}, сеть {m.get('net_name') or '—'}"
                    + (", режим «Игра»" if m.get("game_mode") else ""))
     if context.get("source") == "terminal":
-        ctx.append(("Разговор в терминале. Папка: " if lang == "ru" else "Conversation in the terminal. Folder: ") + context.get("cwd", "~"))
+        ctx.append(("Разговор в терминале. Папка: " if lang == "ru" else "Conversation in the terminal. Folder: ") + context.get("cwd", "~")
+                   + (f", оболочка {SHELL_NAMES.get(str(context.get('shell')), context.get('shell'))}" if context.get("shell") else ""))
     if context.get("app"):
         ctx.append(("Открыто приложение: " if lang == "ru" else "Active app: ") + context["app"])
     parts.append("\n".join(ctx))
@@ -108,6 +131,6 @@ def system_prompt(settings: dict, context: dict, memories: list[str]) -> str:
     return "\n\n".join(parts)
 
 
-SHELL_COMPLETE = """You complete a partially typed shell command for zsh on Arch Linux (Hyprland desktop).
+SHELL_COMPLETE = """You complete a partially typed shell command for the owner's shell (zsh on Arch Linux, or PowerShell/cmd on Windows).
 Reply with ONLY the full completed command on one line, no explanation, no backticks.
 If you are not confident, reply with the input unchanged."""

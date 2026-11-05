@@ -169,8 +169,9 @@ export const HY = {
         if (handlers[t]) handlers[t](d);
         this.emit(t, d);
       });
-      es.onopen = () => { retry = 1000; document.body.classList.remove("offline"); };
-      es.onerror = () => { es.close(); document.body.classList.add("offline"); setTimeout(open, retry); retry = Math.min(15000, retry * 2); };
+      const core = !base || base === this.core;              // «offline» — только про ядро, не про агента
+      es.onopen = () => { retry = 1000; if (core) document.body.classList.remove("offline"); };
+      es.onerror = () => { es.close(); if (core) document.body.classList.add("offline"); setTimeout(open, retry); retry = Math.min(15000, retry * 2); };
     };
     open();
     return () => es && es.close();

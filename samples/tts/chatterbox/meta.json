@@ -1,0 +1,95 @@
+{
+ "engine": "chatterbox",
+ "label": "Chatterbox Multilingual (клон Сары)",
+ "clone": true,
+ "load_s": 43.7,
+ "device": "cpu",
+ "cpu": "x86_64",
+ "threads": 4,
+ "phrases": [
+  {
+   "id": "01",
+   "synth_s": 36.88,
+   "audio_s": 5.92,
+   "rtf": 6.23,
+   "text": "Привет, Эдуард. Я Хаотика, твой терминал. Чем займёмся сегодня?"
+  },
+  {
+   "id": "02",
+   "synth_s": 39.09,
+   "audio_s": 6.36,
+   "rtf": 6.15,
+   "text": "Сборка заняла три минуты сорок семь секунд, ошибок — ноль, предупреждений — двенадцать."
+  },
+  {
+   "id": "03",
+   "synth_s": 87.17,
+   "audio_s": 5.72,
+   "rtf": 15.24,
+   "text": "На диске свободно сорок семь гигабайт, то есть хватит ещё на две модели."
+  },
+  {
+   "id": "04",
+   "synth_s": 44.67,
+   "audio_s": 5.96,
+   "rtf": 7.49,
+   "text": "Сначала сделаю git pull, потом npm install, и запущу docker compose up."
+  },
+  {
+   "id": "05",
+   "synth_s": 88.97,
+   "audio_s": 4.44,
+   "rtf": 20.04,
+   "text": "Осторожно! Эта команда удалит всю папку без возврата!"
+  },
+  {
+   "id": "06",
+   "synth_s": 234.49,
+   "audio_s": 11.32,
+   "rtf": 20.71,
+   "text": "Если хочешь, я сама проверю зависимости, запущу тесты в отдельной вкладке и, когда всё закончится, коротко расскажу, что сломалось и как это исправить."
+  },
+  {
+   "id": "07",
+   "synth_s": 41.76,
+   "audio_s": 6.4,
+   "rtf": 6.52,
+   "text": "Она позвонит в четверг: договор уже подписан, а торты стоят в холодильнике."
+  },
+  {
+   "id": "08",
+   "synth_s": 46.72,
+   "audio_s": 7.92,
+   "rtf": 5.9,
+   "text": "Напоминание на пятое ноября две тысячи двадцать шестого года, в четырнадцать тридцать."
+  },
+  {
+   "id": "09",
+   "synth_s": 32.79,
+   "audio_s": 4.8,
+   "rtf": 6.83,
+   "text": "Build finished in forty seconds. Two tests failed — want me to take a look?"
+  },
+  {
+   "id": "10",
+   "synth_s": 46.52,
+   "audio_s": 7.8,
+   "rtf": 5.96,
+   "text": "I've cloned the repository, installed the dependencies, and everything is ready; just say the word and I'll start the dev server."
+  },
+  {
+   "id": "11",
+   "synth_s": 34.45,
+   "audio_s": 5.12,
+   "rtf": 6.73,
+   "text": "Achtung: Der Akku ist fast leer. Soll ich den Energiesparmodus einschalten?"
+  },
+  {
+   "id": "12",
+   "synth_s": 34.87,
+   "audio_s": 5.36,
+   "rtf": 6.5,
+   "text": "Die Datei wurde erfolgreich gespeichert, und die Sicherung läuft jetzt im Hintergrund."
+  }
+ ]
+}

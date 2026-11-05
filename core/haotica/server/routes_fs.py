@@ -521,6 +521,25 @@ def setup(app: web.Application) -> None:
             files = [str(p) for p in list(root.rglob(f"*{q}*"))[:limit]]
         return json_ok({"results": [entry(Path(f)) for f in files]})
 
+    async def paste_image(req):
+        """Картинка из буфера (вставка в чат Haotica) → файл во вложениях, чтобы прикрепить его к сообщению."""
+        import base64
+        import time as _t
+        b = await req.json()
+        try:
+            raw = base64.b64decode(str(b.get("data", "")), validate=True)
+        except ValueError:
+            return json_err("не base64")
+        if not raw or len(raw) > 16 * 2 ** 20:
+            return json_err("пусто или больше 16 МБ")
+        ext = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/gif": ".gif"}.get(str(b.get("type")), ".png")
+        d = paths.DATA_DIR / "attachments"
+        d.mkdir(parents=True, exist_ok=True)
+        f = d / f"paste-{_t.strftime('%Y%m%d-%H%M%S')}{ext}"
+        f.write_bytes(raw)
+        return json_ok({"path": str(f)})
+
+    r.add_post("/api/fs/paste-image", paste_image)
     r.add_get("/api/fs/list", ls)
     r.add_get("/api/fs/stat", fstat)
     r.add_get("/api/fs/places", places)

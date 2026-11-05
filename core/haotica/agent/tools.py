@@ -45,6 +45,13 @@ SCHEMAS = [
         {"action": S, "params": {"type": "object"}, "reason": S}, ["action", "reason"]),
     _fn("run_command", "Выполнить команду в фоне и получить вывод. Изменяющие систему — только с подтверждения.",
         {"command": S, "cwd": S, "reason": S}, ["command", "reason"]),
+    _fn("terminal_run", "Выполнить команду в настоящей вкладке терминала HAOTICA (владелец видит её и вывод). Возвращает "
+        "код выхода, папку и хвост вывода. По одной команде на шаг; команды — для текущей оболочки. Изменения "
+        "подтверждает владелец, опасные — всегда отдельно.",
+        {"command": S, "reason": S, "tab": {"type": "string", "enum": ["haotica", "active"]},
+         "timeout": {"type": "integer", "description": "секунд ждать (по умолчанию 120); дольше — terminal_poll"}},
+        ["command", "reason"]),
+    _fn("terminal_poll", "Дождаться долгой команды, запущенной terminal_run (по exec_id).", {"exec_id": S}, ["exec_id"]),
     _fn("suggest_command", "Предложить команду владельцу в терминал (вставляется в строку, не выполняется).",
         {"command": S, "reason": S}, ["command", "reason"]),
     _fn("write_file", "Записать файл (покажется владельцу на подтверждение).", {"path": S, "content": S, "append": B}, ["path", "content"]),
@@ -69,14 +76,35 @@ SCHEMAS = [
 NAMES = {s["function"]["name"] for s in SCHEMAS}
 READ_ONLY = {"list_dir", "read_file", "search_files", "file_info", "system_status", "processes", "network_devices",
              "wifi_networks", "router_status", "get_setting", "calendar_list", "recall", "analyze_image", "web_search",
-             "probe_device"}
+             "probe_device", "terminal_poll"}
 SAFE_ACTIONS = {"open_app", "remember", "forget", "notify", "suggest_command", "set_setting", "add_calendar_event"}
 
 
-def schemas(mode: str) -> list[dict]:
+# интерактивные и полноэкранные программы: их вывод модели не нужен, запуск — только с вопросом
+INTERACTIVE = {"vim", "nvim", "vi", "nano", "micro", "emacs", "less", "more", "most", "man", "top", "htop", "btop", "btm",
+               "mc", "ranger", "lf", "nnn", "fzf", "tmux", "screen", "ssh", "telnet", "ftp", "sftp", "mysql", "psql",
+               "sqlite3", "ipython", "edit", "notepad", "wsl", "bash", "zsh", "pwsh", "powershell", "cmd", "python",
+               "python3", "py", "node", "irb", "lazygit", "tig", "k9s", "btop4win", "ntop", "glances", "watch"}
+
+
+def interactive(cmd: str) -> bool:
+    """Программа без аргументов (python, pwsh, wsl) или заведомо полноэкранная (vim, less, htop)."""
+    import re as _re
+    first = _re.split(r"\s*(?:&&|\|\||;|\|)\s*", cmd.strip())[0].split()
+    if not first:
+        return False
+    prog = os.path.basename(first[0].replace("\\", "/")).lower().removesuffix(".exe")
+    if prog in ("python", "python3", "py", "node", "bash", "zsh", "pwsh", "powershell", "cmd", "wsl", "ssh", "mysql", "psql", "sqlite3"):
+        return len(first) == 1 or (prog == "ssh" and len(first) == 2)
+    return prog in INTERACTIVE
+
+
+def schemas(mode: str, terminal: bool = False) -> list[dict]:
+    """terminal — открыт терминал HAOTICA: команды идут в него (terminal_run), фоновый run_command не нужен."""
     if mode == "observer":
         return [s for s in SCHEMAS if s["function"]["name"] in READ_ONLY | {"remember", "recall", "suggest_command", "notify"}]
-    return SCHEMAS
+    skip = {"run_command"} if terminal else {"terminal_run", "terminal_poll"}
+    return [s for s in SCHEMAS if s["function"]["name"] not in skip]
 
 
 def _read_lines(p, start: int, n: int) -> str:
@@ -111,21 +139,28 @@ class Tools:
             raise PermissionError(why)
         return Path(os.path.expanduser(p)).resolve()
 
-    def needs_card(self, name: str, args: dict) -> tuple[bool, dict]:
-        """(нужно ли подтверждение, оценка риска)"""
+    def needs_card(self, name: str, args: dict, ctx: dict | None = None) -> tuple[bool, dict]:
+        """(нужно ли подтверждение, оценка риска). Опасное — всегда карточкой; закрытые зоны — отказ."""
         ha = self.cfg()
         mode, autonomy = ha.get("mode", "copilot"), ha.get("autonomy", "readonly")
-        if name == "run_command":
-            risk = safety.classify(str(args.get("command", "")))
-            if risk["level"] == "danger":
+        ctx = ctx or {}
+        if name in ("run_command", "terminal_run"):
+            cmd = str(args.get("command", ""))
+            shell = str(ctx.get("shell") or "")
+            if name == "run_command" and os.name == "nt":
+                shell = "cmd"                       # фоновый запуск на Windows — через cmd /c
+            risk = safety.classify(cmd, shell)
+            if risk["level"] in ("danger", "denied"):
                 return True, risk
+            if name == "terminal_run" and interactive(cmd):
+                return True, {"level": "write", "reasons": ["интерактивная программа — запустить?"], "interactive": True}
             if risk["level"] == "read" and autonomy in ("readonly", "safe"):
                 return False, risk
             return True, risk
         if name in READ_ONLY:
             return False, {"level": "read", "reasons": []}
         if name == "suggest_command":
-            return True, safety.classify(str(args.get("command", "")))
+            return True, safety.classify(str(args.get("command", "")), str(ctx.get("shell") or ""))
         if name in SAFE_ACTIONS and mode == "agent" and autonomy == "safe":
             return False, {"level": "write", "reasons": []}
         if name in ("open_app", "remember", "recall", "forget", "notify"):
@@ -191,6 +226,10 @@ class Tools:
 
     async def t_trash_file(self, a, ctx):
         p = self._path(a["path"])
+        if os.name == "nt":
+            from send2trash import send2trash
+            await asyncio.to_thread(send2trash, str(p))
+            return {"ok": True, "path": str(p)}
         rc, _, err = await util.arun(["gio", "trash", str(p)], 30)
         return {"ok": rc == 0, "error": err.strip()} if rc else {"ok": True, "path": str(p)}
 
@@ -212,8 +251,9 @@ class Tools:
         cwd = os.path.expanduser(a.get("cwd") or ctx.get("cwd") or "~")
         if not os.path.isdir(cwd):
             cwd = str(paths.HOME)
+        kw = {"creationflags": 0x08000000} if os.name == "nt" else {}          # CREATE_NO_WINDOW
         proc = await asyncio.create_subprocess_shell(cmd, cwd=cwd, stdout=asyncio.subprocess.PIPE,
-                                                     stderr=asyncio.subprocess.STDOUT, env={**os.environ, "TERM": "dumb"})
+                                                     stderr=asyncio.subprocess.STDOUT, env={**os.environ, "TERM": "dumb"}, **kw)
         try:
             out, _ = await asyncio.wait_for(proc.communicate(), 120)
         except asyncio.TimeoutError:
@@ -223,6 +263,12 @@ class Tools:
         if len(text) > 12000:
             text = text[:4000] + f"\n… ({len(text) - 10000} символов пропущено) …\n" + text[-6000:]
         return {"exit": proc.returncode, "output": text}
+
+    async def t_terminal_run(self, a, ctx):
+        return await self.agent.terminal_exec(a, ctx)
+
+    async def t_terminal_poll(self, a, ctx):
+        return await self.agent.terminal_poll(str(a.get("exec_id", "")))
 
     async def t_suggest_command(self, a, ctx):
         return {"ok": True, "note": "команда вставлена в строку терминала; владелец решит, запускать ли её"}
@@ -235,6 +281,10 @@ class Tools:
         return r or {"error": "ядро не отвечает"}
 
     async def t_open_app(self, a, ctx):
+        if os.name == "nt":
+            from .. import supervisor
+            util.spawn([*supervisor.python_argv("haotica.apps"), str(a["name"]), *[str(x) for x in a.get("args") or []]])
+            return {"ok": True}
         util.spawn(["haotica", "open", str(a["name"]), *[str(x) for x in a.get("args") or []]])
         return {"ok": True}
 
@@ -314,7 +364,7 @@ def _q(s: str) -> str:
 
 def describe(name: str, args: dict) -> str:
     """Короткая подпись карточки для владельца."""
-    if name in ("run_command", "suggest_command"):
+    if name in ("run_command", "suggest_command", "terminal_run"):
         return str(args.get("command", ""))
     if name == "write_file":
         return f"Записать {args.get('path')} ({len(str(args.get('content', '')))} символов)"

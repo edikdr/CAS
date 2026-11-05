@@ -20,7 +20,7 @@ from .engine import Agent
 log = logging.getLogger("haotica.agent.http")
 ALLOWED_HOSTS = {f"127.0.0.1:{paths.PORT_HAOTICA}", f"localhost:{paths.PORT_HAOTICA}"}
 ALLOWED_ORIGINS = {f"http://127.0.0.1:{paths.PORT_CORE}", f"http://localhost:{paths.PORT_CORE}"}
-CORS_HEADERS = {"Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+CORS_HEADERS = {"Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type, X-Haotica-Token", "Access-Control-Max-Age": "600"}
 
 
@@ -97,7 +97,7 @@ def setup(app: web.Application) -> None:
     async def chat(r):
         d = await _body(r)
         text = str(d.get("text", ""))
-        args = (text, str(d.get("source") or "panel"), str(d.get("chat") or ""), d.get("context") or {})
+        args = (text, str(d.get("source") or "panel"), str(d.get("chat") or ""), d.get("context") or {}, bool(d.get("retry")))
         if d.get("wait", True):
             res = await A(r).ask(*args)
             return web.json_response(res, status=200, dumps=_dumps)
@@ -112,8 +112,56 @@ def setup(app: web.Application) -> None:
 
     async def history(r):
         chat = r.query.get("chat", "panel")
-        return ok({"chat": chat, "messages": A(r).memory.history(chat, int(r.query.get("n", 200))),
-                   "chats": A(r).memory.chats(30), "cards": A(r).pending_cards()})
+        m = A(r).memory
+        if "before" in r.query or "limit" in r.query:          # порции для бесконечной прокрутки вверх
+            before = int(r.query.get("before") or 0) or None
+            pg = m.page(chat, before, int(r.query.get("limit", 50)))
+            return ok({"chat": chat, **pg, "info": m.get_chat(chat), "cards": A(r).pending_cards() if not before else []})
+        pg = m.page(chat, None, int(r.query.get("n", 200)))
+        return ok({"chat": chat, "messages": pg["messages"], "more": pg["more"], "info": m.get_chat(chat),
+                   "chats": m.chats(30), "cards": A(r).pending_cards()})
+
+    async def chats_list(r):
+        return ok({"chats": A(r).memory.chats(int(r.query.get("limit", 100)), r.query.get("q", ""))})
+
+    async def chats_new(r):
+        d = await _body(r)
+        return ok({"chat": A(r).memory.new_chat(str(d.get("source") or "panel"), str(d.get("title") or ""))})
+
+    async def chats_patch(r):
+        d = await _body(r)
+        cid = r.match_info["id"]
+        if not A(r).memory.get_chat(cid):
+            return err("нет такого чата", 404)
+        c = A(r).memory.update_chat(cid, title=str(d["title"]).strip() if "title" in d else None,
+                                    pinned=bool(d["pinned"]) if "pinned" in d else None)
+        return ok({"chat": c})
+
+    async def chats_delete(r):
+        return ok({"deleted": A(r).memory.delete_chat(r.match_info["id"])})
+
+    async def chats_search(r):
+        return ok({"results": A(r).memory.search(r.query.get("q", ""), int(r.query.get("limit", 40)))})
+
+    async def chats_export(r):
+        fmt = r.query.get("format", "md")
+        cid = r.match_info["id"]
+        text = A(r).memory.export(cid, "json" if fmt == "json" else "md")
+        c = A(r).memory.get_chat(cid) or {}
+        name = "".join(ch for ch in (c.get("title") or cid) if ch.isalnum() or ch in " -_")[:50].strip() or cid
+        return web.Response(text=text, content_type="application/json" if fmt == "json" else "text/markdown",
+                            charset="utf-8", headers={"Content-Disposition":
+                                                      f"attachment; filename*=UTF-8''{__import__('urllib.parse').parse.quote(name)}.{'json' if fmt == 'json' else 'md'}"})
+
+    async def stop(r):
+        d = await _body(r)
+        return ok(A(r).stop_turn(str(d.get("chat") or "")))
+
+    async def terminal_result(r):
+        d = await _body(r)
+        if not A(r).terminal_result(d):
+            return err("команда не найдена или уже завершена", 404)
+        return ok()
 
     async def clear(r):
         d = await _body(r)
@@ -121,7 +169,8 @@ def setup(app: web.Application) -> None:
         return ok()
 
     async def card(r):
-        accept = r.match_info["action"] == "accept"
+        act = r.match_info["action"]
+        accept = "plan" if act == "plan" else act == "accept"
         if not A(r).resolve_card(r.match_info["id"], accept):
             return err("карточка не найдена или уже решена", 404)
         return ok()
@@ -214,7 +263,15 @@ def setup(app: web.Application) -> None:
     R.add_post("/api/chat", chat)
     R.add_get("/api/history", history)
     R.add_post("/api/clear", clear)
-    R.add_post("/api/card/{id}/{action:accept|reject}", card)
+    R.add_post("/api/card/{id}/{action:accept|reject|plan}", card)
+    R.add_get("/api/chats", chats_list)
+    R.add_post("/api/chats", chats_new)
+    R.add_get("/api/chats/search", chats_search)
+    R.add_route("PATCH", "/api/chats/{id}", chats_patch)
+    R.add_delete("/api/chats/{id}", chats_delete)
+    R.add_get("/api/chats/{id}/export", chats_export)
+    R.add_post("/api/stop", stop)
+    R.add_post("/api/terminal/result", terminal_result)
     R.add_post("/api/event", event)
     R.add_post("/api/reload", reload)
     R.add_get("/api/complete/shell", complete_shell)
@@ -279,6 +336,13 @@ def setup(app: web.Application) -> None:
         return ok({"played": played, "engine": engine or ("elevenlabs" if played else "")})
 
     R.add_post("/api/voice/test", voice_test)
+
+    async def voice_restart(r):
+        from .. import services
+        await services.stop("tts")
+        started, e = await services.start("tts")
+        return ok({"started": started}) if started else err(e or "служба голоса не установлена")
+    R.add_post("/api/voice/restart", voice_restart)
     R.add_route("OPTIONS", "/{tail:.*}", lambda r: web.Response(status=204))
 
 

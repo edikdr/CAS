@@ -33,3 +33,7 @@ body.embed .hy-titlebar, body.embed .hy-resize { display: none; }
 body.embed .a-av { width: 40px; height: 40px; flex-basis: 40px; }
 body.embed .a-head { padding: 6px 10px; }
 body.offline #st { color: var(--coral); }
+.a-chat { flex: 1; min-height: 0; padding: 8px 12px 10px; display: flex; flex-direction: column; }
+.a-chat > .hc { flex: 1; min-height: 0; }
+body.embed .a-head { display: none; }
+body.embed .a-chat { padding: 6px 4px 4px; }

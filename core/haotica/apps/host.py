@@ -336,7 +336,7 @@ class AppWindow(QMainWindow):
                 "haotica": f"http://{paths.HOST}:{paths.PORT_HAOTICA}", "lang": self.host.lang,
                 "home": str(paths.HOME), "user": os.environ.get("USER") or os.environ.get("USERNAME", ""),
                 "multi": self.app.multi, "title": self.host.title, "platform": platform.NAME,
-                "sep": os.sep, "features": platform.features()}
+                "sep": os.sep, "features": platform.features(), "safe_gfx": bool(self.host.safe_gfx)}
 
     def load(self) -> None:
         q = urllib.parse.quote(json.dumps(self.args))

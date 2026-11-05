@@ -55,6 +55,9 @@ window.__hyterm = state;
 
 await HY.start({ title: "TERMINAL // HAOTICA", glyph: "terminal", topics: ["metrics", "events", "recon", "gamemode"],
   ctrlW: false, chrome: false });
+// окно без видеокарты (безопасный режим графики): никаких дорогих эффектов, отрисовка — процессором
+const LOWFX = !!(HY.boot && HY.boot.safe_gfx);
+document.documentElement.classList.toggle("lowfx", LOWFX);
 const IS_WIN = (HY.boot.platform || (navigator.platform || "").toLowerCase().startsWith("win") && "windows") === "windows";
 const FEAT = HY.boot.features || {};
 document.body.classList.toggle("is-win", IS_WIN);
@@ -701,6 +704,7 @@ function applyCrt() {
   const root = document.documentElement.style;
   root.setProperty("--crt", k);
   document.body.classList.toggle("no-crt", k <= 0);
+  document.body.classList.toggle("crt-full", !!fx.crt_beam_full && !LOWFX);
   if (k <= 0) { root.setProperty("--crt-filter", "none"); return; }
   crtMod.then(({ mountBeamFilter, tuneBeamFilter }) => tuneBeamFilter(mountBeamFilter("crt-rgb"), k));
   root.setProperty("--crt-filter", "url(#crt-rgb)");
@@ -1277,7 +1281,7 @@ downloads(); setInterval(downloads, 30000);
 const art = { ctl: null };
 function applyArt() {
   const fx = HY.theme.effects || {};
-  const on = fx.terminal_art === undefined ? true : !!fx.terminal_art;
+  const on = !LOWFX && (fx.terminal_art === undefined ? true : !!fx.terminal_art);   // без GPU фон из кода не рисуем
   if (on && !art.ctl && !art.starting) {
     art.starting = true;
     import("./art.js").then(async ({ startHandsArt }) => {

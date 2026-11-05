@@ -12,7 +12,13 @@
    расхождение лучей (красный влево, голубой вправо), лёгкая расфокусировка и свечение люминофора —
    CSS-фильтр на содержимом; строки развёртки — canvas точно по физическим пикселям (без муара при
    дробном масштабе); виньетка и тёмная кромка стекла; редкая «бегущая» полоса развёртки. */
-.crt > .t-head, .crt > .t-grid, .crt > .t-foot { filter: var(--crt-filter, none); }
+/* SVG-фильтр лучей — только на рамке окна (шапка, подвал: меняются раз в секунду). На сетке с терминалом,
+   фоном из кода и графиками Chromium пересчитывал бы его на процессоре каждый кадр — окно тормозило.
+   Полный вариант — effects.crt_beam_full (класс crt-full). */
+.crt > .t-head, .crt > .t-foot { filter: var(--crt-filter, none); }
+body.crt-full .crt > .t-grid { filter: var(--crt-filter, none); }
+html.lowfx .crt > .t-head, html.lowfx .crt > .t-foot, html.lowfx body.crt-full .crt > .t-grid { filter: none; }
+html.lowfx .t-art { display: none; }
 .crt::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 60; border-radius: 18px;
   background: radial-gradient(ellipse 125% 95% at 50% 48%, transparent 55%, rgb(0 0 0 / calc(var(--crt, .7) * .75)) 100%); }
 .crt-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 61; border-radius: 18px;

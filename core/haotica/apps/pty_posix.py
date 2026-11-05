@@ -31,6 +31,7 @@ class Session(QObject):
         self.buf: list[str] = []
         self.unacked = 0
         self.alive = True
+        self.running = False
         argv, env, cwd, self.profile = profiles.build(profile, cwd, sid)
         if command:
             env["HAOTICA_RUN"] = command          # интеграция выполнит команду после первого приглашения
@@ -65,6 +66,10 @@ class Session(QObject):
             self._finish()
             return
         text = self.decoder.decode(data)
+        if "\x1b]133;" in text:
+            c, d = text.rfind("\x1b]133;C"), max(text.rfind("\x1b]133;D"), text.rfind("\x1b]133;A"))
+            if c != d:
+                self.running = c > d
         if text:
             self.buf.append(text)
             self.unacked += len(text)
@@ -119,7 +124,7 @@ class Session(QObject):
             cwd = os.readlink(f"/proc/{fg}/cwd")
         except OSError:
             pass
-        return {"pid": self.pid, "fg": fg, "name": name, "cwd": cwd, "busy": fg != self.pid,
+        return {"pid": self.pid, "fg": fg, "name": name, "cwd": cwd, "busy": fg != self.pid or self.running,
                 "profile": self.profile["id"], "kind": self.profile["kind"]}
 
     def kill(self) -> None:

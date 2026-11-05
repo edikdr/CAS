@@ -88,12 +88,18 @@ def test_backpressure_and_kill_tree():
         assert c.wait("\x1b]133;A")
         proc.write("1..20000 | ForEach-Object { \"line $_\" }\r")
         assert c.wait("line 20000", 90), repr(c.buf[-600:])
-        proc.write("Start-Sleep 60\r")
+        proc.write("Start-Sleep 60\r")                   # встроенная команда: занятость — по OSC 133 C
         time.sleep(2)
-        assert proc.info()["busy"]
+        assert proc.info()["busy"], "Start-Sleep: вкладка занята"
+        proc.write("\x03")
+        assert c.wait("\x1b]133;D", 20)
+        proc.write("ping -n 60 127.0.0.1\r")             # внешняя программа: дочерний процесс
+        time.sleep(3)
+        assert any(k.name().lower().startswith("ping") for k in proc.children()), "ping — дочерний процесс"
     finally:
         kids = proc.children()
         proc.kill()
     time.sleep(1.5)
     import psutil
-    assert not any(psutil.pid_exists(k.pid) and k.is_running() and k.status() != psutil.STATUS_ZOMBIE for k in kids)
+    alive = [k for k in kids if psutil.pid_exists(k.pid) and k.is_running() and k.status() != psutil.STATUS_ZOMBIE]
+    assert not alive, f"после kill остались процессы: {alive}"

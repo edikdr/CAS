@@ -30,6 +30,7 @@ class ConPtyProcess:
         self.resume = threading.Event()
         self.resume.set()
         self.alive = True
+        self.running = False                     # по OSC 133: команда выполняется (в т. ч. встроенная, без процесса)
         self.thread = threading.Thread(target=self._reader, name=f"conpty-{self.pid}", daemon=True)
         self.thread.start()
 
@@ -47,6 +48,12 @@ class ConPtyProcess:
                     break
                 time.sleep(0.005)
                 continue
+            if "\x1b]133;" in data:                 # блоки команд: C — выполняется, D/A — закончилась
+                last_c, last_d = data.rfind("\x1b]133;C"), max(data.rfind("\x1b]133;D"), data.rfind("\x1b]133;A"))
+                if last_c > last_d:
+                    self.running = True
+                elif last_d > last_c:
+                    self.running = False
             with self.lock:
                 self.unacked += len(data)
                 if self.unacked > PAUSE_AT:
@@ -92,8 +99,8 @@ class ConPtyProcess:
                 name = max(kids, key=lambda c: c.create_time()).name()
             except Exception:  # noqa: BLE001
                 name = ""
-        return {"pid": self.pid, "fg": kids[-1].pid if kids else self.pid, "name": name.removesuffix(".exe"),
-                "cwd": "", "busy": bool(kids)}
+        return {"pid": self.pid, "fg": kids[-1].pid if kids else self.pid, "name": name.removesuffix(".exe") or
+                ("команда" if self.running else ""), "cwd": "", "busy": bool(kids) or self.running}
 
     def kill(self) -> None:
         if not self.alive:

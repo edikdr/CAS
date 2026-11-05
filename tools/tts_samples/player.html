@@ -94,10 +94,14 @@ tr.best td { color: var(--amber); }
       <span class="note">так должен звучать клон (запись ElevenLabs, 12 с)</span></div>
   </header>
   <section class="demo" id="demo" hidden>
-    <div class="dh"><span>ДЕМО // ГОЛОС САРЫ ПО УМОЛЧАНИЮ</span><button class="pl wide" id="demoplay">▶ СЛУШАТЬ</button></div>
+    <div class="dh"><span>ДЕМО // ГОЛОС САРЫ ПО УМОЛЧАНИЮ (РУССКИЙ ЭТАЛОН, ТОН +1)</span><button class="pl wide" id="demoplay">▶ СЛУШАТЬ</button></div>
     <p class="note">Ответ Haotica целиком: паузы между фразами и после «…», интонация вопроса, восклицания и предупреждения,
       темп по смыслу, записанные эмоции Сары (*хмыкает*, *смеётся*). Код и ссылки вслух не читаются.</p>
     <pre class="dtext" id="demotext"></pre>
+    <details id="tuned" hidden><summary>Подбор голоса для русского: тон и акцент</summary>
+      <div class="tbl"><table id="tunet"><thead><tr><th>Вариант</th><th>Похожесть на Сару</th><th>Ошибки рус.</th><th>Тон</th></tr></thead><tbody></tbody></table></div>
+      <p class="note" id="tunenote"></p>
+    </details>
     <details id="evald"><summary>Итоги объективной оценки — раскрывает буквы</summary>
       <div class="tbl"><table id="evalt"><thead><tr><th>Голос</th><th>Движок</th><th>Ошибки рус.</th><th>Ошибки en/de</th><th>Похожесть на Сару</th><th>Итог</th></tr></thead><tbody></tbody></table></div>
       <p class="note">Ошибки — доля неверно распознанных символов (Whisper), похожесть — сходство тембра с эталоном (ECAPA; эталон
@@ -193,6 +197,17 @@ if (D.demo) {
   $("demo").hidden = false;
   $("demotext").textContent = D.demo.text;
   $("demoplay").onclick = (e) => play(e.currentTarget, D.demo.src);
+}
+if (D.tuning) {
+  $("tuned").hidden = false;
+  $("tunenote").textContent = D.tuning.note + " Тон меняется в Настройках → Голос → «Тон голоса».";
+  $("tunet").querySelector("tbody").replaceChildren(...D.tuning.rows.map((r) => {
+    const tr = document.createElement("tr"); if (r.id === D.tuning.chosen) tr.className = "best";
+    for (const v of [r.label, r.sim.toFixed(2), (r.cer * 100).toFixed(1) + " %", Math.round(r.f0) + " Гц"]) {
+      const td = document.createElement("td"); td.textContent = v; tr.append(td);
+    }
+    return tr;
+  }));
 }
 if (D.eval) {
   $("selfsim").textContent = D.eval.self.toFixed(2);

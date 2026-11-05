@@ -48,11 +48,14 @@ def build(embed: bool) -> str:
         return path.relative_to(OUT).as_posix()
     audio = {L: {p["id"]: src(OUT / key[L] / f"{p['id']}.ogg") for p in PHRASES} for L in letters}
     data = {"letters": list(letters), "phrases": [{k: p[k] for k in ("id", "lang", "what", "text")} for p in PHRASES],
-            "audio": audio, "ref": src(ref_ogg()), "demo": None, "eval": None}
+            "audio": audio, "ref": src(ref_ogg()), "demo": None, "eval": None, "tuning": None}
     demo = OUT / "demo_sarah.ogg"
     if demo.exists():
         from demo import TEXT  # noqa: PLC0415 — текст демо — из генератора
         data["demo"] = {"src": src(demo), "text": TEXT}
+    tu = OUT / "voice_tuning.json"
+    if tu.exists():
+        data["tuning"] = json.loads(tu.read_text(encoding="utf-8"))
     ev = OUT / "eval.json"
     if ev.exists():
         e = json.loads(ev.read_text(encoding="utf-8"))

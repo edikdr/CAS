@@ -47,11 +47,28 @@ TEXT_EXT = CATEGORIES["code"] | {"md", "txt", "csv", "log", "tex", "org", "rst",
                                  "desktop", "rules", "patch", "diff"}
 
 
+IS_WIN = os.name == "nt"
+
+
 def resolve(p: str) -> Path:
     p = (p or "~").strip()
     if p.startswith("file://"):
         p = urllib.parse.unquote(p[7:])
+        if IS_WIN and len(p) > 2 and p[0] == "/" and p[2] == ":":
+            p = p[1:]                                   # file:///C:/x → C:/x
+    if IS_WIN:
+        p = os.path.expandvars(p)
+        if len(p) == 2 and p[1] == ":":
+            p += "\\"                                  # «C:» — корень диска, а не текущая папка на нём
     return Path(os.path.expanduser(p)).resolve()
+
+
+def win_attrs(st: os.stat_result) -> tuple[bool, bool]:
+    """(скрытый, системный) по атрибутам NTFS."""
+    a = getattr(st, "st_file_attributes", 0)
+    if not a:
+        return False, False
+    return bool(a & stat.FILE_ATTRIBUTE_HIDDEN), bool(a & stat.FILE_ATTRIBUTE_SYSTEM)
 
 
 def category(path: Path, is_dir: bool = False) -> str:
@@ -65,6 +82,10 @@ def category(path: Path, is_dir: bool = False) -> str:
 
 
 def get_tags(path: Path) -> list[str]:
+    if not hasattr(os, "getxattr"):                     # Windows: теги из индекса (без xattr)
+        idx = util.load_json(TAG_INDEX, {}) or {}
+        sp = str(path)
+        return sorted(t for t, lst in idx.items() if sp in lst)
     try:
         raw = os.getxattr(path, XATTR, follow_symlinks=False).decode()
         return [t for t in raw.split(",") if t]
@@ -74,7 +95,9 @@ def get_tags(path: Path) -> list[str]:
 
 def set_tags(path: Path, tags: list[str]) -> None:
     clean = sorted({t.strip()[:24] for t in tags if t.strip()})
-    if clean:
+    if not hasattr(os, "setxattr"):
+        pass
+    elif clean:
         os.setxattr(path, XATTR, ",".join(clean).encode(), follow_symlinks=False)
     else:
         try:
@@ -97,14 +120,17 @@ def entry(p: Path, st: os.stat_result | None = None) -> dict:
         st = st or p.lstat()
     except OSError:
         return {"name": p.name, "path": str(p), "type": "missing"}
-    is_link = stat.S_ISLNK(st.st_mode)
+    is_link = stat.S_ISLNK(st.st_mode) or bool(getattr(st, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT
+                                                 if IS_WIN else 0)
     is_dir = p.is_dir()
     mime = "inode/directory" if is_dir else (mimetypes.guess_type(p.name)[0] or "")
+    hidden, system = win_attrs(st) if IS_WIN else (False, False)
+    ex = p.suffix.lower() in (".exe", ".bat", ".cmd", ".ps1", ".com", ".msi") if IS_WIN else bool(st.st_mode & 0o111)
     return {
         "name": p.name or str(p), "path": str(p), "type": "dir" if is_dir else ("link" if is_link else "file"),
         "size": st.st_size if not is_dir else 0, "mtime": int(st.st_mtime), "mode": stat.filemode(st.st_mode),
-        "mime": mime, "category": category(p, is_dir), "hidden": p.name.startswith("."),
-        "tags": get_tags(p), "link": is_link, "exec": bool(st.st_mode & 0o111) and not is_dir,
+        "mime": mime, "category": category(p, is_dir), "hidden": p.name.startswith(".") or hidden, "system": system,
+        "tags": get_tags(p), "link": is_link, "exec": ex and not is_dir,
     }
 
 
@@ -154,6 +180,47 @@ async def thumbnail(p: Path, size: int = 256, page: int = 1) -> Path | None:
     return None
 
 
+def decode_text(raw: bytes) -> tuple[str, str, str]:
+    """(текст, кодировка, перевод строки). BOM → UTF-8/UTF-16; иначе UTF-8, затем cp1251/cp866 по доле кириллицы."""
+    enc = ""
+    if raw.startswith(b"\xef\xbb\xbf"):
+        enc, raw = "utf-8-sig", raw
+    elif raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        enc = "utf-16"
+    elif len(raw) > 64 and raw[1:64:2].count(0) > 24:
+        enc = "utf-16-le"
+    if not enc:
+        try:
+            raw.decode("utf-8")
+            enc = "utf-8"
+        except UnicodeDecodeError as e:
+            enc = "utf-8" if e.start > len(raw) - 4 else ""      # обрезано посреди символа — всё равно UTF-8
+    if not enc:
+        best = ("cp1251", -1)
+        for cand in ("cp1251", "cp866", "latin-1"):
+            t = raw.decode(cand, "replace")
+            cyr = sum(1 for ch in t if "а" <= ch.lower() <= "я" or ch in "ёЁ")
+            if cyr > best[1]:
+                best = (cand, cyr)
+        enc = best[0] if best[1] > 0 else "latin-1"
+    text = raw.decode(enc, "replace")
+    eol = "CRLF" if "\r\n" in text[:20000] else "CR" if "\r" in text[:20000] else "LF"
+    return text.replace("\r\n", "\n"), enc, eol
+
+
+def _archive_list(p: Path) -> list[str]:
+    import tarfile
+    import zipfile
+    if zipfile.is_zipfile(p):
+        with zipfile.ZipFile(p) as z:
+            return [f"{i.file_size:>12}  {i.filename}" for i in z.infolist()[:2000]]
+    try:
+        with tarfile.open(p) as t:
+            return [f"{m.size:>12}  {m.name}" for m in t.getmembers()[:2000]]
+    except (tarfile.TarError, OSError):
+        return []
+
+
 async def preview(p: Path) -> dict:
     if p.is_dir():
         try:
@@ -173,7 +240,10 @@ async def preview(p: Path) -> dict:
         info: dict = {}
         if ext != "svg":
             def dims() -> dict:
-                from PIL import Image
+                try:
+                    from PIL import Image
+                except ImportError:                      # без Pillow — без размеров
+                    return {}
                 try:
                     with Image.open(p) as im:
                         return {"width": im.width, "height": im.height, "format": im.format}
@@ -181,11 +251,15 @@ async def preview(p: Path) -> dict:
                     return {}
             info = await asyncio.to_thread(dims)
         return {**base, "kind": "image", **info}
+    if ext == "pdf" and not util.which("pdfinfo"):     # Windows: встроенный просмотрщик PDF в QtWebEngine
+        return {**base, "kind": "pdf", "pages": 0, "embed": True}
     if ext == "pdf":
         rc, out, _ = await util.arun(["pdfinfo", str(p)], 10)
         meta = dict(ln.split(":", 1) for ln in out.splitlines() if ":" in ln) if rc == 0 else {}
         return {**base, "kind": "pdf", "pages": int((meta.get("Pages") or "0").strip() or 0),
                 "title": (meta.get("Title") or "").strip()}
+    if cat in ("video", "audio") and not util.which("mediainfo"):
+        return {**base, "kind": cat, "tracks": [], "player": True}
     if cat in ("video", "audio"):
         rc, out, _ = await util.arun(["mediainfo", "--Output=JSON", str(p)], 15)
         tracks = []
@@ -198,7 +272,12 @@ async def preview(p: Path) -> dict:
                                                           "Performer", "Album") if t.get(k)})
             except ValueError:
                 pass
-        return {**base, "kind": cat, "tracks": tracks}
+        return {**base, "kind": cat, "tracks": tracks, "player": True}
+    if cat == "archive" and ext in ("zip", "tar", "gz", "tgz", "xz", "bz2") and not util.which("bsdtar"):
+        lines = await asyncio.to_thread(_archive_list, p)
+        return {**base, "kind": "archive", "entries": lines[:400], "total": len(lines)}
+    if ext in ("docx", "xlsx", "pptx", "doc", "xls", "ppt", "odt", "ods", "odp"):
+        return {**base, "kind": "office"}
     if cat == "archive" and util.which("bsdtar"):
         rc, out, _ = await util.arun(["bsdtar", "-tvf", str(p)], 20)
         lines = out.splitlines()
@@ -211,10 +290,38 @@ async def preview(p: Path) -> dict:
             raw = f.read(TEXT_LIMIT)
     except OSError as e:
         return {**base, "kind": "error", "error": str(e)}
-    if b"\x00" in raw[:8192] and ext not in TEXT_EXT:
-        return {**base, "kind": "binary", "hex": raw[:512].hex(" ", 1)}
-    text = raw.decode("utf-8", "replace")
+    utf16 = raw.startswith((b"\xff\xfe", b"\xfe\xff"))
+    if b"\x00" in raw[:8192] and ext not in TEXT_EXT and not utf16:
+        return {**base, "kind": "binary", "hex": raw[:4096].hex(" ", 1)}
+    text, enc, eol = decode_text(raw)
+    base.update({"encoding": enc, "eol": eol})
     truncated = st.st_size > TEXT_LIMIT
+    if ext in ("csv", "tsv"):
+        import csv as _csv
+        import io as _io
+        try:
+            dialect = _csv.Sniffer().sniff(text[:4096], delimiters=",;\t|") if ext == "csv" else _csv.excel_tab
+        except _csv.Error:
+            dialect = _csv.excel
+        rows = list(_csv.reader(_io.StringIO(text), dialect))[:500]
+        return {**base, "kind": "table", "rows": [r[:40] for r in rows], "truncated": truncated or len(rows) >= 500}
+    if ext in ("json", "jsonc", "yaml", "yml", "toml") and not truncated:
+        try:
+            if ext.startswith("json"):
+                import json as _json
+                data = _json.loads(text)
+            elif ext == "toml":
+                import tomllib
+                data = tomllib.loads(text)
+            else:
+                import yaml  # noqa: PLC0415 — необязательный пакет
+                data = yaml.safe_load(text)
+            return {**base, "kind": "tree", "data": data, "lines": text.count("\n") + 1}
+        except Exception:  # noqa: BLE001 — не разобрался: покажем как код
+            pass
+    if ext == "log" or p.name.lower().endswith((".log.1", ".out", ".err")):
+        tail = text.splitlines()[-400:]
+        return {**base, "kind": "log", "lines_tail": tail, "lines": text.count("\n") + 1, "truncated": truncated}
     if ext == "md":
         try:
             import markdown
@@ -259,6 +366,36 @@ def xdg_places() -> list[dict]:
     return places
 
 
+def win_places() -> list[dict]:
+    """Windows: быстрый доступ (Рабочий стол, Загрузки, Документы…) и диски (C:, D:, USB, сеть)."""
+    home = paths.HOME
+    known = [("Домашняя", home, "home"), ("Рабочий стол", home / "Desktop", "folder"), ("Загрузки", home / "Downloads", "download"),
+             ("Документы", home / "Documents", "doc"), ("Изображения", home / "Pictures", "image"),
+             ("Музыка", home / "Music", "music"), ("Видео", home / "Videos", "play")]
+    one = os.environ.get("OneDrive")
+    if one:
+        known.append(("OneDrive", Path(one), "cloud"))
+    out = [{"name": n, "path": str(p), "icon": i, "kind": "place"} for n, p, i in known if p.exists()]
+    try:
+        import psutil
+        for part in psutil.disk_partitions(all=False):
+            try:
+                u = psutil.disk_usage(part.mountpoint)
+                used, total = u.used, u.total
+            except OSError:
+                used = total = 0
+            kind = "usb" if "removable" in part.opts else "network" if part.fstype in ("", "CIFS", "NFS") and part.device.startswith("\\\\") else "drive"
+            out.append({"name": part.mountpoint.rstrip("\\"), "path": part.mountpoint, "icon": "disk", "kind": kind,
+                        "used": used, "total": total, "fs": part.fstype})
+    except (ImportError, OSError):
+        pass
+    for d in ("\\\\wsl.localhost",):
+        if os.path.isdir(d):
+            out.append({"name": "WSL", "path": d, "icon": "terminal", "kind": "network"})
+    out.append({"name": "Корзина", "path": "trash://", "icon": "trash", "kind": "trash"})
+    return out
+
+
 def trash_list() -> list[dict]:
     base = paths.XDG_DATA / "Trash"
     out = []
@@ -283,15 +420,20 @@ def setup(app: web.Application) -> None:
 
     async def ls(req):
         if req.query.get("path", "").startswith("trash:"):
+            if IS_WIN:
+                return json_ok({"path": "trash://", "entries": [], "note": "Корзина Windows открывается в Проводнике"})
             return json_ok({"path": "trash://", "entries": trash_list()})
         p = resolve(req.query.get("path", "~"))
         if not p.is_dir():
             return json_err("это не папка", 404)
         show_hidden = req.query.get("hidden") == "1"
         try:
-            items = [entry(Path(e.path)) for e in os.scandir(p) if show_hidden or not e.name.startswith(".")]
+            items = [x for x in (entry(Path(e.path)) for e in os.scandir(p) if show_hidden or not e.name.startswith("."))
+                     if show_hidden or not (x.get("hidden") or x.get("system"))]
         except PermissionError:
             return json_err("нет доступа", 403)
+        except OSError as e:
+            return json_err(f"ошибка чтения папки: {e.strerror or e}", 400)
         key = req.query.get("sort", "name")
         rev = req.query.get("desc") == "1"
         if key == "mtime":
@@ -310,7 +452,7 @@ def setup(app: web.Application) -> None:
         return json_ok({"entry": entry(p)})
 
     async def places(_req):
-        return json_ok({"places": await asyncio.to_thread(xdg_places)})
+        return json_ok({"places": await asyncio.to_thread(win_places if IS_WIN else xdg_places)})
 
     async def prev(req):
         p = resolve(req.query.get("path", ""))
@@ -363,6 +505,15 @@ def setup(app: web.Application) -> None:
         p = resolve(str(b.get("path", "")))
         if not p.exists():
             return json_err("не найдено", 404)
+        if IS_WIN:                               # программа по умолчанию; с номером строки — VS Code, если есть
+            code = shutil.which("code") or shutil.which("code.cmd")
+            if b.get("line") and code and category(p) in ("code", "doc", "other"):
+                util.spawn([code, "-g", f"{p}:{int(b['line'])}"])
+            elif b.get("with"):
+                util.spawn(["rundll32.exe", "shell32.dll,OpenAs_RunDLL", str(p)])
+            else:
+                await asyncio.to_thread(os.startfile, str(p))  # noqa: S606 — открыть файл владельца его программой
+            return json_ok()
         if b.get("line") and category(p) in ("code", "doc", "other"):
             util.spawn(["haotica", "open", "editor", f"{p}:{int(b['line'])}"])
         else:
@@ -371,13 +522,52 @@ def setup(app: web.Application) -> None:
 
     async def reveal(req):
         b = await body(req)
-        util.spawn(["haotica", "open", "files", "--select", str(resolve(str(b.get("path", "~"))))])
+        p = resolve(str(b.get("path", "~")))
+        if IS_WIN:
+            util.spawn(["explorer.exe", f"/select,{p}"] if p.exists() and not p.is_dir() else ["explorer.exe", str(p)])
+            return json_ok()
+        util.spawn(["haotica", "open", "files", "--select", str(p)])
         return json_ok()
+
+    async def props(req):
+        """Свойства файла: размер (с вложенными для папки до 20 000 файлов), даты, атрибуты, хэш маленьких файлов."""
+        p = resolve(req.query.get("path", ""))
+        if not p.exists():
+            return json_err("не найдено", 404)
+        st = p.stat()
+        d = {**entry(p), "ctime": int(st.st_ctime), "atime": int(st.st_atime)}
+        if p.is_dir():
+            def walk() -> tuple[int, int]:
+                total, n = 0, 0
+                for root, _dirs, files in os.walk(p):
+                    for f in files:
+                        try:
+                            total += os.lstat(os.path.join(root, f)).st_size
+                        except OSError:
+                            pass
+                        n += 1
+                        if n > 20000:
+                            return total, n
+                return total, n
+            d["tree_size"], d["files"] = await asyncio.to_thread(walk)
+        elif st.st_size < 64 * 2 ** 20:
+            d["sha256"] = await asyncio.to_thread(lambda: hashlib.sha256(p.read_bytes()).hexdigest())
+        if IS_WIN:
+            d["readonly"] = bool(getattr(st, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_READONLY)
+        return json_ok({"props": d})
 
     async def trash(req):
         b = await body(req)
         done, failed = [], []
         for x in b.get("paths", []):
+            if IS_WIN or not util.which("gio"):
+                try:
+                    from send2trash import send2trash
+                    await asyncio.to_thread(send2trash, str(resolve(str(x))))
+                    done.append(x)
+                except Exception as e:  # noqa: BLE001
+                    failed.append({"path": x, "error": str(e)})
+                continue
             rc, _, err = await util.arun(["gio", "trash", str(resolve(str(x)))], 30)
             (done if rc == 0 else failed).append(x if rc == 0 else {"path": x, "error": err.strip()})
         if done:
@@ -385,6 +575,9 @@ def setup(app: web.Application) -> None:
         return json_ok({"done": done, "failed": failed})
 
     async def trash_empty(_req):
+        if IS_WIN:
+            rc, _, err = await util.arun(["powershell", "-NoProfile", "-Command", "Clear-RecycleBin -Force"], 120)
+            return json_ok() if rc == 0 else json_err(err.strip())
         rc, _, err = await util.arun(["gio", "trash", "--empty"], 120)
         if rc == 0:
             core.events.add("info", "TRASH // EMPTIED", sound="trash_empty")
@@ -513,12 +706,36 @@ def setup(app: web.Application) -> None:
                 if len(res) >= limit:
                     break
             return json_ok({"results": res})
+        if req.query.get("content") == "1":            # без ripgrep: медленнее, но работает везде
+            def grep() -> list[dict]:
+                res, ql = [], q.lower()
+                for f in root.rglob("*"):
+                    if len(res) >= limit:
+                        break
+                    if not f.is_file() or category(f) not in ("code", "doc", "other") or f.stat().st_size > 4 * 2 ** 20:
+                        continue
+                    try:
+                        with open(f, encoding="utf-8", errors="ignore") as fh:
+                            for i, line in enumerate(fh, 1):
+                                if ql in line.lower():
+                                    res.append({"path": str(f), "line": i, "text": line.strip()[:240]})
+                                    break
+                    except OSError:
+                        continue
+                return res
+            return json_ok({"results": await asyncio.to_thread(grep)})
         tool = util.which("fd") or util.which("fdfind")
         if tool:
             rc, out, _ = await util.arun([tool, "-i", "--max-results", str(limit), q, str(root)], 20)
             files = out.splitlines()
         else:
-            files = [str(p) for p in list(root.rglob(f"*{q}*"))[:limit]]
+            files = []
+            ql = q.lower()
+            for f in root.rglob("*"):                    # без учёта регистра (на Windows так и ждут)
+                if ql in f.name.lower():
+                    files.append(str(f))
+                    if len(files) >= limit:
+                        break
         return json_ok({"results": [entry(Path(f)) for f in files]})
 
     async def paste_image(req):
@@ -540,6 +757,7 @@ def setup(app: web.Application) -> None:
         return json_ok({"path": str(f)})
 
     r.add_post("/api/fs/paste-image", paste_image)
+    r.add_get("/api/fs/props", props)
     r.add_get("/api/fs/list", ls)
     r.add_get("/api/fs/stat", fstat)
     r.add_get("/api/fs/places", places)

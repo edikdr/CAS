@@ -1,0 +1,95 @@
+{
+ "engine": "f5",
+ "label": "F5-TTS (русское дообучение, клон Сары)",
+ "clone": true,
+ "load_s": 14.3,
+ "device": "cpu",
+ "cpu": "x86_64",
+ "threads": 4,
+ "phrases": [
+  {
+   "id": "01",
+   "synth_s": 150.77,
+   "audio_s": 8.3,
+   "rtf": 18.17,
+   "text": "Привет, Эдуард. Я Хаотика, твой терминал. Чем займёмся сегодня?"
+  },
+  {
+   "id": "02",
+   "synth_s": 886.06,
+   "audio_s": 11.59,
+   "rtf": 76.42,
+   "text": "Сборка заняла три минуты сорок семь секунд, ошибок — ноль, предупреждений — двенадцать."
+  },
+  {
+   "id": "03",
+   "synth_s": 172.13,
+   "audio_s": 9.55,
+   "rtf": 18.03,
+   "text": "На диске свободно сорок семь гигабайт, то есть хватит ещё на две модели."
+  },
+  {
+   "id": "04",
+   "synth_s": 138.87,
+   "audio_s": 7.05,
+   "rtf": 19.7,
+   "text": "Сначала сделаю git pull, потом npm install, и запущу docker compose up."
+  },
+  {
+   "id": "05",
+   "synth_s": 138.96,
+   "audio_s": 7.11,
+   "rtf": 19.53,
+   "text": "Осторожно! Эта команда удалит всю папку без возврата!"
+  },
+  {
+   "id": "06",
+   "synth_s": 873.59,
+   "audio_s": 19.9,
+   "rtf": 43.89,
+   "text": "Если хочешь, я сама проверю зависимости, запущу тесты в отдельной вкладке и, когда всё закончится, коротко расскажу, что сломалось и как это исправить."
+  },
+  {
+   "id": "07",
+   "synth_s": 153.89,
+   "audio_s": 9.98,
+   "rtf": 15.41,
+   "text": "Она позвонит в четверг: договор уже подписан, а торты стоят в холодильнике."
+  },
+  {
+   "id": "08",
+   "synth_s": 704.44,
+   "audio_s": 11.44,
+   "rtf": 61.55,
+   "text": "Напоминание на пятое ноября две тысячи двадцать шестого года, в четырнадцать тридцать."
+  },
+  {
+   "id": "09",
+   "synth_s": 114.5,
+   "audio_s": 5.65,
+   "rtf": 20.25,
+   "text": "Build finished in forty seconds. Two tests failed — want me to take a look?"
+  },
+  {
+   "id": "10",
+   "synth_s": 149.18,
+   "audio_s": 9.47,
+   "rtf": 15.75,
+   "text": "I've cloned the repository, installed the dependencies, and everything is ready; just say the word and I'll start the dev server."
+  },
+  {
+   "id": "11",
+   "synth_s": 116.46,
+   "audio_s": 5.5,
+   "rtf": 21.16,
+   "text": "Achtung: Der Akku ist fast leer. Soll ich den Energiesparmodus einschalten?"
+  },
+  {
+   "id": "12",
+   "synth_s": 118.96,
+   "audio_s": 6.39,
+   "rtf": 18.62,
+   "text": "Die Datei wurde erfolgreich gespeichert, und die Sicherung läuft jetzt im Hintergrund."
+  }
+ ]
+}

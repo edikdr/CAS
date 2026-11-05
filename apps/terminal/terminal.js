@@ -495,9 +495,9 @@ class Tab {
     this.active = p;
     this.layout();
   }
-  panes(node = this.root) { return node.pane ? [node.pane] : [...this.panes(node.a), ...this.panes(node.b)]; }
-  get pane() { return this.active; }
-  get cwd() { return this.active.cwd; }
+  panes(node = this.root) { if (!node) return []; return node.pane ? [node.pane] : [...this.panes(node.a), ...this.panes(node.b)]; }
+  get pane() { return this.active || this.panes()[0]; }
+  get cwd() { const p = this.pane; return p ? p.cwd : ""; }
   layout() {
     const build = (n) => n.pane ? n.pane.box : el("div.t-split." + n.dir, build(n.a), el("div.t-gutter." + n.dir), build(n.b));
     this.box.replaceChildren(build(this.root));
@@ -655,6 +655,7 @@ async function renameTab(t) {
 function shortTitle(t) {
   if (t.name) return t.name;
   const p = t.pane;
+  if (!p) return "…";
   const home = HY.boot.home || "";
   const dir = p.cwd === home ? "~" : baseName(p.cwd);
   const generic = !p.title || /^(zsh|bash|pwsh|powershell|cmd)(\.exe)?$/i.test(p.title) || p.title.includes("@") ||
@@ -817,87 +818,296 @@ HY.on("events", (e) => {
   if (e.toast && HY.bridge && HY.bridge.notify) HY.bridge.notify(e.title || "HAOTICA", e.text);
 });
 
-// файлы: категории, теги, дерево текущей папки
-function renderCats() {
-  $("f-cats").replaceChildren(...CATS.map((c) => el("span.c" + (state.cat === c ? ".on" : ""), { onclick: () => { state.cat = c; renderCats(); renderTree(); } },
-    c === "all" ? null : el("i", { style: { background: HY.catColor(c) } }), c === "all" ? HY.t("all") : c)));
+// файлы (W6): строка пути с крошками и вводом, диски и быстрый доступ, категории, сортировка, фильтр,
+// поиск по имени и содержимому, список/плитки, клавиатура, мультивыбор, меню действий, живое обновление
+const FS = { sort: "name", desc: false, view: "list", filter: "", sel: new Set(), anchor: "", clip: null, search: null };
+function sepFor(dir) { return /^[A-Za-z]:|^\\\\/.test(dir) ? "\\" : "/"; }
+function joinPath(dir, name) { const s = sepFor(dir); return dir.endsWith(s) ? dir + name : dir + s + name; }
+function crumbs(dir) {
+  const s = sepFor(dir), out = [];
+  if (s === "\\") {
+    const m = dir.match(/^(\\\\[^\\]+\\[^\\]+|[A-Za-z]:)(.*)$/);
+    if (!m) return [[dir, dir]];
+    let acc = m[1] + "\\"; out.push([m[1], acc]);
+    for (const part of m[2].split("\\").filter(Boolean)) { acc = acc.endsWith("\\") ? acc + part : acc + "\\" + part; out.push([part, acc]); }
+  } else {
+    out.push(["/", "/"]); let acc = "";
+    for (const part of dir.split("/").filter(Boolean)) { acc += "/" + part; out.push([part, acc]); }
+  }
+  return out;
 }
-async function loadDir(dir) {
-  if (!dir) return;
-  if (dir !== state.dir) state.selected = "";
-  state.dir = dir;
-  $("f-path").textContent = "‎" + dir.replace(HY.boot.home || "\0", "~");
-  const r = await HY.get(`/api/fs/list?path=${encodeURIComponent(dir)}${state.hidden ? "&hidden=1" : ""}`);
-  state.entries = (r && r.entries) || [];
+function renderPathBar() {
+  const box = $("f-path");
+  const cr = crumbs(state.dir || "");
+  const input = el("input.hy-input.mono.f-in", { value: state.dir, spellcheck: false, title: "Путь: Enter — перейти" });
+  input.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") loadDir(input.value.trim()); if (e.key === "Escape") renderPathBar(); });
+  const bar = el("div.f-crumbs", { ondblclick: () => { box.replaceChildren(input); input.focus(); input.select(); } },
+    ...cr.flatMap(([n, p], i) => [i ? el("span.sep", "›") : null, el("span.cr", { onclick: () => loadDir(p), title: p }, n)]));
+  box.replaceChildren(
+    el("button.hy-btn.ghost.icon.small", { title: "Вверх (Backspace)", onclick: () => state.parent && loadDir(state.parent) }, icon("chevron", 13)),
+    el("button.hy-btn.ghost.icon.small", { title: "Диски и быстрый доступ", onclick: (e) => placesMenu(e) }, icon("disk", 13)), bar,
+    el("button.hy-btn.ghost.icon.small", { title: "Ввести путь", onclick: () => { box.replaceChildren(input); input.focus(); input.select(); } }, icon("doc", 13)));
+  box.firstChild.style.transform = "rotate(-90deg)";
+}
+async function placesMenu(e) {
+  const r = await HY.get("/api/fs/places");
+  const list = (r && r.places) || [];
+  HY.menu(e.clientX, e.clientY, list.map((p) => ({ label: p.name + (p.total ? `  ·  ${HY.fmtBytes(p.total - p.used)} своб.` : ""),
+    icon: p.icon === "disk" ? "disk" : p.icon === "trash" ? "trash" : p.icon === "download" ? "download" : "folder",
+    fn: () => p.kind === "trash" && IS_WIN ? HY.post("/api/fs/reveal", { path: "shell:RecycleBinFolder" }) : loadDir(p.path) })));
+}
+function renderCats() {
+  const tools = el("div.f-tools",
+    el("input.hy-input.mono.f-filter", { placeholder: "фильтр / поиск…", value: FS.filter, spellcheck: false,
+      oninput: (e) => { FS.filter = e.target.value; FS.search = null; renderTree(); },
+      onkeydown: (e) => { e.stopPropagation(); if (e.key === "Enter") deepSearch(e.target.value, e.shiftKey); if (e.key === "Escape") { e.target.value = ""; FS.filter = ""; FS.search = null; renderTree(); } } }),
+    el("button.hy-btn.ghost.icon.small", { title: "Искать в подпапках (Enter), по содержимому — Shift+Enter", onclick: () => deepSearch(FS.filter, false) }, icon("search", 13)),
+    el("button.hy-btn.ghost.icon.small", { title: "Сортировка", onclick: (e) => HY.menu(e.clientX, e.clientY, [["name", "по имени"], ["mtime", "по дате"], ["size", "по размеру"], ["type", "по типу"]].map(([k, l]) =>
+      ({ label: (FS.sort === k ? "● " : "") + l, fn: () => { FS.desc = FS.sort === k ? !FS.desc : false; FS.sort = k; renderTree(); } }))) }, icon("layout", 13)),
+    el("button.hy-btn.ghost.icon.small" + (FS.view === "tiles" ? ".on" : ""), { title: "Список / плитки", onclick: () => { FS.view = FS.view === "list" ? "tiles" : "list"; renderCats(); renderTree(); } }, icon("image", 13)),
+    el("button.hy-btn.ghost.icon.small" + (state.hidden ? ".on" : ""), { title: "Скрытые и системные", onclick: () => { state.hidden = !state.hidden; renderCats(); loadDir(state.dir); } }, icon("eye", 13)));
+  $("f-cats").replaceChildren(tools, el("div.t-cats-row", ...CATS.map((c) => el("span.c" + (state.cat === c ? ".on" : ""), { onclick: () => { state.cat = c; renderCats(); renderTree(); } },
+    c === "all" ? null : el("i", { style: { background: HY.catColor(c) } }), c === "all" ? HY.t("all") : c))));
+}
+async function deepSearch(q, content) {
+  q = (q || "").trim();
+  if (!q) return;
+  $("f-tree").replaceChildren(el("div.t-prev-empty", "ПОИСК…"));
+  const r = await HY.get(`/api/fs/search?q=${encodeURIComponent(q)}&path=${encodeURIComponent(state.dir)}&content=${content ? 1 : 0}&limit=300`);
+  FS.search = ((r && r.results) || []).map((x) => x.line ? { name: `${baseName(x.path)}:${x.line}  ${x.text}`, path: x.path, line: x.line, type: "file", category: "code" } : x);
   renderTree();
+}
+async function loadDir(dir, keepSel = false) {
+  if (!dir) return;
+  if (dir !== state.dir && !keepSel) { state.selected = ""; FS.sel.clear(); FS.search = null; }
+  const r = await HY.get(`/api/fs/list?path=${encodeURIComponent(dir)}${state.hidden ? "&hidden=1" : ""}`);
+  if (!r || !r.ok) { if (r && r.status === 403) HY.toast("Нет доступа к папке", "err"); return; }
+  state.dir = r.path || dir;
+  state.parent = r.parent || "";
+  state.entries = r.entries || [];
+  state.dirStamp = state.entries.map((e) => e.name + e.mtime + e.size).join("|");
+  renderPathBar();
+  renderTree();
+}
+function sortedEntries() {
+  const list = (FS.search || state.entries || []).filter((e) => (state.cat === "all" || e.category === state.cat) &&
+    (!FS.filter || FS.search || e.name.toLowerCase().includes(FS.filter.toLowerCase())));
+  const k = FS.sort, d = FS.desc ? -1 : 1;
+  const ext = (n) => (n.includes(".") ? n.split(".").pop().toLowerCase() : "");
+  return list.sort((a, b) => (a.type === "dir") !== (b.type === "dir") ? (a.type === "dir" ? -1 : 1) :
+    k === "mtime" ? d * ((b.mtime || 0) - (a.mtime || 0)) : k === "size" ? d * ((b.size || 0) - (a.size || 0)) :
+    k === "type" ? d * (ext(a.name).localeCompare(ext(b.name)) || a.name.localeCompare(b.name)) : d * a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
 }
 function renderTree() {
   const reg = state.tagColors || {};
-  const list = (state.entries || []).filter((e) => state.cat === "all" || e.category === state.cat);
-  $("f-tree").replaceChildren(...list.slice(0, 600).map((e) => el("div.n" + (e.type === "dir" ? ".dir" : "") + (e.hidden ? ".hidden-file" : "") + (e.path === state.selected ? ".sel" : ""), {
-    draggable: true, title: e.path,
-    onclick: () => { state.selected = e.path; renderTree(); preview(e.path, null, false); },
-    ondblclick: () => e.type === "dir" ? loadDir(e.path) : HY.post("/api/fs/open", { path: e.path }),
-    oncontextmenu: (ev) => { ev.preventDefault(); fileMenu(ev, e); },
-    ondragstart: (ev) => { ev.dataTransfer.setData("text/x-haotica-path", e.path); ev.dataTransfer.setData("text/plain", e.path); },
-  }, el("span.bar2", { style: { background: HY.catColor(e.category) } }),
-     icon(e.type === "dir" ? "folder" : glyphFor(e.category), 14), el("span.nm", e.name),
+  const list = sortedEntries();
+  state.visible = list;
+  const tiles = FS.view === "tiles";
+  $("f-tree").classList.toggle("tiles", tiles);
+  $("f-tree").replaceChildren(...list.slice(0, 1500).map((e) => el("div.n" + (e.type === "dir" ? ".dir" : "") + (e.hidden ? ".hidden-file" : "") + (FS.sel.has(e.path) ? ".sel" : ""), {
+    draggable: true, title: e.path + (e.size ? "  ·  " + HY.fmtBytes(e.size) : "") + (e.mtime ? "  ·  " + HY.fmtDate(e.mtime) : ""), "data-path": e.path,
+    onclick: (ev) => selectEntry(e, ev), ondblclick: () => openEntry(e),
+    oncontextmenu: (ev) => { ev.preventDefault(); if (!FS.sel.has(e.path)) { FS.sel = new Set([e.path]); renderTree(); } fileMenu(ev, e); },
+    ondragstart: (ev) => { const ps = FS.sel.has(e.path) ? [...FS.sel] : [e.path]; ev.dataTransfer.setData("text/x-haotica-path", ps.join("\n")); ev.dataTransfer.setData("text/plain", ps.join("\n")); },
+  }, tiles ? (e.category === "image" ? el("img.th", { src: HY.url("/api/fs/thumb", { path: e.path, size: 160 }), loading: "lazy", alt: "" }) : el("div.th", icon(e.type === "dir" ? "folder" : glyphFor(e.category), 28))) : el("span.bar2", { style: { background: HY.catColor(e.category) } }),
+     tiles ? null : icon(e.type === "dir" ? "folder" : glyphFor(e.category), 14), el("span.nm", e.name),
+     !tiles && e.type !== "dir" && e.size !== undefined ? el("span.sz", HY.fmtBytes(e.size)) : null,
      e.tags && e.tags.length ? el("span.tg", e.tags.slice(0, 3).map((t) => el("i", { title: t, style: { background: reg[t] || "var(--accent)" } }))) : null)));
+  $("f-count").textContent = `${list.length} ${HY.t("entries")}${FS.sel.size > 1 ? ` · выбрано ${FS.sel.size}` : ""}`;
 }
-function glyphFor(cat) { return { code: "code", doc: "doc", image: "image", video: "play", audio: "music", archive: "archive", model: "haotica" }[cat] || "doc"; }
+function selectEntry(e, ev) {
+  const list = state.visible || [];
+  if (ev && ev.shiftKey && FS.anchor) {
+    const a = list.findIndex((x) => x.path === FS.anchor), b = list.findIndex((x) => x.path === e.path);
+    FS.sel = new Set(list.slice(Math.min(a, b), Math.max(a, b) + 1).map((x) => x.path));
+  } else if (ev && ev.ctrlKey) { FS.sel.has(e.path) ? FS.sel.delete(e.path) : FS.sel.add(e.path); FS.anchor = e.path; }
+  else { FS.sel = new Set([e.path]); FS.anchor = e.path; }
+  state.selected = e.path;
+  renderTree();
+  if (FS.sel.size === 1) preview(e.path, e.line || null, false);
+}
+function openEntry(e) { e.type === "dir" ? loadDir(e.path) : HY.post("/api/fs/open", { path: e.path, line: e.line }); }
+function selPaths() { return FS.sel.size ? [...FS.sel] : state.selected ? [state.selected] : []; }
+async function fsAction(kind, e) {
+  const ps = selPaths();
+  if (kind === "new-file" || kind === "new-dir") {
+    const v = await HY.prompt(kind === "new-dir" ? "Новая папка" : "Новый файл", kind === "new-dir" ? "Новая папка" : "новый.txt");
+    if (!v) return;
+    const path = joinPath(state.dir, v.trim());
+    const r = kind === "new-dir" ? await HY.post("/api/fs/mkdir", { path }) : await HY.post("/api/fs/write", { path, text: "" });
+    if (!r.ok) HY.toast(r.error || "Не удалось", "err");
+    return loadDir(state.dir, true);
+  }
+  if (kind === "rename" && e) {
+    const v = await HY.prompt(HY.t("rename"), e.name);
+    if (!v || v === e.name) return;
+    const r = await HY.post("/api/fs/rename", { path: e.path, name: v.trim() });
+    if (!r.ok) HY.toast(r.error || "Не удалось", "err");
+    return loadDir(state.dir);
+  }
+  if (kind === "copy" || kind === "cut") { FS.clip = { op: kind, paths: ps }; HY.toast(`${kind === "cut" ? "Вырезано" : "Скопировано"}: ${ps.length}`); return; }
+  if (kind === "paste" && FS.clip) {
+    const r = await HY.post(`/api/fs/${FS.clip.op === "cut" ? "move" : "copy"}`, { paths: FS.clip.paths, dest: state.dir });
+    if (r && r.ok === false) HY.toast(r.error || "Не удалось", "err");
+    if (FS.clip.op === "cut") FS.clip = null;
+    return loadDir(state.dir, true);
+  }
+  if (kind === "trash" && ps.length) {
+    const ok = await HY.confirm("В корзину?", ps.length === 1 ? ps[0] : `${ps.length} объектов`, { danger: true, ok: "В КОРЗИНУ" });
+    if (!ok) return;
+    const r = await HY.post("/api/fs/trash", { paths: ps });
+    if (r.failed && r.failed.length) HY.toast("Не удалось: " + r.failed.map((f) => f.error).join("; "), "err");
+    FS.sel.clear();
+    return loadDir(state.dir);
+  }
+  if (kind === "props" && e) {
+    const r = await HY.get("/api/fs/props?path=" + encodeURIComponent(e.path));
+    const d = (r && r.props) || {};
+    HY.modal({ title: e.name, body: el("div.lines", [["Путь", d.path], ["Тип", d.type + (d.mime ? " · " + d.mime : "")],
+      ["Размер", d.tree_size !== undefined ? `${HY.fmtBytes(d.tree_size)} · ${d.files} файлов` : HY.fmtBytes(d.size)],
+      ["Изменён", d.mtime && HY.fmtDate(d.mtime)], ["Создан", d.ctime && HY.fmtDate(d.ctime)], ["Права", d.mode],
+      ["Атрибуты", [d.hidden && "скрытый", d.system && "системный", d.readonly && "только чтение", d.link && "ссылка"].filter(Boolean).join(", ") || "—"],
+      d.sha256 ? ["SHA-256", d.sha256] : null].filter(Boolean).map(([k, v]) => HY.kv(k, String(v ?? "—")))), actions: [{ label: HY.t("close"), value: null, primary: true }] });
+  }
+}
 function fileMenu(ev, e) {
   const t = cur();
+  const many = FS.sel.size > 1;
   HY.menu(ev.clientX, ev.clientY, [
-    { label: HY.t("open"), icon: "folder", fn: () => e.type === "dir" ? loadDir(e.path) : HY.post("/api/fs/open", { path: e.path }) },
-    e.type !== "dir" ? { label: HY.t("open_editor"), icon: "code", fn: () => HY.openApp("editor", [e.path]) } : null,
+    { label: HY.t("open"), icon: "folder", key: "Enter", fn: () => openEntry(e) },
+    e.type !== "dir" && IS_WIN ? { label: "Открыть с помощью…", icon: "folder", fn: () => HY.post("/api/fs/open", { path: e.path, with: true }) } : null,
     { label: HY.t("reveal"), icon: "folder", fn: () => HY.post("/api/fs/reveal", { path: e.path }) },
     "-",
-    { label: HY.t("insert_path"), icon: "terminal", fn: () => t && t.insertPaths([e.path]) },
+    { label: HY.t("insert_path"), icon: "terminal", fn: () => t && t.insertPaths(selPaths()) },
     e.type === "dir" ? { label: HY.t("cd_here"), icon: "chevron", fn: () => t && t.input(cdCmd(t.kind, e.path) + "\r") } : null,
-    { label: HY.t("copy_path"), icon: "clipboard", fn: () => copyText(e.path) },
-    IS_WIN ? { label: HY.t("copy_path") + " (POSIX)", icon: "clipboard", fn: () => copyText(e.path.replaceAll("\\", "/")) } : null,
-    IS_WIN ? { label: HY.t("copy_path") + " (WSL)", icon: "clipboard", fn: () => copyText(quoteFor("wsl", e.path).replace(/^'|'$/g, "")) } : null,
-    { label: HY.t("tag"), icon: "key", fn: () => tagDialog(e) },
+    { label: "Прикрепить к чату Haotica", icon: "haotica", fn: () => chat.addAttachments(selPaths()) },
+    { label: HY.t("copy_path"), icon: "clipboard", fn: () => copyText(selPaths().join("\n")) },
+    IS_WIN ? { label: HY.t("copy_path") + " (POSIX)", icon: "clipboard", fn: () => copyText(selPaths().map((p) => p.replaceAll("\\", "/")).join("\n")) } : null,
+    IS_WIN ? { label: HY.t("copy_path") + " (WSL)", icon: "clipboard", fn: () => copyText(selPaths().map((p) => quoteFor("wsl", p).replace(/^'|'$/g, "")).join("\n")) } : null,
     "-",
+    { label: "Копировать", icon: "clipboard", key: "Ctrl+C", fn: () => fsAction("copy") },
+    { label: "Вырезать", icon: "clipboard", key: "Ctrl+X", fn: () => fsAction("cut") },
+    FS.clip ? { label: `Вставить (${FS.clip.paths.length})`, icon: "doc", key: "Ctrl+V", fn: () => fsAction("paste") } : null,
+    !many ? { label: HY.t("rename"), icon: "doc", key: "F2", fn: () => fsAction("rename", e) } : null,
+    { label: "Новый файл", icon: "plus", fn: () => fsAction("new-file") }, { label: "Новая папка", icon: "folder", fn: () => fsAction("new-dir") },
+    { label: HY.t("tag"), icon: "key", fn: () => tagDialog(e) },
+    { label: "В корзину", icon: "trash", key: "Del", danger: true, fn: () => fsAction("trash") },
+    "-",
+    !many ? { label: "Свойства", icon: "settings", fn: () => fsAction("props", e) } : null,
     { label: HY.t("ask"), icon: "haotica", fn: () => ask(`Что это за файл и что с ним можно сделать? ${e.path}`, { path: e.path }) },
   ].filter(Boolean));
 }
+$("f-tree").tabIndex = 0;
+$("f-tree").addEventListener("keydown", (ev) => {
+  const list = state.visible || [];
+  const i = Math.max(0, list.findIndex((x) => x.path === state.selected));
+  const pick = (j) => { const e = list[Math.max(0, Math.min(list.length - 1, j))]; if (e) { selectEntry(e, ev.shiftKey ? ev : null); $("f-tree").querySelector(`[data-path="${CSS.escape(e.path)}"]`)?.scrollIntoView({ block: "nearest" }); } };
+  const e = list[i];
+  const k = ev.key;
+  if (k === "ArrowDown") pick(i + 1); else if (k === "ArrowUp") pick(i - 1);
+  else if (k === "Home") pick(0); else if (k === "End") pick(list.length - 1);
+  else if (k === "Enter" && e) openEntry(e);
+  else if (k === "Backspace") state.parent && loadDir(state.parent);
+  else if (k === "F2" && e) fsAction("rename", e);
+  else if (k === "Delete") fsAction("trash");
+  else if (ev.ctrlKey && k.toLowerCase() === "a") { FS.sel = new Set(list.map((x) => x.path)); renderTree(); }
+  else if (ev.ctrlKey && k.toLowerCase() === "c") fsAction("copy");
+  else if (ev.ctrlKey && k.toLowerCase() === "x") fsAction("cut");
+  else if (ev.ctrlKey && k.toLowerCase() === "v") fsAction("paste");
+  else return;
+  ev.preventDefault(); ev.stopPropagation();
+});
+// перетаскивание из терминала/Проводника в папку — копирование сюда
+$("f-tree").addEventListener("dragover", (e) => e.preventDefault());
+// живое обновление: пока открыта вкладка FILES — сверяем содержимое папки раз в 3 с
+setInterval(async () => {
+  if (panel !== "files" || !state.dir || FS.search || document.hidden) return;
+  const r = await HY.get(`/api/fs/list?path=${encodeURIComponent(state.dir)}${state.hidden ? "&hidden=1" : ""}`);
+  if (!r || !r.ok) return;
+  const stamp = (r.entries || []).map((e) => e.name + e.mtime + e.size).join("|");
+  if (stamp !== state.dirStamp) { state.entries = r.entries; state.dirStamp = stamp; renderTree(); }
+}, 3000);
+function glyphFor(cat) { return { code: "code", doc: "doc", image: "image", video: "play", audio: "music", archive: "archive", model: "haotica" }[cat] || "doc"; }
 async function tagDialog(e) {
   const v = await HY.prompt(HY.t("tag"), (e.tags || []).join(", "), "важное, работа, проект");
   if (v === null) return;
-  await HY.post("/api/fs/tags", { paths: [e.path], tags: v.split(",").map((x) => x.trim()).filter(Boolean) });
-  loadDir(state.dir);
+  await HY.post("/api/fs/tags", { paths: selPaths(), tags: v.split(",").map((x) => x.trim()).filter(Boolean) });
+  loadDir(state.dir, true);
 }
 HY.get("/api/fs/tags").then((r) => { state.tagColors = (r && r.registry) || {}; });
 
-// превью
+// превью (T-63): изображение (масштаб, перетаскивание, поворот), PDF, видео/аудио, markdown, код, таблица, дерево, лог, hex, архив
 async function preview(path, line, switchTo = true) {
   const box = $("p-preview");
   const r = await HY.get("/api/fs/preview?path=" + encodeURIComponent(path));
   if (switchTo) showPanel("preview");
   if (!r || !r.ok) { box.replaceChildren(el("div.t-prev-empty", HY.t("nothing"))); return; }
   const p = r.preview;
-  const name = path.split("/").pop() || path;
-  const meta = [p.language, p.lines ? p.lines + " " + HY.t("lines") : "", p.pages ? p.pages + " " + HY.t("pages") : "",
+  const name = baseName(path);
+  const meta = [p.language, p.encoding && p.encoding !== "utf-8" ? p.encoding.toUpperCase() : "", p.eol && p.eol !== "LF" ? p.eol : "",
+    p.lines ? p.lines + " " + HY.t("lines") : "", p.pages ? p.pages + " " + HY.t("pages") : "",
     p.size !== undefined && p.kind !== "dir" ? HY.fmtBytes(p.size) : "", p.width ? `${p.width}×${p.height}` : "",
-    p.kind === "dir" ? p.count + " " + HY.t("entries") : ""].filter(Boolean).join(" · ");
-  const head = el("div.t-prev-head", icon(p.kind === "dir" ? "folder" : glyphFor(p.category), 14), el("span.nm", name), el("span.meta", meta),
+    p.kind === "dir" ? p.count + " " + HY.t("entries") : "", p.truncated ? "фрагмент" : ""].filter(Boolean).join(" · ");
+  const head = el("div.t-prev-head", icon(p.kind === "dir" ? "folder" : glyphFor(p.category), 14), el("span.nm", { title: path }, name), el("span.meta", meta),
+    el("button.hy-btn.ghost.icon.small", { title: "Прикрепить к чату", onclick: () => chat.addAttachments([path]) }, icon("haotica", 14)),
     el("button.hy-btn.ghost.icon.small", { title: HY.t("open"), onclick: () => HY.post("/api/fs/open", { path }) }, icon("chevron", 14)));
   const body = el("div.t-prev-body");
-  if (p.kind === "image") body.append(el("img", { src: HY.url("/api/fs/raw", { path }), alt: name }));
-  else if (p.kind === "pdf") body.append(el("img", { src: HY.url("/api/fs/thumb", { path, size: 600 }) }));
-  else if (p.kind === "video") body.append(el("img", { src: HY.url("/api/fs/thumb", { path, size: 600 }) }), tracks(p));
-  else if (p.kind === "audio") body.append(tracks(p));
+  const raw = HY.url("/api/fs/raw", { path });
+  if (p.kind === "image") body.append(imageViewer(raw, name));
+  else if (p.kind === "pdf") body.append(p.embed || !p.pages ? el("iframe.pdf", { src: raw, title: name }) : el("img", { src: HY.url("/api/fs/thumb", { path, size: 600 }) }));
+  else if (p.kind === "video") body.append(el("video", { src: raw, controls: true, preload: "metadata", onerror: () => body.replaceChildren(mediaFail(path)) }), tracks(p));
+  else if (p.kind === "audio") body.append(el("audio", { src: raw, controls: true, preload: "metadata", onerror: () => body.replaceChildren(mediaFail(path)) }), tracks(p));
   else if (p.kind === "markdown") body.append(el("div.md", { html: p.html }));
   else if (p.kind === "code" || p.kind === "text") {
     body.append(el("div.code", { html: p.html }));
-    if (line) setTimeout(() => { const a = body.querySelector(`#L-${line}`) || body.querySelector(`a[href="#L-${line}"]`); if (a) a.scrollIntoView({ block: "center" }); }, 30);
-  } else if (p.kind === "archive") body.append(el("pre.lines", p.entries.join("\n")));
+    if (line) setTimeout(() => { const a = body.querySelector(`#L-${line}`) || body.querySelector(`a[href="#L-${line}"]`); if (a) { a.scrollIntoView({ block: "center" }); a.closest("tr")?.classList.add("hit"); } }, 30);
+  } else if (p.kind === "table") body.append(el("div.tbl", el("table", ...p.rows.map((row, i) => el("tr", ...row.map((c) => el(i ? "td" : "th", c)))))));
+  else if (p.kind === "tree") body.append(treeView(p.data));
+  else if (p.kind === "log") {
+    const pre = el("pre.lines.log", p.lines_tail.join("\n"));
+    let timer = null;
+    const follow = el("button.hy-btn.small", { onclick: () => {
+      if (timer) { clearInterval(timer); timer = null; follow.textContent = "СЛЕДИТЬ"; return; }
+      follow.textContent = "СТОП";
+      timer = setInterval(async () => { if (!box.contains(pre)) return clearInterval(timer); const x = await HY.get("/api/fs/preview?path=" + encodeURIComponent(path)); if (x && x.ok && x.preview.lines_tail) { pre.textContent = x.preview.lines_tail.join("\n"); pre.scrollTop = pre.scrollHeight; } }, 2000);
+    } }, "СЛЕДИТЬ");
+    body.append(el("div.s-actions", follow), pre);
+    setTimeout(() => { pre.scrollTop = pre.scrollHeight; }, 20);
+  } else if (p.kind === "archive") body.append(el("pre.lines", p.entries.join("\n") + (p.total > p.entries.length ? `\n… всего ${p.total}` : "")));
   else if (p.kind === "binary") body.append(el("div.hex", p.hex));
+  else if (p.kind === "office") body.append(el("div.t-prev-empty", el("div", icon("doc", 32), el("div", { style: { marginTop: "10px" } }, "ДОКУМЕНТ OFFICE"),
+    el("button.hy-btn.small", { style: { marginTop: "10px" }, onclick: () => HY.post("/api/fs/open", { path }) }, "ОТКРЫТЬ"))));
   else if (p.kind === "dir") body.append(el("div.lines", Object.entries(p.categories || {}).map(([c, n]) => HY.kv(c, String(n), HY.catColor(c)))));
   else body.append(el("div.t-prev-empty", HY.t("nothing")));
   box.replaceChildren(head, body);
   box.classList.remove("hy-scan"); void box.offsetWidth; box.classList.add("hy-scan");
+}
+function mediaFail(path) {
+  return el("div.t-prev-empty", el("div", "КОДЕК НЕ ПОДДЕРЖАН ВСТРОЕННЫМ ПЛЕЕРОМ"),
+    el("button.hy-btn.small", { style: { marginTop: "10px" }, onclick: () => HY.post("/api/fs/open", { path }) }, "ОТКРЫТЬ ВО ВНЕШНЕМ ПЛЕЕРЕ"));
+}
+function imageViewer(src, name) {
+  const img = el("img", { src, alt: name, draggable: false });
+  const st = { z: 1, x: 0, y: 0, r: 0 };
+  const apply = () => { img.style.transform = `translate(${st.x}px, ${st.y}px) scale(${st.z}) rotate(${st.r}deg)`; };
+  const wrap = el("div.imgv", img);
+  wrap.addEventListener("wheel", (e) => { e.preventDefault(); st.z = Math.max(0.1, Math.min(16, st.z * (e.deltaY < 0 ? 1.15 : 0.87))); apply(); }, { passive: false });
+  wrap.addEventListener("mousedown", (e) => {
+    const x0 = e.clientX - st.x, y0 = e.clientY - st.y;
+    const mv = (m) => { st.x = m.clientX - x0; st.y = m.clientY - y0; apply(); };
+    const up = () => { removeEventListener("mousemove", mv); removeEventListener("mouseup", up); };
+    addEventListener("mousemove", mv); addEventListener("mouseup", up);
+  });
+  return el("div", el("div.s-actions", el("button.hy-btn.ghost.small", { onclick: () => { st.r = (st.r + 90) % 360; apply(); } }, "⟳ 90°"),
+    el("button.hy-btn.ghost.small", { onclick: () => { Object.assign(st, { z: 1, x: 0, y: 0, r: 0 }); apply(); } }, "1:1")), wrap);
+}
+function treeView(data, depth = 0) {
+  if (data === null || typeof data !== "object") return el("span.tv-v." + (data === null ? "null" : typeof data), JSON.stringify(data));
+  const arr = Array.isArray(data);
+  const entries = arr ? data.map((v, i) => [i, v]) : Object.entries(data);
+  const d = el("details.tv", depth < 2 ? { open: true } : null, el("summary", arr ? `[${entries.length}]` : `{${entries.length}}`));
+  for (const [k, v] of entries.slice(0, 500)) d.append(el("div.tv-row", el("span.tv-k", String(k)), ": ", treeView(v, depth + 1)));
+  return d;
 }
 function tracks(p) {
   return el("div.lines", (p.tracks || []).map((t) => el("div", { style: { marginBottom: "6px" } },

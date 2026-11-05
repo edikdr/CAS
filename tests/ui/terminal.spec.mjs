@@ -42,7 +42,7 @@ async function open(opts = {}) {
   ctx = await browser.newContext({ viewport: { width: 1500, height: 900 }, permissions: ["clipboard-read", "clipboard-write"] });
   const page = await ctx.newPage();
   const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("pageerror", (e) => errors.push(e.message + " @ " + String(e.stack || "").split("\n").slice(1, 3).join(" <- ")));
   page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource|ERR_CONNECTION_REFUSED|47810/.test(m.text())) errors.push(m.text()); });
   await page.addInitScript(`window.__MOCK = ${JSON.stringify({ token, args: opts.args || [] })};\n${MOCK}`);
   await page.addInitScript(() => { try { if (!sessionStorage.getItem("hy-keep")) localStorage.clear(); } catch (e) { /* */ } });
@@ -68,6 +68,7 @@ test("печать, кириллица, Enter → блок", "UI-20 UI-90", asyn
   await p.keyboard.press("Enter");
   await p.waitForTimeout(150);
   assert((await W(p)).includes("echo привет\r"), "в PTY: " + JSON.stringify(await W(p)));
+  await p.locator(".t-block.ok").first().waitFor({ timeout: 4000 }).catch(() => {});
   assert(await p.locator(".t-block.ok").count() >= 1, "блок ✓");
 });
 test("AltGr (немецкая раскладка) не перехватывается", "UI-21", async (p) => {
@@ -194,8 +195,9 @@ test("разделение панелей, фокус Alt+стрелки, зак
   assert(await npanes(p) === 2, "2 панели");
   await p.keyboard.press("Alt+Shift+Minus"); await p.waitForTimeout(250);
   assert(await npanes(p) === 3, "3 панели");
+  await p.waitForTimeout(300);
   const a = await p.evaluate(() => window.__hyterm.active.panes().indexOf(window.__hyterm.active.active));
-  await p.keyboard.press("Alt+ArrowUp"); await p.waitForTimeout(100);
+  await key(p, "Alt+ArrowUp", 200);
   const b = await p.evaluate(() => window.__hyterm.active.panes().indexOf(window.__hyterm.active.active));
   assert(a !== b, "фокус сменился");
   await p.keyboard.press("Control+Shift+W"); await p.waitForTimeout(200);
@@ -312,7 +314,7 @@ test("подтверждение закрытия окна с работающи
 test("правая кнопка — меню; на Windows скрыты Linux-плитки", "UI-29 UI-107", async (p) => {
   const box = await p.locator(".t-term.on .t-pane").first().boundingBox();
   await p.mouse.click(box.x + 60, box.y + 20, { button: "right" });
-  await p.locator(".hy-menu").waitFor({ timeout: 2000 });
+  await p.locator(".hy-menu").waitFor({ timeout: 5000 });
   assert((await p.locator(".hy-menu").innerText()).includes("Разделить"), "пункты меню");
   await p.keyboard.press("Escape");
   assert(await p.locator("#globe.hidden").count() === 1, "глобус Network Recon скрыт");

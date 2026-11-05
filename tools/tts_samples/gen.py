@@ -144,7 +144,7 @@ class F5:
         self.ref, self.rt = ref_wav(24000, 11.5), ref_text()
 
     def synth(self, text, lang, out):
-        self.m.infer(ref_file=self.ref, ref_text=self.rt, gen_text=text, file_wave=str(out), nfe_step=32,
+        self.m.infer(ref_file=self.ref, ref_text=self.rt, gen_text=text, file_wave=str(out), nfe_step=int(os.environ.get("F5_NFE", "32")),
                      remove_silence=False, seed=7)
 
 

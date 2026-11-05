@@ -126,10 +126,13 @@ export const HY = {
 
   // ── API ядра ───────────────────────────────────────────────────
   async req(base, method, path, body) {
-    const r = await fetch(base + path, {
-      method, headers: { "X-Haotica-Token": this.token, ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
+    let r;
+    try {
+      r = await fetch(base + path, {
+        method, headers: { "X-Haotica-Token": this.token, ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+    } catch (e) { return { ok: false, status: 0, error: "нет связи" }; }   // служба не запущена — без исключения
     const txt = await r.text();
     let data; try { data = txt ? JSON.parse(txt) : {}; } catch (e) { data = { ok: r.ok, text: txt }; }
     if (!r.ok && data && data.ok === undefined) data.ok = false;
@@ -201,7 +204,11 @@ export const HY = {
     this.emit("theme-applied", this.theme);
   },
   applySettings(s) {
-    this.settings = s || {};
+    // поток «settings» несёт только часть разделов (для оболочки) — сливаем, а не заменяем
+    s = s || {};
+    const merged = { ...this.settings };
+    for (const [k, v] of Object.entries(s)) merged[k] = v && typeof v === "object" && !Array.isArray(v) ? { ...(merged[k] || {}), ...v } : v;
+    this.settings = merged;
     const lang = (s.locale || {}).ui_language;
     if (lang && lang !== this.lang) { this.lang = lang; document.documentElement.lang = lang; this.emit("lang", lang); }
     this.emit("settings-applied", s);

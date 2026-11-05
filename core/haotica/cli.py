@@ -218,7 +218,27 @@ def cmd_doctor(_a: argparse.Namespace) -> int:
     return doctor.run()
 
 
+def open_here(path: str) -> int:
+    """`haotica .` / `haotica <папка>` — вкладка терминала в этой папке (в уже открытом окне, если оно есть)."""
+    import os
+    import sys
+    p = os.path.abspath(os.path.expanduser(path))
+    if not os.path.isdir(p):
+        print(f"нет такой папки: {p}", file=sys.stderr)
+        return 2
+    if os.name == "nt":
+        from . import supervisor, util
+        util.spawn([*supervisor.python_argv("haotica.apps"), "terminal", "--cwd", p, "--new-tab"])
+        return 0
+    from .apps_client import open_app
+    return 0 if open_app("terminal", ["--cwd", p, "--new-tab"]) else 1
+
+
 def main(argv: list[str] | None = None) -> int:
+    import sys as _sys
+    args = list(_sys.argv[1:] if argv is None else argv)
+    if len(args) == 1 and (args[0] in (".", "..", "~") or (not args[0].startswith("-") and __import__("os").path.isdir(args[0]))):
+        return open_here(args[0])
     ap = argparse.ArgumentParser(prog="haotica", description="HAOTICA — управление системой")
     ap.add_argument("--version", action="version", version=f"HAOTICA {__version__}")
     sub = ap.add_subparsers(dest="cmd", required=True)

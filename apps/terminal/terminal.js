@@ -471,6 +471,17 @@ function runAction(a, pane) {
   (acts[a] || (() => {}))();
 }
 
+// сочетания работают и когда фокус не в терминале (после клика по панели, вкладке, кнопке)
+document.addEventListener("keydown", (e) => {
+  if (e.defaultPrevented || !cur()) return;
+  const t = e.target;
+  if (t && t.closest && (t.closest(".xterm") || t.closest(".hy-modal-back") || t.matches("input, textarea, select, [contenteditable]"))) return;
+  const a = keyAction(e, cur());
+  if (!a || a === "native" || a.startsWith("copy") || a.startsWith("focus")) return;
+  e.preventDefault();
+  runAction(a, cur());
+});
+
 // ── вкладка: дерево панелей ──────────────────────────────────────
 class Tab {
   constructor(opts = {}) {
@@ -570,6 +581,7 @@ function activate(t) {
   state.active = t;
   t.activity = false;
   for (const x of state.tabs) x.box.classList.toggle("on", x === t);
+  t.pane.term.focus();
   requestAnimationFrame(() => { t.panes().forEach((p) => p.dims()); t.pane.term.focus(); });
   loadDir(t.cwd);
   renderTabs();
@@ -1306,7 +1318,13 @@ HY.on("message", async (m) => {
     const ok = await HY.confirm("HAOTICA TERMINAL", HY.t("busy_window", { n: m.busy }), { danger: true, ok: HY.t("closetab") });
     if (ok) { saveSession(); HY.bridge.forceClose(); }
   }
-  if (m.cmd === "drop" && cur()) cur().insertPaths(m.paths || []);
+  if (m.cmd === "drop") {                                  // файлы из Проводника (перехват Qt): куда бросили
+    const z = devicePixelRatio && HY.bridge ? 1 : 1;
+    const node = document.elementFromPoint((m.x || 0) / z, (m.y || 0) / z);
+    if (node && node.closest && node.closest("#chat, .h-chat") && window.__hyChatAttach) return window.__hyChatAttach(m.paths || []);
+    const pane = node && node.closest && state.tabs.flatMap((t) => t.panes()).find((p) => p.box.contains(node));
+    (pane || cur()) && (pane || cur()).insertPaths(m.paths || []);
+  }
 });
 window.addEventListener("beforeunload", saveSession);
 bars(); mini(); drawCharts();

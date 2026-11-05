@@ -1,8 +1,11 @@
 // HAOTICA — Настройки. Каждое поле пишет в settings.toml через /api/settings (ядро применяет на лету).
 import { HY, el, icon } from "/ui/hy.js";
-import { keysDialog } from "/ui/keys.js";
+import { cloudKeyRow, elevenKeyRow, keyfieldCss } from "/ui/keyfield.js";
 
 await HY.start({ title: "Настройки", glyph: "settings" });
+document.head.append(el("style", keyfieldCss));
+const IS_WIN = HY.boot.platform === "windows";
+const FEAT = HY.boot.features || {};
 const $ = (id) => document.getElementById(id);
 const get = (key) => key.split(".").reduce((o, k) => (o == null ? undefined : o[k]), HY.settings);
 let current = "appearance";
@@ -47,6 +50,15 @@ const pill = (s) => el("span.s-pill." + String(s || "offline").split(" ")[0], St
 function every(ms, fn) { fn(); timers.push(setInterval(fn, ms)); }
 
 // ── страницы ────────────────────────────────────────────────────
+const KEYS_HELP = [
+  "Ctrl+Shift+T — новая вкладка · Ctrl+Shift+W — закрыть панель/вкладку · Ctrl+Shift+D — дублировать",
+  "Ctrl+Tab / Ctrl+Shift+Tab — следующая/предыдущая · Alt+1…9 — вкладка N",
+  "Alt+Shift+Plus / Alt+Shift+Minus — разделить · Alt+стрелки — соседняя панель",
+  "Ctrl+C — копировать (если выделено, иначе прерывание) · Ctrl+V, Shift+Insert — вставить · Ctrl+Insert — копировать",
+  "Ctrl+Shift+F — поиск · Ctrl+Shift+P — команды · Ctrl+Shift+K — очистить · Ctrl+Shift+↑/↓ — блоки",
+  "Ctrl+Shift+Home/End — к началу/концу · Ctrl+= / Ctrl+− / Ctrl+0 — шрифт · F11 — во весь экран",
+  "Ctrl+Shift+B / Ctrl+Shift+H — левая/правая колонка",
+].join("\n");
 const PROFILES = ["MIX", "HYPERION", "SUBJECT", "ESCAPE", "ARCH", "RIDER", "SPACE", "CUSTOM"];
 const PAGES = {
   appearance: { title: "Внешний вид", icon: "image", build: () => [
@@ -226,12 +238,51 @@ const PAGES = {
     range("touchpad.speed", "Скорость", null, { min: -1, max: 1, step: 0.05, fmt: (v) => v.toFixed(2) }),
   ] },
 
+  terminal: { title: "Терминал", icon: "terminal", build: () => {
+    const prof = el("div");
+    (async () => {
+      const r = HY.bridge && HY.bridge.ptyProfiles ? await new Promise((res) => HY.bridge.ptyProfiles(res)) : null;
+      let list = [];
+      try { list = (JSON.parse(r || "{}").profiles) || []; } catch (e) { list = []; }
+      prof.replaceChildren(list.length ? select("terminal.default_profile", "Профиль по умолчанию", "Оболочка новой вкладки",
+        [["", "Авто (первый найденный)"], ...list.map((p) => [p.id, p.name])]) : text("terminal.default_profile", "Профиль по умолчанию",
+        "pwsh, powershell, cmd, wsl:<дистрибутив>, gitbash (Linux: zsh, bash)"));
+    })();
+    return [h1("Терминал"), prof,
+      note("Свои профили — в settings.toml: [[terminal.profiles]] id, name, command, cwd, env."),
+      h2("Шрифт и вид"),
+      text("terminal.font", "Шрифт", "Пусто — шрифт темы", { placeholder: "JetBrains Mono, Cascadia Mono" }),
+      num("terminal.font_size", "Размер шрифта", "Ctrl+колесо, Ctrl+= / Ctrl+− / Ctrl+0", { min: 8, max: 32 }),
+      range("terminal.line_height", "Межстрочный интервал", null, { min: 1, max: 1.6, step: 0.02, fmt: (v) => (+v).toFixed(2) }),
+      toggle("terminal.ligatures", "Лигатуры"),
+      seg("terminal.cursor_style", "Курсор", null, [["bar", "Черта"], ["block", "Блок"], ["underline", "Подчёркивание"]]),
+      toggle("terminal.cursor_blink", "Мигающий курсор"),
+      range("effects.crt_terminal", "CRT терминала", null), toggle("effects.terminal_art", "Фон «руки из кода»"),
+      h2("История и звонок"),
+      num("terminal.scrollback", "Строк истории", "1 000 – 100 000", { min: 1000, max: 100000, step: 1000 }),
+      seg("terminal.bell", "Звонок (BEL)", null, [["visual", "Мигание"], ["sound", "Звук"], ["off", "Выкл"]]),
+      h2("Буфер обмена и мышь"),
+      toggle("terminal.copy_on_select", "Копировать при выделении"),
+      toggle("terminal.ctrl_v_paste", "Ctrl+V — вставить", "Иначе Ctrl+V уходит в программу (^V)"),
+      toggle("terminal.paste_warn", "Предупреждать о многострочной вставке"),
+      seg("terminal.right_click", "Правая кнопка", null, [["menu", "Меню"], ["paste", "Вставить"], ["copy_paste", "Копировать/вставить"]]),
+      h2("Вкладки и окно"),
+      toggle("terminal.restore_tabs", "Восстанавливать вкладки при запуске"),
+      toggle("terminal.confirm_close", "Спрашивать перед закрытием окна с работающими программами"),
+      seg("terminal.close_on_exit", "Закрывать вкладку при выходе оболочки", null, [["graceful", "Если код 0"], ["always", "Всегда"], ["never", "Никогда"]]),
+      seg("terminal.haotica_tab", "Где Haotica выполняет команды", "Своя вкладка «HAOTICA» или текущая", [["separate", "Своя вкладка"], ["active", "Текущая"]]),
+      h2("Горячие клавиши"),
+      note(KEYS_HELP),
+      note("Переопределение: [terminal.keys] в settings.toml, например \"ctrl+shift+t\" = \"newTab\"."),
+    ];
+  } },
+
   haotica: { title: "Haotica", icon: "haotica", build: () => {
     const llm = el("div"), mods = el("div"), cloud = el("div");
     const loadLlm = async () => {
       const r = await HY.haotica("GET", "/api/llm/status").catch(() => null);
       llm.replaceChildren();
-      if (!r || !r.ok) return llm.append(note("Служба Haotica не отвечает (systemctl --user status haotica-agent)", "s-err"));
+      if (!r || !r.ok) return llm.append(note(IS_WIN ? "Служба Haotica не отвечает (журнал: %LOCALAPPDATA%\\Haotica\\logs\\agent.log)" : "Служба Haotica не отвечает (systemctl --user status haotica-agent)", "s-err"));
       for (const role of ["base", "deep", "fast"]) {
         llm.append(el("div.s-row", el("b", role.toUpperCase()), el("span.nm", (r.labels || {})[role] || ""), pill(r.state[role]),
           role !== "fast" ? el("button.hy-btn.small" + (r.main === role ? ".primary" : ""), { onclick: async () => {
@@ -260,38 +311,14 @@ const PAGES = {
         v.running ? note("Проверка идёт…") : v.ts ? note(v.ok ? "Проверка: всё в порядке" : "Проверка: есть ошибки\n" + (v.output || ""), v.ok ? "s-ok" : "s-err") : null);
     };
     const loadCloud = async () => {
-      const k = await HY.haotica("GET", "/api/cloud/key").catch(() => null);
       cloud.replaceChildren();
-      const inp = el("input.hy-input", { type: "password", placeholder: k && k.set ? k.mask : "sk-or-…" });
-      cloud.append(field("Ключ OpenRouter", "Хранится в связке ключей системы, не в файлах", inp,
-        el("button.hy-btn.small", { onclick: async () => {
-          if (!inp.value.trim()) return;
-          const r = await HY.haotica("POST", "/api/cloud/key", { key: inp.value.trim() });
-          inp.value = "";
-          HY.toast(r && r.ok ? (r.info && r.info.ok ? "Ключ принят" : "Ключ сохранён, но не проверен") : (r && r.error) || "Ошибка", r && r.ok ? "" : "err");
-          loadCloud();
-        } }, "СОХРАНИТЬ"),
-        k && k.set ? el("button.hy-btn.ghost.icon.small", { title: "Удалить ключ", onclick: async () => { await HY.haotica("DELETE", "/api/cloud/key"); loadCloud(); } }, icon("trash", 14)) : null));
-      if (k && k.set) {
-        const info = el("div.s-note", "…");
-        HY.haotica("GET", "/api/cloud/key?check=1").then((x) => {
-          const i = (x && x.info) || {};
-          info.textContent = i.ok ? `Баланс: ${i.credits != null ? "$" + (i.credits - (i.spent || 0)).toFixed(2) : "—"} · ${i.label || ""}` : (i.error || "ключ не проверен");
-          info.className = "s-note " + (i.ok ? "s-ok" : "s-err");
-        });
-        cloud.append(info);
-      }
-      const ms = await HY.haotica("GET", "/api/cloud/models").catch(() => null);
-      const list = (ms && ms.models) || [];
-      const cur = get("cloud.model") || "";
-      const sel = el("select.hy-input.hy-select", { onchange: () => HY.setting("cloud.model", sel.value) },
-        el("option", { value: "" }, "— не выбрана —"),
-        list.map((m) => el("option", { value: m.id, selected: m.id === cur }, `${m.id} · $${m.in.toFixed(2)}/$${m.out.toFixed(2)}`)));
-      if (cur && !list.find((m) => m.id === cur)) sel.append(el("option", { value: cur, selected: true }, cur));
+      const row = cloudKeyRow();
+      cloud.append(field("Облачная модель и ключ", "Ключ — в " + (IS_WIN ? "Диспетчере учётных данных Windows" : "связке ключей системы") +
+        ", не в файлах. Облако — только с разрешения (карточка CLOUD REQUEST)", row));
+      if (HY.args && HY.args.includes("--focus-key")) setTimeout(() => row.focusKey(), 200);
       const led = await HY.haotica("GET", "/api/cloud/ledger?n=1").catch(() => null);
       const b = (led && led.budget) || {};
-      cloud.append(field("Облачная модель (второе мнение)", "Только с разрешения — карточка CLOUD REQUEST", sel),
-        note(`Потрачено: сегодня $${(b.day || 0).toFixed(3)} / $${b.limit_day ?? "—"}, месяц $${(b.month || 0).toFixed(3)} / $${b.limit_month ?? "—"}, помощники сегодня $${(b.helpers_day || 0).toFixed(3)}`));
+      cloud.append(note(`Потрачено: сегодня $${(b.day || 0).toFixed(3)} / $${b.limit_day ?? "—"}, месяц $${(b.month || 0).toFixed(3)} / $${b.limit_month ?? "—"}, помощники сегодня $${(b.helpers_day || 0).toFixed(3)}`));
     };
     every(4000, loadLlm); loadModels(); timers.push(setInterval(loadModels, 5000)); loadCloud();
     return [h1("Haotica"),
@@ -316,8 +343,9 @@ const PAGES = {
       toggle("haotica.voice", "Голос", "Отвечает вслух, кроме тихих часов и режима «Игра»"),
       seg("haotica.voice_backend", "Источник", "Свой — синтез на ноутбуке; при сбое — ElevenLabs, если есть ключ",
         [["local", "Свой"], ["elevenlabs", "ElevenLabs"], ["lines", "Только реплики"]]),
-      seg("haotica.tts_engine", "Движок", "Chatterbox говорит голосом Сары (образец из ElevenLabs); Piper — лёгкий запасной",
-        [["auto", "Авто"], ["chatterbox", "Chatterbox"], ["piper", "Piper"]]),
+      seg("haotica.tts_engine", "Движок", "Локальная модель речи голосом Сары; выбрана слепым прослушиванием (samples/tts)",
+        [["auto", "Авто"], ["chatterbox", "Chatterbox"], ["xtts", "XTTS"], ["qwen3", "Qwen3-TTS"], ["f5", "F5"], ["silero", "Silero"], ["piper", "Piper"]]),
+      field("Облачный голос", "Запасной вариант, если локальный синтез недоступен", elevenKeyRow()),
       range("haotica.voice_speed", "Скорость речи", null, { min: 0.7, max: 1.4, step: 0.05, fmt: (v) => v.toFixed(2) + "×" }),
       el("div.s-actions",
         el("button.hy-btn.small", { onclick: async () => {
@@ -325,8 +353,7 @@ const PAGES = {
           const r = await HY.haotica("POST", "/api/voice/test", {}).catch(() => null);
           HY.toast(r && r.played ? `Голос: ${r.engine || "?"}` : "Голос не прозвучал: служба haotica-tts не запущена и нет ключа ElevenLabs", r && r.played ? "" : "err", [], 7000);
         } }, icon("volume", 14), " Проверить голос"),
-        el("button.hy-btn.small", { onclick: () => HY.post("/api/sys/service", { unit: "haotica-tts.service", action: "restart" }).then((x) => HY.toast(x.ok ? "Служба голоса перезапущена (Chatterbox грузится до минуты)" : x.error || "Ошибка", x.ok ? "" : "err")) }, icon("reboot", 14), " Перезапустить голос"),
-        el("button.hy-btn.small", { onclick: () => keysDialog() }, icon("key", 14), " API-ключи")),
+        el("button.hy-btn.small", { onclick: () => HY.haotica("POST", "/api/voice/restart", {}).then((x) => HY.toast(x && x.ok ? "Служба голоса перезапущена (модель грузится до минуты)" : (x && x.error) || "Ошибка", x && x.ok ? "" : "err")) }, icon("reboot", 14), " Перезапустить голос")),
       text("haotica.folders_allowed", "Доступ к папкам", "Через запятую", { list: true }),
       text("haotica.folders_denied", "Закрытые папки", "~/.ssh, ключи и банковский профиль закрыты всегда", { list: true }),
       h2("Облако (OpenRouter)"),
@@ -404,6 +431,8 @@ function render(name) {
   HY.sub(PAGES[name].title);
   try { localStorage.setItem("settings.page", name); } catch (e) { /* нет хранилища */ }
 }
+const LINUX_PAGES = new Set(["display", "sound", "network", "power", "apps"]);   // на Windows — системные настройки Windows
+if (IS_WIN) for (const k of LINUX_PAGES) delete PAGES[k];
 for (const [k, p] of Object.entries(PAGES)) {
   $("nav").append(el("div.item", { "data-p": k, onclick: () => render(k) }, icon(p.icon, 16), p.title));
 }
@@ -416,4 +445,4 @@ find.addEventListener("input", HY.debounce(() => {
 HY.on("settings-applied", () => {}); // значения подтягиваются при открытии страницы
 const argPage = HY.args && (HY.args.indexOf("--page") >= 0 ? HY.args[HY.args.indexOf("--page") + 1] : HY.args[0]);
 const want = argPage || (() => { try { return localStorage.getItem("settings.page"); } catch (e) { return null; } })();
-render(PAGES[want] ? want : "appearance");
+render(PAGES[want] ? want : IS_WIN ? "terminal" : "appearance");

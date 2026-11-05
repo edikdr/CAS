@@ -113,6 +113,28 @@ screen_off_minutes = 15
 suspend_minutes = 30
 haotica_on_battery = "normal"   # normal, light (только маленькая модель), off
 
+[terminal]                  # HAOTICA Terminal (Windows и Linux)
+default_profile = ""        # "" — первый найденный: PowerShell 7 → Windows PowerShell → cmd (Linux — своя оболочка)
+font = ""                   # "" — моноширинный шрифт темы
+font_size = 13
+line_height = 1.18
+ligatures = false
+scrollback = 20000          # строк истории: 1 000 – 100 000
+cursor_style = "bar"        # bar, block, underline
+cursor_blink = true
+bell = "visual"             # sound, visual, off
+copy_on_select = false
+right_click = "menu"        # menu, paste, copy_paste
+ctrl_v_paste = true         # Ctrl+V вставляет (как в Windows Terminal); иначе уходит в программу
+paste_warn = true           # предупреждать о многострочной вставке
+restore_tabs = true
+confirm_close = true        # спрашивать перед закрытием окна с работающими программами
+close_on_exit = "graceful"  # graceful (закрыть при коде 0), always, never
+haotica_tab = "separate"    # где Haotica выполняет команды: separate (своя вкладка), active (текущая)
+profiles = []               # свои профили: [{id, name, command, cwd, env}]
+
+[terminal.keys]             # переопределение клавиш: "ctrl+shift+t" = "newTab" (список действий — docs/UI-INVENTORY.md)
+
 [haotica]
 enabled = true
 mode = "copilot"           # observer, copilot, agent

@@ -14,7 +14,7 @@ import sys
 import urllib.parse
 from pathlib import Path
 
-from PySide6.QtCore import QFile, QIODevice, QObject, QSize, Qt, QTimer, QUrl, Signal, Slot
+from PySide6.QtCore import QEvent, QFile, QIODevice, QObject, QSize, Qt, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QColor, QDesktopServices, QIcon
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWebChannel import QWebChannel
@@ -241,6 +241,37 @@ class Bridge(QObject):
         return json.dumps(self.win.host.pty.info(sid))
 
 
+class DropFilter(QObject):
+    """Файлы из Проводника/файлового менеджера: Chromium не отдаёт странице их пути, поэтому
+    перехватываем перетаскивание на уровне Qt и передаём пути странице (она решает — в терминал или в чат)."""
+
+    def __init__(self, win: "AppWindow") -> None:
+        super().__init__(win)
+        self.win = win
+
+    @staticmethod
+    def _files(ev) -> list[str]:
+        md = ev.mimeData()
+        if not md or not md.hasUrls():
+            return []
+        urls = md.urls()
+        return [os.path.normpath(u.toLocalFile()) for u in urls] if urls and all(u.isLocalFile() for u in urls) else []
+
+    def eventFilter(self, obj, ev) -> bool:  # noqa: N802
+        t = ev.type()
+        if t in (QEvent.Type.DragEnter, QEvent.Type.DragMove) and self._files(ev):
+            ev.acceptProposedAction()
+            return True
+        if t == QEvent.Type.Drop:
+            files = self._files(ev)
+            if files:
+                pos = ev.position() if hasattr(ev, "position") else ev.posF()
+                self.win.deliver({"cmd": "drop", "paths": files, "x": pos.x(), "y": pos.y()})
+                ev.acceptProposedAction()
+                return True
+        return False
+
+
 class Page(QWebEnginePage):
     """Наружу — только во внешний браузер: токен ядра не должен попасть на чужие страницы."""
 
@@ -286,6 +317,9 @@ class AppWindow(QMainWindow):
         self.page.loadFinished.connect(self._loaded)
         self._retry = 0
         self.force_close = False
+        self.drop_filter = DropFilter(self)
+        self.view.installEventFilter(self.drop_filter)
+        self.view.setAcceptDrops(True)
         self.load()
 
     def boot_data(self) -> dict:
@@ -302,6 +336,10 @@ class AppWindow(QMainWindow):
     def _loaded(self, ok: bool) -> None:
         if ok:
             self._retry = 0
+            proxy = self.view.focusProxy()
+            if proxy is not None and getattr(self, "_drop_on", None) is not proxy:
+                proxy.installEventFilter(self.drop_filter)
+                self._drop_on = proxy
             return
         self._retry += 1
         if self._retry == 1:

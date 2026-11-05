@@ -23,7 +23,7 @@ from .metrics import Metrics
 log = logging.getLogger("haotica.core")
 PPD = {"performance": "performance", "balanced": "balanced", "quiet": "power-saver", "power-saver": "power-saver"}
 # ключи, которые можно менять, даже если их нет в defaults.toml (словари с произвольными именами)
-FREE_SECTIONS = ("sound.events.", "gestures.bindings.", "appearance.custom.", "router.", "apps.autostart.")
+FREE_SECTIONS = ("sound.events.", "gestures.bindings.", "appearance.custom.", "router.", "apps.autostart.", "terminal.keys.")
 
 
 def _flatten(d: dict, prefix: str = "") -> dict:

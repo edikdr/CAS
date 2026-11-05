@@ -66,6 +66,16 @@ button { font: inherit; color: inherit; }
 .btn { border: 1px solid var(--amber); background: var(--amber); color: var(--bg); padding: 8px 12px; cursor: pointer; font: 600 12px var(--f-mono); letter-spacing: .12em; justify-self: start; }
 .btn.ghost { background: transparent; color: var(--amber); }
 .note { font: 12px var(--f-mono); color: var(--dim); }
+.demo { border: 1px solid var(--violet); background: var(--panel); padding: 14px 16px; display: grid; gap: 10px; }
+.demo .dh { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font: 600 12px var(--f-mono); letter-spacing: .16em; color: var(--violet); }
+.pl.wide { width: auto; padding: 0 14px; }
+.dtext { margin: 0; white-space: pre-wrap; font: 13px/1.55 var(--f-body); color: var(--ink); border-left: 2px solid var(--line-hi); padding-left: 12px; }
+details summary { cursor: pointer; font: 12px var(--f-mono); color: var(--amber); }
+.tbl { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; font: 12px var(--f-mono); font-variant-numeric: tabular-nums; min-width: 560px; }
+th, td { border-bottom: 1px solid var(--line); padding: 6px 10px; text-align: left; }
+th { color: var(--dim); font-weight: 600; letter-spacing: .08em; }
+tr.best td { color: var(--amber); }
 .kbd { border: 1px solid var(--line-hi); padding: 0 5px; font: 11px var(--f-mono); color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 @media (max-width: 560px) {
@@ -84,6 +94,17 @@ button { font: inherit; color: inherit; }
     <div class="ref"><span>ОБРАЗЕЦ САРЫ</span><button class="pl" id="ref" aria-label="Образец голоса Сары">▶</button>
       <span class="note">так должен звучать клон (запись ElevenLabs, 12 с)</span></div>
   </header>
+  <section class="demo" id="demo" hidden>
+    <div class="dh"><span>ДЕМО // ГОЛОС САРЫ ПО УМОЛЧАНИЮ</span><button class="pl wide" id="demoplay">▶ СЛУШАТЬ</button></div>
+    <p class="note">Ответ Haotica целиком: паузы между фразами и после «…», интонация вопроса, восклицания и предупреждения,
+      темп по смыслу, записанные эмоции Сары (*хмыкает*, *смеётся*). Код и ссылки вслух не читаются.</p>
+    <pre class="dtext" id="demotext"></pre>
+    <details id="evald"><summary>Итоги объективной оценки — раскрывает буквы</summary>
+      <div class="tbl"><table id="evalt"><thead><tr><th>Голос</th><th>Движок</th><th>Ошибки рус.</th><th>Ошибки en/de</th><th>Похожесть на Сару</th><th>Итог</th></tr></thead><tbody></tbody></table></div>
+      <p class="note">Ошибки — доля неверно распознанных символов (Whisper), похожесть — сходство тембра с эталоном (ECAPA; эталон
+        сам с собой — <b id="selfsim"></b>). Итог: русский 50 %, Сара 35 %, en/de 15 %.</p>
+    </details>
+  </section>
   <div class="layout">
     <section class="matrix" aria-label="Фразы и голоса">
       <div class="mhead" id="mhead"><div>ФРАЗА</div></div>
@@ -100,7 +121,7 @@ button { font: inherit; color: inherit; }
   </div>
 </div>
 <script>
-const D = {"letters": ["A", "B", "C", "D", "E", "F"], "phrases": [{"id": "01", "lang": "ru", "what": "приветствие, вопрос", "text": "Привет, Эдуард. Я Хаотика, твой терминал. Чем займёмся сегодня?"}, {"id": "02", "lang": "ru", "what": "числа", "text": "Сборка заняла 3 минуты 47 секунд, ошибок — 0, предупреждений — 12."}, {"id": "03", "lang": "ru", "what": "сокращения и единицы", "text": "На диске свободно 47 ГБ, т. е. хватит ещё на 2 модели."}, {"id": "04", "lang": "ru", "what": "английские слова в русском тексте", "text": "Сначала сделаю git pull, потом npm install, и запущу docker compose up."}, {"id": "05", "lang": "ru", "what": "восклицание, предупреждение", "text": "Осторожно! Эта команда удалит всю папку без возврата!"}, {"id": "06", "lang": "ru", "what": "длинное предложение", "text": "Если хочешь, я сама проверю зависимости, запущу тесты в отдельной вкладке и, когда всё закончится, коротко расскажу, что сломалось и как это исправить."}, {"id": "07", "lang": "ru", "what": "трудные ударения", "text": "Она позвонит в четверг: договор уже подписан, а торты стоят в холодильнике."}, {"id": "08", "lang": "ru", "what": "дата и время", "text": "Напоминание на 5 ноября 2026 года, в 14:30."}, {"id": "09", "lang": "en", "what": "английский, вопрос", "text": "Build finished in forty seconds. Two tests failed — want me to take a look?"}, {"id": "10", "lang": "en", "what": "английский, длинное", "text": "I've cloned the repository, installed the dependencies, and everything is ready; just say the word and I'll start the dev server."}, {"id": "11", "lang": "de", "what": "немецкий, вопрос", "text": "Achtung: Der Akku ist fast leer. Soll ich den Energiesparmodus einschalten?"}, {"id": "12", "lang": "de", "what": "немецкий, длинное", "text": "Die Datei wurde erfolgreich gespeichert, und die Sicherung läuft jetzt im Hintergrund."}], "audio": {"A": {"01": "piper/01.ogg", "02": "piper/02.ogg", "03": "piper/03.ogg", "04": "piper/04.ogg", "05": "piper/05.ogg", "06": "piper/06.ogg", "07": "piper/07.ogg", "08": "piper/08.ogg", "09": "piper/09.ogg", "10": "piper/10.ogg", "11": "piper/11.ogg", "12": "piper/12.ogg"}, "B": {"01": "qwen3/01.ogg", "02": "qwen3/02.ogg", "03": "qwen3/03.ogg", "04": "qwen3/04.ogg", "05": "qwen3/05.ogg", "06": "qwen3/06.ogg", "07": "qwen3/07.ogg", "08": "qwen3/08.ogg", "09": "qwen3/09.ogg", "10": "qwen3/10.ogg", "11": "qwen3/11.ogg", "12": "qwen3/12.ogg"}, "C": {"01": "silero/01.ogg", "02": "silero/02.ogg", "03": "silero/03.ogg", "04": "silero/04.ogg", "05": "silero/05.ogg", "06": "silero/06.ogg", "07": "silero/07.ogg", "08": "silero/08.ogg", "09": "silero/09.ogg", "10": "silero/10.ogg", "11": "silero/11.ogg", "12": "silero/12.ogg"}, "D": {"01": "chatterbox/01.ogg", "02": "chatterbox/02.ogg", "03": "chatterbox/03.ogg", "04": "chatterbox/04.ogg", "05": "chatterbox/05.ogg", "06": "chatterbox/06.ogg", "07": "chatterbox/07.ogg", "08": "chatterbox/08.ogg", "09": "chatterbox/09.ogg", "10": "chatterbox/10.ogg", "11": "chatterbox/11.ogg", "12": "chatterbox/12.ogg"}, "E": {"01": "xtts/01.ogg", "02": "xtts/02.ogg", "03": "xtts/03.ogg", "04": "xtts/04.ogg", "05": "xtts/05.ogg", "06": "xtts/06.ogg", "07": "xtts/07.ogg", "08": "xtts/08.ogg", "09": "xtts/09.ogg", "10": "xtts/10.ogg", "11": "xtts/11.ogg", "12": "xtts/12.ogg"}, "F": {"01": "f5/01.ogg", "02": "f5/02.ogg", "03": "f5/03.ogg", "04": "f5/04.ogg", "05": "f5/05.ogg", "06": "f5/06.ogg", "07": "f5/07.ogg", "08": "f5/08.ogg", "09": "f5/09.ogg", "10": "f5/10.ogg", "11": "f5/11.ogg", "12": "f5/12.ogg"}}, "ref": "ref_sarah.ogg"};
+const D = {"letters": ["A", "B", "C", "D", "E", "F"], "phrases": [{"id": "01", "lang": "ru", "what": "приветствие, вопрос", "text": "Привет, Эдуард. Я Хаотика, твой терминал. Чем займёмся сегодня?"}, {"id": "02", "lang": "ru", "what": "числа", "text": "Сборка заняла 3 минуты 47 секунд, ошибок — 0, предупреждений — 12."}, {"id": "03", "lang": "ru", "what": "сокращения и единицы", "text": "На диске свободно 47 ГБ, т. е. хватит ещё на 2 модели."}, {"id": "04", "lang": "ru", "what": "английские слова в русском тексте", "text": "Сначала сделаю git pull, потом npm install, и запущу docker compose up."}, {"id": "05", "lang": "ru", "what": "восклицание, предупреждение", "text": "Осторожно! Эта команда удалит всю папку без возврата!"}, {"id": "06", "lang": "ru", "what": "длинное предложение", "text": "Если хочешь, я сама проверю зависимости, запущу тесты в отдельной вкладке и, когда всё закончится, коротко расскажу, что сломалось и как это исправить."}, {"id": "07", "lang": "ru", "what": "трудные ударения", "text": "Она позвонит в четверг: договор уже подписан, а торты стоят в холодильнике."}, {"id": "08", "lang": "ru", "what": "дата и время", "text": "Напоминание на 5 ноября 2026 года, в 14:30."}, {"id": "09", "lang": "en", "what": "английский, вопрос", "text": "Build finished in forty seconds. Two tests failed — want me to take a look?"}, {"id": "10", "lang": "en", "what": "английский, длинное", "text": "I've cloned the repository, installed the dependencies, and everything is ready; just say the word and I'll start the dev server."}, {"id": "11", "lang": "de", "what": "немецкий, вопрос", "text": "Achtung: Der Akku ist fast leer. Soll ich den Energiesparmodus einschalten?"}, {"id": "12", "lang": "de", "what": "немецкий, длинное", "text": "Die Datei wurde erfolgreich gespeichert, und die Sicherung läuft jetzt im Hintergrund."}], "audio": {"A": {"01": "piper/01.ogg", "02": "piper/02.ogg", "03": "piper/03.ogg", "04": "piper/04.ogg", "05": "piper/05.ogg", "06": "piper/06.ogg", "07": "piper/07.ogg", "08": "piper/08.ogg", "09": "piper/09.ogg", "10": "piper/10.ogg", "11": "piper/11.ogg", "12": "piper/12.ogg"}, "B": {"01": "qwen3/01.ogg", "02": "qwen3/02.ogg", "03": "qwen3/03.ogg", "04": "qwen3/04.ogg", "05": "qwen3/05.ogg", "06": "qwen3/06.ogg", "07": "qwen3/07.ogg", "08": "qwen3/08.ogg", "09": "qwen3/09.ogg", "10": "qwen3/10.ogg", "11": "qwen3/11.ogg", "12": "qwen3/12.ogg"}, "C": {"01": "silero/01.ogg", "02": "silero/02.ogg", "03": "silero/03.ogg", "04": "silero/04.ogg", "05": "silero/05.ogg", "06": "silero/06.ogg", "07": "silero/07.ogg", "08": "silero/08.ogg", "09": "silero/09.ogg", "10": "silero/10.ogg", "11": "silero/11.ogg", "12": "silero/12.ogg"}, "D": {"01": "chatterbox/01.ogg", "02": "chatterbox/02.ogg", "03": "chatterbox/03.ogg", "04": "chatterbox/04.ogg", "05": "chatterbox/05.ogg", "06": "chatterbox/06.ogg", "07": "chatterbox/07.ogg", "08": "chatterbox/08.ogg", "09": "chatterbox/09.ogg", "10": "chatterbox/10.ogg", "11": "chatterbox/11.ogg", "12": "chatterbox/12.ogg"}, "E": {"01": "xtts/01.ogg", "02": "xtts/02.ogg", "03": "xtts/03.ogg", "04": "xtts/04.ogg", "05": "xtts/05.ogg", "06": "xtts/06.ogg", "07": "xtts/07.ogg", "08": "xtts/08.ogg", "09": "xtts/09.ogg", "10": "xtts/10.ogg", "11": "xtts/11.ogg", "12": "xtts/12.ogg"}, "F": {"01": "f5/01.ogg", "02": "f5/02.ogg", "03": "f5/03.ogg", "04": "f5/04.ogg", "05": "f5/05.ogg", "06": "f5/06.ogg", "07": "f5/07.ogg", "08": "f5/08.ogg", "09": "f5/09.ogg", "10": "f5/10.ogg", "11": "f5/11.ogg", "12": "f5/12.ogg"}}, "ref": "ref_sarah.ogg", "demo": {"src": "demo_sarah.ogg", "text": "Готово! Сборка прошла… но есть нюанс. *хмыкает* Два теста упали — оба из-за старого пути к конфигу.\n\nОсторожно: следующая команда удалит папку build без возврата. Если согласен — жми «выполнить».\n\nА пока — хочешь, я сама поправлю путь, запущу тесты в отдельной вкладке и коротко расскажу, что вышло? *смеётся* Обещаю не трогать твой профиль PowerShell."}, "eval": {"self": 0.46, "rows": [{"letter": "D", "label": "Chatterbox Multilingual (клон Сары)", "cer_ru": 0.071, "cer_en_de": 0.018, "sim": 0.622, "score": 1.085}, {"letter": "F", "label": "F5-TTS (русское дообучение, клон Сары)", "cer_ru": 0.124, "cer_en_de": 0.057, "sim": 0.659, "score": 1.081}, {"letter": "A", "label": "Piper (medium)", "cer_ru": 0.068, "cer_en_de": 0.025, "sim": 0.131, "score": 0.712}, {"letter": "B", "label": "Qwen3-TTS 1.7B (клон Сары)", "cer_ru": 0.068, "cer_en_de": 0.018, "sim": 0.644, "score": 1.103}, {"letter": "C", "label": "Silero v5 (ru) / v3 (en, de)", "cer_ru": 0.167, "cer_en_de": 0.021, "sim": 0.179, "score": 0.699}, {"letter": "E", "label": "XTTS-v2 (клон Сары)", "cer_ru": 0.072, "cer_en_de": 0.022, "sim": 0.458, "score": 0.959}]}};
 const KEY = "haotica.tts.blind.v1";
 let S = { r: {}, win: "", heard: {} };
 try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) { /* без хранилища */ }
@@ -169,5 +190,21 @@ $("copy").onclick = () => {
   navigator.clipboard.writeText(t).then(() => { $("copy").textContent = "СКОПИРОВАНО"; setTimeout(() => { $("copy").textContent = "КОПИРОВАТЬ ИТОГ"; }, 1500); })
     .catch(() => { const r = document.createRange(); r.selectNodeContents($("out")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); });
 };
+if (D.demo) {
+  $("demo").hidden = false;
+  $("demotext").textContent = D.demo.text;
+  $("demoplay").onclick = (e) => play(e.currentTarget, D.demo.src);
+}
+if (D.eval) {
+  $("selfsim").textContent = D.eval.self.toFixed(2);
+  const rows = D.eval.rows.slice().sort((a, b) => b.score - a.score);
+  $("evalt").querySelector("tbody").replaceChildren(...rows.map((r, i) => {
+    const tr = document.createElement("tr"); if (i === 0) tr.className = "best";
+    for (const v of [r.letter, r.label, (r.cer_ru * 100).toFixed(1) + " %", (r.cer_en_de * 100).toFixed(1) + " %", r.sim.toFixed(2), r.score.toFixed(3)]) {
+      const td = document.createElement("td"); td.textContent = v; tr.append(td);
+    }
+    return tr;
+  }));
+} else { $("evald").hidden = true; }
 render();
 </script>

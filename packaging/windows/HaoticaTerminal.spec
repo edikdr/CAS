@@ -16,7 +16,7 @@ for extra in ("icons", "fonts", "avatar"):
     p = ROOT / "assets" / extra
     if p.exists():
         datas.append((str(p), f"assets/{extra}"))
-hidden = ["haotica.server.__main__", "haotica.agent.__main__", "haotica.tts.server", "winpty", "keyring.backends.Windows",
+hidden = ["haotica.apps.ptyprobe", "haotica.server.__main__", "haotica.agent.__main__", "haotica.tts.server", "winpty", "keyring.backends.Windows",
           "send2trash", "psutil", "num2words", "aiohttp", "PySide6.QtWebEngineWidgets", "PySide6.QtWebChannel"]
 excludes = ["tkinter", "torch", "matplotlib", "IPython", "pytest"]
 icon = str(ROOT / "assets" / "icons" / "haotica.ico") if (ROOT / "assets" / "icons" / "haotica.ico").exists() else None

@@ -78,6 +78,19 @@ jobs:
         run: |
           pip install -r packaging/windows/requirements.txt pyinstaller
           pyinstaller packaging/windows/HaoticaTerminal.spec --noconfirm --distpath dist --workpath build
+      - name: Оболочки в оконном exe без консоли (как у пользователя)
+        shell: pwsh
+        env:
+          HAOTICA_HOME: ${{ runner.temp }}\hh-pty
+        run: |
+          $out = "$env:RUNNER_TEMP\ptyprobe.json"
+          $p = Start-Process dist\HaoticaTerminal\HaoticaTerminal.exe -ArgumentList "--module","haotica.apps.ptyprobe",$out -PassThru -Wait
+          if (Test-Path $out) { Get-Content $out -Raw } else { Write-Output "нет результата, код $($p.ExitCode)" }
+          $global:LASTEXITCODE = 0
+          if (-not (Test-Path $out)) { throw "оконный exe не отработал" }
+          $rows = Get-Content $out -Raw | ConvertFrom-Json
+          $bad = @($rows | Where-Object { -not $_.ok })
+          if ($bad.Count -or -not $rows) { throw "оболочки не работают в оконном exe: $($bad.id -join ', ')" }
       - name: Смоук собранного exe
         shell: pwsh
         env:

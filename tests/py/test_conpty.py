@@ -127,3 +127,12 @@ def test_probe_starts_cmd_and_reports_code():
     from haotica.apps.conpty import probe
     code, out = probe([os.environ.get("ComSpec", "cmd.exe"), "/c", "echo haotica-ok & exit 7"])
     assert code == 7 and "haotica-ok" in out
+
+
+@pytest.mark.skipif(os.name != "nt", reason="ConPTY только в Windows")
+def test_shells_start_as_in_window():
+    from haotica.apps import ptyprobe, profiles
+    for prof in profiles.detect():
+        if prof["kind"] in ("pwsh", "cmd"):
+            r = ptyprobe.check(prof["id"])
+            assert r["ok"], r

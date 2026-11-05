@@ -156,6 +156,7 @@ def detect_lang(text: str) -> str:
     lat = len(re.findall(r"[A-Za-z]", text))
     if cyr >= lat * 0.5 and cyr:
         return "ru"
-    if re.search(r"[äöüßÄÖÜ]|\b(der|die|das|und|ist|nicht|ich|Sie)\b", text):
+    if re.search(r"[äöüßÄÖÜ]|\b(der|die|das|und|ist|nicht|ich|sie|wie|ihnen|ein|eine|mit|für|auf|wird|wurde|soll)\b",
+                 text, re.I):
         return "de"
     return "en"

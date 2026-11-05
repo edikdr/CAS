@@ -257,7 +257,7 @@ class Agent:
         self.execs[eid] = fut
         tab = str(args.get("tab") or config.get("terminal.haotica_tab", "separate") or "separate")
         meta = {"id": eid, "chat": ctx.get("chat", ""), "command": cmd, "reason": str(args.get("reason", "")),
-                "tab": tab, "timeout": timeout, "pane": ctx.get("pane", ""), "ts": time.time()}
+                "tab": tab, "timeout": timeout, "pane": ctx.get("pane", ""), "win": ctx.get("win", ""), "ts": time.time()}
         self.exec_meta[eid] = meta
         self.hub.publish("exec", meta, keep=False)
         self.state.set("speaking", f"$ {cmd[:120]}")
@@ -281,6 +281,47 @@ class Agent:
             return any("exec" in topics for _q, topics in list(self.hub._subs))
         except Exception:  # noqa: BLE001
             return False
+
+    def terminal_claim(self, eid: str, win: str) -> bool:
+        """Команду (или чтение экрана) берёт ровно одно окно терминала — первое, кто попросил."""
+        meta = self.exec_meta.get(eid)
+        if not meta or eid not in self.execs or self.execs[eid].done():
+            return False
+        if meta.get("claimed") and meta["claimed"] != win:
+            return False
+        meta["claimed"] = win or "?"
+        return True
+
+    async def terminal_read(self, args: dict, ctx: dict) -> dict:
+        """terminal_read: что сейчас на экране терминала — последние строки и блоки команд (с кодами выхода)."""
+        if not self.hub_has_exec_listener():
+            return {"error": "терминал HAOTICA не открыт"}
+        eid = uuid.uuid4().hex[:12]
+        fut: asyncio.Future = asyncio.get_running_loop().create_future()
+        self.execs[eid] = fut
+        tab = "haotica" if str(args.get("tab") or "") == "haotica" else "active"
+        self.exec_meta[eid] = {"id": eid, "kind": "read", "win": ctx.get("win", ""), "ts": time.time()}
+        self.hub.publish("term_read", {"id": eid, "tab": tab, "lines": int(args.get("lines") or 80),
+                                       "win": ctx.get("win", "")}, keep=False)
+        try:
+            r = await asyncio.wait_for(asyncio.shield(fut), 8)
+        except asyncio.TimeoutError:
+            return {"error": "терминал не ответил"}
+        finally:
+            self.execs.pop(eid, None)
+            self.exec_meta.pop(eid, None)
+        if r.get("error"):
+            return {"error": str(r["error"])[:300]}
+        screen = safety.redact(str(r.get("screen", "") or ""))
+        if len(screen) > OUTPUT_LIMIT:
+            screen = "…\n" + screen[-OUTPUT_LIMIT:]
+        if r.get("alt"):
+            screen = "[полноэкранная программа: содержимое экрана не передаётся]"
+        blocks = [{"cmd": safety.redact(str(b.get("cmd", "")))[:300], "exit": b.get("exit"), "ms": b.get("ms"),
+                   "cwd": b.get("cwd", ""), "by_haotica": bool(b.get("by_haotica"))} for b in (r.get("blocks") or [])[:8]]
+        return {"tab": str(r.get("tab", ""))[:60], "shell": r.get("shell", ""), "cwd": r.get("cwd", ""),
+                "running": safety.redact(str(r.get("running", "")))[:200], "screen": screen, "blocks": blocks,
+                "tabs": [str(t)[:40] for t in (r.get("tabs") or [])[:20]]}
 
     def _exec_result(self, eid: str, r: dict) -> dict:
         out = safety.redact(str(r.get("output_tail", "") or ""))
@@ -594,7 +635,7 @@ class Agent:
         if name not in tools.NAMES:
             return {"error": f"нет инструмента {name}"}
         tool_ctx = {"cwd": context.get("cwd") or str(paths.HOME), "chat": chat, "source": source,
-                    "shell": context.get("shell", ""), "pane": context.get("pane", "")}
+                    "shell": context.get("shell", ""), "pane": context.get("pane", ""), "win": context.get("win", "")}
         need, risk = self.tools.needs_card(name, args, tool_ctx)
         if risk.get("level") == "denied":
             return {"error": "отказано: " + ", ".join(risk.get("reasons", [])) + " — эта зона закрыта для Haotica всегда"}

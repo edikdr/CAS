@@ -16,8 +16,9 @@ def main() -> int:
     logging.basicConfig(
         level=logging.DEBUG if os.environ.get("HAOTICA_DEBUG") else logging.INFO,
         format="%(asctime)s %(levelname).1s %(name)s: %(message)s",
-        handlers=[logging.StreamHandler(sys.stderr),
-                  logging.FileHandler(paths.LOG_DIR / "agent.log", encoding="utf-8")],
+        handlers=[logging.StreamHandler(sys.stderr)] + (    # под супервизором stderr уже пишется в agent.log
+            [] if os.environ.get("HAOTICA_LOG_TO_STDERR") == "1"
+            else [logging.FileHandler(paths.LOG_DIR / "agent.log", encoding="utf-8")]),
     )
     logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
     web.run_app(create_app(), host=paths.HOST, port=int(os.environ.get("HAOTICA_AGENT_PORT", paths.PORT_HAOTICA)),

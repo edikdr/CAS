@@ -164,6 +164,12 @@ def setup(app: web.Application) -> None:
             return err("команда не найдена или уже завершена", 404)
         return ok()
 
+    async def terminal_claim(r):
+        d = await _body(r)
+        if not A(r).terminal_claim(str(d.get("exec_id", "")), str(d.get("win", ""))):
+            return err("команду уже взяло другое окно", 409)
+        return ok()
+
     async def clear(r):
         d = await _body(r)
         A(r).memory.clear(str(d.get("chat") or "panel"))
@@ -273,6 +279,7 @@ def setup(app: web.Application) -> None:
     R.add_get("/api/chats/{id}/export", chats_export)
     R.add_post("/api/stop", stop)
     R.add_post("/api/terminal/result", terminal_result)
+    R.add_post("/api/terminal/claim", terminal_claim)
     R.add_post("/api/event", event)
     R.add_post("/api/reload", reload)
     R.add_get("/api/complete/shell", complete_shell)

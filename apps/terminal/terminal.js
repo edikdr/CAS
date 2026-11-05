@@ -187,6 +187,8 @@ class Pane {
     if (!this.dataHook) {
       this.dataHook = this.term.onData((d) => {
         if (this.exited) { if (d === "\r") { this.term.write("\r\n"); this.spawn(); } return; }
+        // у cmd нет OSC 133 C: Enter владельца — значит, команда пошла и до нового приглашения вкладка занята
+        if (this.kind === "cmd" && d.includes("\r")) this.atPrompt = false;
         if (this.sid) HY.bridge.ptyWrite(this.sid, d);
       });
       // размер — в PTY не на каждый пиксель перетаскивания, а последним значением (оболочка перерисовывается раз)
@@ -268,6 +270,7 @@ class Pane {
     p.registerOscHandler(133, (data) => {
       const [kind, arg] = data.split(";");
       const buf = this.term.buffer.active;
+      this.integrated = true;                                  // интеграция оболочки работает
       if (kind === "A") {
         this.promptMarker = this.term.registerMarker(0);
         this.atPrompt = true;
@@ -1333,9 +1336,17 @@ HY.stream(["state", "mouth"], {
 }, HY.haoticaUrl);
 
 // мини-чат под аватаром: тот же чат, что во вкладке HAOTICA справа и в окне ассистента
+const WIN_ID = Math.random().toString(36).slice(2, 10);     // это окно (команды Haotica выполняет одно окно)
+// оболочка, в которую пойдут команды Haotica: своя вкладка «HAOTICA» (или профиль по умолчанию, пока её нет) либо текущая
+function execProfile() {
+  if ((SET().haotica_tab || "separate") === "active") return cur() ? cur().profile : profileOf(state.defaultProfile);
+  const t = state.tabs.find((x) => x.name === "HAOTICA");
+  return t ? t.pane.profile : profileOf(state.defaultProfile);
+}
 const chat = new ChatView($("chat"), {
   mini: true, source: "terminal", key: "terminal",
-  context: () => { const t = cur(); return { cwd: t ? t.cwd : "", shell: t ? t.kind : "", os: IS_WIN ? "windows" : "linux", pane: t ? t.id : "" }; },
+  context: () => { const t = cur(), p = execProfile();
+    return { cwd: t ? t.cwd : "", shell: p.kind, shell_name: p.name || "", os: IS_WIN ? "windows" : "linux", pane: t ? t.id : "", win: WIN_ID }; },
   onRun: (code) => cur() && cur().input(code.replace(/\r?\n/g, IS_WIN ? "\r" : "\n") + "\r"),
   onInsert: (code) => cur() && cur().input(code),
   onExpand: (id) => { showPanel("haotica"); hPost({ type: "open-chat", chat: id }); },
@@ -1362,12 +1373,22 @@ function haoticaPane(where) {
   }
   return t.pane;
 }
+// Команду выполняет одно окно: то, из которого спросили, — сразу; остальные — только если оно не взялось (закрыто).
+async function claim(x) {
+  if (x.win && x.win !== WIN_ID) await new Promise((r) => setTimeout(r, 1500));
+  const r = await HY.haotica("POST", "/api/terminal/claim", { exec_id: x.id, win: WIN_ID });
+  return !!(r && r.ok);
+}
 async function onExec(x) {
+  if (!(await claim(x))) return;
   const pane = haoticaPane(x.tab === "active" ? "active" : "haotica");
   const fail = (error, exit = -2) => HY.haotica("POST", "/api/terminal/result", { exec_id: x.id, exit, error, duration: 0, cwd: pane ? pane.cwd : "" });
   if (!pane) return fail("нет вкладки");
   const ready = await pane.waitPrompt(20000);
-  if (!ready || pane.cur) return fail("вкладка занята другой программой");
+  if (!ready && !pane.integrated)
+    return fail(`интеграция оболочки (${pane.profile.name || pane.kind}) не загрузилась: терминал не видит конца команд. ` +
+      "Открой вкладку PowerShell или cmd и проверь haotica doctor");
+  if (!ready || pane.cur) return fail(`вкладка занята: ${pane.cur && pane.cur.cmd ? "выполняется «" + pane.cur.cmd.slice(0, 80) + "»" : "оболочка не вернулась к приглашению"}`);
   if (pane.term.buffer.active.type === "alternate") return fail("во вкладке открыта полноэкранная программа");
   execs.set(x.id, { pane, t0: performance.now() });
   pane.execId = x.id;
@@ -1391,9 +1412,26 @@ HY.on("block", ({ pane, block }) => {
   HY.haotica("POST", "/api/terminal/result", { exec_id: block.exec, exit: block.code, duration: Math.round(block.ms), cwd: block.cwd || pane.cwd,
     output_tail: block.alt ? "" : pane.output(block, 300).slice(-12000), alt: !!block.alt });
 });
-HY.stream(["exec", "exec_cancel"], {
+// Haotica смотрит на терминал: последние строки экрана и блоки команд (вывод вычищается от секретов в агенте)
+async function onTermRead(x) {
+  if (!(await claim(x))) return;
+  let pane = cur();
+  if (x.tab === "haotica") { const t = state.tabs.find((v) => v.name === "HAOTICA"); if (t) pane = t.pane; }
+  const reply = (d) => HY.haotica("POST", "/api/terminal/result", { exec_id: x.id, ...d });
+  if (!pane) return reply({ error: "нет открытых вкладок" });
+  const buf = pane.term.buffer.active, n = Math.max(5, Math.min(400, +x.lines || 80));
+  const end = buf.baseY + buf.cursorY + 1, lines = [];
+  for (let y = Math.max(0, end - n); y < end; y++) { const l = buf.getLine(y); if (l) lines.push(l.translateToString(true)); }
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  const blocks = pane.blocks.slice(-8).map((b) => ({ cmd: b.cmd, exit: b.code, ms: Math.round(b.ms || 0), cwd: b.cwd, by_haotica: !!b.exec }));
+  reply({ screen: lines.join("\n"), blocks, cwd: pane.cwd, shell: pane.kind, profile: pane.profile.name || "",
+    tab: pane.tab.name || shortTitle(pane.tab), running: pane.cur ? pane.cur.cmd || "команда" : "",
+    alt: buf.type === "alternate", tabs: state.tabs.map((t) => t.name || shortTitle(t)) });
+}
+HY.stream(["exec", "exec_cancel", "term_read"], {
   exec: (x) => onExec(x),
   exec_cancel: (x) => { const e = execs.get(x.id); if (e && e.pane.sid) HY.bridge.ptyWrite(e.pane.sid, "\x03"); },
+  term_read: (x) => onTermRead(x),
 }, HY.haoticaUrl);
 
 window.addEventListener("message", (e) => {

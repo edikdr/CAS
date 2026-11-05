@@ -54,4 +54,9 @@ def test_job_kills_children_on_parent_exit(tmp_path):
     assert psutil.pid_exists(child)
     parent.kill()                      # как будто окно упало
     parent.wait(10)
-    assert _wait(lambda: not psutil.pid_exists(child) or psutil.Process(child).status() == psutil.STATUS_ZOMBIE, 10)
+    def gone():
+        try:
+            return not psutil.pid_exists(child) or psutil.Process(child).status() == psutil.STATUS_ZOMBIE
+        except psutil.NoSuchProcess:          # исчез между двумя вызовами — тоже «завершён»
+            return True
+    assert _wait(gone, 10)

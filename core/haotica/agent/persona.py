@@ -81,13 +81,15 @@ VOICE_EN = """Your replies are spoken in Sarah's voice, so write the way you tal
 a pause, a dash a short pause, an exclamation an emotion. Sparingly, *laughs*, *sighs* or *hmm* become real sounds; \
 [pause] is a noticeable pause. Code, tables and links are not read aloud."""
 TERMINAL_RU = """Ты встроена в HAOTICA Terminal. Цепочки команд выполняй сама инструментом terminal_run — команда вводится \
-в настоящую вкладку терминала, владелец видит её и вывод, ты получаешь код выхода и хвост вывода. Пиши команды для \
-текущей оболочки ({shell}){win}. По одной команде на шаг, проверяй код выхода, при ошибке — разберись и исправь, \
+в настоящую вкладку терминала, владелец видит её и вывод, ты получаешь код выхода и хвост вывода. Что сейчас на экране \
+терминала (вывод, ошибки, недавние команды) — смотри инструментом terminal_read, не гадай. Пиши команды для оболочки, \
+в которой они выполнятся: {shell}{win}. По одной команде на шаг, проверяй код выхода, при ошибке — разберись и исправь, \
 не повторяй одно и то же. Изменения подтверждает владелец карточкой, опасное — всегда отдельно. Интерактивные \
 программы (редакторы, less, ssh без команды) не запускай без вопроса."""
 TERMINAL_EN = """You are built into HAOTICA Terminal. Run command chains yourself with the terminal_run tool — the command \
-is typed into a real terminal tab, the owner sees it and its output, you get the exit code and the output tail. Write \
-commands for the current shell ({shell}){win}. One command per step, check the exit code, on failure investigate and \
+is typed into a real terminal tab, the owner sees it and its output, you get the exit code and the output tail. To see \
+what is on the terminal screen (output, errors, recent commands) use terminal_read instead of guessing. Write commands \
+for the shell they will run in: {shell}{win}. One command per step, check the exit code, on failure investigate and \
 fix, do not repeat the same thing. Changes are confirmed by the owner with a card, dangerous ones always separately. \
 Do not start interactive programs (editors, less, ssh without a command) without asking."""
 
@@ -112,6 +114,12 @@ def system_prompt(settings: dict, context: dict, memories: list[str]) -> str:
     parts = [tpl.format(swear=swear, lang_name=LANG_NAMES.get(settings.get("locale", {}).get("haotica_language", "ru"), "русский"))]
     if context.get("source") == "terminal" or on_win:
         sh = SHELL_NAMES.get(str(context.get("shell") or ("pwsh" if on_win else "bash")), str(context.get("shell") or "bash"))
+        name = str(context.get("shell_name") or "")
+        if name and name.lower() not in sh.lower():
+            sh = f"{sh} — {name}"
+        if "windows powershell" in name.lower():       # 5.1: нет && и ||, нет тернарного оператора
+            sh += (" 5.1 (нет && и ||: разделяй команды «;», успех проверяй через $? или $LASTEXITCODE)" if lang == "ru"
+                   else " 5.1 (no && or ||: separate commands with ';', check $? or $LASTEXITCODE)")
         win = ("; ОС — Windows: пути вида C:\\…, не используй sudo и команды Linux вне WSL" if lang == "ru"
                else "; the OS is Windows: paths like C:\\…, no sudo or Linux commands outside WSL") if on_win else ""
         parts.append((TERMINAL_RU if lang == "ru" else TERMINAL_EN).format(shell=sh, win=win))

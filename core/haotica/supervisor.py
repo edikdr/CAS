@@ -112,6 +112,10 @@ def python_argv(module: str) -> list[str]:
     return [exe, "-m", module]
 
 
+def _short(arg: str) -> str:
+    return arg if len(arg) <= 200 else arg[:60] + f"…({len(arg)} симв.)"
+
+
 def port_open(port: int, host: str = paths.HOST, timeout: float = 0.3) -> bool:
     try:
         with socket.create_connection((host, port), timeout=timeout):
@@ -163,14 +167,20 @@ class Supervisor:
 
     def _spawn(self, svc: Service) -> None:
         paths.LOG_DIR.mkdir(parents=True, exist_ok=True)
+        try:                                           # журнал не растёт бесконечно: больше 5 МБ — в <имя>.log.1
+            if svc.log_file.stat().st_size > 5_000_000:
+                svc.log_file.replace(svc.log_file.with_name(svc.log_file.name + ".1"))
+        except OSError:
+            pass
         logf = open(svc.log_file, "ab", buffering=0)  # noqa: SIM115 — живёт вместе с процессом
-        logf.write(f"\n── {time.strftime('%Y-%m-%d %H:%M:%S')} start: {' '.join(svc.argv)}\n".encode())
+        logf.write(f"\n── {time.strftime('%Y-%m-%d %H:%M:%S')} start: {' '.join(_short(a) for a in svc.argv)}\n".encode())
         kw: dict = {}
         if IS_WINDOWS:
             kw["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | getattr(subprocess, "CREATE_NO_WINDOW", 0)
         else:
             kw["start_new_session"] = True
-        env = {**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8", **svc.env}
+        # stderr процесса уже идёт в этот журнал — сам процесс второй раз в файл не пишет (иначе строки перемешиваются)
+        env = {**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8", "HAOTICA_LOG_TO_STDERR": "1", **svc.env}
         svc.proc = subprocess.Popen(svc.argv, stdin=subprocess.DEVNULL, stdout=logf, stderr=subprocess.STDOUT,
                                     cwd=svc.cwd or None, env=env, **kw)
         logf.close()

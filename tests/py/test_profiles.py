@@ -28,8 +28,12 @@ def test_detect_has_default():
 @pytest.mark.skipif(os.name != "nt", reason="Windows")
 def test_build_pwsh_integration():
     pr = [p for p in profiles.detect() if p["kind"] == "pwsh"]
+    import base64
     argv, env, cwd, prof = profiles.build(pr[0]["id"], "~", "test")
-    assert "-NoExit" in argv and any("haotica.ps1" in a for a in argv)
+    assert "-NoExit" in argv and "-EncodedCommand" in argv
+    code = base64.b64decode(argv[argv.index("-EncodedCommand") + 1]).decode("utf-16-le")
+    assert "133;A" in code and "function global:prompt" in code      # интеграция — текстом, не файлом .ps1
+    assert sum(len(a) for a in argv) < 30000, "предел длины командной строки Windows"
     assert env["TERM_PROGRAM"] == "haotica" and os.path.isdir(cwd)
 
 

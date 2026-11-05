@@ -41,7 +41,8 @@ class Session(QObject):
     def _start(self, argv, env, cwd) -> ConPtyProcess:
         self.tried.append(self.profile["id"])
         self.t0 = time.monotonic()
-        log.info("оболочка %s: %s (cwd %s)", self.profile["id"], argv, cwd)
+        log.info("оболочка %s: %s (cwd %s)", self.profile["id"],
+                 [a if len(a) <= 200 else a[:40] + f"…({len(a)} симв.)" for a in argv], cwd)
         return ConPtyProcess(argv, env, cwd, self.size[0], self.size[1], self._data.emit, self._exit.emit)
 
     def _fallback(self, code: int) -> bool:

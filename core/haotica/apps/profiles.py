@@ -6,6 +6,7 @@ Linux: оболочка пользователя (zsh/bash) и остальны�
 """
 from __future__ import annotations
 
+import base64
 import os
 import shlex
 import shutil
@@ -175,7 +176,8 @@ def build(profile_id: str, cwd: str, sid: str) -> tuple[list[str], dict, str, di
     env = dict(os.environ)
     env.update({"TERM": "xterm-256color", "COLORTERM": "truecolor", "TERM_PROGRAM": "haotica",
                 "TERM_PROGRAM_VERSION": __version__, "HAOTICA_TERM_SESSION": sid})
-    env.pop("HAOTICA_DEBUG", None)
+    for k in ("HAOTICA_DEBUG", "HAOTICA_LOG_TO_STDERR"):
+        env.pop(k, None)
     env.update(prof.get("env") or {})
     cwd = os.path.expanduser(cwd or prof.get("cwd") or "~")
     if not os.path.isdir(cwd):
@@ -184,12 +186,13 @@ def build(profile_id: str, cwd: str, sid: str) -> tuple[list[str], dict, str, di
     if kind == "custom":
         argv = _split(prof["command"])
     elif kind == "pwsh":
-        script = INTEGRATION / "pwsh" / "haotica.ps1"
         argv = [prof["exe"], "-NoLogo", "-NoExit"]
-        if script.is_file():
-            # как в VS Code: подключаем свой файл после профиля пользователя; если политика запуска
-            # скриптов запрещает файлы — терминал работает без блоков команд, политика не меняется
-            argv += ["-Command", f"try {{ . '{_ps_quote(str(script))}' }} catch {{ }}"]
+        code = pwsh_integration()
+        if code:
+            # интеграция — текстом команды (-EncodedCommand), а не файлом .ps1: при политике Restricted
+            # (Windows 11 по умолчанию) файл не загружается, и Haotica не видела бы конца команд.
+            # Политика запуска не меняется: скрипты пользователя в этой вкладке подчиняются ей как везде.
+            argv += ["-EncodedCommand", base64.b64encode(code.encode("utf-16-le")).decode("ascii")]
     elif kind == "cmd":
         env["PROMPT"] = CMD_PROMPT.format(host=socket.gethostname())
         argv = [prof["exe"], "/K", "chcp 65001>nul"]
@@ -217,6 +220,23 @@ def build(profile_id: str, cwd: str, sid: str) -> tuple[list[str], dict, str, di
 
 def _ps_quote(s: str) -> str:
     return s.replace("'", "''")
+
+
+_PWSH_CODE: dict[str, str] = {}
+
+
+def pwsh_integration() -> str:
+    """Текст интеграции PowerShell (OSC 133/7/7777) для -EncodedCommand: без комментариев и пустых строк,
+    чтобы командная строка была короче (предел Windows — 32 767 символов)."""
+    script = INTEGRATION / "pwsh" / "haotica.ps1"
+    key = str(script)
+    if key not in _PWSH_CODE:
+        try:
+            lines = script.read_text(encoding="utf-8-sig").splitlines()
+        except OSError:
+            return ""
+        _PWSH_CODE[key] = "\n".join(ln for ln in lines if ln.strip() and not ln.lstrip().startswith("#"))
+    return _PWSH_CODE[key]
 
 
 def _split(command: str) -> list[str]:

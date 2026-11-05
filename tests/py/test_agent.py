@@ -52,7 +52,7 @@ def run(coro):
 
 async def _terminal(sess, log, accept="plan", stop_after=None):
     """Изображает терминал: принимает exec, отвечает результатом; карточки принимает/отклоняет."""
-    async with sess.get(BASE + "/api/stream?topics=exec,card,exec_cancel") as r:
+    async with sess.get(BASE + "/api/stream?topics=exec,card,exec_cancel,term_read") as r:
         ev = ""
         async for raw in r.content:
             line = raw.decode().strip()
@@ -61,10 +61,20 @@ async def _terminal(sess, log, accept="plan", stop_after=None):
             elif line.startswith("data:"):
                 d = json.loads(line[5:])
                 log.append((ev, d))
+                if ev in ("exec", "term_read"):
+                    c = await sess.post(BASE + "/api/terminal/claim", json={"exec_id": d["id"], "win": "w1"})
+                    log.append(("claim", {"status": c.status}))
+                    c2 = await sess.post(BASE + "/api/terminal/claim", json={"exec_id": d["id"], "win": "w2"})
+                    log.append(("claim2", {"status": c2.status}))
                 if ev == "exec":
                     code = 3 if "fail" in d["command"] else 0
                     await sess.post(BASE + "/api/terminal/result", json={"exec_id": d["id"], "exit": code, "duration": 12,
                                                                           "cwd": "C:\\proj", "output_tail": f"ok {d['command']}"})
+                elif ev == "term_read":
+                    await sess.post(BASE + "/api/terminal/result", json={
+                        "exec_id": d["id"], "screen": "PS C:\\proj> npm test\nError: token=ghp_abcdefghijklmnopqrstuvwxyz0123456789\n",
+                        "blocks": [{"cmd": "npm test", "exit": 1, "ms": 900, "cwd": "C:\\proj"}], "cwd": "C:\\proj",
+                        "shell": "pwsh", "tab": "SESSION 1", "tabs": ["SESSION 1"]})
                 elif ev == "card":
                     act = accept if d.get("risk", {}).get("level") != "danger" else "reject"
                     await sess.post(BASE + f"/api/card/{d['id']}/{act}", json={})
@@ -125,6 +135,30 @@ def test_terminal_chain_with_plan_approval(env):
             hist = agent.memory.history("t1", 10)
             assert hist[-1]["extra"]["steps"][1]["command"].startswith("New-Item")
             assert (paths.LOG_DIR / "agent-steps.jsonl").exists()
+        finally:
+            term.cancel()
+            await teardown(runners, s)
+    run(go())
+
+
+def test_terminal_read_and_single_window_claim(env):
+    setup, teardown = env
+
+    async def go():
+        runners, agent, s = await setup()
+        log = []
+        term = asyncio.create_task(_terminal(s, log))
+        await asyncio.sleep(0.3)
+        try:
+            r = await (await s.post(BASE + "/api/chat", json={
+                "text": '[[tool:terminal_read {"lines": 50}]]', "chat": "t5", "source": "terminal",
+                "context": {"shell": "pwsh", "win": "w1"}, "wait": True})).json()
+            assert r["ok"] and r["steps"][0]["tool"] == "terminal_read" and r["steps"][0]["ok"], r
+            assert [d["status"] for ev, d in log if ev == "claim"] == [200]
+            assert [d["status"] for ev, d in log if ev == "claim2"] == [409], "второе окно не должно брать ту же команду"
+            res = await agent.terminal_read({}, {"win": "w1"})
+            assert "npm test" in res["screen"] and res["blocks"][0]["exit"] == 1
+            assert "ghp_abcdefghijklmnopqrstuvwxyz0123456789" not in json.dumps(res), "секрет с экрана не уходит модели"
         finally:
             term.cancel()
             await teardown(runners, s)

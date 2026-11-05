@@ -72,6 +72,30 @@ def test_pwsh_blocks_and_exit_codes():
     assert c.code is not None
 
 
+def test_pwsh_integration_under_restricted_policy(monkeypatch):
+    """Windows 11 по умолчанию: политика Restricted — файлы .ps1 не запускаются. Интеграция всё равно должна
+    работать (она передаётся текстом команды), а политика для скриптов владельца — остаться прежней."""
+    monkeypatch.setenv("PSExecutionPolicyPreference", "Restricted")
+    proc, c = _spawn("pwsh")
+    try:
+        assert c.wait("\x1b]133;A"), "при Restricted нет OSC 133 A: " + repr(c.buf[-400:])
+        proc.write("Get-ExecutionPolicy\r")
+        assert c.wait("\x1b]133;D;0"), repr(c.buf[-400:])
+        assert "Restricted" in c.buf, "политика запуска не должна меняться: " + repr(c.buf[-400:])
+    finally:
+        proc.kill()
+
+
+def test_pwsh_argv_has_no_policy_bypass():
+    from haotica.apps import profiles
+    for p in profiles.detect():
+        if p["kind"] == "pwsh":
+            argv, _env, _cwd, _p = profiles.build(p["id"], "", "t")
+            low = [a.lower() for a in argv]
+            assert "-executionpolicy" not in low and "bypass" not in low, argv
+            assert "-encodedcommand" in low, argv
+
+
 def test_cmd_cwd():
     proc, c = _spawn("cmd")
     try:

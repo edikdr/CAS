@@ -17,8 +17,9 @@ def main() -> int:
     logging.basicConfig(
         level=logging.DEBUG if os.environ.get("HAOTICA_DEBUG") else logging.INFO,
         format="%(asctime)s %(levelname).1s %(name)s: %(message)s",
-        handlers=[logging.StreamHandler(sys.stderr),
-                  logging.FileHandler(paths.LOG_DIR / "core.log", encoding="utf-8")],
+        handlers=[logging.StreamHandler(sys.stderr)] + (    # под супервизором stderr уже пишется в core.log
+            [] if os.environ.get("HAOTICA_LOG_TO_STDERR") == "1"
+            else [logging.FileHandler(paths.LOG_DIR / "core.log", encoding="utf-8")]),
     )
     for noisy in ("aiohttp.access",):
         logging.getLogger(noisy).setLevel(logging.WARNING)

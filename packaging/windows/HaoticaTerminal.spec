@@ -28,6 +28,7 @@ excludes = ["tkinter", "torch", "matplotlib", "IPython", "pytest"]
 icon = str(ROOT / "assets" / "icons" / "haotica.ico") if (ROOT / "assets" / "icons" / "haotica.ico").exists() else None
 
 a1 = Analysis([str(ROOT / "packaging/windows/entry_terminal.py")], pathex=[str(ROOT / "core"), str(ROOT / "packaging/windows")], datas=datas,
+              binaries=_wp_bins,
               hiddenimports=hidden, excludes=excludes)
 a2 = Analysis([str(ROOT / "packaging/windows/entry_cli.py")], pathex=[str(ROOT / "core"), str(ROOT / "packaging/windows")], hiddenimports=hidden,
               excludes=excludes + ["PySide6"])
@@ -35,4 +36,4 @@ pyz1, pyz2 = PYZ(a1.pure), PYZ(a2.pure)
 exe1 = EXE(pyz1, a1.scripts, [], exclude_binaries=True, name="HaoticaTerminal", console=False, icon=icon,
            version=None, uac_admin=False)
 exe2 = EXE(pyz2, a2.scripts, [], exclude_binaries=True, name="haotica", console=True, icon=icon, uac_admin=False)
-coll = COLLECT(exe1, a1.binaries + _wp_bins, a1.datas, exe2, a2.binaries, a2.datas, name="HaoticaTerminal")
+coll = COLLECT(exe1, a1.binaries, a1.datas, exe2, a2.binaries, a2.datas, name="HaoticaTerminal")

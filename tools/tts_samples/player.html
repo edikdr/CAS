@@ -65,6 +65,16 @@ button { font: inherit; color: inherit; }
 .btn { border: 1px solid var(--amber); background: var(--amber); color: var(--bg); padding: 8px 12px; cursor: pointer; font: 600 12px var(--f-mono); letter-spacing: .12em; justify-self: start; }
 .btn.ghost { background: transparent; color: var(--amber); }
 .note { font: 12px var(--f-mono); color: var(--dim); }
+.demo { border: 1px solid var(--violet); background: var(--panel); padding: 14px 16px; display: grid; gap: 10px; }
+.demo .dh { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font: 600 12px var(--f-mono); letter-spacing: .16em; color: var(--violet); }
+.pl.wide { width: auto; padding: 0 14px; }
+.dtext { margin: 0; white-space: pre-wrap; font: 13px/1.55 var(--f-body); color: var(--ink); border-left: 2px solid var(--line-hi); padding-left: 12px; }
+details summary { cursor: pointer; font: 12px var(--f-mono); color: var(--amber); }
+.tbl { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; font: 12px var(--f-mono); font-variant-numeric: tabular-nums; min-width: 560px; }
+th, td { border-bottom: 1px solid var(--line); padding: 6px 10px; text-align: left; }
+th { color: var(--dim); font-weight: 600; letter-spacing: .08em; }
+tr.best td { color: var(--amber); }
 .kbd { border: 1px solid var(--line-hi); padding: 0 5px; font: 11px var(--f-mono); color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 @media (max-width: 560px) {
@@ -83,6 +93,17 @@ button { font: inherit; color: inherit; }
     <div class="ref"><span>ОБРАЗЕЦ САРЫ</span><button class="pl" id="ref" aria-label="Образец голоса Сары">▶</button>
       <span class="note">так должен звучать клон (запись ElevenLabs, 12 с)</span></div>
   </header>
+  <section class="demo" id="demo" hidden>
+    <div class="dh"><span>ДЕМО // ГОЛОС САРЫ ПО УМОЛЧАНИЮ</span><button class="pl wide" id="demoplay">▶ СЛУШАТЬ</button></div>
+    <p class="note">Ответ Haotica целиком: паузы между фразами и после «…», интонация вопроса, восклицания и предупреждения,
+      темп по смыслу, записанные эмоции Сары (*хмыкает*, *смеётся*). Код и ссылки вслух не читаются.</p>
+    <pre class="dtext" id="demotext"></pre>
+    <details id="evald"><summary>Итоги объективной оценки — раскрывает буквы</summary>
+      <div class="tbl"><table id="evalt"><thead><tr><th>Голос</th><th>Движок</th><th>Ошибки рус.</th><th>Ошибки en/de</th><th>Похожесть на Сару</th><th>Итог</th></tr></thead><tbody></tbody></table></div>
+      <p class="note">Ошибки — доля неверно распознанных символов (Whisper), похожесть — сходство тембра с эталоном (ECAPA; эталон
+        сам с собой — <b id="selfsim"></b>). Итог: русский 50 %, Сара 35 %, en/de 15 %.</p>
+    </details>
+  </section>
   <div class="layout">
     <section class="matrix" aria-label="Фразы и голоса">
       <div class="mhead" id="mhead"><div>ФРАЗА</div></div>
@@ -168,5 +189,21 @@ $("copy").onclick = () => {
   navigator.clipboard.writeText(t).then(() => { $("copy").textContent = "СКОПИРОВАНО"; setTimeout(() => { $("copy").textContent = "КОПИРОВАТЬ ИТОГ"; }, 1500); })
     .catch(() => { const r = document.createRange(); r.selectNodeContents($("out")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); });
 };
+if (D.demo) {
+  $("demo").hidden = false;
+  $("demotext").textContent = D.demo.text;
+  $("demoplay").onclick = (e) => play(e.currentTarget, D.demo.src);
+}
+if (D.eval) {
+  $("selfsim").textContent = D.eval.self.toFixed(2);
+  const rows = D.eval.rows.slice().sort((a, b) => b.score - a.score);
+  $("evalt").querySelector("tbody").replaceChildren(...rows.map((r, i) => {
+    const tr = document.createElement("tr"); if (i === 0) tr.className = "best";
+    for (const v of [r.letter, r.label, (r.cer_ru * 100).toFixed(1) + " %", (r.cer_en_de * 100).toFixed(1) + " %", r.sim.toFixed(2), r.score.toFixed(3)]) {
+      const td = document.createElement("td"); td.textContent = v; tr.append(td);
+    }
+    return tr;
+  }));
+} else { $("evald").hidden = true; }
 render();
 </script>

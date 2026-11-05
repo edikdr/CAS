@@ -16,6 +16,9 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+import sys  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).parent))
 OUT = ROOT / "samples/tts"
 PHRASES = json.loads((Path(__file__).with_name("phrases.json")).read_text(encoding="utf-8"))
 SEED = 20261105
@@ -45,7 +48,18 @@ def build(embed: bool) -> str:
         return path.relative_to(OUT).as_posix()
     audio = {L: {p["id"]: src(OUT / key[L] / f"{p['id']}.ogg") for p in PHRASES} for L in letters}
     data = {"letters": list(letters), "phrases": [{k: p[k] for k in ("id", "lang", "what", "text")} for p in PHRASES],
-            "audio": audio, "ref": src(ref_ogg())}
+            "audio": audio, "ref": src(ref_ogg()), "demo": None, "eval": None}
+    demo = OUT / "demo_sarah.ogg"
+    if demo.exists():
+        from demo import TEXT  # noqa: PLC0415 — текст демо — из генератора
+        data["demo"] = {"src": src(demo), "text": TEXT}
+    ev = OUT / "eval.json"
+    if ev.exists():
+        e = json.loads(ev.read_text(encoding="utf-8"))
+        inv = {v: k for k, v in key.items()}
+        data["eval"] = {"self": e.get("self_similarity", 1.0), "rows": [
+            {"letter": inv.get(name, "?"), "label": v["label"], "cer_ru": v["cer_ru"], "cer_en_de": v["cer_en_de"],
+             "sim": v["sarah_similarity"], "score": v["score"]} for name, v in e["engines"].items() if name in inv]}
     tpl = Path(__file__).with_name("player.html").read_text(encoding="utf-8")
     return tpl.replace("/*DATA*/null", json.dumps(data, ensure_ascii=False)).replace("{{N}}", str(len(letters)))
 

@@ -16,18 +16,14 @@ log = logging.getLogger("haotica.conpty")
 PAUSE_AT, RESUME_AT = 4_000_000, 1_000_000
 
 
-def _cmdline(argv: list[str]) -> str:
-    import subprocess
-    return argv[0] if len(argv) == 1 else subprocess.list2cmdline(argv)
-
-
 class ConPtyProcess:
     def __init__(self, argv: list[str], env: dict, cwd: str, cols: int, rows: int,
                  on_data: Callable[[str], None], on_exit: Callable[[int], None]) -> None:
         from winpty import PtyProcess
         self.on_data, self.on_exit = on_data, on_exit
         cols, rows = max(2, min(1000, cols)), max(1, min(500, rows))
-        self.proc = PtyProcess.spawn(_cmdline(argv), cwd=cwd, env=env, dimensions=(rows, cols))
+        # список, а не строка: pywinpty сам соберёт командную строку (list2cmdline) и найдёт exe
+        self.proc = PtyProcess.spawn(list(argv), cwd=cwd, env=env, dimensions=(rows, cols))
         self.pid = self.proc.pid
         self.unacked = 0
         self.lock = threading.Lock()

@@ -37,16 +37,17 @@ def test_start_stop_restart(tmp_path):
 @pytest.mark.skipif(os.name != "nt", reason="Job Object — только Windows")
 def test_job_kills_children_on_parent_exit(tmp_path):
     pidfile = tmp_path / "child.pid"
-    script = textwrap.dedent(f"""
-        import sys, time
-        sys.path.insert(0, r"{os.path.join(os.path.dirname(supervisor.__file__), '..')}")
+    script = textwrap.dedent("""
+        import os, sys, time
+        sys.path.insert(0, os.environ["HY_CORE"])
         from haotica import supervisor
         sup = supervisor.get()
-        sup.add("child", [sys.executable, "-c", "import os,time; open(r'{pidfile}','w').write(str(os.getpid())); time.sleep(120)"])
+        sup.add("child", [sys.executable, "-c", "import os,time; open(os.environ['HY_PID'],'w').write(str(os.getpid())); time.sleep(120)"])
         sup.start("child")
         time.sleep(120)
     """)
-    parent = subprocess.Popen([sys.executable, "-c", script])
+    env = {**os.environ, "HY_CORE": os.path.join(os.path.dirname(supervisor.__file__), ".."), "HY_PID": str(pidfile)}
+    parent = subprocess.Popen([sys.executable, "-c", script], env=env)
     assert _wait(lambda: pidfile.exists() and pidfile.read_text().strip(), 20)
     child = int(pidfile.read_text())
     import psutil

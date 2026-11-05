@@ -185,8 +185,9 @@ def _ps_quote(s: str) -> str:
 
 
 def _split(command: str) -> list[str]:
-    if IS_WINDOWS:
-        return [command]                       # строка целиком: CreateProcess разберёт её сам
+    if IS_WINDOWS:                             # правила Windows: обратные слэши — не экранирование
+        parts = shlex.split(command, posix=False)
+        return [p[1:-1] if len(p) > 1 and p[0] == p[-1] == '"' else p for p in parts]
     return shlex.split(command)
 
 

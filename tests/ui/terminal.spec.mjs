@@ -44,7 +44,7 @@ async function open(opts = {}) {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message + " @ " + String(e.stack || "").split("\n").slice(1, 3).join(" <- ")));
   page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource|ERR_CONNECTION_REFUSED|47810/.test(m.text())) errors.push(m.text()); });
-  await page.addInitScript(`window.__MOCK = ${JSON.stringify({ token, args: opts.args || [] })};\n${MOCK}`);
+  await page.addInitScript(`window.__MOCK = ${JSON.stringify({ token, args: opts.args || [], wizard: !!opts.wizard })};\n${MOCK}`);
   await page.addInitScript(() => { try { if (!sessionStorage.getItem("hy-keep")) localStorage.clear(); } catch (e) { /* */ } });
   await page.goto(`${CORE}/apps/terminal/index.html?token=${token}`);
   await page.waitForFunction(() => window.__hyterm && window.__hyterm.tabs.length > 0 && Object.keys(window.__writes || {}).length > 0, null, { timeout: 15000 });
@@ -319,6 +319,25 @@ test("правая кнопка — меню; на Windows скрыты Linux-п
   await p.keyboard.press("Escape");
   assert(await p.locator("#globe.hidden").count() === 1, "глобус Network Recon скрыт");
 });
+
+test("мастер первого запуска: шаги, выбор оболочки, «позже»", "T-71", async (p) => {
+  await p.locator(".wz").waitFor({ timeout: 8000 });
+  assert((await p.locator(".wz-chk").innerText()).includes("ОБОЛОЧКИ"), "проверка системы");
+  await p.locator(".wz >> text=ДАЛЕЕ").click();
+  await p.locator(".wz-model").first().waitFor();
+  assert(await p.locator(".wz-model").count() === 3, "три модели");
+  await p.locator(".wz >> text=ДАЛЕЕ").click();
+  await p.locator(".wz-prof >> text=Командная строка").click();
+  await p.waitForTimeout(400);
+  const s = await (await fetch(CORE + "/api/settings", { headers: { "X-Haotica-Token": token } })).json();
+  assert(s.settings.terminal.default_profile === "cmd", "профиль по умолчанию сохранён");
+  await p.locator(".wz >> text=ПОЗЖЕ").click();
+  await p.waitForTimeout(300);
+  assert(await p.locator(".wz").count() === 0, "закрыт");
+  const d = await (await fetch(CORE + "/api/doctor", { headers: { "X-Haotica-Token": token } })).json();
+  assert(d.wizard_done, "отметка wizard.done");
+  await fetch(CORE + "/api/settings", { method: "POST", headers: { "X-Haotica-Token": token, "Content-Type": "application/json" }, body: JSON.stringify({ changes: { "terminal.default_profile": "" } }) });
+}, { wizard: true });
 
 // ── запуск ───────────────────────────────────────────────────────
 const core = await startCore();

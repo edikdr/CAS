@@ -1457,6 +1457,8 @@ function palette() {
     { label: "Скрытые файлы", key: "", icon: "eye", fn: () => { state.hidden = !state.hidden; loadDir(state.dir); showPanel("files"); } },
     FEAT.power_profiles ? { label: "Режим питания…", key: "", icon: "bolt", fn: palettePower } : null,
     { label: HY.t("settings"), key: "", icon: "settings", fn: () => HY.openApp("settings", ["--page", "terminal"]) },
+    { label: "Мастер первого запуска", key: "", icon: "sparkle", fn: () => openWizard(true) },
+    { label: "Диагностика (haotica doctor)", key: "", icon: "shield", fn: () => openWizard(true) },
     IS_WIN ? { label: HY.t("admin"), key: "", icon: "shield", fn: () => HY.bridge && HY.bridge.runAsAdmin && HY.bridge.runAsAdmin("[]") } : null,
     { label: "Haotica: разобрать последнюю ошибку", key: "", icon: "haotica", fn: () => {
       const b = t && [...t.blocks].reverse().find((x) => x.code); if (b) askHaotica(t, b); } },
@@ -1556,5 +1558,8 @@ HY.on("message", async (m) => {
   }
 });
 window.addEventListener("beforeunload", saveSession);
+// мастер первого запуска (Windows): система, модели, оболочка, голос, ключи
+const openWizard = (force) => import("./wizard.js").then(({ runWizard }) => runWizard({ profiles: state.profiles, defaultProfile: state.defaultProfile, force })).catch(() => {});
+if (IS_WIN && HY.bridge && !window.__hyNoWizard) setTimeout(() => openWizard(false), 1200);
 bars(); mini(); drawCharts();
 setInterval(drawCharts, 120);

@@ -29,6 +29,9 @@ def port_open(port: int) -> bool:
 
 
 def run() -> int:
+    if os.name == "nt":                     # HAOTICA Terminal для Windows
+        from . import doctor_win
+        return doctor_win.run()
     print(f"\n  {C['warn']}HAOTICA // SYSTEM DIAGNOSTICS{C['rst']}\n")
     fails = 0
     rel = platform.release()

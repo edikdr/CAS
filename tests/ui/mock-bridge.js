@@ -60,6 +60,7 @@
   window.__mock = { sessions, emit: (sid, d) => hy.ptyData.emit(sid, d), exit: (sid, c) => hy.ptyExit.emit(sid, c),
     message: (m) => hy.message.emit(JSON.stringify(m)) };
   window.hy = hy;
+  if (!P.wizard) window.__hyNoWizard = true;
   window.HY_BOOT = { app: "terminal", args: P.args || [], token: P.token, core: location.origin, haotica: "http://127.0.0.1:47810",
     lang: "ru", home: "C:\\Users\\test", user: "test", multi: true, title: "Терминал", platform: "windows", sep: "\\",
     features: { platform: "windows", recon: false, power_profiles: false, updates: false } };

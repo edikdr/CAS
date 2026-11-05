@@ -91,6 +91,18 @@ def create_app(core) -> web.Application:
     async def platform_get(_r):
         return json_ok({"features": platform.features()})
     app.router.add_get("/api/platform", platform_get)
+
+    async def doctor_get(_r):
+        import asyncio as _a
+        from .. import doctor_win
+        return json_ok({"checks": await _a.to_thread(doctor_win.checks), "wizard_done": (paths.STATE_DIR / "wizard.done").exists()})
+
+    async def wizard_done(_r):
+        paths.STATE_DIR.mkdir(parents=True, exist_ok=True)
+        (paths.STATE_DIR / "wizard.done").write_text("1", encoding="utf-8")
+        return json_ok()
+    app.router.add_get("/api/doctor", doctor_get)
+    app.router.add_post("/api/wizard/done", wizard_done)
     apps_root = paths.APPS_DIR
     app.router.add_get("/ui/{path:.*}", _static("/ui", apps_root / "_ui"))
     app.router.add_get("/apps/{path:.*}", _static("/apps", apps_root))

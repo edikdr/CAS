@@ -1,6 +1,9 @@
 # HAOTICA Terminal — инвентаризация интерфейса (W1, T-10…T-17)
 
-Эталон поведения — Windows Terminal / Alacritty. Статус: **OK** — работает; **BUG** — есть, но работает неправильно
+Эталон поведения — Windows Terminal / Alacritty. Итог M2–M8 (ветка `terminal-windows`): строк «не работает» нет;
+автотесты — `tests/ui/terminal.spec.mjs` (24 сценария), `tests/ui/chat.spec.mjs` (7), `tests/py/*` (≈95), прогон на
+Windows — CI `.github/workflows/terminal-windows.yml`. «ручн.» — проверить руками на ноутбуке (IME, мёртвые клавиши,
+мышь в TUI, vttest, кодеки видео). Статус: **OK** — работает; **BUG** — есть, но работает неправильно
 (особенно на Windows); **NO** — нет. Колонка «Тест» — где проверяется (`pw:` — Playwright `tests/ui/terminal.spec.mjs`,
 `py:` — pytest, `ручн.` — вручную на Windows). Состояние «до» — по коду ветки `hyprina-os`; «после» — после M2.
 
@@ -129,7 +132,8 @@
 | ID | Настройка | Ключ `settings.toml` | До | После |
 |---|---|---|---|---|
 | UI-120 | Профиль по умолчанию, профили (оболочка, папка, переменные) | `terminal.default_profile`, `terminal.profiles` | NO | OK |
-| UI-121 | Шрифт, размер, межстрочный интервал, лигатуры | `terminal.font`, `terminal.font_size`, `terminal.line_height`, `terminal.ligatures` | NO | OK |
+| UI-121 | Шрифт, размер, межстрочный интервал | `terminal.font`, `terminal.font_size`, `terminal.line_height` | NO | OK |
+| UI-121a | Лигатуры | `terminal.ligatures` | NO | NO (аддон лигатур xterm не подключён — следующий шаг) |
 | UI-122 | История строк | `terminal.scrollback` | NO | OK |
 | UI-123 | Курсор (форма, мигание) | `terminal.cursor_style`, `terminal.cursor_blink` | NO | OK |
 | UI-124 | Звонок | `terminal.bell` = `sound`/`visual`/`off` | NO | OK |
@@ -137,4 +141,11 @@
 | UI-126 | Восстанавливать вкладки | `terminal.restore_tabs` | NO | OK |
 | UI-127 | CRT и фон | `effects.crt_terminal`, `effects.terminal_art` | OK | OK |
 | UI-128 | Горячие клавиши: просмотр и переопределение | `terminal.keys` (`"ctrl+shift+t" = "newTab"`) | NO | OK |
-| UI-129 | Вкладка Haotica: отдельная/текущая | `haotica.terminal_tab` = `separate`/`active` | NO | OK |
+| UI-129 | Где Haotica выполняет команды: своя вкладка / текущая | `terminal.haotica_tab` = `separate`/`active` | NO | OK |
+
+## 12. Первый запуск и диагностика (T-71, T-72)
+| ID | Элемент | Ожидаемое | После | Тест |
+|---|---|---|---|---|
+| UI-130 | Мастер первого запуска | система → модели (размер, загрузка) → оболочка → голос → ключ; «позже» | OK | pw:wizard |
+| UI-131 | Палитра → «Мастер первого запуска», «Диагностика» | открыть мастер повторно | OK | pw:palette |
+| UI-132 | `haotica doctor` | проверки Windows, коды OK/WARN/FAIL | OK | CI: смоук exe |

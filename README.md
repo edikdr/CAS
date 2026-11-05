@@ -1,5 +1,7 @@
 # HAOTICA OS
 
+> **Windows:** HAOTICA Terminal (терминал + локальный ИИ Haotica) — см. [`docs/WINDOWS.md`](docs/WINDOWS.md), ветка `terminal-windows`.
+
 Arch Linux + Hyprland + Quickshell + локальный ассистент **Haotica** для Lenovo Legion 7 15ASH11
 (Ryzen AI Max+ 392, Radeon 8060S, 64 ГБ). Стиль — кибер-ретро: OLED-чёрный, янтарь/бирюза/фиолет, CRT.
 

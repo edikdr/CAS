@@ -1,5 +1,15 @@
 # HAOTICA — где остановились и что делать дальше
 
+## HAOTICA Terminal для Windows (ветка `terminal-windows`, 2026-11-05)
+Сделано по ТЗ `docs/TZ-terminal-windows.md` (M0–M8), описание — `docs/WINDOWS.md`, кнопки — `docs/UI-INVENTORY.md`.
+Работа шла в облачном Linux-контейнере: Windows-части проверены CI на `windows-latest` (pytest: ConPTY + pwsh/cmd,
+Job Object, keyring, агент с ложной моделью; Playwright; сборка PyInstaller + Inno Setup), но **не на ноутбуке**.
+Проверить на железе: окно Qt (рамка, перетаскивание, трей), ConPTY в окне, AltGr/IME, мышь в TUI, vttest,
+перетаскивание из Проводника, llama.cpp Vulkan на Radeon 8060S (`haotica llama bench`), голос (winsound), установщик.
+Ждёт решения пользователя: победитель слепого теста TTS (`samples/tts/index.html`, ключ — `samples/tts/key.json`)
+→ `haotica.tts_engine` по умолчанию и `haotica voice install <движок>`. HIP-сборка llama.cpp для Windows в релизе
+b12032 не найдена — только Vulkan (HIP можно задать адресом и SHA-256 в настройках).
+
 Состояние на 2026-11-04. Первая установка на Legion 7 15ASH11 (Arch) показала: система поднимается и выглядит как задумано,
 но «сырая». Здесь — известные проблемы, факты о железе и план работы. Читать вместе с `docs/HANDOFF.md`.
 

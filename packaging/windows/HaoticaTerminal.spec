@@ -12,6 +12,12 @@ datas = [
     (str(ROOT / "core" / "haotica" / "defaults.toml"), "haotica"),
     (str(ROOT / "VERSION"), "."),
 ]
+# pywinpty 3: conpty.dll запускает OpenConsole.exe из своей папки. PyInstaller сам берёт только .pyd/.dll —
+# без OpenConsole.exe любая оболочка умирает при старте с 0xC000013A. Кладём всю папку пакета, кроме .py.
+import winpty as _wp  # noqa: E402
+_wpdir = Path(_wp.__file__).parent
+_wp_bins = [(str(f), "winpty") for f in _wpdir.iterdir() if f.suffix.lower() in (".exe", ".dll")]
+assert any(f.name.lower() == "openconsole.exe" for f in _wpdir.iterdir()), "в pywinpty нет OpenConsole.exe"
 for extra in ("icons", "fonts", "avatar"):
     p = ROOT / "assets" / extra
     if p.exists():
@@ -29,4 +35,4 @@ pyz1, pyz2 = PYZ(a1.pure), PYZ(a2.pure)
 exe1 = EXE(pyz1, a1.scripts, [], exclude_binaries=True, name="HaoticaTerminal", console=False, icon=icon,
            version=None, uac_admin=False)
 exe2 = EXE(pyz2, a2.scripts, [], exclude_binaries=True, name="haotica", console=True, icon=icon, uac_admin=False)
-coll = COLLECT(exe1, a1.binaries, a1.datas, exe2, a2.binaries, a2.datas, name="HaoticaTerminal")
+coll = COLLECT(exe1, a1.binaries + _wp_bins, a1.datas, exe2, a2.binaries, a2.datas, name="HaoticaTerminal")

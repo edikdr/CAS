@@ -78,8 +78,8 @@ jobs:
         run: |
           pip install -r packaging/windows/requirements.txt pyinstaller
           pyinstaller packaging/windows/HaoticaTerminal.spec --noconfirm --distpath dist --workpath build
+          if (-not (Test-Path dist\HaoticaTerminal\_internal\winpty\OpenConsole.exe)) { throw "в сборке нет winpty\OpenConsole.exe" }
       - name: Оболочки в оконном exe без консоли (как у пользователя)
-        continue-on-error: true   # пока ищем причину 0xC000013A: сборка установщика не должна блокироваться
         shell: pwsh
         env:
           HAOTICA_HOME: ${{ runner.temp }}\hh-pty
@@ -93,7 +93,7 @@ jobs:
           $bad = @($rows | Where-Object { -not $_.ok })
           if ($bad.Count -or -not $rows) { throw "оболочки не работают в оконном exe: $($bad.id -join ', ')" }
       - name: Сравнение — те же проверки обычным Python (не в exe)
-        continue-on-error: true
+        continue-on-error: true   # только справка: в логе видно, совпадает ли поведение exe и Python
         shell: pwsh
         env:
           HAOTICA_DEV_ROOT: ${{ github.workspace }}
@@ -112,7 +112,7 @@ jobs:
           $doc = & dist\HaoticaTerminal\haotica.exe doctor | Out-String
           Write-Output $doc; Write-Output "doctor: $LASTEXITCODE (на раннере нет моделей и GPU — FAIL ожидаем)"
           $global:LASTEXITCODE = 0
-          if ($doc -match "СТАРТ[^\r\n]*FAIL") { Write-Output "::warning::оболочка не стартует в собранном exe (см. СТАРТ выше)" }
+          if ($doc -match "СТАРТ[^\r\n]*FAIL") { throw "оболочка не стартует в собранном exe (см. СТАРТ выше)" }
           if ($doc -notmatch "СТАРТ") { throw "doctor не проверил старт оболочек" }
           $core = Start-Process dist\HaoticaTerminal\HaoticaTerminal.exe -ArgumentList "--module","haotica.server" -PassThru
           Start-Sleep 10

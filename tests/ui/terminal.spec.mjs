@@ -295,6 +295,20 @@ test("звонок: мигание панели", "UI-59", async (p) => {
   await p.waitForTimeout(50);
   assert(await p.locator(".t-pane.bell").count() === 1, "визуальный звонок");
 });
+test("размер окна: терминал сжимается и растёт, ничего не вылезает за край", "UI-12", async (p) => {
+  const m = () => p.evaluate(() => { const t = window.__hyterm.active.active; const b = t.box.getBoundingClientRect();
+    return { cols: t.term.cols, right: b.right, w: innerWidth, sw: document.documentElement.scrollWidth, pcols: t.fit.proposeDimensions().cols }; });
+  const sizes = [[1920, 1080], [1100, 700], [760, 500], [1500, 900]];
+  let prev = 0;
+  for (const [w, h] of sizes) {
+    await p.setViewportSize({ width: w, height: h });
+    await p.waitForFunction(() => { const t = window.__hyterm.active.active; const d = t.fit.proposeDimensions(); return d && d.cols === t.term.cols; }, null, { timeout: 3000 });
+    const r = await m();
+    assert(r.right <= r.w + 1 && r.sw <= r.w, `при ${w}×${h} терминал за краем окна: ${JSON.stringify(r)}`);
+    if (prev) assert(w < sizes[sizes.findIndex(([x]) => x === w) - 1][0] ? r.cols < prev : r.cols > prev, `колонки не изменились: ${prev} → ${r.cols}`);
+    prev = r.cols;
+  }
+});
 test("перетаскивание файла из Проводника → путь в кавычках PowerShell", "UI-110", async (p) => {
   await clearW(p);
   await p.evaluate(() => {

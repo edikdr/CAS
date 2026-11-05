@@ -155,6 +155,10 @@ class Pane {
     try { this.term.loadAddon(new ImageAddon({ sixelSupport: true, iipSupport: true })); } catch (e) { /* картинки не обязательны */ }
     this.term.unicode.activeVersion = "11";
     this.term.open(this.box);
+    // окно, разделители панелей, скрытие колонок — любое изменение размера панели подгоняет терминал
+    let raf = 0;
+    this.ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { if (this.box.offsetWidth) this.dims(); }); });
+    this.ro.observe(this.box);
     try { const gl = new WebglAddon(); gl.onContextLoss(() => gl.dispose()); this.term.loadAddon(gl); } catch (e) { /* остаётся DOM-рендер */ }
     this.osc();
     this.links();
@@ -182,7 +186,9 @@ class Pane {
         if (this.exited) { if (d === "\r") { this.term.write("\r\n"); this.spawn(); } return; }
         if (this.sid) HY.bridge.ptyWrite(this.sid, d);
       });
-      this.term.onResize(({ cols, rows }) => this.sid && HY.bridge.ptyResize(this.sid, cols, rows));
+      // размер — в PTY не на каждый пиксель перетаскивания, а последним значением (оболочка перерисовывается раз)
+      let rt = 0;
+      this.term.onResize(({ cols, rows }) => { clearTimeout(rt); rt = setTimeout(() => this.sid && HY.bridge.ptyResize(this.sid, this.term.cols, this.term.rows), 40); });
     }
     if (!HY.bridge) {                      // разработка в браузере: без PTY
       this.term.write("\x1b[33mРежим разработки: нет хоста PTY.\x1b[0m\r\n");
@@ -421,7 +427,7 @@ class Pane {
     return new Promise((res) => { (this.waiters ||= []).push(() => res(true)); setTimeout(() => res(false), ms); });
   }
 
-  dispose() { if (this.sid) HY.bridge.ptyKill(this.sid); sessions.delete(this.sid); this.term.dispose(); this.box.remove(); }
+  dispose() { if (this.ro) this.ro.disconnect(); if (this.sid) HY.bridge.ptyKill(this.sid); sessions.delete(this.sid); this.term.dispose(); this.box.remove(); }
 }
 
 // ── клавиши: таблица сочетаний (переопределяются в terminal.keys) ─────

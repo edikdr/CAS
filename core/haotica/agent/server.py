@@ -379,6 +379,19 @@ def create_app(agent: Agent | None = None) -> web.Application:
 
     async def on_startup(_app):
         await agent.start()
+        if os.name == "nt":                     # начатые загрузки моделей продолжаются сами после перезапуска
+            try:
+                left = models.unfinished()
+                if left:
+                    from .. import supervisor
+                    sup = supervisor.get()
+                    for role in left:
+                        sup.add(f"models-{role}", [*supervisor.python_argv("haotica.cli"), "models", "download", role],
+                                restart=False)
+                        sup.start(f"models-{role}")
+                    log.info("продолжаю загрузку моделей: %s", ", ".join(left))
+            except Exception:  # noqa: BLE001
+                log.exception("докачка моделей")
 
     async def on_cleanup(_app):
         await agent.stop()

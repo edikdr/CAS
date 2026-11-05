@@ -116,32 +116,134 @@ def _sha256(path: Path, progress: bool = False) -> str:
     return h.hexdigest()
 
 
+def _lock(file: str) -> Path | None:
+    """Один писатель на файл: две загрузки, дописывающие один .part, испортили бы его."""
+    lock = paths.MODELS_DIR / f"{file}.lock"
+    for _ in range(2):
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, str(os.getpid()).encode())
+            os.close(fd)
+            return lock
+        except FileExistsError:
+            try:
+                pid = int(lock.read_text() or 0)
+                import psutil
+                if pid and psutil.pid_exists(pid) and pid != os.getpid():
+                    return None
+            except (ValueError, OSError, ImportError):
+                pass
+            lock.unlink(missing_ok=True)                    # хозяин замка умер — забираем
+    return None
+
+
+def part_file(file: str) -> Path:
+    return paths.MODELS_DIR / f"{file}.part"
+
+
+def _fetch(url: str, dst: Path, size: int, sha256: str, stall: int = 60, tries: int = 40) -> bool:
+    """Загрузка без внешних программ: докачка по Range в файл .part, зависание (нет данных `stall` с) — обрыв
+    и повтор с паузой, сумма SHA-256 считается по ходу (без второго прохода по 20 ГБ). Готовый файл — только целиком."""
+    import http.client
+    import time
+    import urllib.error
+    import urllib.request
+    part = dst.with_name(dst.name + ".part")
+    if dst.exists() and dst.stat().st_size < size:        # недокачанное старой версией (curl писал прямо в файл)
+        dst.replace(part)
+    have = part.stat().st_size if part.exists() else 0
+    if have > size:
+        part.unlink()
+        have = 0
+    h = hashlib.sha256()
+    if have:
+        with open(part, "rb") as f:
+            while chunk := f.read(16 * 1024 * 1024):
+                h.update(chunk)
+        print(f"  ↻ докачка {dst.name}: с {have * 100 // size}%", flush=True)
+    fails, last = 0, 0.0
+    while have < size:
+        got_any = False
+        try:
+            req = urllib.request.Request(url, headers={"Range": f"bytes={have}-", "User-Agent": "haotica-models"})
+            with urllib.request.urlopen(req, timeout=stall) as r:
+                if have and r.status != 206:                 # сервер не умеет докачку — заново
+                    print("  ! сервер не поддержал докачку, начинаю файл заново", flush=True)
+                    have, h = 0, hashlib.sha256()
+                    part.unlink(missing_ok=True)
+                with open(part, "ab") as f:
+                    while chunk := r.read(1024 * 1024):     # тайм-аут сокета действует на каждое чтение
+                        f.write(chunk)
+                        h.update(chunk)
+                        have += len(chunk)
+                        got_any = True
+                        if time.monotonic() - last > 2:
+                            last = time.monotonic()
+                            print(f"  ↓ {dst.name} {have * 100 // size}% ({have / 1e9:.1f}/{size / 1e9:.1f} ГБ)", flush=True)
+        except urllib.error.HTTPError as e:
+            if e.code == 416 and have >= size:
+                break
+            if e.code in (401, 403, 404, 410):
+                print(f"  ✗ {dst.name}: HTTP {e.code} — файла нет или нет доступа", flush=True)
+                return False
+            print(f"  ! HTTP {e.code}, повтор", flush=True)
+        except (urllib.error.URLError, http.client.HTTPException, OSError, TimeoutError) as e:
+            print(f"  ! обрыв ({type(e).__name__}: {e}), повтор с {have * 100 // size}%", flush=True)
+        if have >= size:
+            break
+        fails = 0 if got_any else fails + 1
+        if fails >= tries:
+            print(f"  ✗ {dst.name}: сеть недоступна, попыток {tries}; продолжу при следующем запуске", flush=True)
+            return False
+        time.sleep(min(60, 2 ** min(fails, 6)))
+    if h.hexdigest() != sha256:
+        print(f"  ✗ контрольная сумма не совпала: {dst.name} — файл удалён, скачаю заново", flush=True)
+        part.unlink(missing_ok=True)
+        return False
+    part.replace(dst)
+    print(f"  ✓ {dst.name}", flush=True)
+    return True
+
+
 def download_file(repo: str, file: str, size: int, sha256: str) -> bool:
     dst = paths.MODELS_DIR / file
     paths.MODELS_DIR.mkdir(parents=True, exist_ok=True)
     if dst.exists() and dst.stat().st_size == size and not (paths.MODELS_DIR / f"{file}.aria2").exists():
         return True
     free = shutil.disk_usage(paths.MODELS_DIR).free
-    need = size - (dst.stat().st_size if dst.exists() else 0)
+    have = max((p.stat().st_size for p in (dst, part_file(file)) if p.exists()), default=0)
+    need = size - have
     if free < need + 2 * 1024 ** 3:
         print(f"  ✗ мало места: нужно {need / 1e9:.1f} ГБ, свободно {free / 1e9:.1f} ГБ")
         return False
     url = HF.format(repo=repo, file=file)
-    if util.which("aria2c"):
-        cmd = ["aria2c", "-x", "8", "-s", "8", "-k", "64M", "--continue=true", "--file-allocation=none",
-               "--auto-file-renaming=false", "--allow-overwrite=false", "--summary-interval=0",
-               "--console-log-level=warn", "--download-result=hide", f"--checksum=sha-256={sha256}",
-               "--max-tries=20", "--retry-wait=5", "-d", str(paths.MODELS_DIR), "-o", file, url]
-    else:
-        cmd = ["curl", "-L", "--fail", "-C", "-", "--retry", "20", "--retry-delay", "5", "-o", str(dst), url]
+    if not util.which("aria2c"):
+        lock = _lock(file)
+        if lock is None:
+            print(f"  … {file} уже качается другим процессом", flush=True)
+            return False
+        try:
+            print(f"  ↓ {file} ({size / 1e9:.1f} ГБ)", flush=True)
+            return _fetch(url, dst, size, sha256)
+        finally:
+            lock.unlink(missing_ok=True)
+    cmd = ["aria2c", "-x", "8", "-s", "8", "-k", "64M", "--continue=true", "--file-allocation=none",
+           "--auto-file-renaming=false", "--allow-overwrite=false", "--summary-interval=0",
+           "--console-log-level=warn", "--download-result=hide", f"--checksum=sha-256={sha256}",
+           "--max-tries=20", "--retry-wait=5", "--lowest-speed-limit=10K", "-d", str(paths.MODELS_DIR), "-o", file, url]
     print(f"  ↓ {file} ({size / 1e9:.1f} ГБ)")
     if subprocess.run(cmd, check=False).returncode != 0:
         return False
-    if not util.which("aria2c") and _sha256(dst, True) != sha256:
-        print(f"  ✗ контрольная сумма не совпала: {file}")
-        dst.unlink(missing_ok=True)
-        return False
     return dst.exists() and dst.stat().st_size == size
+
+
+def unfinished() -> list[str]:
+    """Роли, чья загрузка начата, но не закончена (есть .part/.aria2 или неполный файл) — их докачиваем сами."""
+    out = []
+    for role, st in status().items():
+        if not st["ready"] and st["have"] > 0:
+            out.append(role)
+    return out
 
 
 def download(roles: list[str] | None = None) -> bool:
@@ -169,9 +271,10 @@ def status() -> dict:
         ready = True
         for name, sz in files:
             f = paths.MODELS_DIR / name
-            got = min(sz, f.stat().st_size) if f.exists() else 0
+            pf = part_file(name)
+            got = min(sz, f.stat().st_size) if f.exists() else (min(sz, pf.stat().st_size) if pf.exists() else 0)
             have += got
-            ready &= got == sz and not (paths.MODELS_DIR / f"{name}.aria2").exists()
+            ready &= f.exists() and got == sz and not (paths.MODELS_DIR / f"{name}.aria2").exists()
         out[role] = {"label": e["label"], "file": str(model_file(e)), "size": size, "have": have, "ready": ready,
                      "role": role, "vision": bool(e.get("mmproj")), "draft": (e.get("draft") or {}).get("type", ""),
                      "variants": [{"id": v["id"], "label": v["label"], "size": v["size"]} for v in CATALOG.get(role, [])],

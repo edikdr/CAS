@@ -84,7 +84,8 @@ jobs:
           HAOTICA_HOME: ${{ runner.temp }}\hh-built
         run: |
           & dist\HaoticaTerminal\haotica.exe llama status
-          & dist\HaoticaTerminal\haotica.exe doctor; Write-Output "doctor: $LASTEXITCODE"
+          & dist\HaoticaTerminal\haotica.exe doctor; Write-Output "doctor: $LASTEXITCODE (на раннере нет моделей и GPU — FAIL ожидаем)"
+          $global:LASTEXITCODE = 0
           $core = Start-Process dist\HaoticaTerminal\HaoticaTerminal.exe -ArgumentList "--module","haotica.server" -PassThru
           Start-Sleep 10
           try {
@@ -99,6 +100,7 @@ jobs:
           $page = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:47800/apps/terminal/index.html
           if ($page.StatusCode -ne 200) { throw "нет страницы терминала в сборке" }
           Stop-Process -Id $core.Id -Force
+          $global:LASTEXITCODE = 0
       - name: Inno Setup
         shell: pwsh
         run: |

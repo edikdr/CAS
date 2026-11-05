@@ -1,7 +1,8 @@
 """Движки синтеза речи для службы haotica-tts. Каждый: ready(), synth(text, lang, speed, exaggeration) → WAV.
 
 Выбор — по слепому прослушиванию (samples/tts, tools/tts_samples/gen.py): haotica.tts_engine.
-Голос Сары клонируется по образцу (assets/sounds/voice/ref_sarah_1.mp3) там, где модель это умеет.
+Голос Сары клонируется по образцу там, где модель это умеет: для русского — русские реплики Сары
+(assets/sounds/voice/ref_sarah_ru.ogg), для английского и немецкого — ref_sarah_1.mp3; тон — haotica.voice_pitch.
 Устройство: GPU через PyTorch (ROCm/CUDA, `torch.cuda`), иначе CPU.
 """
 from __future__ import annotations
@@ -17,6 +18,7 @@ from .. import paths
 
 log = logging.getLogger("haotica.tts")
 LANG_NAME = {"ru": "Russian", "en": "English", "de": "German"}
+PITCH_DEFAULT = 1.0
 REF_TEXT = ("You know, sometimes the hardest part is simply getting started. But once you take that first step, "
             "everything becomes much easier. Let's try it together.")
 
@@ -50,21 +52,62 @@ def to_wav(samples, sr: int, speed: float = 1.0) -> bytes:
     return buf.getvalue()
 
 
-def reference(sr: int = 24000, seconds: float = 11.5) -> str | None:
-    """Образец голоса Сары → WAV нужной частоты (через ffmpeg, в кэш); свой образец пользователя — приоритетнее."""
-    own = paths.DATA_DIR / "voice" / "sarah.wav"
-    src = own if own.exists() else next((p for p in (paths.SHARE / "sounds/haotica-voice/ref_sarah_1.mp3",
-                                                      paths.ASSETS / "sounds/voice/ref_sarah_1.mp3") if p.exists()), None)
+REF_FILES = {"ru": "ref_sarah_ru.ogg", "en": "ref_sarah_1.mp3"}   # русский образец — без английского акцента
+
+
+def reference(sr: int = 24000, seconds: float = 12.5, lang: str = "en", pitch: float = 0.0) -> str | None:
+    """Образец голоса Сары для языка → WAV нужной частоты (в кэш), с подъёмом тона на pitch полутонов.
+
+    Порядок: свой образец пользователя (voice/sarah_ru.wav, voice/sarah.wav) → образец из поставки.
+    Для русского — русские реплики Сары: клон по английскому образцу говорит по-русски с акцентом."""
+    key = "ru" if lang == "ru" else "en"
+    own = next((p for p in (paths.DATA_DIR / "voice" / f"sarah_{key}.wav", paths.DATA_DIR / "voice" / "sarah.wav")
+                if p.exists()), None)
+    name = REF_FILES[key]
+    src = own or next((p for p in (paths.SHARE / "sounds/haotica-voice" / name, paths.ASSETS / "sounds/voice" / name)
+                       if p.exists()), None)
+    if not src and key == "ru":
+        return reference(sr, seconds, "en", pitch)
     if not src:
         return None
-    out = paths.CACHE_DIR / "voice" / f"sarah_{sr}.wav"
-    if not out.exists():
-        out.parent.mkdir(parents=True, exist_ok=True)
-        r = subprocess.run(["ffmpeg", "-v", "quiet", "-y", "-i", str(src), "-ac", "1", "-ar", str(sr), "-t", str(seconds),
-                            str(out)], check=False, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    pitch = round(max(-3.0, min(3.0, float(pitch or 0))), 2)
+    tag = f"{'own' if own else 'sarah'}_{key}_{sr}_p{pitch:+.2f}"
+    out = paths.CACHE_DIR / "voice" / f"{tag}.wav"
+    if out.exists() and out.stat().st_mtime >= src.stat().st_mtime:
+        return str(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    plain = out.with_suffix(".src.wav")
+    r = subprocess.run(["ffmpeg", "-v", "quiet", "-y", "-i", str(src), "-ac", "1", "-ar", str(sr), "-t", str(seconds),
+                        str(plain)], check=False, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    if r.returncode != 0:
+        return None
+    if abs(pitch) < 0.05:
+        plain.replace(out)
+        return str(out)
+    try:                                              # тон выше без смены темпа (librosa есть у движков-клонов)
+        import librosa
+        import soundfile as sf
+        y, _ = librosa.load(str(plain), sr=sr)
+        sf.write(str(out), librosa.effects.pitch_shift(y, sr=sr, n_steps=pitch), sr)
+    except Exception as e:  # noqa: BLE001 — запасной путь: ffmpeg (тон и форманты вместе)
+        log.info("librosa недоступна (%s): тон через ffmpeg", e)
+        k = 2 ** (pitch / 12)
+        r = subprocess.run(["ffmpeg", "-v", "quiet", "-y", "-i", str(plain), "-af",
+                            f"asetrate={sr * k:.0f},aresample={sr},atempo={1 / k:.5f}", str(out)], check=False,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         if r.returncode != 0:
-            return None
+            plain.replace(out)
+    plain.unlink(missing_ok=True)
     return str(out)
+
+
+def voice_pitch() -> float:
+    """haotica.voice_pitch — подъём тона Сары в полутонах (0 — как в образце)."""
+    try:
+        from .. import config
+        return float(config.get("haotica.voice_pitch", PITCH_DEFAULT))
+    except Exception:  # noqa: BLE001
+        return PITCH_DEFAULT
 
 
 def _device():
@@ -94,13 +137,21 @@ class Chatterbox(Engine):
         from chatterbox.mtl_tts import ChatterboxMultilingualTTS
         self.torch = torch
         self.m = ChatterboxMultilingualTTS.from_pretrained(device=_device())
-        ref = reference(24000)
-        if ref:
-            self.m.prepare_conditionals(ref, exaggeration=0.5)
+        self.pitch = voice_pitch()
+        self.conds = {}                       # язык → условия клона: свой образец Сары на каждый язык
+        for key in ("ru", "en"):
+            ref = reference(24000, lang=key, pitch=self.pitch)
+            if ref:
+                self.m.prepare_conditionals(ref, exaggeration=0.5)
+                self.conds[key] = self.m.conds
+        self.voice_id = f"sarah-ru-en-p{self.pitch:+.2f}"
 
     def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
         # exaggeration — выразительность интонации; cfg_weight ниже — речь размереннее и чётче;
         # темп Chatterbox задаётся через cfg (быстрее — выше), без передискретизации
+        c = self.conds.get("ru" if lang == "ru" else "en")
+        if c is not None:
+            self.m.conds = c
         cfg = max(0.25, min(0.75, cfg + (speed - 1.0) * 0.8))
         with self.torch.inference_mode():
             wav = self.m.generate(text, language_id=lang if lang in self.langs else "ru", exaggeration=exaggeration,
@@ -116,7 +167,7 @@ class XTTS(Engine):
         os.environ.setdefault("COQUI_TOS_AGREED", "1")
         from TTS.api import TTS
         self.tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(_device())
-        self.ref = reference(22050)
+        self.ref = reference(22050, pitch=voice_pitch())
 
     def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
         wav = self.tts.tts(text=text, speaker_wav=self.ref, language=lang, speed=max(0.7, min(1.4, speed)),
@@ -136,7 +187,7 @@ class Qwen3(Engine):
         dev = _device()
         self.m = Qwen3TTSModel.from_pretrained("Qwen/Qwen3-TTS-12Hz-1.7B-Base", device_map=dev,
                                                dtype=torch.bfloat16 if dev == "cuda" else torch.float32)
-        self.prompt = self.m.create_voice_clone_prompt(ref_audio=reference(24000), ref_text=REF_TEXT)
+        self.prompt = self.m.create_voice_clone_prompt(ref_audio=reference(24000, pitch=voice_pitch()), ref_text=REF_TEXT)
 
     def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
         with self.torch.inference_mode():
@@ -157,7 +208,7 @@ class F5(Engine):
         ckpt = hf_hub_download(repo, "F5TTS_v1_Base_v4_winter/model_212000.safetensors")
         vocab = hf_hub_download(repo, "F5TTS_v1_Base/vocab.txt")
         self.m = F5TTS(model="F5TTS_v1_Base", ckpt_file=ckpt, vocab_file=vocab, device=_device())
-        self.ref = reference(24000)
+        self.ref = reference(24000, pitch=voice_pitch())
 
     def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
         wav, sr, _ = self.m.infer(ref_file=self.ref, ref_text=REF_TEXT, gen_text=text, nfe_step=32, speed=speed,

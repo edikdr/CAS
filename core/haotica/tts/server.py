@@ -99,7 +99,7 @@ def create_app() -> web.Application:
         speed, exag = float(d.get("speed", 1.0)), float(d.get("exaggeration", 0.5))
         cfg, temp = float(d.get("cfg", 0.5)), float(d.get("temperature", 0.8))
         norm = normalize(text, lang) if d.get("normalize", True) else text
-        k = app["cache"].key(eng.name, lang, round(speed, 2), round(exag, 2), round(cfg, 2), norm)
+        k = app["cache"].key(eng.name, getattr(eng, "voice_id", ""), lang, round(speed, 2), round(exag, 2), round(cfg, 2), norm)
         wav = app["cache"].get(k)
         if wav is None:
             async with lock:                       # очередь: один синтез за раз

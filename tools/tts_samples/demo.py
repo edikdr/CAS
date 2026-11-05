@@ -1,6 +1,6 @@
 """Демо голоса Сары с просодией: текст ответа Haotica → план (паузы, интонация, темп, эмоции) → один файл.
 
-    python tools/tts_samples/demo.py --engine chatterbox --out samples/tts/demo_sarah.ogg [--text "…"]
+    python tools/tts_samples/demo.py --engine chatterbox --out samples/tts/demo_sarah.ogg [--text "…"] [--pitch 1]
 
 Запускать в окружении движка (как gen.py). Паузы — тишина, эмоции — записи Сары (assets/sounds/voice/emo_*.ogg).
 """
@@ -53,7 +53,10 @@ def main() -> None:
     ap.add_argument("--engine", default="chatterbox")
     ap.add_argument("--out", default=str(ROOT / "samples/tts/demo_sarah.ogg"))
     ap.add_argument("--text", default=TEXT)
+    ap.add_argument("--pitch", type=float, default=None, help="тон, полутоны (по умолчанию — haotica.voice_pitch)")
     a = ap.parse_args()
+    if a.pitch is not None:
+        engines.voice_pitch = lambda: a.pitch
     eng = engines.ENGINES[a.engine]()
     parts = []
     for seg in prosody.plan(a.text):

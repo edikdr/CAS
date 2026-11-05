@@ -17,12 +17,7 @@
   background: radial-gradient(ellipse 125% 95% at 50% 48%, transparent 55%, rgb(0 0 0 / calc(var(--crt, .7) * .75)) 100%); }
 .crt-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 61; border-radius: 18px;
   image-rendering: pixelated; }
-.crt-roll { position: absolute; left: 0; right: 0; top: -18%; height: 18%; pointer-events: none; z-index: 62;
-  background: linear-gradient(to bottom, transparent, rgb(255 255 255 / calc(var(--crt, .85) * .022)) 70%, transparent);
-  animation: crt-roll 9s linear infinite; }
-@keyframes crt-roll { to { transform: translateY(660%); } }
-body.no-crt .crt::before, body.no-crt .crt-lines, body.no-crt .crt-roll { display: none; }
-@media (prefers-reduced-motion: reduce) { .crt-roll { display: none; } }
+body.no-crt .crt::before, body.no-crt .crt-lines { display: none; }
 
 /* общие HUD-рамки: тонкая линия, срезанный угол, язычок-ярлык на верхней грани, уголки-скобки */
 .hud { position: relative; border: 1px solid color-mix(in srgb, var(--line-hi) 60%, transparent); background: color-mix(in srgb, var(--bg1) 60%, transparent);

@@ -1276,7 +1276,7 @@ function applyArt() {
     art.starting = true;
     import("./art.js").then(async ({ startHandsArt }) => {
       art.ctl = await startHandsArt($("t-art"), {
-        opacity: () => { const e = HY.theme.effects || {}; return e.terminal_art_opacity === undefined ? 0.5 : +e.terminal_art_opacity; },
+        opacity: () => { const e = HY.theme.effects || {}; return e.terminal_art_opacity === undefined ? 0.22 : +e.terminal_art_opacity; },
         font: () => getComputedStyle(document.documentElement).getPropertyValue("--font-term").trim() || "monospace",
         colors: () => ({ ink: cssv("--ink"), teal: cssv("--teal"), violet: cssv("--violet"), dim: cssv("--line-hi"), accent: cssv("--accent") }),
       });

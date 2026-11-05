@@ -35,16 +35,29 @@ class ConPtyProcess:
         self.thread.start()
 
     def _reader(self) -> None:
+        self.end = ""                                  # почему поток чтения закончился (для диагностики)
         while self.alive:
             self.resume.wait()
             try:
                 data = self.proc.read(65536)
             except EOFError:
+                self.end = "EOFError"
                 break
-            except OSError:
+            except OSError as e:
+                self.end = f"OSError: {e}"
+                break
+            except Exception as e:  # noqa: BLE001 — любая другая ошибка чтения не должна закрывать живую оболочку
+                self.end = f"{type(e).__name__}: {e}"
+                log.exception("чтение ConPTY")
                 break
             if not data:
-                if not self.proc.isalive():
+                try:
+                    alive = self.proc.isalive()
+                except Exception as e:  # noqa: BLE001
+                    self.end = f"isalive: {type(e).__name__}: {e}"
+                    break
+                if not alive:
+                    self.end = "isalive=False"
                     break
                 time.sleep(0.005)
                 continue

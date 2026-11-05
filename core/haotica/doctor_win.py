@@ -57,6 +57,20 @@ def checks() -> list[dict]:
     from .apps import profiles
     pr = profiles.detect()
     add("ОБОЛОЧКИ", "ok" if pr else "fail", ", ".join(p["name"] for p in pr) or "нет")
+    if os.name == "nt":
+        from .apps.conpty import hexcode, probe
+        for p in pr:
+            one = {"pwsh": ["-NoLogo", "-NoProfile", "-Command", "Write-Output haotica-ok"], "cmd": ["/c", "echo haotica-ok"],
+                   "bash": ["-c", "echo haotica-ok"]}.get(p["kind"])
+            if not one:
+                continue
+            try:
+                code, out = probe([p["exe"], *one])
+                ok = code == 0 and "haotica-ok" in out
+                add(f"СТАРТ · {p['name']}", "ok" if ok else "fail",
+                    "запускается" if ok else f"код {hexcode(code)} · {p['exe']} · {out.strip()[:120]!r}")
+            except Exception as e:  # noqa: BLE001
+                add(f"СТАРТ · {p['name']}", "fail", f"{type(e).__name__}: {e} · {p['exe']}")
     for name, port in (("ЯДРО", paths.PORT_CORE), ("HAOTICA", paths.PORT_HAOTICA), ("МОДЕЛЬ FAST", paths.PORT_LLM_FAST),
                        ("МОДЕЛЬ BASE", paths.PORT_LLM_BASE), ("МОДЕЛЬ DEEP", paths.PORT_LLM_DEEP), ("РЕЧЬ", paths.PORT_TTS)):
         up = _port(port)

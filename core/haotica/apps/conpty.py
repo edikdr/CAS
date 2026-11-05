@@ -139,3 +139,25 @@ class ConPtyProcess:
             self.on_exit(code)
         except Exception:  # noqa: BLE001
             log.exception("on_exit")
+
+
+def hexcode(code: int) -> str:
+    """Код выхода Windows: отрицательное → NTSTATUS в шестнадцатеричном виде (-1073741502 → 0xC0000142)."""
+    return f"{code} (0x{code & 0xFFFFFFFF:08X})" if code < 0 or code > 0xFFFF else str(code)
+
+
+def probe(argv: list[str], env: dict | None = None, cwd: str | None = None, timeout: float = 10.0) -> tuple[int, str]:
+    """Запустить argv в ConPTY, дождаться выхода: (код, вывод). Для doctor — проверка, что оболочка вообще стартует."""
+    import os as _os
+    chunks: list[str] = []
+    done = threading.Event()
+    code = [-1]
+
+    def on_exit(c: int) -> None:
+        code[0] = c
+        done.set()
+    p = ConPtyProcess(argv, env or dict(_os.environ), cwd or _os.path.expanduser("~"), 120, 30, chunks.append, on_exit)
+    if not done.wait(timeout):
+        p.kill()
+        return -2, "".join(chunks)
+    return code[0], "".join(chunks)

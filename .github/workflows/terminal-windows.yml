@@ -84,8 +84,11 @@ jobs:
           HAOTICA_HOME: ${{ runner.temp }}\hh-built
         run: |
           & dist\HaoticaTerminal\haotica.exe llama status
-          & dist\HaoticaTerminal\haotica.exe doctor; Write-Output "doctor: $LASTEXITCODE (на раннере нет моделей и GPU — FAIL ожидаем)"
+          $doc = & dist\HaoticaTerminal\haotica.exe doctor | Out-String
+          Write-Output $doc; Write-Output "doctor: $LASTEXITCODE (на раннере нет моделей и GPU — FAIL ожидаем)"
           $global:LASTEXITCODE = 0
+          if ($doc -match "СТАРТ[^\r\n]*FAIL") { throw "оболочка не стартует в собранном exe (см. СТАРТ выше)" }
+          if ($doc -notmatch "СТАРТ[^\r\n]*OK") { throw "doctor не проверил старт оболочек" }
           $core = Start-Process dist\HaoticaTerminal\HaoticaTerminal.exe -ArgumentList "--module","haotica.server" -PassThru
           Start-Sleep 10
           try {

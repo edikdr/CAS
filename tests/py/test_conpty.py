@@ -114,3 +114,16 @@ def test_backpressure_and_kill_tree():
     import psutil
     alive = [k for k in kids if psutil.pid_exists(k.pid) and k.is_running() and k.status() != psutil.STATUS_ZOMBIE]
     assert not alive, f"после kill остались процессы: {alive}"
+
+
+def test_hexcode():
+    from haotica.apps.conpty import hexcode
+    assert hexcode(-1073741502) == "-1073741502 (0xC0000142)"
+    assert hexcode(3) == "3"
+
+
+@pytest.mark.skipif(os.name != "nt", reason="ConPTY только в Windows")
+def test_probe_starts_cmd_and_reports_code():
+    from haotica.apps.conpty import probe
+    code, out = probe([os.environ.get("ComSpec", "cmd.exe"), "/c", "echo haotica-ok & exit 7"])
+    assert code == 7 and "haotica-ok" in out

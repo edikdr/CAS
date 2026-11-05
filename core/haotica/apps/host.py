@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 import urllib.parse
@@ -25,6 +26,9 @@ from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QSystemTra
 from .. import client, config, paths, platform, supervisor, util
 from . import registry
 from .pty import PtyManager
+
+log = logging.getLogger("haotica.window")
+SAFE_GFX_FLAG = paths.STATE_DIR / "gfx-safe"      # Chromium окна рисовал чёрный экран — дальше без GPU
 
 HYPRLAND = bool(os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"))
 
@@ -291,6 +295,8 @@ class Page(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, message, line, source):  # noqa: N802
         if os.environ.get("HAOTICA_DEBUG"):
             print(f"[js] {source}:{line} {message}", file=sys.stderr)
+        if level == QWebEnginePage.JavaScriptConsoleMessageLevel.ErrorMessageLevel:
+            log.warning("js: %s:%s %s", source.rsplit("/", 1)[-1], line, message[:500])
 
 
 class AppWindow(QMainWindow):
@@ -315,7 +321,10 @@ class AppWindow(QMainWindow):
         self.setCentralWidget(self.view)
         self._restore_geometry()
         self.page.loadFinished.connect(self._loaded)
+        self.page.renderProcessTerminated.connect(
+            lambda status, code: log.error("процесс отрисовки завершился: %s, код %s", status, code))
         self._retry = 0
+        self._paint_checked = False
         self.force_close = False
         self.drop_filter = DropFilter(self)
         self.view.installEventFilter(self.drop_filter)
@@ -334,6 +343,11 @@ class AppWindow(QMainWindow):
         self.view.load(QUrl(f"{ORIGIN}/apps/{self.app.name}/index.html#args={q}"))
 
     def _loaded(self, ok: bool) -> None:
+        log.info("страница %s: %s", self.page.url().toString()[:80], "загружена" if ok else "не загрузилась")
+        if ok and platform.IS_WINDOWS and not self.host.safe_gfx and not self._paint_checked \
+                and self.page.url().scheme() == "http":
+            self._paint_checked = True
+            QTimer.singleShot(7000, self._check_paint)
         if ok:
             self._retry = 0
             proxy = self.view.focusProxy()
@@ -351,6 +365,29 @@ class AppWindow(QMainWindow):
         self.page.setHtml(OFFLINE_HTML.replace("{BG}", self.host.bg).replace("{INK}", self.host.ink)
                           .replace("{ACC}", self.host.accent).replace("{N}", str(self._retry)), QUrl("about:blank"))
         QTimer.singleShot(delay, self.load)
+
+    def _check_paint(self) -> None:
+        """Страница загружена, а на экране одна сплошная заливка — Chromium не может рисовать через видеокарту
+        (несовместимый или только что обновлённый драйвер). Перезапуск окна без GPU, выбор запоминается."""
+        if not self.isVisible() or self.isMinimized():
+            return
+        img = self.view.grab().toImage()
+        if img.isNull() or img.width() < 50 or img.height() < 50:
+            return
+        colors = {img.pixel(int(img.width() * (x + .5) / 24), int(img.height() * (y + .5) / 16))
+                  for x in range(24) for y in range(16)}
+        log.info("проверка отрисовки: %d цветов", len(colors))
+        if len(colors) > 3:
+            return
+        log.error("окно не рисуется через видеокарту — перезапуск в безопасном режиме графики")
+        try:
+            SAFE_GFX_FLAG.parent.mkdir(parents=True, exist_ok=True)
+            SAFE_GFX_FLAG.write_text("чёрный экран при GPU-отрисовке; удалите файл, чтобы вернуть GPU\n", encoding="utf-8")
+        except OSError:
+            pass
+        relaunch_detached(["--safe-gfx"])
+        self.force_close = True
+        QApplication.quit()
 
     def deliver(self, msg: dict) -> None:
         self.bridge.message.emit(json.dumps(msg, ensure_ascii=False))
@@ -383,6 +420,8 @@ b{color:{ACC};letter-spacing:.18em}p{opacity:.7}</style>
 
 
 class Host(QObject):
+    safe_gfx = False                      # окно рисуется без GPU (--safe-gfx / state/gfx-safe)
+
     def __init__(self, app: registry.App, args: list[str]) -> None:
         super().__init__()
         self.app = app
@@ -522,6 +561,32 @@ BOOT_JS = r"""
 """
 
 
+def _setup_log(name: str) -> None:
+    """Оконный exe без консоли: журнал окна — в файл (страница, ошибки JS, отрисовка)."""
+    from logging.handlers import RotatingFileHandler
+    try:
+        paths.LOG_DIR.mkdir(parents=True, exist_ok=True)
+        h = RotatingFileHandler(paths.LOG_DIR / f"window-{name}.log", maxBytes=2_000_000, backupCount=1, encoding="utf-8")
+        h.setFormatter(logging.Formatter("%(asctime)s %(levelname).1s %(name)s: %(message)s"))
+        root = logging.getLogger()
+        root.addHandler(h)
+        root.setLevel(logging.INFO)
+    except OSError:
+        pass
+
+
+def relaunch_detached(extra: list[str]) -> None:
+    """Новый экземпляр окна вне задачи Windows текущего (иначе он умрёт вместе с ним)."""
+    import subprocess
+    argv = [sys.executable] + ([] if getattr(sys, "frozen", False) else ["-m", "haotica.apps"]) + \
+        [a for a in sys.argv[1:] if a not in extra] + extra
+    flags = 0x01000000 | 0x00000008 if platform.IS_WINDOWS else 0   # CREATE_BREAKAWAY_FROM_JOB | DETACHED_PROCESS
+    try:
+        subprocess.Popen(argv, creationflags=flags, close_fds=True)
+    except OSError as e:
+        log.error("перезапуск окна: %s", e)
+
+
 def main(argv: list[str]) -> int:
     if not argv:
         print("использование: haotica-app <приложение> [аргументы…]")
@@ -530,11 +595,18 @@ def main(argv: list[str]) -> int:
     if not app_def:
         print(f"нет приложения «{argv[0]}». Есть: {', '.join(registry.APPS)}")
         return 2
-    args = argv[1:]
+    args = [a for a in argv[1:] if a != "--safe-gfx"]
+    safe = "--safe-gfx" in argv or SAFE_GFX_FLAG.exists() or os.environ.get("HAOTICA_SAFE_GFX") == "1"
     if platform.IS_WINDOWS:
+        _setup_log(app_def.name)
+        log.info("запуск окна %s, безопасная графика: %s", app_def.name, safe)
         supervisor.adopt_job()            # окно закрылось — Windows завершит ядро, агента, модели и оболочки
-        os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS",
-                              "--enable-gpu-rasterization --ignore-gpu-blocklist --disable-renderer-backgrounding")
+        # блок-лист видеодрайверов Chromium не отключаем: на несовместимом драйвере он сам уходит на программную
+        # отрисовку, а не показывает чёрное окно; безопасный режим — без GPU совсем
+        os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu --disable-gpu-compositing --disable-renderer-backgrounding"
+                              if safe else "--disable-renderer-backgrounding")
+        if safe:
+            os.environ.setdefault("QT_OPENGL", "software")
     else:
         os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS",
                               "--enable-gpu-rasterization --ignore-gpu-blocklist --enable-zero-copy "
@@ -542,7 +614,10 @@ def main(argv: list[str]) -> int:
         os.environ.setdefault("QT_QPA_PLATFORM", "wayland;xcb")
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     qapp = QApplication([sys.argv[0]])
-    if app_def.multi and forward_to_running(app_def.name, args or ["--new-tab"]):
+    if "--safe-gfx" in argv:
+        import time
+        time.sleep(1.5)                   # перезапуск из окна с чёрным экраном: даём старому окну закрыться
+    elif app_def.multi and forward_to_running(app_def.name, args or ["--new-tab"]):
         return 0                          # окно уже открыто: новая вкладка в нём
     if platform.IS_WINDOWS or os.environ.get("HAOTICA_SUPERVISE") == "1":
         supervisor.ensure_backend(wait=6.0)
@@ -556,6 +631,7 @@ def main(argv: list[str]) -> int:
     qapp.setApplicationName(f"haotica-{app_def.name}")
     qapp.setOrganizationName("HAOTICA")
     host = Host(app_def, args)
+    host.safe_gfx = safe
     qapp.setApplicationDisplayName(host.title)
     snap = os.environ.get("HAOTICA_SNAPSHOT")
     if snap:                       # отладка: снимок окна и выход (визуальные проверки без экрана)

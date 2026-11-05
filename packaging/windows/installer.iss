@@ -41,6 +41,7 @@ Source: "..\..\dist\HaoticaTerminal\*"; DestDir: "{app}"; Flags: ignoreversion r
 [Icons]
 Name: "{group}\HAOTICA Terminal"; Filename: "{app}\HaoticaTerminal.exe"
 Name: "{group}\Диагностика HAOTICA"; Filename: "{app}\haotica.exe"; Parameters: "doctor"
+Name: "{group}\HAOTICA Terminal (без видеокарты)"; Filename: "{app}\HaoticaTerminal.exe"; Parameters: "--safe-gfx"
 Name: "{group}\Удалить HAOTICA Terminal"; Filename: "{uninstallexe}"
 Name: "{userdesktop}\HAOTICA Terminal"; Filename: "{app}\HaoticaTerminal.exe"; Tasks: desktopicon
 

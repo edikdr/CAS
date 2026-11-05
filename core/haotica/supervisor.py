@@ -61,7 +61,7 @@ class Job:
             log.warning("CreateJobObject: %s", ctypes.get_last_error())
             return
         info = ExtendedLimit()
-        info.BasicLimitInformation.LimitFlags = 0x2000 | 0x400   # KILL_ON_JOB_CLOSE | DIE_ON_UNHANDLED_EXCEPTION
+        info.BasicLimitInformation.LimitFlags = 0x2000 | 0x400 | 0x800   # KILL_ON_JOB_CLOSE | DIE_ON_UNHANDLED_EXCEPTION | BREAKAWAY_OK
         ok = k32.SetInformationJobObject(h, 9, ctypes.byref(info), ctypes.sizeof(info))  # ExtendedLimitInformation
         if not ok:
             log.warning("SetInformationJobObject: %s", ctypes.get_last_error())

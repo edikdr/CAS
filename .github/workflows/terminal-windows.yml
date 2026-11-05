@@ -129,6 +129,26 @@ jobs:
           if ($page.StatusCode -ne 200) { throw "нет страницы терминала в сборке" }
           Stop-Process -Id $core.Id -Force
           $global:LASTEXITCODE = 0
+      - name: Окно целиком — ядро, агент, страница отрисована
+        shell: pwsh
+        env:
+          HAOTICA_HOME: ${{ runner.temp }}\hh-win
+        run: |
+          $w = Start-Process dist\HaoticaTerminal\HaoticaTerminal.exe -PassThru
+          $log = "$env:HAOTICA_HOME\logs\window-terminal.log"
+          for ($i = 0; $i -lt 60 -and -not ((Test-Path $log) -and (Select-String -Path $log -Pattern "проверка отрисовки" -Quiet)); $i++) { Start-Sleep 1 }
+          Write-Output "== window log"; Get-Content $log -ErrorAction SilentlyContinue
+          $tok = Get-Content "$env:HAOTICA_HOME\state\token" -ErrorAction SilentlyContinue
+          $core = try { (Invoke-RestMethod -TimeoutSec 5 -Headers @{ "X-Haotica-Token" = $tok } http://127.0.0.1:47800/api/platform).features.platform } catch { "нет" }
+          $agent = try { (Invoke-RestMethod -TimeoutSec 5 -Headers @{ "X-Haotica-Token" = $tok } http://127.0.0.1:47810/api/status).state } catch { "нет" }
+          Write-Output "ядро: $core; агент: $agent; окно живо: $(-not $w.HasExited)"
+          Get-ChildItem "$env:HAOTICA_HOME\logs" -ErrorAction SilentlyContinue | ForEach-Object { Write-Output "== $($_.Name)"; Get-Content $_.FullName -Tail 15 }
+          Stop-Process -Id $w.Id -Force -ErrorAction SilentlyContinue
+          $global:LASTEXITCODE = 0
+          if ($core -ne "windows") { throw "ядро не поднялось из окна" }
+          if ($agent -eq "нет") { throw "агент не поднялся из окна" }
+          if (-not (Select-String -Path $log -Pattern "загружена" -Quiet)) { throw "страница терминала не загрузилась" }
+          if (Select-String -Path $log -Pattern "безопасном режиме графики|js: " -Quiet) { throw "окно не отрисовалось или ошибки JS (см. журнал выше)" }
       - name: Inno Setup
         shell: pwsh
         run: |

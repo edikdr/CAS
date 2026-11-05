@@ -51,10 +51,12 @@ function global:prompt {
   return "$pre$user$(__HyOsc '133;B')"
 }
 
-# После Enter (PSReadLine уже вывел перевод строки): текст команды и начало вывода
-if (Get-Module -Name PSReadLine) {
+# После Enter (PSReadLine уже вывел перевод строки): текст команды и начало вывода.
+# Как в VS Code: вызываем исходную PSConsoleHostReadLine (у разных версий PSReadLine разная сигнатура ReadLine).
+if (Test-Path Function:\PSConsoleHostReadLine) {
+  $global:__HyOrigReadLine = (Get-Item Function:\PSConsoleHostReadLine).ScriptBlock
   function global:PSConsoleHostReadLine {
-    $line = [Microsoft.PowerShell.PSConsoleReadLine]::ReadLine($Host.Runspace, $ExecutionContext)
+    $line = -join @($global:__HyOrigReadLine.Invoke())
     if ($line -and $line.Trim()) {
       $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($line))
       [Console]::Write("$($global:__HyE)]7777;cmd=$b64$($global:__HyA)$($global:__HyE)]133;C$($global:__HyA)")
@@ -63,6 +65,8 @@ if (Get-Module -Name PSReadLine) {
     }
     $line
   }
+} else {
+  $global:__HyNoReadLine = $true          # без PSReadLine: блоки без текста команды (только коды выхода)
 }
 
 # Haotica из строки: hy вопрос

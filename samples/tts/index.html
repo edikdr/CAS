@@ -1,0 +1,173 @@
+<!doctype html><meta charset=utf-8>
+<title>Голос Haotica</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Пульт прослушивания: шапка-приборная панель, слева — матрица «фраза × голос», справа — карточки оценок.
+   Мир HAOTICA: OLED-чёрный, янтарь (действие), бирюза (воспроизведение), фиолет (Haotica), строки CRT. */
+:root {
+  --bg: #050505; --panel: #0d0c0a; --line: #2a2620; --line-hi: #4a4236; --ink: #e8dfc9; --dim: #8f8573;
+  --amber: #e0a243; --teal: #5fa8a0; --violet: #a7a3f0; --coral: #e0705a;
+  --f-display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); }
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,.22) 0 1px, transparent 1px 3px); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 22px; }
+header { display: grid; gap: 10px; border: 1px solid var(--line-hi); padding: 18px 20px; background: var(--panel); position: relative; }
+header::before { content: "SUBJECT // VOICE"; position: absolute; top: -9px; left: 14px; background: var(--amber); color: var(--bg);
+  font: 600 10px var(--f-mono); letter-spacing: .2em; padding: 1px 8px; }
+h1 { font: 700 clamp(26px, 4vw, 40px)/1.05 var(--f-display); letter-spacing: .04em; margin: 4px 0 0; text-wrap: balance; text-transform: uppercase; }
+h1 b { color: var(--amber); font-weight: 700; }
+.lead { color: var(--dim); max-width: 72ch; margin: 0; }
+.steps { display: flex; flex-wrap: wrap; gap: 8px 18px; font: 12px var(--f-mono); color: var(--dim); margin: 2px 0 0; padding: 0; list-style: none; }
+.steps li::before { content: "› "; color: var(--teal); }
+.ref { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px dashed var(--line); padding-top: 12px; font: 13px var(--f-mono); }
+.ref span { color: var(--violet); letter-spacing: .14em; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px; align-items: start; }
+@media (max-width: 980px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.matrix { border: 1px solid var(--line); background: var(--panel); min-width: 0; }
+.mhead, .row { display: grid; grid-template-columns: minmax(0, 1fr) repeat(6, 44px); gap: 6px; align-items: center; padding: 10px 14px; }
+.mhead { font: 600 11px var(--f-mono); letter-spacing: .2em; color: var(--dim); border-bottom: 1px solid var(--line-hi); position: sticky; top: env(safe-area-inset-top, 0px); background: var(--panel); z-index: 2; }
+.mhead .L { text-align: center; color: var(--amber); font: 700 16px var(--f-display); letter-spacing: 0; }
+.row { border-bottom: 1px dashed var(--line); }
+.row:last-child { border-bottom: 0; }
+.ph { min-width: 0; display: grid; gap: 2px; }
+.ph .t { overflow-wrap: anywhere; }
+.ph .m { font: 11px var(--f-mono); color: var(--dim); letter-spacing: .06em; }
+.ph .m i { font-style: normal; color: var(--teal); text-transform: uppercase; margin-right: 6px; }
+button { font: inherit; color: inherit; }
+.pl { width: 44px; height: 34px; border: 1px solid var(--line-hi); background: transparent; color: var(--teal); cursor: pointer;
+  font: 600 12px var(--f-mono); display: grid; place-items: center; }
+.pl:hover { border-color: var(--teal); }
+.pl.on { background: var(--teal); color: var(--bg); border-color: var(--teal); }
+.pl.done { box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--amber) 70%, transparent); }
+.pl:focus-visible, .star:focus-visible, .win:focus-visible, .btn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.side { display: grid; gap: 12px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+@media (max-width: 980px) { .side { position: static; } }
+.card { border: 1px solid var(--line); background: var(--panel); padding: 12px 14px; display: grid; gap: 8px; }
+.card.win-on { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
+.card .h { display: flex; align-items: center; gap: 10px; }
+.card .L { font: 700 22px var(--f-display); color: var(--amber); width: 26px; }
+.card .heard { font: 11px var(--f-mono); color: var(--dim); margin-left: auto; font-variant-numeric: tabular-nums; }
+.crit { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 6px; font: 12px var(--f-mono); color: var(--dim); }
+.stars { display: flex; gap: 3px; }
+.star { width: 26px; height: 22px; border: 1px solid var(--line-hi); background: transparent; cursor: pointer; color: var(--dim); font: 11px var(--f-mono); }
+.star.on { background: var(--violet); border-color: var(--violet); color: var(--bg); }
+.win { border: 1px solid var(--line-hi); background: transparent; color: var(--ink); cursor: pointer; padding: 6px 10px; font: 600 11px var(--f-mono); letter-spacing: .14em; }
+.card.win-on .win { background: var(--amber); color: var(--bg); border-color: var(--amber); }
+.result { border: 1px solid var(--violet); background: var(--panel); padding: 12px 14px; display: grid; gap: 8px; }
+.result pre { margin: 0; font: 12px/1.5 var(--f-mono); white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); user-select: all; }
+.btn { border: 1px solid var(--amber); background: var(--amber); color: var(--bg); padding: 8px 12px; cursor: pointer; font: 600 12px var(--f-mono); letter-spacing: .12em; justify-self: start; }
+.btn.ghost { background: transparent; color: var(--amber); }
+.note { font: 12px var(--f-mono); color: var(--dim); }
+.kbd { border: 1px solid var(--line-hi); padding: 0 5px; font: 11px var(--f-mono); color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (max-width: 560px) {
+  .mhead, .row { grid-template-columns: minmax(0, 1fr); }
+  .mhead .L { display: none; }
+  .row .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+}
+</style>
+<div class="wrap">
+  <header>
+    <h1>Голос <b>Haotica</b>: слепое прослушивание</h1>
+    <p class="lead">Шесть локальных моделей речи прочитали одни и те же 12 фраз. Названия скрыты за буквами. Послушайте,
+      оцените каждую по трём вопросам и выберите победителя — его поставим в HAOTICA Terminal. Главное — русский.</p>
+    <ul class="steps"><li>слушайте по строкам или по столбцам</li><li><span class="kbd">Пробел</span> — стоп</li>
+      <li>часть голосов не умеет клонировать Сару — оценивайте честно</li><li>оценки сохраняются в этом браузере</li></ul>
+    <div class="ref"><span>ОБРАЗЕЦ САРЫ</span><button class="pl" id="ref" aria-label="Образец голоса Сары">▶</button>
+      <span class="note">так должен звучать клон (запись ElevenLabs, 12 с)</span></div>
+  </header>
+  <div class="layout">
+    <section class="matrix" aria-label="Фразы и голоса">
+      <div class="mhead" id="mhead"><div>ФРАЗА</div></div>
+      <div id="rows"></div>
+    </section>
+    <aside class="side" id="side">
+      <div id="cards" style="display:grid;gap:12px"></div>
+      <div class="result">
+        <div class="note">ИТОГ — скопируйте и отправьте в чат</div>
+        <pre id="out">Пока нет оценок.</pre>
+        <button class="btn" id="copy">КОПИРОВАТЬ ИТОГ</button>
+      </div>
+    </aside>
+  </div>
+</div>
+<script>
+const D = {"letters": ["A", "B", "C", "D", "E", "F"], "phrases": [{"id": "01", "lang": "ru", "what": "приветствие, вопрос", "text": "Привет, Эдуард. Я Хаотика, твой терминал. Чем займёмся сегодня?"}, {"id": "02", "lang": "ru", "what": "числа", "text": "Сборка заняла 3 минуты 47 секунд, ошибок — 0, предупреждений — 12."}, {"id": "03", "lang": "ru", "what": "сокращения и единицы", "text": "На диске свободно 47 ГБ, т. е. хватит ещё на 2 модели."}, {"id": "04", "lang": "ru", "what": "английские слова в русском тексте", "text": "Сначала сделаю git pull, потом npm install, и запущу docker compose up."}, {"id": "05", "lang": "ru", "what": "восклицание, предупреждение", "text": "Осторожно! Эта команда удалит всю папку без возврата!"}, {"id": "06", "lang": "ru", "what": "длинное предложение", "text": "Если хочешь, я сама проверю зависимости, запущу тесты в отдельной вкладке и, когда всё закончится, коротко расскажу, что сломалось и как это исправить."}, {"id": "07", "lang": "ru", "what": "трудные ударения", "text": "Она позвонит в четверг: договор уже подписан, а торты стоят в холодильнике."}, {"id": "08", "lang": "ru", "what": "дата и время", "text": "Напоминание на 5 ноября 2026 года, в 14:30."}, {"id": "09", "lang": "en", "what": "английский, вопрос", "text": "Build finished in forty seconds. Two tests failed — want me to take a look?"}, {"id": "10", "lang": "en", "what": "английский, длинное", "text": "I've cloned the repository, installed the dependencies, and everything is ready; just say the word and I'll start the dev server."}, {"id": "11", "lang": "de", "what": "немецкий, вопрос", "text": "Achtung: Der Akku ist fast leer. Soll ich den Energiesparmodus einschalten?"}, {"id": "12", "lang": "de", "what": "немецкий, длинное", "text": "Die Datei wurde erfolgreich gespeichert, und die Sicherung läuft jetzt im Hintergrund."}], "audio": {"A": {"01": "piper/01.ogg", "02": "piper/02.ogg", "03": "piper/03.ogg", "04": "piper/04.ogg", "05": "piper/05.ogg", "06": "piper/06.ogg", "07": "piper/07.ogg", "08": "piper/08.ogg", "09": "piper/09.ogg", "10": "piper/10.ogg", "11": "piper/11.ogg", "12": "piper/12.ogg"}, "B": {"01": "qwen3/01.ogg", "02": "qwen3/02.ogg", "03": "qwen3/03.ogg", "04": "qwen3/04.ogg", "05": "qwen3/05.ogg", "06": "qwen3/06.ogg", "07": "qwen3/07.ogg", "08": "qwen3/08.ogg", "09": "qwen3/09.ogg", "10": "qwen3/10.ogg", "11": "qwen3/11.ogg", "12": "qwen3/12.ogg"}, "C": {"01": "silero/01.ogg", "02": "silero/02.ogg", "03": "silero/03.ogg", "04": "silero/04.ogg", "05": "silero/05.ogg", "06": "silero/06.ogg", "07": "silero/07.ogg", "08": "silero/08.ogg", "09": "silero/09.ogg", "10": "silero/10.ogg", "11": "silero/11.ogg", "12": "silero/12.ogg"}, "D": {"01": "chatterbox/01.ogg", "02": "chatterbox/02.ogg", "03": "chatterbox/03.ogg", "04": "chatterbox/04.ogg", "05": "chatterbox/05.ogg", "06": "chatterbox/06.ogg", "07": "chatterbox/07.ogg", "08": "chatterbox/08.ogg", "09": "chatterbox/09.ogg", "10": "chatterbox/10.ogg", "11": "chatterbox/11.ogg", "12": "chatterbox/12.ogg"}, "E": {"01": "xtts/01.ogg", "02": "xtts/02.ogg", "03": "xtts/03.ogg", "04": "xtts/04.ogg", "05": "xtts/05.ogg", "06": "xtts/06.ogg", "07": "xtts/07.ogg", "08": "xtts/08.ogg", "09": "xtts/09.ogg", "10": "xtts/10.ogg", "11": "xtts/11.ogg", "12": "xtts/12.ogg"}, "F": {"01": "f5/01.ogg", "02": "f5/02.ogg", "03": "f5/03.ogg", "04": "f5/04.ogg", "05": "f5/05.ogg", "06": "f5/06.ogg", "07": "f5/07.ogg", "08": "f5/08.ogg", "09": "f5/09.ogg", "10": "f5/10.ogg", "11": "f5/11.ogg", "12": "f5/12.ogg"}}, "ref": "ref_sarah.ogg"};
+const KEY = "haotica.tts.blind.v1";
+let S = { r: {}, win: "", heard: {} };
+try { S = Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) { /* без хранилища */ }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* */ } render(); };
+const CRIT = [["ru", "Русский"], ["sara", "Похоже на Сару"], ["all", "В целом"]];
+const LANG = { ru: "рус", en: "eng", de: "deu" };
+const $ = (id) => document.getElementById(id);
+const audio = new Audio();
+let playingBtn = null;
+function play(btn, src, tag) {
+  if (playingBtn === btn && !audio.paused) { audio.pause(); btn.classList.remove("on"); playingBtn = null; return; }
+  if (playingBtn) playingBtn.classList.remove("on");
+  audio.src = src; audio.currentTime = 0;
+  audio.play().catch(() => {});
+  btn.classList.add("on"); playingBtn = btn;
+  if (tag) { S.heard[tag] = 1; save(); }
+}
+audio.addEventListener("ended", () => { if (playingBtn) playingBtn.classList.remove("on"); playingBtn = null; });
+document.addEventListener("keydown", (e) => { if (e.code === "Space" && e.target === document.body) { e.preventDefault(); audio.pause(); if (playingBtn) playingBtn.classList.remove("on"); playingBtn = null; } });
+$("ref").onclick = (e) => play(e.currentTarget, D.ref);
+for (const L of D.letters) { const d = document.createElement("div"); d.className = "L"; d.textContent = L; $("mhead").append(d); }
+for (const p of D.phrases) {
+  const row = document.createElement("div"); row.className = "row";
+  const ph = document.createElement("div"); ph.className = "ph";
+  ph.innerHTML = `<div class="t"></div><div class="m"><i></i></div>`;
+  ph.querySelector(".t").textContent = p.text; ph.querySelector("i").textContent = LANG[p.lang] || p.lang;
+  ph.querySelector(".m").append(p.what);
+  row.append(ph);
+  const btns = document.createElement("div"); btns.className = "btns"; btns.style.display = "contents";
+  for (const L of D.letters) {
+    const b = document.createElement("button"); b.className = "pl"; b.textContent = L; b.dataset.tag = L + p.id;
+    b.setAttribute("aria-label", `Голос ${L}, фраза ${p.id}`);
+    b.onclick = () => play(b, D.audio[L][p.id], L + p.id);
+    btns.append(b);
+  }
+  row.append(btns);
+  $("rows").append(row);
+}
+function render() {
+  document.querySelectorAll(".pl[data-tag]").forEach((b) => b.classList.toggle("done", !!S.heard[b.dataset.tag]));
+  $("cards").replaceChildren(...D.letters.map((L) => {
+    const c = document.createElement("div"); c.className = "card" + (S.win === L ? " win-on" : "");
+    const heard = D.phrases.filter((p) => S.heard[L + p.id]).length;
+    c.innerHTML = `<div class="h"><div class="L">${L}</div><button class="win">${S.win === L ? "ПОБЕДИТЕЛЬ" : "ВЫБРАТЬ"}</button><div class="heard">${heard}/${D.phrases.length}</div></div>`;
+    c.querySelector(".win").onclick = () => { S.win = S.win === L ? "" : L; save(); };
+    for (const [k, label] of CRIT) {
+      const row = document.createElement("div"); row.className = "crit";
+      const st = document.createElement("div"); st.className = "stars";
+      for (let n = 1; n <= 5; n++) {
+        const b = document.createElement("button"); b.className = "star" + (((S.r[L] || {})[k] || 0) >= n ? " on" : ""); b.textContent = n;
+        b.setAttribute("aria-label", `${label}: ${n}`);
+        b.onclick = () => { S.r[L] = S.r[L] || {}; S.r[L][k] = S.r[L][k] === n ? 0 : n; save(); };
+        st.append(b);
+      }
+      row.append(Object.assign(document.createElement("span"), { textContent: label }), st);
+      c.append(row);
+    }
+    return c;
+  }));
+  const lines = D.letters.map((L) => { const r = S.r[L] || {}; return `${L}: русский ${r.ru || "–"} · Сара ${r.sara || "–"} · в целом ${r.all || "–"}`; });
+  const any = D.letters.some((L) => S.r[L]) || S.win;
+  $("out").textContent = any ? `TTS слепой тест\nПобедитель: ${S.win || "не выбран"}\n` + lines.join("\n") : "Пока нет оценок.";
+}
+$("copy").onclick = () => {
+  const t = $("out").textContent;
+  navigator.clipboard.writeText(t).then(() => { $("copy").textContent = "СКОПИРОВАНО"; setTimeout(() => { $("copy").textContent = "КОПИРОВАТЬ ИТОГ"; }, 1500); })
+    .catch(() => { const r = document.createRange(); r.selectNodeContents($("out")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); });
+};
+render();
+</script>

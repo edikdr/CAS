@@ -24,7 +24,7 @@ def test_pauses_and_intonation():
 def test_emotions_and_pause_tags():
     segs = prosody.plan("Ну ты даёшь *смеётся* ладно. [пауза] Делаем. *вздыхает*")
     sounds = [s.sound for s in segs if s.kind == "sound"]
-    assert sounds == ["emo_laugh", "emo_sigh"]
+    assert sounds == ["emo_giggle", "emo_sigh"]
     assert any(s.kind == "pause" and s.ms == 700 for s in segs)
     assert not any("смеётся" in s.text or "пауза" in s.text for s in segs if s.kind == "speech")
 

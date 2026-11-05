@@ -32,14 +32,15 @@ class Segment:
 
 # эмоции Сары: метка в тексте → готовая запись
 SOUNDS = [
-    (r"\*?\(?\b(смеётся|смеется|смех|ржёт|ржет|хохочет|laughs?)\b\)?\*?", "emo_laugh"),
-    (r"\*?\(?\b(хихикает|хихик|giggles?)\b\)?\*?", "emo_giggle"),
+    (r"\*?\(?\b(хохочет|ржёт|ржет|громко смеётся|laughs out loud)\b\)?\*?", "emo_laugh"),
+    (r"\*?\(?\b(смеётся|смеется|смех|хихикает|хихик|laughs?|giggles?)\b\)?\*?", "emo_giggle"),
     (r"\*?\(?\b(вздыхает|вздох|sighs?)\b\)?\*?", "emo_sigh"),
     (r"\*?\(?\b(хмыкает|хмм+|hmm+)\b\)?\*?", "emo_hmm"),
     (r"\*?\(?\b(ахает|ах!|gasps?)\b\)?\*?", "emo_gasp"),
     (r"\*?\(?\b(стонет|groans?)\b\)?\*?", "emo_groan"),
     (r"\*?\(?\b(тсс+|psst)\b\)?\*?", "emo_psst"),
 ]
+SOUND_MAX_MS = {"emo_laugh": 2200, "emo_groan": 1600, "emo_yawn": 1800, "emo_pain": 1500}   # в середине речи — коротко
 CUE_RX = re.compile(r"\*(?P<a>[^*\n]{2,30})\*|\[(?P<b>[^\]\n]{2,30})\]|\((?P<c>(?:смеётся|смеется|вздыхает|хихикает|хмыкает|ахает|пауза)[^)\n]{0,12})\)",
                     re.I)
 WARN_RX = re.compile(r"(?i)\b(осторожно|внимание|опасн\w*|удал\w*|без возврата|ошибк\w*|сломал\w*|не получилось|"
@@ -166,7 +167,7 @@ def plan(text: str, lang: str = "", base_speed: float = 1.0, mood: str = "neutra
                     segs.append(Segment("pause", ms=int(val)))
                 else:
                     segs.append(Segment("pause", ms=120))
-                    segs.append(Segment("sound", sound=val))
+                    segs.append(Segment("sound", sound=val, ms=SOUND_MAX_MS.get(val, 0)))
                     segs.append(Segment("pause", ms=160))
                 pos = m.end()
             _add_text(segs, line[pos:], lang, base_speed, mood, item)

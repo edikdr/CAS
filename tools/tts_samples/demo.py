@@ -39,9 +39,10 @@ def pcm(wav: bytes):
     return a
 
 
-def ogg_pcm(path: Path):
+def ogg_pcm(path: Path, max_ms: int = 0):
     import numpy as np
-    raw = subprocess.run(["ffmpeg", "-v", "quiet", "-i", str(path), "-f", "s16le", "-ac", "1", "-ar", str(SR), "-"],
+    cut = ["-t", f"{max_ms / 1000:.2f}", "-af", f"afade=t=out:st={max(0, max_ms / 1000 - 0.4):.2f}:d=0.4"] if max_ms else []
+    raw = subprocess.run(["ffmpeg", "-v", "quiet", "-i", str(path), *cut, "-f", "s16le", "-ac", "1", "-ar", str(SR), "-"],
                          capture_output=True, check=True).stdout
     return np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768 * 0.8
 
@@ -61,7 +62,7 @@ def main() -> None:
         elif seg.kind == "sound":
             f = ROOT / "assets/sounds/voice" / f"{seg.sound}.ogg"
             if f.exists():
-                parts.append(ogg_pcm(f))
+                parts.append(ogg_pcm(f, seg.ms))
         else:
             wav = eng.synth(normalize(seg.text, seg.lang), seg.lang, seg.speed, seg.exaggeration, seg.cfg, seg.temperature)
             parts.append(pcm(wav))

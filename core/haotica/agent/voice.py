@@ -165,7 +165,7 @@ class Voice:
                 if seg.kind == "sound":
                     f = voice_dir() / f"{seg.sound}.ogg"
                     if f.exists():
-                        await self._play_file(f, s)
+                        await self._play_file(f, s, seg.ms / 1000 if seg.ms else 0)
                     continue
                 nxt = next((k for k in speech if k > idx), None)    # конвейер: следующая фраза уже синтезируется
                 if nxt is not None and nxt not in tasks:
@@ -221,10 +221,11 @@ class Voice:
             w.writeframes(pcm)
         return buf.getvalue()
 
-    async def _play_file(self, f: Path, s: dict) -> None:
+    async def _play_file(self, f: Path, s: dict, max_s: float = 0) -> None:
         data = b""
         if f.suffix == ".ogg" and util.which("ffmpeg"):
-            proc = await asyncio.create_subprocess_exec("ffmpeg", "-v", "quiet", "-i", str(f), "-f", "wav", "-ac", "1",
+            cut = ["-t", f"{max_s:.2f}", "-af", f"afade=t=out:st={max(0, max_s - 0.4):.2f}:d=0.4"] if max_s else []
+            proc = await asyncio.create_subprocess_exec("ffmpeg", "-v", "quiet", "-i", str(f), *cut, "-f", "wav", "-ac", "1",
                                                         "-ar", "24000", "-", stdout=asyncio.subprocess.PIPE)
             data, _ = await proc.communicate()
         if data:

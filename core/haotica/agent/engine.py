@@ -230,6 +230,8 @@ class Agent:
     def stop_turn(self, chat: str = "") -> dict:
         """Кнопка «стоп» / Esc: прервать ход, отклонить ожидающие карточки, Ctrl+C команде в терминале."""
         chats = [chat] if chat else list(self.cancels)
+        if self.voice:
+            self.bg(self.voice.stop())
         for c in chats:
             ev = self.cancels.get(c)
             if ev:
@@ -426,6 +428,8 @@ class Agent:
         if self.llm.paused:
             yield {"type": "error", "error": "режим «Игра»: модели выгружены, вернусь после игры"}
             return
+        if self.voice:                       # владелец заговорил — Haotica замолкает
+            self.bg(self.voice.stop())
         async with self._turn_lock:
             self.busy = True
             self.cancels[chat] = asyncio.Event()

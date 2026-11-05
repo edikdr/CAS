@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import io
 import logging
+import os
 import time
 import wave
 from pathlib import Path
@@ -66,11 +67,38 @@ def envelope_wav(data: bytes, fps: int = 50) -> tuple[list[float], float]:
         return [], 0.0
 
 
+def scale_wav(data: bytes, gain: float) -> bytes:
+    """Громкость в самом WAV (winsound не умеет громкость)."""
+    if abs(gain - 1.0) < 0.02:
+        return data
+    try:
+        import numpy as np
+        with wave.open(io.BytesIO(data)) as w:
+            params, raw = w.getparams(), w.readframes(w.getnframes())
+        if params.sampwidth != 2:
+            return data
+        a = (np.frombuffer(raw, dtype=np.int16).astype(np.float32) * max(0.0, min(2.0, gain))).clip(-32768, 32767)
+        out = io.BytesIO()
+        with wave.open(out, "wb") as w:
+            w.setparams(params)
+            w.writeframes(a.astype(np.int16).tobytes())
+        return out.getvalue()
+    except Exception:  # noqa: BLE001
+        return data
+
+
 class Voice:
+    """Речь Haotica: по предложениям (первое звучит, пока синтезируется второе), с прерыванием.
+
+    Прерывание (barge-in): новая реплика, ввод владельца, Esc/«стоп» — stop() глушит звук и сбрасывает очередь.
+    """
+
     def __init__(self, hub, state) -> None:
         self.hub, self.state = hub, state
         self.lock = asyncio.Lock()
         self.playing: asyncio.subprocess.Process | None = None
+        self.gen = 0                                     # поколение речи: stop() его увеличивает
+        self._win_playing = False
 
     def enabled(self, s: dict) -> bool:
         ha = s.get("haotica", {})
@@ -99,19 +127,41 @@ class Voice:
         s = config.load()
         if not self.enabled(s) or not text.strip():
             return False
+        await self.stop()                                 # новая реплика глушит старую
+        gen = self.gen
         backend = s.get("haotica", {}).get("voice_backend", "local")
         lang = s.get("locale", {}).get("haotica_language", "ru")
+        if lang not in ("ru", "en", "de"):
+            from ..tts.normalize import detect_lang
+            lang = detect_lang(text)
         speed = float(s.get("haotica", {}).get("voice_speed", 1.0))
-        audio = b""
-        if backend in ("local", "auto"):
-            audio = await self._local(text, lang, emotion, speed)
-        if not audio and backend in ("elevenlabs", "local", "auto"):
-            audio = await self._eleven(text, lang)
-        if not audio:
-            return False
-        await self._play_bytes(audio, s)
-        return True
+        from ..tts.normalize import sentences
+        parts = sentences(text) or [text]
+        played = False
 
+        async def synth(t: str) -> bytes:
+            audio = b""
+            if backend in ("local", "auto"):
+                audio = await self._local(t, lang, emotion, speed)
+            if not audio and backend in ("elevenlabs", "local", "auto"):
+                audio = await self._eleven(t, lang)
+            return audio
+        nxt = asyncio.create_task(synth(parts[0]))
+        for i in range(len(parts)):
+            audio = await nxt
+            if gen != self.gen:
+                return played
+            nxt = asyncio.create_task(synth(parts[i + 1])) if i + 1 < len(parts) else None
+            if audio:
+                await self._play_bytes(audio, s, gen)
+                played = True
+            if gen != self.gen:
+                if nxt:
+                    nxt.cancel()
+                return played
+            if nxt is None:
+                break
+        return played
     async def _local(self, text: str, lang: str, emotion: str, speed: float) -> bytes:
         url = f"http://{paths.HOST}:{paths.PORT_TTS}/tts"
         exaggeration = {"neutral": 0.45, "happy": 0.7, "warning": 0.6, "sad": 0.35, "excited": 0.85}.get(emotion, 0.5)
@@ -156,14 +206,31 @@ class Voice:
             data, _ = await proc.communicate()
         if data:
             await self._play_bytes(data, s)
-        else:
+        elif os.name != "nt":
             await util.arun(["pw-play", "--volume", f"{self.volume(s):.2f}", str(f)], 60)
 
-    async def _play_bytes(self, wav: bytes, s: dict) -> None:
+    async def _play_bytes(self, wav: bytes, s: dict, gen: int | None = None) -> None:
         async with self.lock:
+            if gen is not None and gen != self.gen:
+                return
             env, dur = envelope_wav(wav)
-            prev = self.state.current
+            prev = self.state.value
             self.state.set("speaking")
+            if os.name == "nt":                          # Windows: winsound из памяти, громкость — в самих данных
+                import winsound
+                data = scale_wav(wav, self.volume(s) / 0.55)
+                mouth = asyncio.create_task(self._mouth(env))
+                self._win_playing = True
+                try:
+                    await asyncio.to_thread(winsound.PlaySound, data, winsound.SND_MEMORY | winsound.SND_NODEFAULT)
+                except RuntimeError:
+                    pass
+                finally:
+                    self._win_playing = False
+                    mouth.cancel()
+                    self.hub.publish("mouth", {"v": 0}, keep=False)
+                    self.state.set(prev if prev != "speaking" else "idle")
+                return
             tmp = paths.RUNTIME_DIR / f"voice-{int(time.time() * 1000)}.wav"
             tmp.write_bytes(wav)
             proc = await asyncio.create_subprocess_exec("pw-play", "--volume", f"{self.volume(s):.2f}", str(tmp),
@@ -190,5 +257,13 @@ class Voice:
                 await asyncio.sleep(delay)
 
     async def stop(self) -> None:
+        """Заглушить речь сейчас же и отменить оставшиеся предложения."""
+        self.gen += 1
+        if os.name == "nt" and self._win_playing:
+            import winsound
+            try:
+                winsound.PlaySound(None, winsound.SND_PURGE)
+            except RuntimeError:
+                pass
         if self.playing and self.playing.returncode is None:
             self.playing.kill()

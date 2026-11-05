@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import hmac
 import json
+import os
 import logging
 import shutil
 import time
@@ -14,7 +15,7 @@ import time
 import aiohttp
 from aiohttp import web
 
-from .. import client, models, paths, secrets, util
+from .. import client, models, paths, secrets, services, util
 from .engine import Agent
 
 log = logging.getLogger("haotica.agent.http")
@@ -295,6 +296,16 @@ def setup(app: web.Application) -> None:
     async def models_download(r):
         d = await _body(r)
         roles = [x for x in (d.get("roles") or [d.get("role")]) if x in models.CATALOG]
+        if os.name == "nt" or services.supervised():      # Windows: загрузка — фоновый процесс под супервизором
+            from .. import supervisor
+            name = "models-" + ("-".join(roles) or "all")
+            sup = supervisor.get()
+            sup.add(name, [*supervisor.python_argv("haotica.cli"), "models", "download", *roles], restart=False)
+            sup.start(name)
+            if os.name == "nt" and not models.llama_server():
+                sup.add("llama-install", [*supervisor.python_argv("haotica.cli"), "llama", "install", "vulkan"], restart=False)
+                sup.start("llama-install")
+            return ok({"started": roles or "all"})
         if not roles:
             rc, _, _e = await util.arun(["systemctl", "--user", "start", "--no-block", "haotica-models.service"], 15)
             if rc == 0:
@@ -311,7 +322,8 @@ def setup(app: web.Application) -> None:
     async def models_verify(r):
         async def run():
             r.app["verify"] = {"running": True}
-            rc, out, e = await util.arun(["haotica", "models", "verify"], 7200)
+            from .. import supervisor
+            rc, out, e = await util.arun([*supervisor.python_argv("haotica.cli"), "models", "verify"], 7200)
             r.app["verify"] = {"running": False, "ok": rc == 0, "output": (out or e)[-2000:], "ts": int(time.time())}
         A(r).bg(run())
         return ok({"running": True})
@@ -343,6 +355,12 @@ def setup(app: web.Application) -> None:
         started, e = await services.start("tts")
         return ok({"started": started}) if started else err(e or "служба голоса не установлена")
     R.add_post("/api/voice/restart", voice_restart)
+
+    async def voice_stop(r):
+        if A(r).voice:
+            await A(r).voice.stop()
+        return ok()
+    R.add_post("/api/voice/stop", voice_stop)
     R.add_route("OPTIONS", "/{tail:.*}", lambda r: web.Response(status=204))
 
 

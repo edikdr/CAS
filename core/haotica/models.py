@@ -183,6 +183,11 @@ def llama_server() -> Path | None:
     env = os.environ.get("HAOTICA_LLAMA_SERVER")
     if env and Path(env).exists():
         return Path(env)
+    if os.name == "nt":
+        from .llama_win import server_exe
+        exe = server_exe()
+        if exe:
+            return exe
     for c in LLAMA_SERVER_CANDIDATES:
         if c.exists():
             return c
@@ -201,7 +206,7 @@ def server_args(role: str, spec: bool = True) -> list[str]:
     ha = s.get("haotica", {})
     exe = llama_server()
     if exe is None:
-        raise SystemExit("llama-server не установлен (модуль 50-ai)")
+        raise SystemExit("llama-server не установлен (" + ("haotica llama install" if os.name == "nt" else "модуль 50-ai") + ")")
     f = model_file(m)
     if not f.exists():
         raise SystemExit(f"модель не загружена: {f} (haotica models download {role})")

@@ -92,6 +92,17 @@ jobs:
           $rows = Get-Content $out -Raw | ConvertFrom-Json
           $bad = @($rows | Where-Object { -not $_.ok })
           if ($bad.Count -or -not $rows) { throw "оболочки не работают в оконном exe: $($bad.id -join ', ')" }
+      - name: Сравнение — те же проверки обычным Python (не в exe)
+        continue-on-error: true
+        shell: pwsh
+        env:
+          HAOTICA_DEV_ROOT: ${{ github.workspace }}
+          PYTHONPATH: ${{ github.workspace }}\core
+          HAOTICA_HOME: ${{ runner.temp }}\hh-pyref
+        run: |
+          python -m haotica.apps.ptyprobe $env:RUNNER_TEMP\ref.json
+          Get-Content $env:RUNNER_TEMP\ref.json -Raw
+          Write-Output "== winpty в сборке:"; Get-ChildItem dist\HaoticaTerminal\_internal\winpty | Select-Object Name, Length
       - name: Смоук собранного exe
         shell: pwsh
         env:

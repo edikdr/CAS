@@ -18,12 +18,16 @@ PAUSE_AT, RESUME_AT = 4_000_000, 1_000_000
 
 class ConPtyProcess:
     def __init__(self, argv: list[str], env: dict, cwd: str, cols: int, rows: int,
-                 on_data: Callable[[str], None], on_exit: Callable[[int], None]) -> None:
+                 on_data: Callable[[str], None], on_exit: Callable[[int], None], backend: str = "") -> None:
         from winpty import PtyProcess
         self.on_data, self.on_exit = on_data, on_exit
         cols, rows = max(2, min(1000, cols)), max(1, min(500, rows))
         # список, а не строка: pywinpty сам соберёт командную строку (list2cmdline) и найдёт exe
-        self.proc = PtyProcess.spawn(list(argv), cwd=cwd, env=env, dimensions=(rows, cols))
+        kw = {}
+        if backend:                                       # для диагностики и запасного пути: ConPTY или WinPTY
+            from winpty.enums import Backend
+            kw["backend"] = getattr(Backend, backend)
+        self.proc = PtyProcess.spawn(list(argv), cwd=cwd, env=env, dimensions=(rows, cols), **kw)
         self.pid = self.proc.pid
         self.unacked = 0
         self.lock = threading.Lock()

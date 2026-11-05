@@ -12,13 +12,13 @@ from . import profiles
 from .conpty import ConPtyProcess, hexcode
 
 
-def check(profile_id: str, wait: float = 6.0) -> dict:
+def check(profile_id: str, wait: float = 6.0, backend: str = "") -> dict:
     argv, env, cwd, prof = profiles.build(profile_id, "", "probe")
     chunks: list[str] = []
     exited: list[int] = []
     ev = threading.Event()
-    p = ConPtyProcess(argv, env, cwd, 120, 30, chunks.append, lambda c: (exited.append(c), ev.set()))
-    res = {"id": profile_id, "exe": prof.get("exe", ""), "argv": argv}
+    p = ConPtyProcess(argv, env, cwd, 120, 30, chunks.append, lambda c: (exited.append(c), ev.set()), backend)
+    res = {"id": profile_id + (f"/{backend}" if backend else ""), "exe": prof.get("exe", ""), "argv": argv}
     res["env_extra"] = sorted(k for k in env if k.startswith(("_PYI", "_MEI", "PYTHON")))
     t0 = time.monotonic()
     while time.monotonic() - t0 < wait and not ev.is_set():          # ждём приглашение или падение
@@ -45,7 +45,9 @@ def main() -> int:
     rows = []
     try:
         import winpty
-        info = {"winpty": getattr(winpty, "__version__", "?"), "file": getattr(winpty, "__file__", "?"), "frozen": getattr(sys, "frozen", False)}
+        import os
+        info = {"winpty": getattr(winpty, "__version__", "?"), "file": getattr(winpty, "__file__", "?"),
+                "frozen": getattr(sys, "frozen", False), "files": sorted(os.listdir(os.path.dirname(winpty.__file__)))}
     except Exception as e:  # noqa: BLE001
         info = {"winpty": f"{type(e).__name__}: {e}"}
     rows.append({"id": "_info", "ok": True, **info})
@@ -55,6 +57,11 @@ def main() -> int:
                 rows.append(check(prof["id"]))
             except Exception as e:  # noqa: BLE001
                 rows.append({"id": prof["id"], "ok": False, "why": f"{type(e).__name__}: {e}"})
+    for be in ("ConPTY", "WinPTY"):                                # какая из подсистем консоли работает в этой сборке
+        try:
+            rows.append(check("cmd", backend=be))
+        except Exception as e:  # noqa: BLE001
+            rows.append({"id": f"cmd/{be}", "ok": False, "why": f"{type(e).__name__}: {e}"})
     text = json.dumps(rows, ensure_ascii=False, indent=1)
     if len(sys.argv) > 1:
         open(sys.argv[1], "w", encoding="utf-8").write(text)

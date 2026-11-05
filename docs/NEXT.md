@@ -62,3 +62,23 @@ b12032 не найдена — только Vulkan (HIP можно задать 
 ## Ветки
 - `hyprina-os` — основная (Arch). `terminal-ubuntu` — набросок «только терминал + Haotica» для Ubuntu (`ubuntu/install.sh`),
   проверен на Ubuntu 24.04 до шага systemd; на ноутбуке не запускался.
+
+## Windows: что осталось после первой установки (ноябрь 2026, ноутбук владельца)
+
+Состояние: сборка из CI ставится и запускается, оболочки стартуют (`haotica doctor` → «СТАРТ · … OK»),
+ядро и агент поднимаются, окно рисуется. Проверять — на самом ноутбуке (Windows 11 26300, Radeon 8060S, 56 ГиБ),
+журналы: `%LOCALAPPDATA%\Haotica\logs` (`window-terminal.log`, `core.log`, `agent.log`, `models-*.log`).
+
+1. **Haotica не видит терминал и не пишет в него.** Агент выбирает инструменты по `engine.hub_has_exec_listener()`:
+   terminal_run есть, только если страница терминала подписана на тему `exec` (`HY.stream(["exec","exec_cancel"], …,
+   HY.haoticaUrl)` в `apps/terminal/terminal.js`). Проверить: открыт ли поток к агенту (:47810) из окна
+   (в `window-terminal.log` нет ошибок EventSource?), доходит ли `exec` до `onExec`, возвращается ли
+   `/api/terminal/result`. Видеть вывод — через `terminal_poll`/результат блока: OSC 133 должен работать в
+   Windows PowerShell 5.1 (профиль по умолчанию у владельца — PowerShell 7 не установлен).
+2. **Нет голоса.** Служба речи ставится отдельно: `haotica voice install chatterbox` (`core/haotica/tts/runtime.py`,
+   через uv). Проверить, что uv есть/скачивается на Windows; поставить голос в мастере первого запуска автоматически.
+3. **Модель deep (80B) показана готовой, но не скачана.** Сравнить `models.status()` с файлами в
+   `%LOCALAPPDATA%\Haotica\data\models` (размер, `.part`, `.lock`); готовность должна требовать полный файл.
+4. **Qwen3.8-27B ≈ 10 ток/с.** Для плотной 27B на iGPU это близко к пределу полосы памяти. Быстрый путь — deep
+   (80B-A3B, MoE ≈ 3B активных) и драфт-модель (`server_args`, `draft`). Замер: `haotica llama bench`.
+5. Режим «без видеокарты» (`--safe-gfx`) включается сам при чёрном окне; флаг — `%LOCALAPPDATA%\Haotica\state\gfx-safe`.

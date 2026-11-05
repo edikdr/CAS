@@ -49,6 +49,15 @@ Ctrl+Shift+B / Ctrl+Shift+H — левая/правая колонка. Полн
 llama.cpp и окружение речи `%LOCALAPPDATA%\Haotica\opt`. Все службы слушают только 127.0.0.1 и закрываются вместе
 с окном (Job Object).
 
+## Голос
+
+Везде — голос Сары: локальный клон по образцу `assets/sounds/voice/ref_sarah_1.mp3`. По умолчанию Chatterbox
+Multilingual (`haotica voice install chatterbox`), дальше по порядку Qwen3-TTS, F5, XTTS; запасной — ElevenLabs Sarah
+(ключ в Настройках). Чужими голосами (Piper, Silero) Haotica не говорит, если их не выбрать явно.
+Подача — `core/haotica/tts/prosody.py`: паузы между фразами и после «…», интонация вопроса/восклицания/предупреждения,
+темп по смыслу, *смеётся*/*вздыхает*/*хмыкает* — записанные эмоции Сары; код и ссылки вслух не читаются.
+Сравнение движков — `samples/tts/eval.json` и страница `samples/tts/index.html` (слепое прослушивание + демо).
+
 ## Безопасность (не отключается)
 
 Опасные команды (Remove-Item -Recurse, Format-Volume, reg delete, iex (iwr …), del /s, diskpart, shutdown…) —

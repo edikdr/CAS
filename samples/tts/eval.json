@@ -1,0 +1,575 @@
+{
+ "self_similarity": 0.46,
+ "engines": {
+  "chatterbox": {
+   "label": "Chatterbox Multilingual (клон Сары)",
+   "clone": true,
+   "cer_ru": 0.071,
+   "cer_en_de": 0.018,
+   "sarah_similarity": 0.622,
+   "score": 1.085,
+   "rtf_cpu": 9.53,
+   "rows": [
+    {
+     "id": "01",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.601,
+     "heard": "Привет, Эдуард. Я Хаотика, твой терминал. Чем займемся сегодня?"
+    },
+    {
+     "id": "02",
+     "lang": "ru",
+     "cer": 0.458,
+     "sim": 0.583,
+     "heard": "Сборка заняла три минуты сорок семь секунд, ошибок ноль, предупреждений двенадцать."
+    },
+    {
+     "id": "03",
+     "lang": "ru",
+     "cer": 0.05,
+     "sim": 0.603,
+     "heard": "На диске свободно 47 гигабайт, то есть хватит еще на две модели."
+    },
+    {
+     "id": "04",
+     "lang": "ru",
+     "cer": 0.029,
+     "sim": 0.692,
+     "heard": "Сначала сделаю git pull, потом npm install, и запущу Docker Compose App."
+    },
+    {
+     "id": "05",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.507,
+     "heard": "Осторожно! Эта команда удалит всю папку без возврата!"
+    },
+    {
+     "id": "06",
+     "lang": "ru",
+     "cer": 0.034,
+     "sim": 0.615,
+     "heard": "Если хочешь, я сама проверю зависимости, запущу тесто в отдельной вкладке и, когда все заканчивается, коротко расскажу, что сломалось и как это исправить."
+    },
+    {
+     "id": "07",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.585,
+     "heard": "Она позвонит в четверг. Договор уже подписан, а торты стоят в холодильнике."
+    },
+    {
+     "id": "08",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.619,
+     "heard": "Напоминание на 5 ноября 2026 года в 14.30"
+    },
+    {
+     "id": "09",
+     "lang": "en",
+     "cer": 0.07,
+     "sim": 0.766,
+     "heard": "Build finished in 40 seconds.  Two tests failed.  Want me to take a look?"
+    },
+    {
+     "id": "10",
+     "lang": "en",
+     "cer": 0.0,
+     "sim": 0.83,
+     "heard": "I've cloned the repository, installed the dependencies,  and everything is ready.  Just say the word and I'll start the dev server."
+    },
+    {
+     "id": "11",
+     "lang": "de",
+     "cer": 0.0,
+     "sim": 0.543,
+     "heard": "Achtung! Der Akku ist fast leer. Soll ich den Energiesparmodus einschalten?"
+    },
+    {
+     "id": "12",
+     "lang": "de",
+     "cer": 0.0,
+     "sim": 0.521,
+     "heard": "Die Datei wurde erfolgreich gespeichert und die Sicherung läuft jetzt im Hintergrund."
+    }
+   ]
+  },
+  "f5": {
+   "label": "F5-TTS (русское дообучение, клон Сары)",
+   "clone": true,
+   "cer_ru": 0.124,
+   "cer_en_de": 0.057,
+   "sarah_similarity": 0.659,
+   "score": 1.081,
+   "rtf_cpu": 29.04,
+   "rows": [
+    {
+     "id": "01",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.567,
+     "heard": "Привет, Эдуард.  Я Хаотика, твой терминал.  Чем займемся сегодня?"
+    },
+    {
+     "id": "02",
+     "lang": "ru",
+     "cer": 0.458,
+     "sim": 0.564,
+     "heard": "Сборка заняла три минуты сорок семь секунд. Ошибок ноль предупреждений двенадцать"
+    },
+    {
+     "id": "03",
+     "lang": "ru",
+     "cer": 0.417,
+     "sim": 0.608,
+     "heard": "Let's try it together. На диске свободно 47 гигабайт, то есть  хватит еще на две модели."
+    },
+    {
+     "id": "04",
+     "lang": "ru",
+     "cer": 0.088,
+     "sim": 0.771,
+     "heard": "Сначала сделаю GitPoll, потом mpam install и запущу Docker Compose App."
+    },
+    {
+     "id": "05",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.509,
+     "heard": "Осторожно!  Эта команда удалит всю папку без возврата."
+    },
+    {
+     "id": "06",
+     "lang": "ru",
+     "cer": 0.028,
+     "sim": 0.652,
+     "heard": "Если хочешь, я сама проверю зависимости, запущу тесты  в отдельной вкладке и, когда всё… всё закончится, коротко  расскажу, что сломалось и как это исправить."
+    },
+    {
+     "id": "07",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.526,
+     "heard": "Она позвонит в четверг. Договор уже подписан, а торты стоят в холодильнике."
+    },
+    {
+     "id": "08",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.557,
+     "heard": "Напоминание на 5 ноября 2026 года. В 14.30."
+    },
+    {
+     "id": "09",
+     "lang": "en",
+     "cer": 0.07,
+     "sim": 0.714,
+     "heard": "Build finished in 40 seconds.  Two tests failed.  Want me to take a look?"
+    },
+    {
+     "id": "10",
+     "lang": "en",
+     "cer": 0.0,
+     "sim": 0.866,
+     "heard": "I've cloned the repository, installed the dependencies, and everything is ready, just  Say the word and I'll start the dev server."
+    },
+    {
+     "id": "11",
+     "lang": "de",
+     "cer": 0.028,
+     "sim": 0.794,
+     "heard": "Aktung der Akku ist fast leer. Soll ich den Energiesparmodus einschalten?"
+    },
+    {
+     "id": "12",
+     "lang": "de",
+     "cer": 0.131,
+     "sim": 0.781,
+     "heard": "Die Datei-Word-Erfolge ist gespeichert und die Sicherang-Low-Aft-Jetzt im Hintergrund."
+    }
+   ]
+  },
+  "piper": {
+   "label": "Piper (medium)",
+   "clone": false,
+   "cer_ru": 0.068,
+   "cer_en_de": 0.025,
+   "sarah_similarity": 0.131,
+   "score": 0.712,
+   "rtf_cpu": 0.05,
+   "rows": [
+    {
+     "id": "01",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.126,
+     "heard": "Привет, Эдуард, я Хаотика, твой терминал. Чем займёмся сегодня?"
+    },
+    {
+     "id": "02",
+     "lang": "ru",
+     "cer": 0.22,
+     "sim": 0.048,
+     "heard": "Сборка заняла 3 минуты 47 секунд. Ошибок.  Нол. Предупреждений. Двенадцать."
+    },
+    {
+     "id": "03",
+     "lang": "ru",
+     "cer": 0.15,
+     "sim": 0.131,
+     "heard": "На диске свободно сорук 7 гигабайт, то есть хватит ещё на две модели."
+    },
+    {
+     "id": "04",
+     "lang": "ru",
+     "cer": 0.132,
+     "sim": 0.058,
+     "heard": "Сначала сделаю GitPool, потом npm install и запущу Deco Compose app."
+    },
+    {
+     "id": "05",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.116,
+     "heard": "Осторожно, эта команда удалит всю папку без возврата."
+    },
+    {
+     "id": "06",
+     "lang": "ru",
+     "cer": 0.014,
+     "sim": 0.11,
+     "heard": "Если хочешь, я сама проверю зависимости,  запущу тесты в отдельной вкладке и, когда всё закончится,  кратко расскажу, что сломалось и как это исправить."
+    },
+    {
+     "id": "07",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.08,
+     "heard": "Она позвонит в четверг.  Договор уже подписан, а торты стоят в холодильнике."
+    },
+    {
+     "id": "08",
+     "lang": "ru",
+     "cer": 0.024,
+     "sim": 0.12,
+     "heard": "Напоминания на 5 ноября 2026 года в 14.30."
+    },
+    {
+     "id": "09",
+     "lang": "en",
+     "cer": 0.07,
+     "sim": 0.388,
+     "heard": "Build finished in 40 seconds. Two tests failed. Want me to take a look?"
+    },
+    {
+     "id": "10",
+     "lang": "en",
+     "cer": 0.0,
+     "sim": 0.369,
+     "heard": "I've cloned the repository, installed the dependencies, and everything is ready.  Just say the word and I'll start the dev server."
+    },
+    {
+     "id": "11",
+     "lang": "de",
+     "cer": 0.028,
+     "sim": 0.04,
+     "heard": "Achtung, der Akku ist fast leer. Soll ich den Energie-Spa-Modus einschalten?"
+    },
+    {
+     "id": "12",
+     "lang": "de",
+     "cer": 0.0,
+     "sim": -0.015,
+     "heard": "Die Datei wurde erfolgreich gespeichert und die Sicherung läuft jetzt im Hintergrund."
+    }
+   ]
+  },
+  "qwen3": {
+   "label": "Qwen3-TTS 1.7B (клон Сары)",
+   "clone": true,
+   "cer_ru": 0.068,
+   "cer_en_de": 0.018,
+   "sarah_similarity": 0.644,
+   "score": 1.103,
+   "rtf_cpu": 7.93,
+   "rows": [
+    {
+     "id": "01",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.539,
+     "heard": "Привет, Эдуард. Я Хаотика, твой терминал. Чем займемся сегодня?"
+    },
+    {
+     "id": "02",
+     "lang": "ru",
+     "cer": 0.458,
+     "sim": 0.513,
+     "heard": "Сборка заняла три минуты сорок семь секунд, ошибок ноль, предупреждений двенадцать."
+    },
+    {
+     "id": "03",
+     "lang": "ru",
+     "cer": 0.05,
+     "sim": 0.561,
+     "heard": "На диске свободно 47 гигабайт, то есть хватит еще на две модели."
+    },
+    {
+     "id": "04",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.69,
+     "heard": "Сначала сделаю git pull, потом npm install и запущу docker-compose-up."
+    },
+    {
+     "id": "05",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.712,
+     "heard": "Осторожно! Эта команда удалит всю папку без возврата."
+    },
+    {
+     "id": "06",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.586,
+     "heard": "Если хочешь, я сама проверю зависимости, запущу тесты  в отдельной вкладке и когда все закончится, коротко  расскажу, что сломалось и как это исправить."
+    },
+    {
+     "id": "07",
+     "lang": "ru",
+     "cer": 0.014,
+     "sim": 0.563,
+     "heard": "Она позвонит в четверг.  Даговор уже подписан, а торты стоят в холодильнике."
+    },
+    {
+     "id": "08",
+     "lang": "ru",
+     "cer": 0.024,
+     "sim": 0.574,
+     "heard": "Напоминания на 5 ноября 2026 года в 14.30"
+    },
+    {
+     "id": "09",
+     "lang": "en",
+     "cer": 0.07,
+     "sim": 0.711,
+     "heard": "Build finished in 40 seconds.  Two tests failed.  Want me to take a look?"
+    },
+    {
+     "id": "10",
+     "lang": "en",
+     "cer": 0.0,
+     "sim": 0.776,
+     "heard": "I've cloned the repository, installed the dependencies, and everything is ready.  Just say the word and I'll start the dev server."
+    },
+    {
+     "id": "11",
+     "lang": "de",
+     "cer": 0.0,
+     "sim": 0.827,
+     "heard": "Achtung! Der Akku ist fast leer. Soll ich den Energiesparmodus einschalten?"
+    },
+    {
+     "id": "12",
+     "lang": "de",
+     "cer": 0.0,
+     "sim": 0.679,
+     "heard": "Die Datei wurde erfolgreich gespeichert und die Sicherung läuft jetzt im Hintergrund."
+    }
+   ]
+  },
+  "silero": {
+   "label": "Silero v5 (ru) / v3 (en, de)",
+   "clone": false,
+   "cer_ru": 0.167,
+   "cer_en_de": 0.021,
+   "sarah_similarity": 0.179,
+   "score": 0.699,
+   "rtf_cpu": 0.18,
+   "rows": [
+    {
+     "id": "01",
+     "lang": "ru",
+     "cer": 0.034,
+     "sim": 0.114,
+     "heard": "Привет, Эдуард.  Я Халатика, твой терминал.  Чем займемся сегодня?"
+    },
+    {
+     "id": "02",
+     "lang": "ru",
+     "cer": 0.458,
+     "sim": 0.212,
+     "heard": "Сборка заняла три минуты сорок семь секунд.  Ошибок ноль предупреждений двенадцать."
+    },
+    {
+     "id": "03",
+     "lang": "ru",
+     "cer": 0.217,
+     "sim": 0.144,
+     "heard": "На диске свободно 47 ГБ, т.е. хватит ещё на две модели."
+    },
+    {
+     "id": "04",
+     "lang": "ru",
+     "cer": 0.574,
+     "sim": 0.043,
+     "heard": "Сначала сделаю, потом и запущу."
+    },
+    {
+     "id": "05",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.218,
+     "heard": "Осторожно, эта команда удалит всю папку без возврата."
+    },
+    {
+     "id": "06",
+     "lang": "ru",
+     "cer": 0.007,
+     "sim": 0.157,
+     "heard": "Если хочешь, я сама проверю зависимости, запущу тесто в отдельной вкладке и, когда всё закончится,  коротко расскажу, что сломалось и как это исправить."
+    },
+    {
+     "id": "07",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.214,
+     "heard": "Она позвонит в четверг.  Договор уже подписан, а торты стоят в холодильнике."
+    },
+    {
+     "id": "08",
+     "lang": "ru",
+     "cer": 0.049,
+     "sim": 0.164,
+     "heard": "Напоминание на 5 ноября 2026 года, 14.30"
+    },
+    {
+     "id": "09",
+     "lang": "en",
+     "cer": 0.07,
+     "sim": 0.206,
+     "heard": "Build finished in 40 seconds.  Two tests failed.  Want me to take a look?"
+    },
+    {
+     "id": "10",
+     "lang": "en",
+     "cer": 0.0,
+     "sim": 0.269,
+     "heard": "I've cloned the repository, installed the dependencies, and everything is ready.  Just say the word and I'll start the dev server."
+    },
+    {
+     "id": "11",
+     "lang": "de",
+     "cer": 0.014,
+     "sim": 0.233,
+     "heard": "Achtung, der Akku ist fast leer. Soll ich den Energiespar-Modus einschalten?"
+    },
+    {
+     "id": "12",
+     "lang": "de",
+     "cer": 0.0,
+     "sim": 0.174,
+     "heard": "Die Datei wurde erfolgreich gespeichert und die Sicherung läuft jetzt im Hintergrund."
+    }
+   ]
+  },
+  "xtts": {
+   "label": "XTTS-v2 (клон Сары)",
+   "clone": true,
+   "cer_ru": 0.072,
+   "cer_en_de": 0.022,
+   "sarah_similarity": 0.458,
+   "score": 0.959,
+   "rtf_cpu": 2.69,
+   "rows": [
+    {
+     "id": "01",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.421,
+     "heard": "Привет, Эдуард.  Я Хаотика, твой терминал.  Чем займемся сегодня?"
+    },
+    {
+     "id": "02",
+     "lang": "ru",
+     "cer": 0.458,
+     "sim": 0.451,
+     "heard": "Сборка заняла три минуты сорок семь секунд.  Ошибок ноль предупреждений двенадцать."
+    },
+    {
+     "id": "03",
+     "lang": "ru",
+     "cer": 0.05,
+     "sim": 0.353,
+     "heard": "На диске свободно 47 гигабайт, то есть хватит ещё на две модели."
+    },
+    {
+     "id": "04",
+     "lang": "ru",
+     "cer": 0.044,
+     "sim": 0.46,
+     "heard": "Сначала сделаю git pull, потом npm install и запущу Docker Composer API."
+    },
+    {
+     "id": "05",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.36,
+     "heard": "Осторожно, эта команда удалит всю папку без возврата."
+    },
+    {
+     "id": "06",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.448,
+     "heard": "Если хочешь, я сама проверю зависимости, запущу тесты  в отдельной вкладке, и когда все закончится, коротко  расскажу что сломалось и как это исправить."
+    },
+    {
+     "id": "07",
+     "lang": "ru",
+     "cer": 0.0,
+     "sim": 0.396,
+     "heard": "Она позвонит в четверг, договор уже подписан, а торты стоят в холодильнике."
+    },
+    {
+     "id": "08",
+     "lang": "ru",
+     "cer": 0.024,
+     "sim": 0.431,
+     "heard": "Напоминания на 5 ноября 2026 года в 14.30"
+    },
+    {
+     "id": "09",
+     "lang": "en",
+     "cer": 0.07,
+     "sim": 0.617,
+     "heard": "Build finished in 40 seconds.  Two tests failed.  Want me to take a look?"
+    },
+    {
+     "id": "10",
+     "lang": "en",
+     "cer": 0.016,
+     "sim": 0.693,
+     "heard": "I've cloned the repository, installed the dependencies, and everything is ready  Just say the word, and I'll start the DF server"
+    },
+    {
+     "id": "11",
+     "lang": "de",
+     "cer": 0.0,
+     "sim": 0.47,
+     "heard": "Achtung, der Akku ist fast leer. Soll ich den Energiesparmodus einschalten?"
+    },
+    {
+     "id": "12",
+     "lang": "de",
+     "cer": 0.0,
+     "sim": 0.395,
+     "heard": "Die Datei wurde erfolgreich gespeichert und die Sicherung läuft jetzt im Hintergrund."
+    }
+   ]
+  }
+ }
+}

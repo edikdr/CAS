@@ -216,5 +216,7 @@ class Piper(Engine):
 
 
 ENGINES = {e.name: e for e in (Chatterbox, XTTS, Qwen3, F5, Silero, Piper)}
-# «везде голос Сары»: в авто-режиме — только клоны; Silero/Piper — лишь если выбраны явно
-SARAH_ORDER = ["chatterbox", "xtts", "qwen3", "f5"]
+# «везде голос Сары»: в авто-режиме — только клоны; Silero/Piper — лишь если выбраны явно.
+# Порядок — по samples/tts/eval.json (разборчивость русского + похожесть на Сару) и управляемости интонацией:
+# Chatterbox ≈ Qwen3 по оценке, но только у Chatterbox есть отдельные выразительность и размеренность.
+SARAH_ORDER = ["chatterbox", "qwen3", "f5", "xtts"]

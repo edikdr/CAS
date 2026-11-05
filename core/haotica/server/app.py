@@ -14,7 +14,7 @@ from pathlib import Path
 
 from aiohttp import web
 
-from .. import paths
+from .. import paths, platform
 
 log = logging.getLogger("haotica.http")
 ALLOWED_HOSTS = {f"127.0.0.1:{paths.PORT_CORE}", f"localhost:{paths.PORT_CORE}"}
@@ -45,6 +45,8 @@ async def guard(request: web.Request, handler):
     if request.host not in ALLOWED_HOSTS:
         return json_err("недопустимый Host", 403)
     path = request.path
+    if not platform.route_supported(path):
+        return json_err("недоступно на этой платформе", 501, platform=platform.NAME)
     if path.startswith("/api/") and not path.startswith(PUBLIC_PREFIXES):
         token = request.headers.get("X-Haotica-Token") or request.query.get("token", "")
         if not hmac.compare_digest(token.encode(), request.app["core"].token.encode()):
@@ -85,6 +87,10 @@ def create_app(core) -> web.Application:
     routes_fs.setup(app)
     routes_sys.setup(app)
     routes_misc.setup(app)
+
+    async def platform_get(_r):
+        return json_ok({"features": platform.features()})
+    app.router.add_get("/api/platform", platform_get)
     apps_root = paths.APPS_DIR
     app.router.add_get("/ui/{path:.*}", _static("/ui", apps_root / "_ui"))
     app.router.add_get("/apps/{path:.*}", _static("/apps", apps_root))

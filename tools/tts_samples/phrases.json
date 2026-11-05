@@ -1,0 +1,14 @@
+[
+  {"id": "01", "lang": "ru", "what": "приветствие, вопрос", "text": "Привет, Эдуард. Я Хаотика, твой терминал. Чем займёмся сегодня?"},
+  {"id": "02", "lang": "ru", "what": "числа", "text": "Сборка заняла 3 минуты 47 секунд, ошибок — 0, предупреждений — 12."},
+  {"id": "03", "lang": "ru", "what": "сокращения и единицы", "text": "На диске свободно 47 ГБ, т. е. хватит ещё на 2 модели."},
+  {"id": "04", "lang": "ru", "what": "английские слова в русском тексте", "text": "Сначала сделаю git pull, потом npm install, и запущу docker compose up."},
+  {"id": "05", "lang": "ru", "what": "восклицание, предупреждение", "text": "Осторожно! Эта команда удалит всю папку без возврата!"},
+  {"id": "06", "lang": "ru", "what": "длинное предложение", "text": "Если хочешь, я сама проверю зависимости, запущу тесты в отдельной вкладке и, когда всё закончится, коротко расскажу, что сломалось и как это исправить."},
+  {"id": "07", "lang": "ru", "what": "трудные ударения", "text": "Она позвонит в четверг: договор уже подписан, а торты стоят в холодильнике."},
+  {"id": "08", "lang": "ru", "what": "дата и время", "text": "Напоминание на 5 ноября 2026 года, в 14:30."},
+  {"id": "09", "lang": "en", "what": "английский, вопрос", "text": "Build finished in forty seconds. Two tests failed — want me to take a look?"},
+  {"id": "10", "lang": "en", "what": "английский, длинное", "text": "I've cloned the repository, installed the dependencies, and everything is ready; just say the word and I'll start the dev server."},
+  {"id": "11", "lang": "de", "what": "немецкий, вопрос", "text": "Achtung: Der Akku ist fast leer. Soll ich den Energiesparmodus einschalten?"},
+  {"id": "12", "lang": "de", "what": "немецкий, длинное", "text": "Die Datei wurde erfolgreich gespeichert, und die Sicherung läuft jetzt im Hintergrund."}
+]

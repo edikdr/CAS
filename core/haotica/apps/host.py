@@ -20,11 +20,13 @@ from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineScript, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow
+from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow, QSystemTrayIcon
 
-from .. import client, config, paths, util
+from .. import client, config, paths, platform, supervisor, util
 from . import registry
 from .pty import PtyManager
+
+HYPRLAND = bool(os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"))
 
 ORIGIN = f"http://{paths.HOST}:{paths.PORT_CORE}"
 EDGES = {
@@ -33,7 +35,23 @@ EDGES = {
 
 
 def socket_path(name: str) -> str:
+    if platform.IS_WINDOWS:                 # QLocalServer на Windows — именованный канал
+        return f"haotica-app-{name}-{os.environ.get('USERNAME', 'user')}"
     return str(paths.RUNTIME_DIR / f"app-{name}.sock")
+
+
+def forward_to_running(name: str, args: list[str]) -> bool:
+    """Передать аргументы уже открытому окну (второй запуск `haotica .`). True — передано."""
+    sock = QLocalSocket()
+    sock.connectToServer(socket_path(name))
+    if not sock.waitForConnected(400):
+        return False
+    sock.write((json.dumps({"cmd": "open", "args": args}, ensure_ascii=False) + "\n").encode())
+    sock.flush()
+    sock.waitForBytesWritten(1000)
+    ok = sock.waitForReadyRead(1500) and bytes(sock.readAll()).startswith(b"ok")
+    sock.disconnectFromServer()
+    return ok
 
 
 def _webchannel_js() -> str:
@@ -64,13 +82,45 @@ class Bridge(QObject):
         self.win.close()
 
     @Slot()
+    def forceClose(self) -> None:
+        self.win.force_close = True
+        self.win.close()
+
+    @Slot()
     def minimize(self) -> None:
-        # в Hyprland нет «свернуть»: убираем окно на скрытый рабочий стол, док вернёт его
-        util.spawn(["hyprctl", "dispatch", "movetoworkspacesilent", "special:minimized"])
+        if HYPRLAND:      # в Hyprland нет «свернуть»: скрытый рабочий стол, док вернёт окно
+            util.spawn(["hyprctl", "dispatch", "movetoworkspacesilent", "special:minimized"])
+        else:
+            self.win.showMinimized()
 
     @Slot()
     def toggleMaximize(self) -> None:
-        util.spawn(["hyprctl", "dispatch", "fullscreen", "1"])
+        if HYPRLAND:
+            util.spawn(["hyprctl", "dispatch", "fullscreen", "1"])
+        elif self.win.isMaximized() or self.win.isFullScreen():
+            self.win.showNormal()
+        else:
+            self.win.showMaximized()
+
+    @Slot()
+    def toggleFullscreen(self) -> None:
+        if HYPRLAND:
+            util.spawn(["hyprctl", "dispatch", "fullscreen", "0"])
+        elif self.win.isFullScreen():
+            self.win.showNormal()
+        else:
+            self.win.showFullScreen()
+
+    @Slot(bool)
+    def setOnTop(self, on: bool) -> None:
+        self.win.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, on)
+        self.win.show()
+
+    @Slot(result=str)
+    def windowState(self) -> str:
+        w = self.win
+        return json.dumps({"maximized": w.isMaximized(), "fullscreen": w.isFullScreen(),
+                           "onTop": bool(w.windowFlags() & Qt.WindowType.WindowStaysOnTopHint)})
 
     @Slot()
     def startMove(self) -> None:
@@ -109,7 +159,27 @@ class Bridge(QObject):
             args = [str(a) for a in json.loads(args_json or "[]")]
         except ValueError:
             args = []
+        if platform.IS_WINDOWS:
+            if name == self.win.app.name:
+                self.win.host.open(args or ["--new-tab"])
+            elif registry.get(name):
+                util.spawn([*supervisor.python_argv("haotica.apps"), name, *args])
+            return
         util.spawn(["haotica", "open", name, *args])
+
+    @Slot(str)
+    def runAsAdmin(self, args_json: str) -> None:
+        """Новое окно терминала с правами администратора (запрос UAC)."""
+        if not platform.IS_WINDOWS:
+            return
+        import ctypes
+        import subprocess
+        try:
+            extra = [str(a) for a in json.loads(args_json or "[]")]
+        except ValueError:
+            extra = []
+        argv = [*supervisor.python_argv("haotica.apps"), self.win.app.name, *extra]
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", argv[0], subprocess.list2cmdline(argv[1:]), None, 1)
 
     @Slot(str, str, str, result=str)
     def pickFile(self, mode: str, title: str, start: str) -> str:
@@ -124,12 +194,31 @@ class Bridge(QObject):
 
     @Slot(str, str)
     def notify(self, title: str, body: str) -> None:
-        util.notify(title, body, icon=f"haotica-{self.win.app.name}")
+        tray = self.win.host.tray
+        if tray is not None:
+            tray.showMessage(title[:80], body[:300], QSystemTrayIcon.MessageIcon.Information, 6000)
+        else:
+            util.notify(title, body, icon=f"haotica-{self.win.app.name}")
+
+    @Slot(result=str)
+    def platformInfo(self) -> str:
+        return json.dumps(platform.features())
 
     # ── терминальные сессии ────────────────────────────────────
     @Slot(str, int, int, str, result=str)
     def ptySpawn(self, cwd: str, cols: int, rows: int, command: str) -> str:
         return self.win.host.pty.spawn(self, cwd, cols, rows, command)
+
+    @Slot(str, str, int, int, str, result=str)
+    def ptySpawnProfile(self, profile: str, cwd: str, cols: int, rows: int, command: str) -> str:
+        try:
+            return self.win.host.pty.spawn(self, cwd, cols, rows, command, profile)
+        except Exception as e:  # noqa: BLE001 — оболочка не запустилась: страница покажет ошибку
+            return "error:" + str(e)[:300]
+
+    @Slot(result=str)
+    def ptyProfiles(self) -> str:
+        return json.dumps(self.win.host.pty.profiles(), ensure_ascii=False)
 
     @Slot(str, str)
     def ptyWrite(self, sid: str, data: str) -> None:
@@ -196,13 +285,15 @@ class AppWindow(QMainWindow):
         self._restore_geometry()
         self.page.loadFinished.connect(self._loaded)
         self._retry = 0
+        self.force_close = False
         self.load()
 
     def boot_data(self) -> dict:
         return {"app": self.app.name, "args": self.args, "token": client.token(), "core": ORIGIN,
                 "haotica": f"http://{paths.HOST}:{paths.PORT_HAOTICA}", "lang": self.host.lang,
-                "home": str(paths.HOME), "user": os.environ.get("USER", ""), "multi": self.app.multi,
-                "title": self.host.title}
+                "home": str(paths.HOME), "user": os.environ.get("USER") or os.environ.get("USERNAME", ""),
+                "multi": self.app.multi, "title": self.host.title, "platform": platform.NAME,
+                "sep": os.sep, "features": platform.features()}
 
     def load(self) -> None:
         q = urllib.parse.quote(json.dumps(self.args))
@@ -214,7 +305,10 @@ class AppWindow(QMainWindow):
             return
         self._retry += 1
         if self._retry == 1:
-            util.spawn(["systemctl", "--user", "start", "haotica-core.service"])
+            if platform.IS_WINDOWS or not util.which("systemctl"):
+                supervisor.ensure_backend(wait=0)
+            else:
+                util.spawn(["systemctl", "--user", "start", "haotica-core.service"])
         delay = min(5000, 600 * self._retry)
         self.page.setHtml(OFFLINE_HTML.replace("{BG}", self.host.bg).replace("{INK}", self.host.ink)
                           .replace("{ACC}", self.host.accent).replace("{N}", str(self._retry)), QUrl("about:blank"))
@@ -233,6 +327,11 @@ class AppWindow(QMainWindow):
         self.resize(int(w), int(h))
 
     def closeEvent(self, ev) -> None:  # noqa: N802
+        busy = self.host.pty.busy() if self.app.name == "terminal" and len(self.host.windows) <= 1 else 0
+        if busy and not self.force_close and config.get("terminal.confirm_close", True):
+            ev.ignore()                      # страница спросит «закрыть N работающих вкладок?»
+            self.deliver({"cmd": "confirm-close", "busy": busy})
+            return
         if not self.isFullScreen():
             util.write_json(self._geom_file(), {"w": self.width(), "h": self.height()})
         self.host.window_closed(self)
@@ -257,6 +356,14 @@ class Host(QObject):
         self.bg, self.ink, self.accent = cols.get("bg0", "#000000"), cols.get("ink", "#E8DFC9"), cols.get("accent", "#E0A243")
         self.windows: list[AppWindow] = []
         self.pty = PtyManager()
+        self.tray: QSystemTrayIcon | None = None
+        if platform.IS_WINDOWS and QSystemTrayIcon.isSystemTrayAvailable():
+            icon = paths.ASSETS / "icons" / "haotica.ico"
+            self.tray = QSystemTrayIcon(QIcon(str(icon)) if icon.exists() else QApplication.windowIcon(), self)
+            self.tray.setToolTip("HAOTICA Terminal")
+            self.tray.activated.connect(lambda *_: self.windows and (self.windows[-1].showNormal(),
+                                                                     self.windows[-1].activateWindow()))
+            self.tray.show()
         self.profile = self._profile()
         self.server = QLocalServer(self)
         path = socket_path(app.name)
@@ -336,6 +443,8 @@ class Host(QObject):
             self.windows.remove(w)
         if not self.windows:
             self.pty.kill_all()
+            if self.tray is not None:
+                self.tray.hide()
             QTimer.singleShot(0, QApplication.instance().quit)
 
     def _incoming(self) -> None:
@@ -383,16 +492,32 @@ def main(argv: list[str]) -> int:
     if not app_def:
         print(f"нет приложения «{argv[0]}». Есть: {', '.join(registry.APPS)}")
         return 2
-    os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS",
-                          "--enable-gpu-rasterization --ignore-gpu-blocklist --enable-zero-copy "
-                          "--enable-features=VaapiVideoDecodeLinuxGL --disable-renderer-backgrounding")
-    os.environ.setdefault("QT_QPA_PLATFORM", "wayland;xcb")
+    args = argv[1:]
+    if platform.IS_WINDOWS:
+        supervisor.adopt_job()            # окно закрылось — Windows завершит ядро, агента, модели и оболочки
+        os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS",
+                              "--enable-gpu-rasterization --ignore-gpu-blocklist --disable-renderer-backgrounding")
+    else:
+        os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS",
+                              "--enable-gpu-rasterization --ignore-gpu-blocklist --enable-zero-copy "
+                              "--enable-features=VaapiVideoDecodeLinuxGL --disable-renderer-backgrounding")
+        os.environ.setdefault("QT_QPA_PLATFORM", "wayland;xcb")
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     qapp = QApplication([sys.argv[0]])
+    if app_def.multi and forward_to_running(app_def.name, args or ["--new-tab"]):
+        return 0                          # окно уже открыто: новая вкладка в нём
+    if platform.IS_WINDOWS or os.environ.get("HAOTICA_SUPERVISE") == "1":
+        supervisor.ensure_backend(wait=6.0)
+    if platform.IS_WINDOWS:
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(f"HAOTICA.{app_def.name}")
+        except (AttributeError, OSError):
+            pass
     qapp.setDesktopFileName(f"haotica-{app_def.name}")
     qapp.setApplicationName(f"haotica-{app_def.name}")
     qapp.setOrganizationName("HAOTICA")
-    host = Host(app_def, argv[1:])
+    host = Host(app_def, args)
     qapp.setApplicationDisplayName(host.title)
     snap = os.environ.get("HAOTICA_SNAPSHOT")
     if snap:                       # отладка: снимок окна и выход (визуальные проверки без экрана)

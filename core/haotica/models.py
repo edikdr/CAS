@@ -69,8 +69,11 @@ SAMPLING = {
     "deep": {"temperature": 1.0, "top_p": 0.95, "top_k": 40, "min_p": 0.0},
     "fast": {"temperature": 0.2, "top_p": 0.9, "top_k": 20},
 }
-LLAMA_SERVER_CANDIDATES = [paths.OPT / "llama.cpp/bin/llama-server", Path("/usr/bin/llama-server"),
-                           Path("/usr/local/bin/llama-server")]
+if os.name == "nt":       # готовый релиз llama.cpp для Windows распаковывается в %LOCALAPPDATA%\Haotica\opt\llama.cpp
+    LLAMA_SERVER_CANDIDATES = [paths.OPT / "llama.cpp/llama-server.exe", paths.OPT / "llama.cpp/bin/llama-server.exe"]
+else:
+    LLAMA_SERVER_CANDIDATES = [paths.OPT / "llama.cpp/bin/llama-server", Path("/usr/bin/llama-server"),
+                               Path("/usr/local/bin/llama-server")]
 
 
 def manifest_path() -> Path:
@@ -177,10 +180,14 @@ def status() -> dict:
 
 
 def llama_server() -> Path | None:
+    env = os.environ.get("HAOTICA_LLAMA_SERVER")
+    if env and Path(env).exists():
+        return Path(env)
     for c in LLAMA_SERVER_CANDIDATES:
         if c.exists():
             return c
-    return None
+    w = shutil.which("llama-server")
+    return Path(w) if w else None
 
 
 def _nospec_marker(role: str) -> Path:

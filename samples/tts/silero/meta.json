@@ -1,0 +1,95 @@
+{
+ "engine": "silero",
+ "label": "Silero v5 (ru) / v3 (en, de)",
+ "clone": false,
+ "load_s": 15.7,
+ "device": "cpu",
+ "cpu": "x86_64",
+ "threads": 4,
+ "phrases": [
+  {
+   "id": "01",
+   "synth_s": 1.37,
+   "audio_s": 5.17,
+   "rtf": 0.26,
+   "text": "Привет, Эдуард. Я Хаотика, твой терминал. Чем займёмся сегодня?"
+  },
+  {
+   "id": "02",
+   "synth_s": 0.28,
+   "audio_s": 5.91,
+   "rtf": 0.05,
+   "text": "Сборка заняла три минуты сорок семь секунд, ошибок — ноль, предупреждений — двенадцать."
+  },
+  {
+   "id": "03",
+   "synth_s": 0.18,
+   "audio_s": 4.17,
+   "rtf": 0.04,
+   "text": "На диске свободно сорок семь гигабайт, то есть хватит ещё на две модели."
+  },
+  {
+   "id": "04",
+   "synth_s": 0.1,
+   "audio_s": 2.52,
+   "rtf": 0.04,
+   "text": "Сначала сделаю git pull, потом npm install, и запущу docker compose up."
+  },
+  {
+   "id": "05",
+   "synth_s": 0.17,
+   "audio_s": 3.62,
+   "rtf": 0.05,
+   "text": "Осторожно! Эта команда удалит всю папку без возврата!"
+  },
+  {
+   "id": "06",
+   "synth_s": 0.46,
+   "audio_s": 8.69,
+   "rtf": 0.05,
+   "text": "Если хочешь, я сама проверю зависимости, запущу тесты в отдельной вкладке и, когда всё закончится, коротко расскажу, что сломалось и как это исправить."
+  },
+  {
+   "id": "07",
+   "synth_s": 0.2,
+   "audio_s": 4.84,
+   "rtf": 0.04,
+   "text": "Она позвонит в четверг: договор уже подписан, а торты стоят в холодильнике."
+  },
+  {
+   "id": "08",
+   "synth_s": 0.19,
+   "audio_s": 4.67,
+   "rtf": 0.04,
+   "text": "Напоминание на пятое ноября две тысячи двадцать шестого года, в четырнадцать тридцать."
+  },
+  {
+   "id": "09",
+   "synth_s": 2.21,
+   "audio_s": 4.04,
+   "rtf": 0.55,
+   "text": "Build finished in forty seconds. Two tests failed — want me to take a look?"
+  },
+  {
+   "id": "10",
+   "synth_s": 2.07,
+   "audio_s": 7.1,
+   "rtf": 0.29,
+   "text": "I've cloned the repository, installed the dependencies, and everything is ready; just say the word and I'll start the dev server."
+  },
+  {
+   "id": "11",
+   "synth_s": 2.99,
+   "audio_s": 6.14,
+   "rtf": 0.49,
+   "text": "Achtung: Der Akku ist fast leer. Soll ich den Energiesparmodus einschalten?"
+  },
+  {
+   "id": "12",
+   "synth_s": 1.29,
+   "audio_s": 5.24,
+   "rtf": 0.25,
+   "text": "Die Datei wurde erfolgreich gespeichert, und die Sicherung läuft jetzt im Hintergrund."
+  }
+ ]
+}

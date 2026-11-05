@@ -18,7 +18,7 @@ def which(name: str) -> str | None:
 
 def read(path: str | Path, default: str = "") -> str:
     try:
-        return Path(path).read_text().strip()
+        return Path(path).read_text(encoding="utf-8").strip()
     except OSError:
         return default
 
@@ -53,7 +53,7 @@ def write_json(path: Path, obj: Any, mode: int = 0o644) -> None:
 
 def load_json(path: Path, default: Any = None) -> Any:
     try:
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return default
 
@@ -90,16 +90,28 @@ async def arun(cmd: list[str], timeout: float = 15, input: str | None = None,
 
 
 def spawn(cmd: list[str], env: dict | None = None) -> None:
-    """Запустить и забыть (без зомби: двойной fork через setsid)."""
+    """Запустить и забыть (Linux: без зомби, через setsid; Windows: без консольного окна)."""
+    kw: dict = {"start_new_session": True}
+    if os.name == "nt":
+        kw = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP | getattr(subprocess, "CREATE_NO_WINDOW", 0)}
     try:
         subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                         start_new_session=True, env={**os.environ, **env} if env else None)
-    except FileNotFoundError:
+                         env={**os.environ, **env} if env else None, **kw)
+    except (FileNotFoundError, OSError):
         pass
 
 
 def notify(title: str, body: str = "", urgency: str = "normal", icon: str = "haotica-assistant",
            app: str = "HAOTICA") -> None:
+    """Системное уведомление. На Windows — через ядро: событие уходит в окно терминала (значок в трее)."""
+    if os.name == "nt":
+        try:
+            from . import client
+            client.core("POST", "/api/events", {"kind": "info", "text": f"{title}: {body}" if body else title,
+                                                "notify": True, "title": app}, timeout=2)
+        except Exception:  # noqa: BLE001 — уведомление не обязательно
+            pass
+        return
     if which("notify-send"):
         spawn(["notify-send", "-a", app, "-u", urgency, "-i", icon, title, body])
 

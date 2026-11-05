@@ -1,12 +1,16 @@
-"""Секреты в связке ключей системы (libsecret: GNOME Keyring).
+"""Секреты в хранилище системы: Windows Credential Manager (через `keyring`) или libsecret (GNOME Keyring).
 
 Ключи OpenRouter и ElevenLabs, пароль роутера. Значения не попадают в конфиги, логи
 и контекст Haotica; наружу через API отдаётся только маска с последними 4 символами.
 """
 from __future__ import annotations
 
-from . import util
+import asyncio
 
+from . import util
+from .platform import IS_WINDOWS
+
+SERVICE = "HAOTICA"
 NAMES = {
     "openrouter": "OpenRouter API key",
     "elevenlabs": "ElevenLabs API key",
@@ -15,29 +19,85 @@ NAMES = {
 }
 
 
+def _keyring():
+    """Модуль keyring с настоящим хранилищем (не «пустым» бэкендом) или None."""
+    try:
+        import keyring
+        from keyring.backends import fail
+    except ImportError:
+        return None
+    try:
+        kr = keyring.get_keyring()
+    except Exception:  # noqa: BLE001
+        return None
+    return None if isinstance(kr, fail.Keyring) else keyring
+
+
+def _use_keyring() -> bool:
+    return IS_WINDOWS and _keyring() is not None
+
+
 def _attrs(name: str) -> list[str]:
     return ["service", "haotica", "key", name]
 
 
+def _kr_set(name: str, value: str) -> bool:
+    kr = _keyring()
+    try:
+        kr.set_password(SERVICE, name, value)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _kr_get(name: str) -> str:
+    kr = _keyring()
+    try:
+        return kr.get_password(SERVICE, name) or ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _kr_del(name: str) -> bool:
+    kr = _keyring()
+    try:
+        kr.delete_password(SERVICE, name)
+        return True
+    except Exception:  # noqa: BLE001 — ключа и не было
+        return True
+
+
 async def store(name: str, value: str) -> bool:
+    if _use_keyring():
+        return await asyncio.to_thread(_kr_set, name, value)
     rc, _, _ = await util.arun(["secret-tool", "store", f"--label=HAOTICA · {NAMES.get(name, name)}", *_attrs(name)],
                                10, input=value)
     return rc == 0
 
 
 async def get(name: str) -> str:
+    if _use_keyring():
+        return await asyncio.to_thread(_kr_get, name)
     rc, out, _ = await util.arun(["secret-tool", "lookup", *_attrs(name)], 10)
     return out.strip() if rc == 0 else ""
 
 
 def get_sync(name: str) -> str:
+    if _use_keyring():
+        return _kr_get(name)
     r = util.run(["secret-tool", "lookup", *_attrs(name)], 10)
     return r.stdout.strip() if r.returncode == 0 else ""
 
 
 async def clear(name: str) -> bool:
+    if _use_keyring():
+        return await asyncio.to_thread(_kr_del, name)
     rc, _, _ = await util.arun(["secret-tool", "clear", *_attrs(name)], 10)
     return rc == 0
+
+
+def backend() -> str:
+    return "Windows Credential Manager" if _use_keyring() else "libsecret (secret-tool)"
 
 
 def mask(value: str) -> str:
@@ -54,10 +114,10 @@ async def status() -> dict:
 
 # ── haotica key: ключи из консоли (ввод скрыт, в историю оболочки не попадает) ──
 def _cli(a) -> int:
-    import asyncio
     import getpass
     import sys
     if a.action == "status" or not a.name:
+        print(f"  хранилище: {backend()}")
         for name, st in asyncio.run(status()).items():
             print(f"  {'✓' if st['set'] else '·'} {name:<11} {st['label']}  {st['mask']}")
         return 0
@@ -73,7 +133,7 @@ def _cli(a) -> int:
             return 1
         ok = asyncio.run(store(a.name, value))
     if not ok:
-        print("✗ связка ключей недоступна (нужны gnome-keyring и secret-tool)", file=sys.stderr)
+        print(f"✗ хранилище ключей недоступно ({backend()})", file=sys.stderr)
         return 1
     if a.name in ("openrouter", "elevenlabs"):
         from . import client
@@ -83,7 +143,7 @@ def _cli(a) -> int:
 
 
 def register(sub) -> None:
-    p = sub.add_parser("key", help="API-ключи (OpenRouter, ElevenLabs…) в связке ключей")
+    p = sub.add_parser("key", help="API-ключи (OpenRouter, ElevenLabs…) в хранилище системы")
     p.add_argument("action", choices=["set", "remove", "status"])
     p.add_argument("name", nargs="?", default="", help=", ".join(NAMES))
     p.set_defaults(fn=_cli)

@@ -1,8 +1,9 @@
-// Терминал HAOTICA: xterm.js + PTY хоста, блоки команд (OSC 133), кликабельные пути (OSC 8 и
-// распознавание в выводе), файловая панель с категориями и тегами, превью, системные виджеты
-// из общего сервиса метрик, Haotica в правой панели, палитра команд и Cloud Link.
+// Терминал HAOTICA: xterm.js + PTY хоста (Linux — pty, Windows — ConPTY), вкладки и панели (split),
+// профили оболочек (PowerShell 7 / Windows PowerShell / cmd / WSL / Git Bash / zsh / bash), блоки команд
+// (OSC 133), кликабельные пути (OSC 8 и распознавание в выводе, в т. ч. C:\…), файловая панель, превью,
+// системные виджеты, Haotica (мини-чат под аватаром, панель справа), палитра команд.
+// Поведение клавиш и мыши — как в Windows Terminal (см. docs/UI-INVENTORY.md).
 import { HY, el, icon } from "/ui/hy.js";
-import { keysDialog } from "/ui/keys.js";
 import { Terminal } from "/ui/vendor/xterm/xterm.mjs";
 import { FitAddon } from "/ui/vendor/xterm/addon-fit.mjs";
 import { WebglAddon } from "/ui/vendor/xterm/addon-webgl.mjs";
@@ -15,38 +16,57 @@ import { ClipboardAddon } from "/ui/vendor/xterm/addon-clipboard.mjs";
 HY.i18n({
   ru: { newtab: "Новая вкладка", closetab: "Закрыть вкладку", exited: "процесс завершён (код {code}) — Enter: перезапуск",
     copy_out: "Копировать вывод блока", copy_cmd: "Копировать команду", explain: "Haotica: разобрать ошибку", rerun: "Выполнить снова",
-    open: "Открыть", open_editor: "Открыть в редакторе", reveal: "Показать в «Файлах»", copy_path: "Копировать путь",
+    open: "Открыть", open_editor: "Открыть в редакторе", reveal: "Показать в папке", copy_path: "Копировать путь",
     insert_path: "Вставить путь в терминал", cd_here: "Перейти сюда", tag: "Теги…", ask: "Haotica: что это за файл?",
-    palette: "Команда…", toggle_left: "Панель файлов", toggle_right: "Превью и Haotica", find: "Поиск в выводе",
-    clear: "Очистить экран", font_up: "Крупнее шрифт", font_down: "Мельче шрифт", cloud: "Cloud Link — облачные модели",
-    settings: "Настройки терминала", prev_block: "Предыдущий блок", next_block: "Следующий блок", nothing: "НЕТ ПРЕВЬЮ",
-    pick: "ВЫБЕРИТЕ ФАЙЛ", pages: "стр.", entries: "записей", lines: "строк", all: "все" },
+    palette: "Команда…", toggle_left: "Левая колонка", toggle_right: "Правая колонка", find: "Поиск в выводе",
+    clear: "Очистить экран", font_up: "Крупнее шрифт", font_down: "Мельче шрифт", font_reset: "Шрифт по умолчанию",
+    cloud: "Облачная модель и ключ", settings: "Настройки терминала", prev_block: "Предыдущий блок", next_block: "Следующий блок",
+    nothing: "НЕТ ПРЕВЬЮ", pick: "ВЫБЕРИТЕ ФАЙЛ", pages: "стр.", entries: "записей", lines: "строк", all: "все",
+    paste: "Вставить", rename: "Переименовать", duplicate: "Дублировать вкладку", split_v: "Разделить вертикально",
+    split_h: "Разделить горизонтально", close_pane: "Закрыть панель", profiles: "Профили", fullscreen: "Во весь экран",
+    ontop: "Поверх всех окон", admin: "Новое окно от имени администратора", to_top: "К началу", to_end: "К концу",
+    paste_many: "Вставить {n} строк?", paste_many_t: "Многострочная вставка: каждая строка может выполниться как отдельная команда.",
+    busy_close: "В вкладке работает программа ({name}). Закрыть?", busy_window: "Работающих вкладок: {n}. Закрыть окно и завершить их?",
+    spawn_fail: "Не удалось запустить оболочку", case: "Регистр", word: "Слово целиком", regex: "Регулярное выражение",
+    no_matches: "нет совпадений" },
   en: { newtab: "New tab", closetab: "Close tab", exited: "process exited (code {code}) — Enter: restart",
     copy_out: "Copy block output", copy_cmd: "Copy command", explain: "Haotica: explain error", rerun: "Run again",
-    open: "Open", open_editor: "Open in editor", reveal: "Show in Files", copy_path: "Copy path",
+    open: "Open", open_editor: "Open in editor", reveal: "Show in folder", copy_path: "Copy path",
     insert_path: "Insert path", cd_here: "cd here", tag: "Tags…", ask: "Haotica: what is this file?",
-    palette: "Command…", toggle_left: "Files panel", toggle_right: "Preview & Haotica", find: "Find in output",
-    clear: "Clear", font_up: "Bigger font", font_down: "Smaller font", cloud: "Cloud Link — cloud models",
+    palette: "Command…", toggle_left: "Left column", toggle_right: "Right column", find: "Find in output",
+    clear: "Clear", font_up: "Bigger font", font_down: "Smaller font", font_reset: "Reset font", cloud: "Cloud model & key",
     settings: "Terminal settings", prev_block: "Previous block", next_block: "Next block", nothing: "NO PREVIEW",
-    pick: "SELECT A FILE", pages: "pages", entries: "entries", lines: "lines", all: "all" },
+    pick: "SELECT A FILE", pages: "pages", entries: "entries", lines: "lines", all: "all", paste: "Paste", rename: "Rename",
+    duplicate: "Duplicate tab", split_v: "Split vertically", split_h: "Split horizontally", close_pane: "Close pane",
+    profiles: "Profiles", fullscreen: "Fullscreen", ontop: "Always on top", admin: "New window as administrator",
+    to_top: "To top", to_end: "To end", paste_many: "Paste {n} lines?",
+    paste_many_t: "Multi-line paste: each line may run as a separate command.", busy_close: "A program is running ({name}). Close?",
+    busy_window: "Running tabs: {n}. Close the window and stop them?", spawn_fail: "Failed to start the shell",
+    case: "Match case", word: "Whole word", regex: "Regex", no_matches: "no matches" },
 });
 
 const $ = (id) => document.getElementById(id);
 const CATS = ["all", "dir", "code", "doc", "image", "video", "audio", "archive", "model"];
 const state = { tabs: [], active: null, fontSize: 13, metrics: {}, hist: { cpu: [], gpu: [], gtt: [], tps: [] },
-  dir: "", cat: "all", hidden: false, selected: "", statCache: new Map(), lastClick: { uri: "", t: 0 } };
+  dir: "", cat: "all", hidden: false, selected: "", statCache: new Map(), lastClick: { uri: "", t: 0 },
+  profiles: [], defaultProfile: "", search: { caseSensitive: false, wholeWord: false, regex: false } };
+window.__hyterm = state;
 
 await HY.start({ title: "TERMINAL // HAOTICA", glyph: "terminal", topics: ["metrics", "events", "recon", "gamemode"],
   ctrlW: false, chrome: false });
+const IS_WIN = (HY.boot.platform || (navigator.platform || "").toLowerCase().startsWith("win") && "windows") === "windows";
+const FEAT = HY.boot.features || {};
+document.body.classList.toggle("is-win", IS_WIN);
 HY.edges();
 document.querySelector(".hy-app").classList.add("hy-boot");
 $("winbtns").append(
-  el("button.winbtn", { title: HY.t("cloud"), onclick: () => openCloud() }, icon("cloud", 14)),
+  el("button.winbtn", { title: HY.t("cloud") + "  /key", onclick: () => openCloud() }, icon("cloud", 14)),
   el("button.winbtn", { title: HY.t("palette") + "  Ctrl+Shift+P", onclick: () => palette() }, icon("search", 14)),
   ...HY.winButtons());
 HY.dragArea($("drag1")); HY.dragArea($("drag2"));
 
 const crtMod = import("/ui/crt.js");
+const SET = () => (HY.settings && HY.settings.terminal) || {};
 const termTheme = () => {
   const t = (HY.theme && HY.theme.terminal) || {};
   // прозрачный фон: под текстом — руки из живого кода (art.js) и рамка HUD
@@ -54,25 +74,76 @@ const termTheme = () => {
     scrollbarSliderBackground: "#ffffff14", scrollbarSliderHoverBackground: "#ffffff26", scrollbarSliderActiveBackground: "#ffffff33",
     overviewRulerBorder: "#00000000" };
 };
-state.fontSize = (HY.theme.fonts && HY.theme.fonts.termSize) || 13;
+const baseFont = () => +SET().font_size || (HY.theme.fonts && HY.theme.fonts.termSize) || 13;
+state.fontSize = baseFont();
+const termFont = () => SET().font || getComputedStyle(document.documentElement).getPropertyValue("--font-term").trim() || "JetBrains Mono, monospace";
+const clampScroll = (n) => Math.max(1000, Math.min(100000, +n || 20000));
 
-// ── вкладки и сессии ─────────────────────────────────────────────
-class Tab {
-  constructor({ cwd = "", command = "" } = {}) {
+// ── профили оболочек ─────────────────────────────────────────────
+async function loadProfiles() {
+  if (!HY.bridge || !HY.bridge.ptyProfiles) {
+    state.profiles = [{ id: "dev", name: "dev", kind: "bash" }]; state.defaultProfile = "dev"; return;
+  }
+  const raw = await new Promise((res) => HY.bridge.ptyProfiles(res));
+  try { const d = JSON.parse(raw || "{}"); state.profiles = d.profiles || []; state.defaultProfile = d.default || ""; }
+  catch (e) { state.profiles = []; }
+}
+const profileOf = (id) => state.profiles.find((p) => p.id === id) || state.profiles.find((p) => p.id === state.defaultProfile) || state.profiles[0] || { id: "", kind: "bash", name: "shell" };
+
+// пути: Windows (C:\…, \\server\share), WSL (/mnt/c/…, \\wsl.localhost\<дистр>\…), Git Bash (/c/…)
+function osc7Path(data, pane) {
+  let p = data;
+  try { const u = new URL(data); p = decodeURIComponent(u.pathname); } catch (e) { p = data.replace(/^file:\/\/[^/]*/, ""); }
+  if (/^\/[A-Za-z]:/.test(p)) p = p.slice(1);                            // /C:/Users → C:/Users
+  if (/^[A-Za-z]:/.test(p)) return p.replaceAll("/", "\\");
+  if (IS_WIN && pane) {
+    if (pane.kind === "wsl") {
+      const m = p.match(/^\/mnt\/([a-z])(\/.*)?$/);
+      if (m) return m[1].toUpperCase() + ":" + (m[2] || "\\").replaceAll("/", "\\");
+      return `\\\\wsl.localhost\\${pane.profile.distro || ""}${p.replaceAll("/", "\\")}`;
+    }
+    const g = p.match(/^\/([a-z])(\/.*)?$/);                               // Git Bash: /c/Users
+    if (g) return g[1].toUpperCase() + ":" + (g[2] || "\\").replaceAll("/", "\\");
+  }
+  return p;
+}
+const isAbs = (p) => /^([A-Za-z]:[\\/]|\\\\|\/)/.test(p);
+const sepOf = (p) => (/^[A-Za-z]:|^\\\\/.test(p) ? "\\" : "/");
+function baseName(p) { return (p || "").split(/[\\/]/).filter(Boolean).pop() || p || "/"; }
+
+// кавычки для вставки пути по правилам оболочки
+function quoteFor(kind, p) {
+  if (kind === "pwsh") return /^[\w\\/:.\-]+$/.test(p) ? p : "'" + p.replaceAll("'", "''") + "'";
+  if (kind === "cmd") return /[\s&()[\]{}^=;!'+,`~]/.test(p) ? `"${p}"` : p;
+  if (kind === "wsl") { const m = p.match(/^([A-Za-z]):[\\/](.*)$/); if (m) p = `/mnt/${m[1].toLowerCase()}/${m[2].replaceAll("\\", "/")}`; }
+  else if (kind === "bash" && IS_WIN) { const m = p.match(/^([A-Za-z]):[\\/](.*)$/); if (m) p = `/${m[1].toLowerCase()}/${m[2].replaceAll("\\", "/")}`; }
+  return /^[\w@%+=:,./~-]+$/.test(p) ? p : "'" + p.replaceAll("'", "'\\''") + "'";
+}
+const cdCmd = (kind, p) => kind === "cmd" ? `cd /d ${quoteFor(kind, p)}` : kind === "pwsh" ? `Set-Location -LiteralPath ${quoteFor(kind, p)}` : `cd ${quoteFor(kind, p)}`;
+
+// ── панель (одна сессия оболочки) ────────────────────────────────
+class Pane {
+  constructor(tab, { cwd = "", command = "", profile = "" } = {}) {
+    this.tab = tab;
     this.id = Math.random().toString(36).slice(2, 9);
+    this.profile = profileOf(profile);
+    this.kind = this.profile.kind;
     this.cwd = cwd || HY.boot.home || "~";
-    this.title = "zsh";
+    this.title = "";
     this.blocks = [];
     this.cur = null;              // блок, который сейчас выполняется
     this.lastCmd = "";
-    this.box = el("div.t-term");
-    $("terms").append(this.box);
-    const font = getComputedStyle(document.documentElement).getPropertyValue("--font-term").trim();
+    this.pending = command;       // команда --run: вводится после первого приглашения
+    this.box = el("div.t-pane");
+    this.box.addEventListener("mousedown", () => tab.focusPane(this), true);
+    const s = SET();
     this.term = new Terminal({
-      fontFamily: font || "JetBrains Mono, monospace", fontSize: state.fontSize, lineHeight: 1.18, letterSpacing: 0,
-      cursorStyle: "bar", cursorBlink: true, cursorWidth: 2, scrollback: 20000, allowProposedApi: true,
-      allowTransparency: true, drawBoldTextInBrightColors: false, minimumContrastRatio: 1, smoothScrollDuration: 90,
-      theme: termTheme(), overviewRuler: { width: 8 }, rightClickSelectsWord: true, macOptionIsMeta: true,
+      fontFamily: termFont(), fontSize: state.fontSize, lineHeight: +s.line_height || 1.18, letterSpacing: 0,
+      cursorStyle: s.cursor_style || "bar", cursorBlink: s.cursor_blink !== false, cursorWidth: 2,
+      scrollback: clampScroll(s.scrollback), allowProposedApi: true, allowTransparency: true,
+      drawBoldTextInBrightColors: false, minimumContrastRatio: 1, smoothScrollDuration: 90, theme: termTheme(),
+      overviewRuler: { width: 8 }, rightClickSelectsWord: (s.right_click || "menu") === "menu", macOptionIsMeta: true,
+      altClickMovesCursor: false, windowsPty: IS_WIN ? { backend: "conpty", buildNumber: 22621 } : undefined,
       linkHandler: { allowNonHttpProtocols: true, activate: (e, uri) => onLink(e, uri, this),
         hover: (e, uri) => showTip(e, uri), leave: () => hideTip() },
     });
@@ -87,45 +158,97 @@ class Tab {
     this.osc();
     this.links();
     this.keys();
-    this.term.onTitleChange((t) => { this.title = t.slice(0, 40); renderTabs(); });
-    this.term.onBell(() => { if (state.active !== this) { this.activity = true; renderTabs(); } });
-    this.box.addEventListener("contextmenu", (e) => { e.preventDefault(); this.blockMenu(e); });
+    this.mouse();
+    this.term.onTitleChange((t) => { this.title = t.slice(0, 60); renderTabs(); if (cur() === this) syncTitle(); });
+    this.term.onBell(() => this.bell());
+    this.term.onSelectionChange(() => { if (SET().copy_on_select && this.term.hasSelection()) copyText(this.term.getSelection()); });
+    this.term.textarea && this.term.textarea.addEventListener("focus", () => tab.focusPane(this, false));
+    this.box.addEventListener("paste", (e) => this.onPaste(e), true);
     this.box.addEventListener("dragover", (e) => e.preventDefault());
     this.box.addEventListener("drop", (e) => {
       e.preventDefault();
-      const p = e.dataTransfer.getData("text/x-haotica-path") || e.dataTransfer.getData("text/plain");
-      if (p) this.input(quote(p) + " ");
+      const p = e.dataTransfer.getData("text/x-haotica-path") || uriToPath(e.dataTransfer.getData("text/uri-list")) || e.dataTransfer.getData("text/plain");
+      if (p) this.insertPaths(p.split(/\r?\n/).filter(Boolean));
     });
-    this.spawn(command);
+    this.spawn();
   }
 
-  spawn(command = "") {
+  spawn() {
     this.exited = false;
     const { cols, rows } = this.dims();
-    if (!HY.bridge) {                      // разработка в браузере: без PTY, с доступом к вкладкам для проверок
+    if (!this.dataHook) {
+      this.dataHook = this.term.onData((d) => {
+        if (this.exited) { if (d === "\r") { this.term.write("\r\n"); this.spawn(); } return; }
+        if (this.sid) HY.bridge.ptyWrite(this.sid, d);
+      });
+      this.term.onResize(({ cols, rows }) => this.sid && HY.bridge.ptyResize(this.sid, cols, rows));
+    }
+    if (!HY.bridge) {                      // разработка в браузере: без PTY
       this.term.write("\x1b[33mРежим разработки: нет хоста PTY.\x1b[0m\r\n");
-      window.__hyterm = state;
       return;
     }
-    HY.bridge.ptySpawn(this.cwd, cols, rows, command, (sid) => { this.sid = sid; sessions.set(sid, this); });
-    this.term.onData((d) => {
-      if (this.exited) { if (d === "\r") { this.term.write("\r\n"); this.spawn(); } return; }
-      if (this.sid) HY.bridge.ptyWrite(this.sid, d);
-    });
-    this.term.onResize(({ cols, rows }) => this.sid && HY.bridge.ptyResize(this.sid, cols, rows));
+    // на Windows команда --run вводится после первого приглашения; на Linux её выполняет интеграция оболочки
+    const cmd = IS_WIN ? "" : (this.pending || "");
+    if (!IS_WIN) this.pending = "";
+    const done = (sid) => {
+      if (!sid || String(sid).startsWith("error:")) {
+        this.exited = true;
+        this.term.write(`\r\n\x1b[31m${HY.t("spawn_fail")}: ${String(sid || "").slice(6)}\x1b[0m\r\n`);
+        return;
+      }
+      this.sid = sid; sessions.set(sid, this);
+      if (this.pending) setTimeout(() => this.flushPending(), 2500);
+    };
+    if (HY.bridge.ptySpawnProfile) HY.bridge.ptySpawnProfile(this.profile.id || "", this.cwd, cols, rows, cmd, done);
+    else HY.bridge.ptySpawn(this.cwd, cols, rows, cmd, done);
   }
 
+  flushPending() { if (this.pending && this.sid) { const c = this.pending; this.pending = ""; HY.bridge.ptyWrite(this.sid, c + "\r"); } }
   dims() { try { this.fit.fit(); } catch (e) { /* окно ещё не видно */ } return { cols: this.term.cols || 100, rows: this.term.rows || 30 }; }
-  input(text) { if (this.sid) HY.bridge.ptyWrite(this.sid, text); this.term.focus(); }
+  input(text) { if (this.sid) HY.bridge.ptyWrite(this.sid, text); else if (window.__hyDevWrite) window.__hyDevWrite(this, text); this.term.focus(); }
+  insertPaths(list) { this.input(list.map((p) => quoteFor(this.kind, p)).join(" ") + " "); }
+  info() { return new Promise((res) => (this.sid && HY.bridge && HY.bridge.ptyInfo) ? HY.bridge.ptyInfo(this.sid, (j) => { try { res(JSON.parse(j)); } catch (e) { res({}); } }) : res({})); }
+
+  bell() {
+    const mode = SET().bell || "visual";
+    if (mode !== "off") {
+      if (mode === "sound") HY.sound("bell", 0.4);
+      else { this.box.classList.remove("bell"); void this.box.offsetWidth; this.box.classList.add("bell"); }
+    }
+    if (cur() !== this) { this.tab.activity = true; renderTabs(); }
+  }
+
+  // вставка: многострочная — с предупреждением; bracketed paste — только если программа его включила
+  async onPaste(e) {
+    const text = (e.clipboardData && e.clipboardData.getData("text/plain")) || "";
+    e.preventDefault(); e.stopPropagation();
+    await this.paste(text);
+  }
+  async paste(text) {
+    if (!text) return;
+    const n = text.replace(/\r?\n$/, "").split(/\r?\n/).length;
+    if (n > 1 && SET().paste_warn !== false && !this.term.modes.bracketedPasteMode) {
+      const ok = await HY.confirm(HY.t("paste_many", { n }), el("div", el("div", HY.t("paste_many_t")),
+        el("pre.t-paste-prev", text.slice(0, 600) + (text.length > 600 ? "\n…" : ""))), { ok: HY.t("paste") });
+      if (!ok) { this.term.focus(); return; }
+    }
+    this.term.paste(IS_WIN ? text : text.replace(/\r\n/g, "\n"));
+    this.term.focus();
+  }
 
   // OSC 133 — блоки, OSC 7 — папка, OSC 7777 — текст команды
   osc() {
     const p = this.term.parser;
     p.registerOscHandler(7, (data) => {
-      try { const u = new URL(data); this.cwd = decodeURIComponent(u.pathname); } catch (e) { return true; }
-      if (state.active === this) { loadDir(this.cwd); renderStatus(); }
+      this.cwd = osc7Path(data, this);
+      if (cur() === this) { loadDir(this.cwd); renderStatus(); }
       renderTabs();
       return true;
+    });
+    p.registerOscHandler(9, (data) => {                       // OSC 9;9;<path> (Windows Terminal, cmd/pwsh)
+      const m = data.match(/^9;"?(.+?)"?$/);
+      if (m) { this.cwd = osc7Path(m[1], this); if (cur() === this) { loadDir(this.cwd); renderStatus(); } renderTabs(); }
+      return !!m;
     });
     p.registerOscHandler(7777, (data) => {
       const m = data.match(/^cmd=(.*)$/);
@@ -137,9 +260,14 @@ class Tab {
       const buf = this.term.buffer.active;
       if (kind === "A") {
         this.promptMarker = this.term.registerMarker(0);
+        this.atPrompt = true;
+        if (this.pending) setTimeout(() => this.flushPending(), 30);
+        if (this.waiters) for (const w of this.waiters.splice(0)) w();
       } else if (kind === "C") {
+        this.atPrompt = false;
         this.cur = { cmd: this.lastCmd, start: this.promptMarker || this.term.registerMarker(0),
-          out: this.term.registerMarker(0), t0: performance.now(), cwd: this.cwd };
+          out: this.term.registerMarker(0), t0: performance.now(), cwd: this.cwd, exec: this.execId || "" };
+        this.execId = "";
         this.cur.deco = this.decorate(this.cur, "run", 1);
       } else if (kind === "D" && this.cur) {
         const b = this.cur;
@@ -147,16 +275,20 @@ class Tab {
         b.code = parseInt(arg || "0", 10) || 0;
         b.ms = performance.now() - b.t0;
         b.end = this.term.registerMarker(0);
+        b.alt = this.altSeen; this.altSeen = false;
         const height = Math.max(1, (buf.baseY + buf.cursorY) - b.start.line);
         if (b.deco) b.deco.dispose();
         b.deco = this.decorate(b, b.code === 0 ? "ok" : "fail", height);
         this.blocks.push(b);
         if (this.blocks.length > 400) { const old = this.blocks.shift(); old.deco && old.deco.dispose(); }
-        if (b.code !== 0 && b.code !== 130) onFailed(this, b);
-        if (b.ms > 10000 && document.hidden !== false) HY.bridge && HY.bridge.notify("Команда завершена", `${b.cmd.slice(0, 60)} · ${fmtMs(b.ms)}`);
+        if (b.code !== 0 && b.code !== 130 && !b.exec) onFailed(this, b);
+        if (b.ms > 10000 && (document.hidden || !document.hasFocus())) HY.bridge && HY.bridge.notify("Команда завершена", `${b.cmd.slice(0, 60)} · ${fmtMs(b.ms)}`);
+        HY.emit("block", { pane: this, block: b });
+        if (cur() === this) renderStatus();
       }
       return true;
     });
+    this.term.buffer.onBufferChange((b) => { if (b.type === "alternate") this.altSeen = true; });
   }
 
   decorate(b, kind, height) {
@@ -165,10 +297,10 @@ class Tab {
       overviewRulerOptions: kind === "fail" ? { color: "#E0705A", position: "full" } : kind === "ok" ? { color: "#8FBF7A44", position: "left" } : undefined });
     if (!d) return null;
     d.onRender((node) => {
-      node.className = "t-block " + kind;
+      node.className = "t-block " + kind + (b.exec ? " ai" : "");
       if (!node.firstChild && kind !== "run") {
         const txt = kind === "fail" ? `EXIT ${b.code} · ${fmtMs(b.ms)}` : `✓ ${fmtMs(b.ms)}`;
-        node.append(el("span.badge", txt));
+        node.append(el("span.badge", (b.exec ? "HAOTICA · " : "") + txt));
       }
     });
     return d;
@@ -192,30 +324,48 @@ class Tab {
     return lines.join("\n");
   }
 
-  blockMenu(e) {
+  contextMenu(e) {
     const rect = this.box.querySelector(".xterm-screen").getBoundingClientRect();
     const cellH = rect.height / this.term.rows;
     const row = this.term.buffer.active.viewportY + Math.floor((e.clientY - rect.top) / cellH);
     const b = this.blockAt(row);
     const sel = this.term.getSelection();
     const items = [];
-    if (sel) items.push({ label: HY.t("copy"), icon: "clipboard", key: "Ctrl+Shift+C", fn: () => navigator.clipboard.writeText(sel) });
-    items.push({ label: "Вставить", icon: "doc", key: "Ctrl+Shift+V", fn: () => paste(this) });
+    if (sel) items.push({ label: HY.t("copy"), icon: "clipboard", key: "Ctrl+C", fn: () => copyText(sel) });
+    items.push({ label: HY.t("paste"), icon: "doc", key: "Ctrl+V", fn: () => pasteFromClipboard(this) });
     if (b) {
       items.push("-");
-      items.push({ label: HY.t("copy_cmd"), icon: "terminal", fn: () => navigator.clipboard.writeText(b.cmd) });
-      items.push({ label: HY.t("copy_out"), icon: "clipboard", fn: () => navigator.clipboard.writeText(this.output(b, 100000)) });
+      items.push({ label: HY.t("copy_cmd"), icon: "terminal", fn: () => copyText(b.cmd) });
+      items.push({ label: HY.t("copy_out"), icon: "clipboard", fn: () => copyText(this.output(b, 100000)) });
       items.push({ label: HY.t("rerun"), icon: "reboot", fn: () => this.input(b.cmd + "\r") });
       items.push({ label: HY.t("explain"), icon: "haotica", fn: () => askHaotica(this, b, true) });
     }
-    items.push("-", { label: HY.t("find"), icon: "search", key: "Ctrl+Shift+F", fn: () => findBar(this) },
+    items.push("-", { label: HY.t("split_v"), icon: "layout", key: "Alt+Shift++", fn: () => this.tab.split("v") },
+      { label: HY.t("split_h"), icon: "layout", key: "Alt+Shift+−", fn: () => this.tab.split("h") },
+      "-", { label: HY.t("find"), icon: "search", key: "Ctrl+Shift+F", fn: () => findBar(this) },
       { label: HY.t("clear"), icon: "trash", key: "Ctrl+Shift+K", fn: () => this.term.clear() });
     HY.menu(e.clientX, e.clientY, items);
   }
 
-  // пути в выводе: «src/app.py:42», «./x», «~/y», «/etc/z» — проверяем существование и делаем ссылками
+  // правая кнопка: меню / вставить / копировать-если-выделено-иначе-вставить (настройка terminal.right_click)
+  mouse() {
+    this.box.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      const mode = SET().right_click || "menu";
+      if (mode === "menu" || e.shiftKey) return this.contextMenu(e);
+      if (mode === "copy_paste" && this.term.hasSelection()) { copyText(this.term.getSelection()); this.term.clearSelection(); return; }
+      pasteFromClipboard(this);
+    });
+    this.box.addEventListener("wheel", (e) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault(); e.stopPropagation();
+      setFont(state.fontSize + (e.deltaY < 0 ? 1 : -1));
+    }, { capture: true, passive: false });
+  }
+
+  // пути в выводе: «src/app.py:42», «./x», «~/y», «/etc/z», «C:\Users\x», «.\x», «src\a.py:12» — проверяем и делаем ссылками
   links() {
-    const rx = /(?:^|[\s'"(=:])((?:~|\.{1,2}|\/)?[\w@%+.~-]*\/[\w@%+.~/-]*[\w@%+~-]|[\w@%+-]+\.(?:py|js|ts|tsx|json|md|toml|ya?ml|sh|lua|qml|rs|go|c|h|cpp|txt|log|conf|ini|css|html))(?::(\d+))?/g;
+    const rx = /(?:^|[\s'"(=:])((?:[A-Za-z]:[\\/]|\\\\[\w.$-]+\\)[^\s'"<>|*?:]*[^\s'"<>|*?:.,;)]|(?:~|\.{1,2}|\/)?[\w@%+.~-]*[\\/][\w@%+.~\\/-]*[\w@%+~-]|[\w@%+-]+\.(?:py|js|mjs|ts|tsx|json|md|toml|ya?ml|sh|ps1|psm1|bat|cmd|lua|qml|rs|go|c|h|cpp|cs|txt|log|conf|ini|css|html))(?::(\d+))?/g;
     this.term.registerLinkProvider({
       provideLinks: (y, cb) => {
         const line = this.term.buffer.active.getLine(y - 1);
@@ -234,7 +384,7 @@ class Tab {
           const links = res.filter(Boolean).map((f) => ({
             range: { start: { x: f.x, y }, end: { x: f.x + f.len - 1, y } }, text: f.raw,
             decorations: { underline: true, pointerCursor: true },
-            activate: (e) => onLink(e, "file://" + resolvePath(f.raw, this.cwd) + (f.line ? "#L" + f.line : ""), this),
+            activate: (e) => onLink(e, pathUri(resolvePath(f.raw, this.cwd)) + (f.line ? "#L" + f.line : ""), this),
             hover: (e) => showTip(e, resolvePath(f.raw, this.cwd)), leave: () => hideTip(),
           }));
           cb(links.length ? links : undefined);
@@ -246,27 +396,14 @@ class Tab {
   keys() {
     this.term.attachCustomKeyEventHandler((e) => {
       if (e.type !== "keydown") return true;
-      const k = e.key.toLowerCase();
-      if (e.ctrlKey && e.shiftKey) {
-        if (k === "c") { const s = this.term.getSelection(); if (s) navigator.clipboard.writeText(s); return false; }
-        if (k === "v") { paste(this); return false; }
-        if (k === "t") { newTab({ cwd: this.cwd }); return false; }
-        if (k === "w") { closeTab(this); return false; }
-        if (k === "f") { findBar(this); return false; }
-        if (k === "p") { palette(); return false; }
-        if (k === "k") { this.term.clear(); return false; }
-        if (k === "h") { document.body.classList.toggle("no-right"); refit(); return false; }
-        if (k === "arrowup") { this.jump(-1); return false; }
-        if (k === "arrowdown") { this.jump(1); return false; }
-      }
-      if (e.ctrlKey && !e.shiftKey) {
-        if (k === "b" && e.altKey) { document.body.classList.toggle("no-left"); refit(); return false; }
-        if (k === "tab") { cycle(1); return false; }
-        if (k === "=" || k === "+") { setFont(state.fontSize + 1); return false; }
-        if (k === "-") { setFont(state.fontSize - 1); return false; }
-        if (/^[1-9]$/.test(k) && e.altKey) { const t = state.tabs[+k - 1]; if (t) activate(t); return false; }
-      }
-      return true;
+      const altGr = e.getModifierState && e.getModifierState("AltGraph");
+      if (altGr || (IS_WIN && e.ctrlKey && e.altKey && e.key.length === 1)) return true;   // AltGr-символы — в оболочку
+      const action = keyAction(e, this);
+      if (!action) return true;
+      if (action === "native") return false;          // браузер сам сделает вставку (событие paste)
+      e.preventDefault();
+      runAction(action, this);
+      return false;
     });
   }
 
@@ -277,81 +414,264 @@ class Tab {
     if (target !== undefined) this.term.scrollToLine(target);
   }
 
-  dispose() { if (this.sid) HY.bridge.ptyKill(this.sid); this.term.dispose(); this.box.remove(); }
+  // ждать приглашения (для команд Haotica): резолвится на следующем OSC 133 A
+  waitPrompt(ms = 15000) {
+    if (this.atPrompt) return Promise.resolve(true);
+    return new Promise((res) => { (this.waiters ||= []).push(() => res(true)); setTimeout(() => res(false), ms); });
+  }
+
+  dispose() { if (this.sid) HY.bridge.ptyKill(this.sid); sessions.delete(this.sid); this.term.dispose(); this.box.remove(); }
+}
+
+// ── клавиши: таблица сочетаний (переопределяются в terminal.keys) ─────
+const DEFAULT_KEYS = {
+  "ctrl+shift+c": "copy", "ctrl+insert": "copy", "ctrl+shift+v": "native", "shift+insert": "native",
+  "ctrl+shift+t": "newTab", "ctrl+shift+w": "closePane", "ctrl+shift+d": "duplicateTab", "ctrl+shift+f": "find",
+  "ctrl+shift+p": "palette", "ctrl+shift+k": "clear", "ctrl+shift+h": "toggleRight", "ctrl+shift+b": "toggleLeft",
+  "ctrl+shift+arrowup": "prevBlock", "ctrl+shift+arrowdown": "nextBlock", "ctrl+shift+home": "toTop", "ctrl+shift+end": "toEnd",
+  "ctrl+tab": "nextTab", "ctrl+shift+tab": "prevTab", "ctrl+=": "fontUp", "ctrl++": "fontUp", "ctrl+-": "fontDown",
+  "ctrl+0": "fontReset", "f11": "fullscreen", "alt+shift++": "splitV", "alt+shift+=": "splitV", "alt+shift+*": "splitV",
+  "alt+shift+-": "splitH", "alt+shift+_": "splitH", "ctrl+shift+e": "splitV", "ctrl+shift+o": "splitH",
+  "ctrl+shift+n": "newWindow",
+};
+for (let i = 1; i <= 9; i++) DEFAULT_KEYS[`alt+${i}`] = `tab${i}`;
+function keyName(e) {
+  let k = e.key.toLowerCase();
+  if (k === " ") k = "space";
+  if (e.code === "NumpadAdd") k = "+";
+  if (e.code === "NumpadSubtract") k = "-";
+  if (/^Digit[0-9]$/.test(e.code) && e.altKey && !e.ctrlKey) k = e.code.slice(5);   // Alt+1 на любой раскладке
+  return [e.ctrlKey && "ctrl", e.altKey && "alt", e.shiftKey && "shift", k].filter(Boolean).join("+");
+}
+function keyAction(e, pane) {
+  const name = keyName(e);
+  const map = { ...DEFAULT_KEYS, ...(SET().keys || {}) };
+  if (name === "ctrl+c" && pane.term.hasSelection()) return "copyClear";       // как в Windows Terminal
+  if (name === "ctrl+v" && SET().ctrl_v_paste !== false) return "native";
+  if (/^alt\+arrow(left|right|up|down)$/.test(name) && pane.tab.panes().length > 1) return "focus" + name.slice(9);
+  return map[name] || null;
+}
+function runAction(a, pane) {
+  const t = pane.tab;
+  const acts = {
+    copy: () => { const s = pane.term.getSelection(); if (s) copyText(s); },
+    copyClear: () => { copyText(pane.term.getSelection()); pane.term.clearSelection(); },
+    paste: () => pasteFromClipboard(pane),
+    newTab: () => newTab({ cwd: pane.cwd, profile: pane.profile.id }), closePane: () => t.closePane(pane, true),
+    duplicateTab: () => newTab({ cwd: pane.cwd, profile: pane.profile.id }), find: () => findBar(pane), palette: () => palette(),
+    clear: () => pane.term.clear(), toggleRight: () => toggleCol("no-right"), toggleLeft: () => toggleCol("no-left"),
+    prevBlock: () => pane.jump(-1), nextBlock: () => pane.jump(1), toTop: () => pane.term.scrollToTop(), toEnd: () => pane.term.scrollToBottom(),
+    nextTab: () => cycle(1), prevTab: () => cycle(-1), fontUp: () => setFont(state.fontSize + 1), fontDown: () => setFont(state.fontSize - 1),
+    fontReset: () => setFont(baseFont()), fullscreen: () => HY.bridge && (HY.bridge.toggleFullscreen || HY.bridge.toggleMaximize)(),
+    splitV: () => t.split("v"), splitH: () => t.split("h"), newWindow: () => HY.openApp("terminal", ["--new-window"]),
+    focusleft: () => t.focusDir("left"), focusright: () => t.focusDir("right"), focusup: () => t.focusDir("up"), focusdown: () => t.focusDir("down"),
+  };
+  const m = /^tab([1-9])$/.exec(a);
+  if (m) { const i = +m[1]; const tab = i === 9 ? state.tabs[state.tabs.length - 1] : state.tabs[i - 1]; if (tab) activate(tab); return; }
+  (acts[a] || (() => {}))();
+}
+
+// ── вкладка: дерево панелей ──────────────────────────────────────
+class Tab {
+  constructor(opts = {}) {
+    this.id = Math.random().toString(36).slice(2, 9);
+    this.name = opts.name || "";          // имя, заданное пользователем
+    this.box = el("div.t-term");
+    $("terms").append(this.box);
+    const p = new Pane(this, opts);
+    this.root = { pane: p };
+    this.active = p;
+    this.layout();
+  }
+  panes(node = this.root) { return node.pane ? [node.pane] : [...this.panes(node.a), ...this.panes(node.b)]; }
+  get pane() { return this.active; }
+  get cwd() { return this.active.cwd; }
+  layout() {
+    const build = (n) => n.pane ? n.pane.box : el("div.t-split." + n.dir, build(n.a), el("div.t-gutter." + n.dir), build(n.b));
+    this.box.replaceChildren(build(this.root));
+    for (const p of this.panes()) p.box.classList.toggle("focus", p === this.active && this.panes().length > 1);
+    requestAnimationFrame(() => this.panes().forEach((p) => p.dims()));
+  }
+  focusPane(p, focusTerm = true) {
+    if (this.active === p) return;
+    this.active = p;
+    for (const x of this.panes()) x.box.classList.toggle("focus", x === p && this.panes().length > 1);
+    if (focusTerm) p.term.focus();
+    if (state.active === this) { loadDir(p.cwd); renderStatus(); syncTitle(); renderTabs(); }
+  }
+  split(dir) {
+    const old = this.active;
+    const p = new Pane(this, { cwd: old.cwd, profile: old.profile.id });
+    const replace = (n) => { if (n.pane === old) return { dir, a: { pane: old }, b: { pane: p } }; if (n.pane) return n; return { ...n, a: replace(n.a), b: replace(n.b) }; };
+    this.root = replace(this.root);
+    this.active = p;
+    this.layout();
+    setTimeout(() => p.term.focus(), 30);
+    saveSession();
+  }
+  async closePane(p, ask = false) {
+    if (ask && !(await confirmBusy(p))) return;
+    if (this.panes().length === 1) return closeTab(this, false);
+    const drop = (n) => { if (n.pane) return n; if (n.a.pane === p) return n.b; if (n.b.pane === p) return n.a; return { ...n, a: drop(n.a), b: drop(n.b) }; };
+    this.root = drop(this.root);
+    p.dispose();
+    if (this.active === p) this.active = this.panes()[0];
+    this.layout();
+    this.active.term.focus();
+    saveSession();
+  }
+  focusDir(dir) {
+    const r0 = this.active.box.getBoundingClientRect();
+    const c0 = { x: r0.left + r0.width / 2, y: r0.top + r0.height / 2 };
+    let best = null, bd = Infinity;
+    for (const p of this.panes()) {
+      if (p === this.active) continue;
+      const r = p.box.getBoundingClientRect(), c = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      const ok = { left: c.x < c0.x - 4, right: c.x > c0.x + 4, up: c.y < c0.y - 4, down: c.y > c0.y + 4 }[dir];
+      const d = Math.hypot(c.x - c0.x, c.y - c0.y);
+      if (ok && d < bd) { bd = d; best = p; }
+    }
+    if (best) this.focusPane(best);
+  }
+  dispose() { for (const p of this.panes()) p.dispose(); this.box.remove(); }
 }
 
 const sessions = new Map();
+const cur = () => state.active && state.active.active;
 if (HY.bridge) {
   HY.bridge.ptyData.connect((sid, data) => {
-    const t = sessions.get(sid);
-    if (!t) return;
-    t.term.write(data, () => HY.bridge.ptyAck(sid, data.length));
-    if (state.active !== t && !t.activity) { t.activity = true; renderTabs(); }
+    const p = sessions.get(sid);
+    if (!p) return;
+    p.term.write(data, () => HY.bridge.ptyAck(sid, data.length));
+    if (state.active !== p.tab && !p.tab.activity) { p.tab.activity = true; renderTabs(); }
   });
   HY.bridge.ptyExit.connect((sid, code) => {
-    const t = sessions.get(sid);
-    if (!t) return;
+    const p = sessions.get(sid);
+    if (!p) return;
     sessions.delete(sid);
-    t.sid = null;
-    t.exited = true;
-    t.term.write(`\r\n\x1b[2m── ${HY.t("exited", { code })} ──\x1b[0m\r\n`);
+    p.sid = null;
+    p.exited = true;
+    const mode = SET().close_on_exit || "graceful";
+    if (mode === "always" || (mode === "graceful" && code === 0)) { p.tab.closePane(p); return; }
+    p.term.write(`\r\n\x1b[2m── ${HY.t("exited", { code })} ──\x1b[0m\r\n`);
   });
 }
 
 // ── вкладки ──────────────────────────────────────────────────────
 function newTab(opts = {}) {
-  const t = new Tab(opts);
+  const t = new Tab({ profile: state.defaultProfile, ...opts });
   state.tabs.push(t);
   activate(t);
-  logLine("ok", `SESSION ${state.tabs.length} OPENED`, "OK");
+  logLine("ok", `SESSION ${state.tabs.length} OPENED // ${t.pane.profile.name || "shell"}`, "OK");
+  saveSession();
   return t;
 }
 function activate(t) {
   state.active = t;
   t.activity = false;
   for (const x of state.tabs) x.box.classList.toggle("on", x === t);
-  requestAnimationFrame(() => { t.dims(); t.term.focus(); });
+  requestAnimationFrame(() => { t.panes().forEach((p) => p.dims()); t.pane.term.focus(); });
   loadDir(t.cwd);
   renderTabs();
   renderStatus();
+  syncTitle();
 }
-function closeTab(t) {
+async function confirmBusy(p) {
+  if (!p.sid || !HY.bridge) return true;
+  const inf = await p.info();
+  if (!inf.busy) return true;
+  return HY.confirm(HY.t("closetab"), HY.t("busy_close", { name: inf.name || "?" }), { danger: true, ok: HY.t("closetab") });
+}
+async function closeTab(t, ask = true) {
   const i = state.tabs.indexOf(t);
   if (i < 0) return;
+  if (ask) for (const p of t.panes()) if (!(await confirmBusy(p))) return;
   t.dispose();
   state.tabs.splice(i, 1);
-  if (!state.tabs.length) return HY.close();
+  saveSession();
+  if (!state.tabs.length) return HY.bridge ? HY.bridge.forceClose ? HY.bridge.forceClose() : HY.close() : newTab();
   activate(state.tabs[Math.max(0, i - 1)]);
 }
 function cycle(d) {
   const i = state.tabs.indexOf(state.active);
   activate(state.tabs[(i + d + state.tabs.length) % state.tabs.length]);
 }
+let dragTab = null;
 function renderTabs() {
   $("tabs").replaceChildren(...state.tabs.map((t, i) => el("div.t-tab" + (t === state.active ? ".on" : ""), {
-    onclick: () => activate(t), onauxclick: (e) => { if (e.button === 1) closeTab(t); }, title: t.cwd,
-  }, t.activity ? el("span.dot") : null, el("span", `${i + 1} · ${shortTitle(t)}`),
+    draggable: true, title: t.cwd + "  ·  " + (t.pane.profile.name || ""), "data-tab": t.id,
+    onclick: () => activate(t), onauxclick: (e) => { if (e.button === 1) closeTab(t); },
+    ondblclick: (e) => { e.stopPropagation(); renameTab(t); },
+    oncontextmenu: (e) => { e.preventDefault(); tabMenu(e, t); },
+    ondragstart: (e) => { dragTab = t; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/x-haotica-tab", t.id); },
+    ondragover: (e) => { if (dragTab) { e.preventDefault(); e.currentTarget.classList.add("drop"); } },
+    ondragleave: (e) => e.currentTarget.classList.remove("drop"),
+    ondrop: (e) => { e.preventDefault(); if (!dragTab || dragTab === t) return; const from = state.tabs.indexOf(dragTab);
+      state.tabs.splice(from, 1); state.tabs.splice(state.tabs.indexOf(t) + (from <= i ? 1 : 0), 0, dragTab); dragTab = null; renderTabs(); saveSession(); },
+    ondragend: () => { dragTab = null; },
+  }, t.activity ? el("span.dot") : null, el("span.nm", `${i + 1} · ${shortTitle(t)}`), t.panes().length > 1 ? el("span.np", "▦" + t.panes().length) : null,
      el("span.x", { onclick: (e) => { e.stopPropagation(); closeTab(t); } }, icon("close", 14)))),
-    el("button.t-tab-new", { title: HY.t("newtab") + "  Ctrl+Shift+T", onclick: () => newTab({ cwd: state.active ? state.active.cwd : "" }) }, icon("plus", 14)));
+    el("button.t-tab-new", { title: HY.t("newtab") + "  Ctrl+Shift+T", onclick: () => newTab({ cwd: cur() ? cur().cwd : "" }),
+      oncontextmenu: (e) => { e.preventDefault(); profileMenu(e); } }, icon("plus", 14)),
+    el("button.t-tab-new.prof", { title: HY.t("profiles"), onclick: (e) => profileMenu(e) }, icon("chevron", 12)));
+}
+function profileMenu(e) {
+  const r = e.currentTarget.getBoundingClientRect();
+  HY.menu(r.left, r.bottom + 2, [
+    ...state.profiles.map((p) => ({ label: p.name + (p.id === state.defaultProfile ? "  ·  по умолчанию" : ""), icon: "terminal",
+      fn: () => newTab({ cwd: cur() ? cur().cwd : "", profile: p.id }) })),
+    "-", { label: HY.t("settings"), icon: "settings", fn: () => HY.openApp("settings", ["--page", "terminal"]) },
+    ...(IS_WIN ? [{ label: HY.t("admin"), icon: "shield", fn: () => HY.bridge && HY.bridge.runAsAdmin && HY.bridge.runAsAdmin("[]") }] : []),
+  ]);
+}
+function tabMenu(e, t) {
+  HY.menu(e.clientX, e.clientY, [
+    { label: HY.t("rename"), icon: "doc", key: "2×", fn: () => renameTab(t) },
+    { label: HY.t("duplicate"), icon: "plus", key: "Ctrl+Shift+D", fn: () => newTab({ cwd: t.cwd, profile: t.pane.profile.id }) },
+    { label: HY.t("split_v"), icon: "layout", fn: () => { activate(t); t.split("v"); } },
+    { label: HY.t("split_h"), icon: "layout", fn: () => { activate(t); t.split("h"); } },
+    "-", { label: HY.t("closetab"), icon: "close", key: "Ctrl+Shift+W", fn: () => closeTab(t) },
+  ]);
+}
+async function renameTab(t) {
+  const v = await HY.prompt(HY.t("rename"), t.name || shortTitle(t), "");
+  if (v === null) return;
+  t.name = v.trim();
+  renderTabs(); saveSession(); syncTitle();
 }
 function shortTitle(t) {
+  if (t.name) return t.name;
+  const p = t.pane;
   const home = HY.boot.home || "";
-  const dir = t.cwd === home ? "~" : t.cwd.split("/").filter(Boolean).pop() || "/";
-  return t.title && t.title !== "zsh" && !t.title.includes("@") ? t.title : dir;
+  const dir = p.cwd === home ? "~" : baseName(p.cwd);
+  const generic = !p.title || /^(zsh|bash|pwsh|powershell|cmd)(\.exe)?$/i.test(p.title) || p.title.includes("@") ||
+    /\\(pwsh|powershell|cmd)\.exe$/i.test(p.title) || /^(Administrator: |Администратор: )?(Windows PowerShell|PowerShell)$/.test(p.title);
+  return generic ? dir : p.title;
+}
+function syncTitle() {
+  const t = state.active;
+  if (!t || !HY.bridge || !HY.bridge.setTitle) return;
+  HY.bridge.setTitle(`${shortTitle(t)} — HAOTICA TERMINAL`);
 }
 function setFont(n) {
-  state.fontSize = Math.max(9, Math.min(26, n));
-  for (const t of state.tabs) { t.term.options.fontSize = state.fontSize; t.dims(); }
+  state.fontSize = Math.max(8, Math.min(32, n));
+  for (const t of state.tabs) for (const p of t.panes()) { p.term.options.fontSize = state.fontSize; p.dims(); }
 }
-function refit() { requestAnimationFrame(() => { state.tabs.forEach((t) => t.dims()); drawCharts(); }); }
+function toggleCol(cls) { document.body.classList.toggle(cls); refit(); }
+function refit() { requestAnimationFrame(() => { state.tabs.forEach((t) => t.panes().forEach((p) => p.dims())); drawCharts(); }); }
 window.addEventListener("resize", HY.debounce(refit, 60));
-HY.on("theme-applied", () => {
-  const th = termTheme();
-  const font = getComputedStyle(document.documentElement).getPropertyValue("--font-term").trim();
-  for (const t of state.tabs) { t.term.options.theme = th; if (font) t.term.options.fontFamily = font; }
-  applyCrt();
-  drawCharts();
-});
+function applyTermSettings() {
+  const s = SET(), th = termTheme(), font = termFont();
+  for (const t of state.tabs) for (const p of t.panes()) {
+    const o = p.term.options;
+    o.theme = th; o.fontFamily = font; o.lineHeight = +s.line_height || 1.18; o.cursorStyle = s.cursor_style || "bar";
+    o.cursorBlink = s.cursor_blink !== false; o.scrollback = clampScroll(s.scrollback);
+    o.rightClickSelectsWord = (s.right_click || "menu") === "menu";
+    p.dims();
+  }
+}
+HY.on("theme-applied", () => { applyTermSettings(); applyCrt(); drawCharts(); });
+HY.on("settings-applied", applyTermSettings);
 function applyCrt() {
   const fx = HY.theme.effects || {};
   const k = Math.max(0, Math.min(1, fx.crt_terminal === undefined ? 0.85 : +fx.crt_terminal || 0));
@@ -364,7 +684,7 @@ function applyCrt() {
   if (k <= 0) { root.setProperty("--crt-filter", "none"); return; }
   crtMod.then(({ mountBeamFilter, tuneBeamFilter }) => tuneBeamFilter(mountBeamFilter("crt-rgb"), k));
   root.setProperty("--crt-filter", "url(#crt-rgb)");
-  crtLines.k = k * (screen > 0 ? 0.82 : 1);
+  crtLines.k = k * (screen > 0 && !IS_WIN ? 0.82 : 1);
   drawCrtLines();
 }
 // строки развёртки — общий модуль /ui/crt.js (период кратен 3, по физическим пикселям)
@@ -376,19 +696,38 @@ crtMod.then(({ watchScanlines }) => {
   crtLines.av = watchScanlines($("av-lines"), () => document.body.classList.contains("no-crt") ? 0 : crtLines.av_k || 0, { light: false });
 });
 
-async function paste(t) {
-  try { const text = await navigator.clipboard.readText(); if (text) t.input(text.includes("\n") ? `\x1b[200~${text}\x1b[201~` : text); }
+// ── буфер обмена ─────────────────────────────────────────────────
+function copyText(s) {
+  if (!s) return;
+  navigator.clipboard.writeText(s).catch(() => {
+    const ta = el("textarea", { style: { position: "fixed", opacity: "0" } }); ta.value = s; document.body.append(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) { /* буфер недоступен */ } ta.remove();
+  });
+}
+async function pasteFromClipboard(p) {
+  try { const text = await navigator.clipboard.readText(); if (text) await p.paste(text); }
   catch (e) { /* буфер недоступен */ }
 }
-function quote(p) { return /^[\w@%+=:,./~-]+$/.test(p) ? p : "'" + p.replaceAll("'", "'\\''") + "'"; }
+function uriToPath(list) {
+  const first = (list || "").split(/\r?\n/).filter((x) => x && !x.startsWith("#"));
+  return first.map((u) => { try { const x = new URL(u); if (x.protocol !== "file:") return ""; let p = decodeURIComponent(x.pathname);
+    if (/^\/[A-Za-z]:/.test(p)) p = p.slice(1).replaceAll("/", "\\"); else if (x.host) p = `\\\\${x.host}${p.replaceAll("/", "\\")}`; return p; } catch (e) { return ""; } })
+    .filter(Boolean).join("\n");
+}
+function pathUri(p) { return /^[A-Za-z]:/.test(p) ? "file:///" + encodeURI(p.replaceAll("\\", "/")) : "file://" + encodeURI(p); }
 function fmtMs(ms) { return ms < 1000 ? Math.round(ms) + "ms" : ms < 60000 ? (ms / 1000).toFixed(1) + "s" : Math.floor(ms / 60000) + "m" + Math.round(ms % 60000 / 1000) + "s"; }
 function resolvePath(p, cwd) {
   const home = HY.boot.home || "/home";
-  if (p.startsWith("~")) return home + p.slice(1);
-  if (p.startsWith("/")) return p;
+  if (p.startsWith("~")) p = home + p.slice(1);
+  if (!isAbs(p)) p = (cwd || home) + sepOf(cwd || home) + p;
+  const win = /^[A-Za-z]:|^\\\\/.test(p);
+  const sep = win ? "\\" : "/";
+  const unc = p.startsWith("\\\\");
+  const parts = p.split(/[\\/]+/);
+  const head = win ? (unc ? "\\\\" + parts.splice(0, 3).filter(Boolean).join("\\") : parts.shift()) : "";
   const out = [];
-  for (const seg of (cwd + "/" + p).split("/")) { if (!seg || seg === ".") continue; if (seg === "..") out.pop(); else out.push(seg); }
-  return "/" + out.join("/");
+  for (const seg of parts) { if (!seg || seg === ".") continue; if (seg === "..") out.pop(); else out.push(seg); }
+  return win ? head + sep + out.join(sep) : "/" + out.join("/");
 }
 async function statPath(p) {
   if (state.statCache.has(p)) return state.statCache.get(p);
@@ -397,6 +736,19 @@ async function statPath(p) {
   if (state.statCache.size > 3000) state.statCache.clear();
   return pr;
 }
+
+// ── сеанс: сохранить/восстановить вкладки ────────────────────────
+const SESSION_KEY = "haotica.terminal.session";
+function saveSession() {
+  try {
+    const data = state.tabs.map((t) => ({ name: t.name, panes: t.panes().map((p) => ({ cwd: p.cwd, profile: p.profile.id })) }));
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ tabs: data, active: state.tabs.indexOf(state.active) }));
+  } catch (e) { /* хранилище недоступно */ }
+}
+function loadSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch (e) { return null; }
+}
+setInterval(saveSession, 15000);
 
 // клик по пути: клик — превью, двойной клик — открыть, Ctrl+клик — показать в «Файлах»
 function onLink(e, uri, tab) {
@@ -447,7 +799,10 @@ function logLine(kind, text, status, pct) {
 const KIND_STATUS = { ok: "OK", info: "INFO", warn: "WARN", error: "FAIL", haotica: "AI", net: "LINK", power: "PWR",
   security: "ALERT", game: "GAME", update: "UPD" };
 HY.get("/api/events?n=24").then((r) => { for (const e of (r && r.events) || []) logLine(e.kind, e.text, KIND_STATUS[e.kind] || e.time); });
-HY.on("events", (e) => logLine(e.kind, e.text, KIND_STATUS[e.kind] || e.time));
+HY.on("events", (e) => {
+  logLine(e.kind, e.text, KIND_STATUS[e.kind] || e.time);
+  if (e.toast && HY.bridge && HY.bridge.notify) HY.bridge.notify(e.title || "HAOTICA", e.text);
+});
 
 // файлы: категории, теги, дерево текущей папки
 function renderCats() {
@@ -478,15 +833,17 @@ function renderTree() {
 }
 function glyphFor(cat) { return { code: "code", doc: "doc", image: "image", video: "play", audio: "music", archive: "archive", model: "haotica" }[cat] || "doc"; }
 function fileMenu(ev, e) {
-  const t = state.active;
+  const t = cur();
   HY.menu(ev.clientX, ev.clientY, [
     { label: HY.t("open"), icon: "folder", fn: () => e.type === "dir" ? loadDir(e.path) : HY.post("/api/fs/open", { path: e.path }) },
     e.type !== "dir" ? { label: HY.t("open_editor"), icon: "code", fn: () => HY.openApp("editor", [e.path]) } : null,
     { label: HY.t("reveal"), icon: "folder", fn: () => HY.post("/api/fs/reveal", { path: e.path }) },
     "-",
-    { label: HY.t("insert_path"), icon: "terminal", fn: () => t && t.input(quote(e.path) + " ") },
-    e.type === "dir" ? { label: HY.t("cd_here"), icon: "chevron", fn: () => t && t.input(" cd " + quote(e.path) + "\r") } : null,
-    { label: HY.t("copy_path"), icon: "clipboard", fn: () => navigator.clipboard.writeText(e.path) },
+    { label: HY.t("insert_path"), icon: "terminal", fn: () => t && t.insertPaths([e.path]) },
+    e.type === "dir" ? { label: HY.t("cd_here"), icon: "chevron", fn: () => t && t.input(cdCmd(t.kind, e.path) + "\r") } : null,
+    { label: HY.t("copy_path"), icon: "clipboard", fn: () => copyText(e.path) },
+    IS_WIN ? { label: HY.t("copy_path") + " (POSIX)", icon: "clipboard", fn: () => copyText(e.path.replaceAll("\\", "/")) } : null,
+    IS_WIN ? { label: HY.t("copy_path") + " (WSL)", icon: "clipboard", fn: () => copyText(quoteFor("wsl", e.path).replace(/^'|'$/g, "")) } : null,
     { label: HY.t("tag"), icon: "key", fn: () => tagDialog(e) },
     "-",
     { label: HY.t("ask"), icon: "haotica", fn: () => ask(`Что это за файл и что с ним можно сделать? ${e.path}`, { path: e.path }) },
@@ -558,7 +915,7 @@ function bars() {
   const m = state.metrics;
   if (!$("bars").children.length) {
     $("bars").append(...VITALS.map(([k, c]) => el("div.bar", { style: { "--c": `var(${c})` }, title: k,
-      onclick: () => (k === "TEMP" || k === "FAN" || k === "BAT") ? palettePower() : k === "AI" ? showPanel("haotica") : HY.openApp("sysmon") },
+      onclick: () => (k === "TEMP" || k === "FAN" || k === "BAT") && FEAT.power_profiles ? palettePower() : k === "AI" ? showPanel("haotica") : HY.openApp("sysmon") },
       el("span.pt"), el("span.k", k), el("div.track", el("i")), el("span.v", "—"))));
   }
   VITALS.forEach(([, , frac, val], i) => {
@@ -569,7 +926,7 @@ function bars() {
     row.querySelector(".track i").style.setProperty("--p", (f * 100).toFixed(1) + "%");
     row.querySelector(".v").textContent = val(m);
   });
-  $("power-mode").textContent = m.game_mode ? "GAME" : (m.power_profile || "balanced").toUpperCase();
+  $("power-mode").textContent = m.game_mode ? "GAME" : IS_WIN ? "WINDOWS" : (m.power_profile || "balanced").toUpperCase();
   $("power-mode").style.color = m.game_mode ? "var(--coral)" : "";
 }
 function mini() {
@@ -655,16 +1012,18 @@ function drawCharts() {
 $("globe").innerHTML = `<svg viewBox="0 0 40 40" class="hy-icon" style="width:40px;height:40px;stroke-width:1.1">
   <circle cx="20" cy="20" r="16"/><ellipse class="gl-m" cx="20" cy="20" rx="7" ry="16"/><path d="M4 20h32M6.5 12h27M6.5 28h27"/></svg>`;
 $("globe").onclick = () => HY.openApp("netrecon");
+if (!FEAT.recon && IS_WIN) $("globe").classList.add("hidden");
 let globeT = 0;
 setInterval(() => { globeT += 0.08; const m = $("globe").querySelector(".gl-m"); if (m) m.setAttribute("rx", Math.abs(Math.cos(globeT)) * 14 + 1); }, 66);
 
 // подсказки клавиш (реальные сочетания)
-$("hints").innerHTML = [["CTRL+SHIFT+T", "NEW TAB"], ["CTRL+SHIFT+P", "COMMANDS"], ["CTRL+SHIFT+F", "FIND"], ["?? …", "ASK HAOTICA"], ["CTRL+ALT+B", "PANELS"]]
+$("hints").innerHTML = [["CTRL+SHIFT+T", "NEW TAB"], ["ALT+SHIFT++", "SPLIT"], ["CTRL+SHIFT+P", "COMMANDS"], ["CTRL+SHIFT+F", "FIND"],
+  [IS_WIN ? "HY …" : "?? …", "ASK HAOTICA"], ["CTRL+SHIFT+B/H", "PANELS"]]
   .map(([k, v]) => `<b>${k}</b> : ${v}`).join('<span class="sep">·</span>');
 
 // блок загрузок: модели Haotica, обновления, файлы
 $("dl-icon").append(icon("download", 32));
-$("dl-icon").onclick = () => HY.openApp("updates");
+$("dl-icon").onclick = () => IS_WIN || !FEAT.updates ? HY.openApp("settings", ["--page", "haotica"]) : HY.openApp("updates");
 async function downloads() {
   const [mods, upd] = await Promise.all([HY.get("/api/models"), HY.get("/api/updates")]);
   const lines = [];
@@ -748,7 +1107,7 @@ function reply(text) {
 }
 async function ask(text, context = {}) {
   if (!text.trim()) return;
-  const t = state.active;
+  const t = cur();
   $("h-reply").replaceChildren(el("span.who", "YOU"), el("span", text));
   setHState("thinking");
   const r = await HY.haotica("POST", "/api/chat", { text, source: "terminal", chat: "terminal",
@@ -759,7 +1118,7 @@ async function ask(text, context = {}) {
 }
 $("h-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") { const v = e.target.value; e.target.value = ""; ask(v); }
-  if (e.key === "Escape") { e.target.value = ""; state.active && state.active.term.focus(); }
+  if (e.key === "Escape") { e.target.value = ""; cur() && cur().term.focus(); }
 });
 
 // карточка команды от Haotica: [TAB] вставить в строку / [ESC] отклонить; опасные — только с подтверждением
@@ -776,8 +1135,8 @@ function showCard(c) {
       el("button.hy-btn.primary.small", { onclick: () => accept() }, risk === "danger" ? "ПОНИМАЮ, ВСТАВИТЬ" : "[TAB] ВСТАВИТЬ"),
       el("button.hy-btn.small", { onclick: () => reject() }, "[ESC] ОТКЛОНИТЬ")));
   $("terms").append(card);
-  const accept = () => { card.remove(); if (state.active) state.active.input(c.command); HY.haotica("POST", `/api/card/${c.id}/accept`, {}); };
-  const reject = () => { card.remove(); HY.haotica("POST", `/api/card/${c.id}/reject`, {}); state.active && state.active.term.focus(); };
+  const accept = () => { card.remove(); if (cur()) cur().input(c.command); HY.haotica("POST", `/api/card/${c.id}/accept`, {}); };
+  const reject = () => { card.remove(); HY.haotica("POST", `/api/card/${c.id}/reject`, {}); cur() && cur().term.focus(); };
   const key = (e) => {
     if (!document.body.contains(card)) return document.removeEventListener("keydown", key, true);
     if (e.key === "Tab" && risk !== "danger") { e.preventDefault(); e.stopPropagation(); accept(); document.removeEventListener("keydown", key, true); }
@@ -789,8 +1148,8 @@ function showCard(c) {
 window.addEventListener("message", (e) => {
   if (e.origin !== location.origin || !e.data || !e.data.haotica) return;
   const d = e.data;
-  if (d.type === "insert" && state.active) state.active.input(d.text);
-  if (d.type === "run" && state.active) state.active.input(d.text + "\r");
+  if (d.type === "insert" && cur()) cur().input(d.text);
+  if (d.type === "run" && cur()) cur().input(d.text + "\r");
   if (d.type === "preview") preview(d.path);
   if (d.type === "close-overlay") $("overlay").classList.add("hidden");
 });
@@ -805,49 +1164,62 @@ function askHaotica(tab, b) {
 
 // строка сеанса
 function renderStatus() {
-  const t = state.active;
+  const t = cur();
   if (!t) return;
-  const i = state.tabs.indexOf(t) + 1;
-  $("s-title").textContent = `SESSION ${i}`;
-  $("s-path").textContent = "// " + t.cwd.replace(HY.boot.home || "\0", "~");
+  const i = state.tabs.indexOf(state.active) + 1;
+  $("s-title").textContent = `SESSION ${i}` + (state.active.panes().length > 1 ? `.${state.active.panes().indexOf(t) + 1}` : "");
+  $("s-path").textContent = "// " + (t.profile.name || "") + " // " + t.cwd.replace(HY.boot.home || "\0", "~");
   const last = t.blocks[t.blocks.length - 1];
   $("s-state").textContent = `${t.blocks.length} BLOCKS` + (last ? (last.code ? ` · EXIT ${last.code}` : " · OK") : "");
   $("s-state").style.color = last && last.code ? "var(--coral)" : "";
 }
 
 // ── Cloud Link и палитра команд ─────────────────────────────────
-function openCloud() { keysDialog().then(() => state.active && state.active.term.focus()); }
+// ключ облачной модели — поле рядом с выбором модели во вкладке HAOTICA (модального окна больше нет)
+function openCloud() { showPanel("haotica"); setTimeout(() => hPost({ type: "focus-key" }), 300); }
 function palettePower() {
   HY.menu(innerWidth / 2 - 120, 160, [["quiet", "ТИХИЙ"], ["balanced", "БАЛАНС"], ["performance", "ПРОИЗВОДИТЕЛЬНОСТЬ"]].map(([v, l]) =>
     ({ label: l, icon: "bolt", fn: () => HY.setting(state.metrics.on_battery ? "power.profile_battery" : "power.profile_ac", v) })));
 }
 function palette() {
   document.querySelector(".t-palette")?.remove();
-  const t = state.active;
+  const t = cur();
+  const A = (a) => () => t && runAction(a, t);
   const cmds = [
     { label: HY.t("newtab"), key: "Ctrl+Shift+T", icon: "plus", fn: () => newTab({ cwd: t ? t.cwd : "" }) },
-    { label: HY.t("closetab"), key: "Ctrl+Shift+W", icon: "close", fn: () => t && closeTab(t) },
-    { label: HY.t("cloud"), key: "/cloud", icon: "cloud", fn: openCloud },
-    { label: "API-ключи (OpenRouter, ElevenLabs)", key: "/key", icon: "key", fn: openCloud },
-    { label: HY.t("find"), key: "Ctrl+Shift+F", icon: "search", fn: () => t && findBar(t) },
+    ...state.profiles.map((p) => ({ label: `${HY.t("newtab")}: ${p.name}`, key: "", icon: "terminal", fn: () => newTab({ cwd: t ? t.cwd : "", profile: p.id }) })),
+    { label: HY.t("closetab"), key: "Ctrl+Shift+W", icon: "close", fn: () => state.active && closeTab(state.active) },
+    { label: HY.t("rename"), key: "F2", icon: "doc", fn: () => state.active && renameTab(state.active) },
+    { label: HY.t("duplicate"), key: "Ctrl+Shift+D", icon: "plus", fn: A("duplicateTab") },
+    { label: HY.t("split_v"), key: "Alt+Shift++", icon: "layout", fn: A("splitV") },
+    { label: HY.t("split_h"), key: "Alt+Shift+−", icon: "layout", fn: A("splitH") },
+    { label: HY.t("close_pane"), key: "Ctrl+Shift+W", icon: "close", fn: A("closePane") },
+    { label: HY.t("cloud"), key: "/key", icon: "key", fn: openCloud, keepFocus: true },
+    { label: HY.t("find"), key: "Ctrl+Shift+F", icon: "search", fn: () => t && findBar(t), keepFocus: true },
     { label: "Журнал", key: "", icon: "doc", fn: () => showPanel("log") },
     { label: "Файлы", key: "", icon: "folder", fn: () => showPanel("files") },
     { label: "Haotica — чат", key: "", icon: "haotica", fn: () => showPanel("haotica") },
-    { label: HY.t("toggle_left"), key: "Ctrl+Alt+B", icon: "layout", fn: () => { document.body.classList.toggle("no-left"); refit(); } },
-    { label: HY.t("toggle_right"), key: "Ctrl+Shift+H", icon: "layout", fn: () => { document.body.classList.toggle("no-right"); refit(); } },
+    { label: HY.t("toggle_left"), key: "Ctrl+Shift+B", icon: "layout", fn: () => toggleCol("no-left") },
+    { label: HY.t("toggle_right"), key: "Ctrl+Shift+H", icon: "layout", fn: () => toggleCol("no-right") },
+    { label: HY.t("fullscreen"), key: "F11", icon: "layout", fn: A("fullscreen") },
+    { label: HY.t("ontop"), key: "", icon: "layout", fn: () => { state.onTop = !state.onTop; HY.bridge && HY.bridge.setOnTop && HY.bridge.setOnTop(state.onTop); } },
     { label: "CRT терминала вкл/выкл", key: "", icon: "eye", fn: () => HY.setting("effects.crt_terminal", document.body.classList.contains("no-crt") ? 0.85 : 0) },
     { label: "Фон «руки из кода» вкл/выкл", key: "", icon: "image", fn: () => HY.setting("effects.terminal_art", !(HY.theme.effects || {}).terminal_art) },
-    { label: HY.t("prev_block"), key: "Ctrl+Shift+↑", icon: "chevron", fn: () => t && t.jump(-1) },
-    { label: HY.t("next_block"), key: "Ctrl+Shift+↓", icon: "chevron", fn: () => t && t.jump(1) },
-    { label: HY.t("font_up"), key: "Ctrl+=", icon: "plus", fn: () => setFont(state.fontSize + 1) },
-    { label: HY.t("font_down"), key: "Ctrl+-", icon: "minus", fn: () => setFont(state.fontSize - 1) },
-    { label: HY.t("clear"), key: "Ctrl+Shift+K", icon: "trash", fn: () => t && t.term.clear() },
+    { label: HY.t("prev_block"), key: "Ctrl+Shift+↑", icon: "chevron", fn: A("prevBlock") },
+    { label: HY.t("next_block"), key: "Ctrl+Shift+↓", icon: "chevron", fn: A("nextBlock") },
+    { label: HY.t("to_top"), key: "Ctrl+Shift+Home", icon: "chevron", fn: A("toTop") },
+    { label: HY.t("to_end"), key: "Ctrl+Shift+End", icon: "chevron", fn: A("toEnd") },
+    { label: HY.t("font_up"), key: "Ctrl+=", icon: "plus", fn: A("fontUp") },
+    { label: HY.t("font_down"), key: "Ctrl+-", icon: "minus", fn: A("fontDown") },
+    { label: HY.t("font_reset"), key: "Ctrl+0", icon: "minus", fn: A("fontReset") },
+    { label: HY.t("clear"), key: "Ctrl+Shift+K", icon: "trash", fn: A("clear") },
     { label: "Скрытые файлы", key: "", icon: "eye", fn: () => { state.hidden = !state.hidden; loadDir(state.dir); showPanel("files"); } },
-    { label: "Режим питания…", key: "", icon: "bolt", fn: palettePower },
-    { label: HY.t("settings"), key: "", icon: "settings", fn: () => HY.openApp("settings", ["--page", "appearance"]) },
+    FEAT.power_profiles ? { label: "Режим питания…", key: "", icon: "bolt", fn: palettePower } : null,
+    { label: HY.t("settings"), key: "", icon: "settings", fn: () => HY.openApp("settings", ["--page", "terminal"]) },
+    IS_WIN ? { label: HY.t("admin"), key: "", icon: "shield", fn: () => HY.bridge && HY.bridge.runAsAdmin && HY.bridge.runAsAdmin("[]") } : null,
     { label: "Haotica: разобрать последнюю ошибку", key: "", icon: "haotica", fn: () => {
       const b = t && [...t.blocks].reverse().find((x) => x.code); if (b) askHaotica(t, b); } },
-  ];
+  ].filter(Boolean);
   const inp = el("input", { placeholder: HY.t("palette") + "  (/cloud, /new, …)" });
   const res = el("div.res");
   let sel = 0, shown = cmds;
@@ -858,13 +1230,13 @@ function palette() {
     res.replaceChildren(...shown.map((c, i) => el("div.r" + (i === sel ? ".on" : ""), { onclick: () => run(c) }, icon(c.icon, 14), c.label, el("span.k", c.key))));
   };
   const box = el("div.t-palette.hy-blueprint", inp, res);
-  const run = (c) => { box.remove(); c.fn(); if (state.active) state.active.term.focus(); };
+  const run = (c) => { box.remove(); c.fn(); if (cur() && !c.keepFocus) cur().term.focus(); };
   inp.addEventListener("input", () => { sel = 0; render(); });
   inp.addEventListener("keydown", (e) => {
     if (e.key === "ArrowDown") { sel = Math.min(shown.length - 1, sel + 1); render(); e.preventDefault(); }
     if (e.key === "ArrowUp") { sel = Math.max(0, sel - 1); render(); e.preventDefault(); }
     if (e.key === "Enter" && shown[sel]) run(shown[sel]);
-    if (e.key === "Escape") { box.remove(); state.active && state.active.term.focus(); }
+    if (e.key === "Escape") { box.remove(); cur() && cur().term.focus(); }
   });
   document.body.append(box);
   render();
@@ -872,19 +1244,34 @@ function palette() {
 }
 function findBar(t) {
   document.querySelector(".t-search")?.remove();
-  const inp = el("input.hy-input.mono", { placeholder: HY.t("find") });
-  const bar = el("div.t-search", inp,
-    el("button.hy-btn.icon.small", { onclick: () => t.search.findPrevious(inp.value) }, icon("chevron", 14)),
-    el("button.hy-btn.icon.small", { onclick: () => t.search.findNext(inp.value) }, icon("chevron", 14)),
-    el("button.hy-btn.icon.small.ghost", { onclick: () => { bar.remove(); t.term.focus(); } }, icon("close", 14)));
-  bar.children[1].style.transform = "rotate(-90deg)"; bar.children[2].style.transform = "rotate(90deg)";
-  inp.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") e.shiftKey ? t.search.findPrevious(inp.value) : t.search.findNext(inp.value, { incremental: false });
-    if (e.key === "Escape") { bar.remove(); t.term.focus(); }
+  const o = state.search;
+  const inp = el("input.hy-input.mono", { placeholder: HY.t("find"), value: t.lastSearch || "" });
+  const count = el("span.cnt", "");
+  const deco = { matchBackground: "#E0A24333", matchBorder: "#E0A24366", matchOverviewRuler: "#E0A243",
+    activeMatchBackground: "#5FA8A066", activeMatchBorder: "#5FA8A0", activeMatchColorOverviewRuler: "#5FA8A0" };
+  const opts = (inc = false) => ({ caseSensitive: o.caseSensitive, wholeWord: o.wholeWord, regex: o.regex, incremental: inc, decorations: deco });
+  const go = (dir, inc = false) => { t.lastSearch = inp.value; if (!inp.value) { t.search.clearDecorations(); count.textContent = ""; return; }
+    try { dir < 0 ? t.search.findPrevious(inp.value, opts()) : t.search.findNext(inp.value, opts(inc)); } catch (e) { count.textContent = "regex?"; } };
+  const tog = (key, label, title) => el("button.hy-btn.icon.small.tog" + (o[key] ? ".on" : ""), { title,
+    onclick: (e) => { o[key] = !o[key]; e.currentTarget.classList.toggle("on", o[key]); go(1, true); } }, label);
+  const close = () => { t.search.clearDecorations(); bar.remove(); t.term.focus(); };
+  const bar = el("div.t-search", inp, count, tog("caseSensitive", "Aa", HY.t("case")), tog("wholeWord", "W", HY.t("word")), tog("regex", ".*", HY.t("regex")),
+    el("button.hy-btn.icon.small", { onclick: () => go(-1) }, icon("chevron", 14)),
+    el("button.hy-btn.icon.small", { onclick: () => go(1) }, icon("chevron", 14)),
+    el("button.hy-btn.icon.small.ghost", { onclick: close }, icon("close", 14)));
+  const btns = bar.querySelectorAll("button:not(.tog)");
+  btns[0].style.transform = "rotate(-90deg)"; btns[1].style.transform = "rotate(90deg)";
+  if (t.searchHook) t.searchHook.dispose();
+  t.searchHook = t.search.onDidChangeResults(({ resultIndex, resultCount }) => {
+    count.textContent = resultCount ? `${resultIndex + 1}/${resultCount}` : (inp.value ? HY.t("no_matches") : "");
   });
-  inp.addEventListener("input", () => t.search.findNext(inp.value, { incremental: true }));
+  inp.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); go(e.shiftKey ? -1 : 1); }
+    if (e.key === "Escape") close();
+  });
+  inp.addEventListener("input", () => go(1, true));
   t.box.append(bar);
-  inp.focus();
+  inp.focus(); inp.select();
 }
 
 // ── запуск ───────────────────────────────────────────────────────
@@ -892,12 +1279,35 @@ $("p-preview").replaceChildren(el("div.t-prev-empty", el("div", icon("eye", 32),
 renderCats();
 showPanel("log");
 applyCrt();
+await loadProfiles();
 const argv = HY.args || [];
-const argOf = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : ""; };
-newTab({ cwd: argOf("--cwd") || argv.find((a) => a.startsWith("/")) || "", command: argOf("--run") });
+const argOf = (list, name) => { const k = list.indexOf(name); return k >= 0 ? list[k + 1] || "" : ""; };
+const posDir = (list) => list.find((a) => isAbs(a) && !a.startsWith("--"));
+const startCwd = argOf(argv, "--cwd") || posDir(argv) || "";
+const sess = SET().restore_tabs !== false && !startCwd && !argOf(argv, "--run") ? loadSession() : null;
+if (sess && sess.tabs && sess.tabs.length) {
+  for (const st of sess.tabs) {
+    const first = st.panes[0] || {};
+    const t = newTab({ cwd: first.cwd, profile: first.profile, name: st.name });
+    t.name = st.name || "";
+    for (const p of st.panes.slice(1)) { const np = new Pane(t, p); const old = t.root; t.root = { dir: "v", a: old, b: { pane: np } }; t.active = np; }
+    t.layout();
+  }
+  activate(state.tabs[Math.min(state.tabs.length - 1, Math.max(0, sess.active || 0))]);
+} else {
+  newTab({ cwd: startCwd, command: argOf(argv, "--run"), profile: argOf(argv, "--profile") });
+}
 HY.on("open", (args) => {
-  const i = args.indexOf("--run");
-  newTab({ cwd: (args[args.indexOf("--cwd") + 1]) || (state.active ? state.active.cwd : ""), command: i >= 0 ? args[i + 1] : "" });
+  if (args.includes("--new-window") && !args.includes("--cwd")) { newTab({ cwd: cur() ? cur().cwd : "" }); return; }
+  newTab({ cwd: argOf(args, "--cwd") || posDir(args) || (cur() ? cur().cwd : ""), command: argOf(args, "--run"), profile: argOf(args, "--profile") });
 });
+HY.on("message", async (m) => {
+  if (m.cmd === "confirm-close") {
+    const ok = await HY.confirm("HAOTICA TERMINAL", HY.t("busy_window", { n: m.busy }), { danger: true, ok: HY.t("closetab") });
+    if (ok) { saveSession(); HY.bridge.forceClose(); }
+  }
+  if (m.cmd === "drop" && cur()) cur().insertPaths(m.paths || []);
+});
+window.addEventListener("beforeunload", saveSession);
 bars(); mini(); drawCharts();
 setInterval(drawCharts, 120);

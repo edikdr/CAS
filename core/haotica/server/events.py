@@ -1,6 +1,7 @@
 """Журнал событий: короткие строки для HUD/дашборда, важные — ещё и уведомлением."""
 from __future__ import annotations
 
+import os
 import time
 from collections import deque
 
@@ -24,10 +25,12 @@ class EventLog:
         e = {"time": util.now_hm(), "ts": int(time.time()), "kind": kind, "text": text[:160]}
         if sound:
             e["sound"] = sound
+        if notify and os.name == "nt":         # Windows: уведомление покажет окно терминала (значок в трее)
+            e["toast"], e["title"] = True, title or "HAOTICA"
         self.items.append(e)
         util.write_json(self.file, list(self.items))
         self.hub.publish("events", e, keep=False)
-        if notify:
+        if notify and os.name != "nt":
             util.notify(title or "HAOTICA", text, NOTIFY.get(kind, "normal"))
         return e
 

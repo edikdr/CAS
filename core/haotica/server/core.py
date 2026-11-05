@@ -10,7 +10,7 @@ from collections import deque
 
 import aiohttp
 
-from .. import config, paths, recon, theme, util
+from .. import config, paths, platform, recon, theme, util
 from ..cli import ensure_token
 from .appliers import Applier
 from .crt import ScreenCrt
@@ -78,6 +78,10 @@ class Core:
             config.export_runtime(s)
         self.publish_theme()
         self.hub.publish("settings", self.shell_settings(s))
+        if platform.IS_WINDOWS:                    # HAOTICA Terminal: без Hyprland, systemd и сканера сети
+            asyncio.create_task(self.metrics.run())
+            self.events.add("ok", "CORE // ONLINE")
+            return
         if not (paths.HOME / ".config/hypr/hypridle.conf").exists():
             await self.applier.write_hypridle(s)
         await self.applier.lid_policy(s)

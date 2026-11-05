@@ -116,7 +116,7 @@ export const HY = {
     if (this.bridge && this.bridge.setTitle && opts.title) this.bridge.setTitle(opts.title);
     document.addEventListener("keydown", (e) => {
       if (e.key === "w" && e.ctrlKey && !e.shiftKey && opts.ctrlW !== false) { e.preventDefault(); this.close(); }
-      if (e.key === "F11") { e.preventDefault(); this.bridge && this.bridge.toggleMaximize(); }
+      if (e.key === "F11" && !e.defaultPrevented) { e.preventDefault(); this.bridge && (this.bridge.toggleFullscreen || this.bridge.toggleMaximize)(); }
     });
     return this;
   },

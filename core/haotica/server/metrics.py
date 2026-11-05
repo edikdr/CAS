@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import glob
+import os
 import logging
 import socket
 import time
@@ -34,6 +35,14 @@ def find_amdgpu() -> Path | None:
 
 
 def default_iface() -> str:
+    if os.name == "nt":                      # Windows: активный интерфейс с наибольшим трафиком
+        try:
+            stats = psutil.net_if_stats()
+            io = psutil.net_io_counters(pernic=True)
+            up = [n for n, st in stats.items() if st.isup and "loopback" not in n.lower() and n in io]
+            return max(up, key=lambda n: io[n].bytes_recv + io[n].bytes_sent) if up else ""
+        except (OSError, ValueError):
+            return ""
     try:
         for line in Path("/proc/net/route").read_text().splitlines()[1:]:
             f = line.split()
@@ -48,7 +57,12 @@ class Metrics:
     def __init__(self, core) -> None:
         self.core = core
         self.file = paths.RUNTIME_DIR / "metrics.json"
-        self.gpu_dev = find_amdgpu()
+        self.gpu_dev = find_amdgpu() if os.name != "nt" else None
+        self.win_gpu = None
+        if os.name == "nt":
+            from ..winmetrics import GpuCounters, shared_total_gb
+            self.win_gpu = GpuCounters()
+            self.win_gtt_total = shared_total_gb()
         self.data: dict = {}
         self._net_prev: tuple[float, int, int] | None = None
         self._tick = 0
@@ -68,6 +82,9 @@ class Metrics:
             d["gtt_total_gb"] = round(util.read_int(g / "mem_info_gtt_total") / GIB, 1)
             d["vram_used_gb"] = round(util.read_int(g / "mem_info_vram_used") / GIB, 2)
             d["vram_total_gb"] = round(util.read_int(g / "mem_info_vram_total") / GIB, 2)
+        elif self.win_gpu is not None:
+            d.update(self.win_gpu.sample())
+            d["gtt_total_gb"] = self.win_gtt_total
         iface = default_iface()
         d["net_iface"] = iface
         if iface:
@@ -122,7 +139,7 @@ class Metrics:
             status = ""
             for bat in glob.glob("/sys/class/power_supply/BAT*/status"):
                 status = util.read(bat)
-            d["charging"] = status == "Charging"
+            d["charging"] = status == "Charging" if status else bool(b.power_plugged and b.percent < 100)
             d["battery_status"] = status.lower()
             if b.secsleft not in (psutil.POWER_TIME_UNLIMITED, psutil.POWER_TIME_UNKNOWN) and b.secsleft > 0:
                 d["battery_minutes"] = int(b.secsleft // 60)
@@ -153,6 +170,11 @@ class Metrics:
             for a in psutil.net_if_addrs().get(iface, []):
                 if a.family == socket.AF_INET:
                     d["net_ip"] = a.address
+        if os.name == "nt":
+            if iface and d["net_ip"]:
+                d["net_name"] = iface
+                d["net_type"] = "wifi" if any(w in iface.lower() for w in ("wi-fi", "wlan", "wireless")) else "ethernet"
+            return d
         rc, out, _ = await util.arun(["nmcli", "-t", "-f", "NAME,DEVICE,TYPE", "connection", "show", "--active"], 5)
         if rc == 0:
             for line in out.splitlines():

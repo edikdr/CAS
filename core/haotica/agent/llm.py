@@ -19,7 +19,7 @@ from collections.abc import AsyncIterator
 
 import aiohttp
 
-from .. import config, models, paths, util
+from .. import config, models, paths, services
 
 log = logging.getLogger("haotica.llm")
 UNIT = "haotica-llm-{}.service"
@@ -104,8 +104,8 @@ class LLM:
                 return True
             self.switching = role
             try:
-                if await self.health(other) != "offline":
-                    await util.arun(["systemctl", "--user", "stop", UNIT.format(other)], 60)
+                if await self.health(other) != "offline" or services.supervised():
+                    await services.stop(f"llm-{other}")
                     self.state[other] = "sleep"
                 self.main = role
                 ok = await self.ensure(role, timeout)
@@ -124,9 +124,9 @@ class LLM:
             return await self._starting[role]
 
         async def boot() -> bool:
-            rc, _, err = await util.arun(["systemctl", "--user", "start", UNIT.format(role)], 30)
-            if rc != 0 and await self.health(role) == "offline":
-                log.warning("не удалось запустить %s: %s", role, err.strip()[:200])
+            started, err = await services.start(f"llm-{role}")
+            if not started and await self.health(role) == "offline":
+                log.warning("не удалось запустить %s: %s", role, err[:200])
                 self.state[role] = "error"
                 return False
             t0 = time.time()
@@ -141,7 +141,7 @@ class LLM:
         return await self._starting[role]
 
     async def unload(self, role: str) -> None:
-        await util.arun(["systemctl", "--user", "stop", UNIT.format(role)], 30)
+        await services.stop(f"llm-{role}")
         self.state[role] = "sleep"
 
     async def pause(self, on: bool) -> None:

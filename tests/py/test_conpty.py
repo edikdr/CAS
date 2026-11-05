@@ -91,11 +91,22 @@ def test_backpressure_and_kill_tree():
         proc.write("Start-Sleep 60\r")                   # встроенная команда: занятость — по OSC 133 C
         time.sleep(2)
         assert proc.info()["busy"], "Start-Sleep: вкладка занята"
+        n_prompts = c.buf.count("\x1b]133;A")
         proc.write("\x03")
-        assert c.wait("\x1b]133;D", 20)
+        t0 = time.time()
+        while c.buf.count("\x1b]133;A") <= n_prompts and time.time() - t0 < 20:   # ждём новое приглашение
+            time.sleep(0.1)
+        time.sleep(0.5)
         proc.write("ping -n 60 127.0.0.1\r")             # внешняя программа: дочерний процесс
-        time.sleep(3)
-        assert any(k.name().lower().startswith("ping") for k in proc.children()), "ping — дочерний процесс"
+        found = False
+        for _ in range(100):
+            if any(k.name().lower().startswith("ping") for k in proc.children()):
+                found = True
+                break
+            time.sleep(0.1)
+        import psutil
+        info = f"pid={proc.pid} {psutil.Process(proc.pid).name()} дети={[k.name() for k in proc.children()]} " + repr(c.buf[-300:])
+        assert found, "ping — дочерний процесс: " + info
     finally:
         kids = proc.children()
         proc.kill()

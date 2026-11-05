@@ -37,3 +37,18 @@ def test_build_pwsh_integration():
 def test_build_cmd_prompt():
     argv, env, _cwd, _p = profiles.build("cmd", "~", "test")
     assert "]7;file://" in env["PROMPT"] and argv[1].upper() == "/K"
+
+
+def test_wsl_list_never_blocks_spawn(monkeypatch):
+    """Без WSL `wsl -l -q` висит до тайм-аута: запуск вкладки не должен его ждать (было: 6 с на вкладку)."""
+    import time
+    from haotica.apps import profiles
+    monkeypatch.setattr(profiles, "IS_WINDOWS", True)
+    monkeypatch.setattr(profiles, "_wsl_query", lambda: (time.sleep(2), ["Ubuntu"])[1])
+    profiles._WSL.update(names=None, t=0.0, busy=False)
+    t0 = time.monotonic()
+    assert profiles.wsl_distros() == []                 # первый вызов — сразу, опрос ушёл в фон
+    assert time.monotonic() - t0 < 0.3
+    assert profiles.wsl_distros(wait=True) == ["Ubuntu"]   # явный выбор WSL — дождаться
+    t0 = time.monotonic()
+    assert profiles.wsl_distros() == ["Ubuntu"] and time.monotonic() - t0 < 0.1   # дальше — из кэша

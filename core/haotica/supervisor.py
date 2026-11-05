@@ -102,7 +102,10 @@ def python_argv(module: str) -> list[str]:
     """Как запустить модуль haotica тем же интерпретатором (или собранным HaoticaTerminal.exe)."""
     if getattr(sys, "frozen", False):          # сборка: службы запускает HaoticaTerminal.exe --module …
         exe = Path(sys.executable).with_name("HaoticaTerminal.exe")
-        return [str(exe if exe.exists() else sys.executable), "--module", module]
+        exe_s = str(exe if exe.exists() else sys.executable)
+        if module == "haotica.apps":          # окна: HaoticaTerminal.exe <приложение> … (точка входа окна)
+            return [exe_s]
+        return [exe_s, "--module", module]
     exe = sys.executable
     if IS_WINDOWS and exe.lower().endswith("pythonw.exe"):
         exe = exe[:-5] + ".exe"   # pythonw → python: у служб нет окна (CREATE_NO_WINDOW), но нужны std-потоки

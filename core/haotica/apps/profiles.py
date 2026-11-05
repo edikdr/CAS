@@ -11,6 +11,8 @@ import shlex
 import shutil
 import socket
 import subprocess
+import threading
+import time
 from pathlib import Path
 
 from .. import config, paths
@@ -27,8 +29,11 @@ def _exists(p: str | Path) -> bool:
         return False
 
 
-def wsl_distros() -> list[str]:
-    """Имена дистрибутивов WSL. `wsl -l -q` пишет в UTF-16LE."""
+_WSL: dict = {"names": None, "t": 0.0, "busy": False}
+_WSL_LOCK = threading.Lock()
+
+
+def _wsl_query() -> list[str]:
     exe = shutil.which("wsl.exe") or shutil.which("wsl")
     if not exe:
         return []
@@ -41,6 +46,34 @@ def wsl_distros() -> list[str]:
     text = raw.decode("utf-16-le", "ignore") if raw[:2] != b"" and b"\x00" in raw[:8] else raw.decode("utf-8", "ignore")
     names = [ln.strip().strip("\x00") for ln in text.splitlines()]
     return [n for n in names if n and not n.startswith("docker-desktop")]
+
+
+def _wsl_refresh() -> None:
+    names = _wsl_query()
+    with _WSL_LOCK:
+        _WSL.update(names=names, t=time.monotonic(), busy=False)
+
+
+def wsl_distros(wait: bool = False) -> list[str]:
+    """Имена дистрибутивов WSL. `wsl -l -q` пишет в UTF-16LE и без установленного WSL висит до тайм-аута,
+    поэтому опрос — в фоне и с кэшем на 5 минут: запуск вкладки не ждёт его (раньше 8 вкладок × 6 с = минута
+    чёрного окна). wait=True — подождать ответа (явно выбран профиль WSL)."""
+    with _WSL_LOCK:
+        names, fresh = _WSL["names"], time.monotonic() - _WSL["t"] < 300
+        start = not _WSL["busy"] and (names is None or not fresh)
+        if start:
+            _WSL["busy"] = True
+    if start:
+        if wait or names is None and not IS_WINDOWS:
+            _wsl_refresh()
+        else:
+            threading.Thread(target=_wsl_refresh, name="wsl-list", daemon=True).start()
+    elif wait and names is None:
+        for _ in range(70):
+            time.sleep(0.1)
+            if _WSL["names"] is not None:
+                break
+    return list(_WSL["names"] or [])
 
 
 def win_to_wsl(path: str) -> str:
@@ -134,6 +167,8 @@ def public(profiles: list[dict] | None = None) -> dict:
 def build(profile_id: str, cwd: str, sid: str) -> tuple[list[str], dict, str, dict]:
     """(argv, env, cwd, профиль) для запуска оболочки с интеграцией HAOTICA."""
     from .. import __version__
+    if profile_id.startswith("wsl:"):
+        wsl_distros(wait=True)
     profiles = detect()
     prof = next((p for p in profiles if p["id"] == profile_id), None) or \
         next((p for p in profiles if p["id"] == default_id(profiles)), profiles[0])

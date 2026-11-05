@@ -269,6 +269,7 @@ export class ChatView {
   }
   renderText(node, text) {
     node.replaceChildren();
+    text = String(text).replace(/\s*\[(пауза|pause|долгая пауза|long pause)\]\s*/gi, " ");   // метки речи — только для голоса
     const parts = String(text).split(/```([\w+-]*)[^\n]*\n?([\s\S]*?)(?:```|$)/g);
     for (let i = 0; i < parts.length; i += 3) {
       if (parts[i] && parts[i].trim()) node.append(this.mdBlock(parts[i]));

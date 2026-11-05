@@ -73,6 +73,13 @@ MODE_HINT = {
 
 
 SHELL_NAMES = {"pwsh": "PowerShell", "cmd": "cmd.exe", "wsl": "bash (WSL)", "bash": "bash", "zsh": "zsh"}
+VOICE_RU = """Твои ответы звучат голосом Сары, поэтому пиши так, как говоришь: живые короткие фразы, без канцелярита. \
+Многоточие — пауза и раздумье, тире — короткая пауза, восклицание — эмоция. Изредка и к месту можно *смеётся*, \
+*вздыхает*, *хмыкает* — это прозвучит настоящим смехом или вздохом; [пауза] — заметная пауза. Код, таблицы и ссылки \
+вслух не читаются — их можно давать как обычно."""
+VOICE_EN = """Your replies are spoken in Sarah's voice, so write the way you talk: lively short sentences. An ellipsis is \
+a pause, a dash a short pause, an exclamation an emotion. Sparingly, *laughs*, *sighs* or *hmm* become real sounds; \
+[pause] is a noticeable pause. Code, tables and links are not read aloud."""
 TERMINAL_RU = """Ты встроена в HAOTICA Terminal. Цепочки команд выполняй сама инструментом terminal_run — команда вводится \
 в настоящую вкладку терминала, владелец видит её и вывод, ты получаешь код выхода и хвост вывода. Пиши команды для \
 текущей оболочки ({shell}){win}. По одной команде на шаг, проверяй код выхода, при ошибке — разберись и исправь, \
@@ -111,6 +118,8 @@ def system_prompt(settings: dict, context: dict, memories: list[str]) -> str:
     parts.append(MODE_HINT.get(ha.get("mode", "copilot"), MODE_HINT["copilot"])[lang])
     if tone:
         parts.append(" ".join(tone))
+    if ha.get("voice", True):
+        parts.append(VOICE_RU if lang == "ru" else VOICE_EN)
     now = time.localtime()
     ctx = [f"Сейчас: {time.strftime('%A, %d.%m.%Y %H:%M', now)}" if lang == "ru" else f"Now: {time.strftime('%A %Y-%m-%d %H:%M', now)}",
            f"Система: {platform.node()}, {platform.system()} {platform.release()}"]

@@ -27,10 +27,10 @@ log = logging.getLogger("haotica.tts")
 
 def load_engine():
     """Движок из haotica.tts_engine; auto — первый установленный по качеству (выбор по прослушиванию)."""
-    from .engines import ENGINES
+    from .engines import ENGINES, SARAH_ORDER
     want = config.get("haotica.tts_engine", "auto")
     order = [want] if want in ENGINES else []
-    order += [e for e in ("chatterbox", "xtts", "qwen3", "f5", "silero", "piper") if e not in order]
+    order += [e for e in SARAH_ORDER if e not in order]       # только голос Сары, если не выбрано иное
     for name in order:
         try:
             eng = ENGINES[name]()
@@ -80,7 +80,8 @@ def create_app() -> web.Application:
 
     async def health(_r):
         eng = app.get("engine")
-        return web.json_response({"ok": bool(eng), "engine": eng.name if eng else ""}, status=200 if eng else 503)
+        return web.json_response({"ok": bool(eng), "engine": eng.name if eng else "", "sarah": bool(eng and eng.clone)},
+                                 status=200 if eng else 503)
 
     async def tts(r):
         if r.host not in (f"127.0.0.1:{paths.PORT_TTS}", f"localhost:{paths.PORT_TTS}"):
@@ -96,15 +97,17 @@ def create_app() -> web.Application:
         lang = str(d.get("lang") or detect_lang(text))
         lang = lang if lang in ("ru", "en", "de") else detect_lang(text)
         speed, exag = float(d.get("speed", 1.0)), float(d.get("exaggeration", 0.5))
+        cfg, temp = float(d.get("cfg", 0.5)), float(d.get("temperature", 0.8))
         norm = normalize(text, lang) if d.get("normalize", True) else text
-        k = app["cache"].key(eng.name, lang, round(speed, 2), round(exag, 2), norm)
+        k = app["cache"].key(eng.name, lang, round(speed, 2), round(exag, 2), round(cfg, 2), norm)
         wav = app["cache"].get(k)
         if wav is None:
             async with lock:                       # очередь: один синтез за раз
-                wav = await asyncio.to_thread(eng.synth, norm, lang, speed, exag)
+                wav = await asyncio.to_thread(eng.synth, norm, lang, speed, exag, cfg, temp)
             if len(norm) < 300:
                 app["cache"].put(k, wav)
-        return web.Response(body=wav, content_type="audio/wav", headers={"X-Haotica-Engine": eng.name})
+        return web.Response(body=wav, content_type="audio/wav",
+                            headers={"X-Haotica-Engine": eng.name, "X-Haotica-Sarah": "1" if eng.clone else "0"})
 
     async def startup(_app):
         app["cache"] = Cache()

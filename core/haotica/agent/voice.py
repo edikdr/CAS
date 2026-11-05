@@ -124,58 +124,79 @@ class Voice:
         return True
 
     async def say(self, text: str, emotion: str = "neutral") -> bool:
+        """Сказать ответ голосом Сары по плану просодии: фразы с интонацией и темпом, паузы, записанные эмоции.
+
+        Пока звучит фраза, синтезируется следующая. Любая новая реплика, ввод владельца или «стоп» — stop().
+        Голос — только Сара: локальный клон, при сбое — ElevenLabs Sarah; чужих голосов нет.
+        """
         s = config.load()
         if not self.enabled(s) or not text.strip():
+            return False
+        from ..tts import prosody
+        if not prosody.speakable(text):
             return False
         await self.stop()                                 # новая реплика глушит старую
         gen = self.gen
         backend = s.get("haotica", {}).get("voice_backend", "local")
-        lang = s.get("locale", {}).get("haotica_language", "ru")
-        if lang not in ("ru", "en", "de"):
-            from ..tts.normalize import detect_lang
-            lang = detect_lang(text)
+        lang = s.get("locale", {}).get("haotica_language", "")
         speed = float(s.get("haotica", {}).get("voice_speed", 1.0))
-        from ..tts.normalize import sentences
-        parts = sentences(text) or [text]
-        played = False
+        mood = {"warning": "warning", "happy": "happy"}.get(emotion, "neutral")
+        plan = prosody.plan(text, lang if lang in ("ru", "en", "de") else "", speed, mood)
+        speech = [i for i, x in enumerate(plan) if x.kind == "speech"]
+        if not speech:
+            return False
 
-        async def synth(t: str) -> bytes:
+        async def synth(seg) -> bytes:
             audio = b""
             if backend in ("local", "auto"):
-                audio = await self._local(t, lang, emotion, speed)
+                audio = await self._local(seg.text, seg.lang, seg.exaggeration, seg.speed, seg.cfg, seg.temperature)
             if not audio and backend in ("elevenlabs", "local", "auto"):
-                audio = await self._eleven(t, lang)
+                audio = await self._eleven(seg.text, seg.lang, seg.exaggeration, seg.speed)
             return audio
-        nxt = asyncio.create_task(synth(parts[0]))
-        for i in range(len(parts)):
-            audio = await nxt
-            if gen != self.gen:
-                return played
-            nxt = asyncio.create_task(synth(parts[i + 1])) if i + 1 < len(parts) else None
-            if audio:
-                await self._play_bytes(audio, s, gen)
-                played = True
-            if gen != self.gen:
-                if nxt:
-                    nxt.cancel()
-                return played
-            if nxt is None:
-                break
+        tasks: dict[int, asyncio.Task] = {speech[0]: asyncio.create_task(synth(plan[speech[0]]))}
+        played = False
+        try:
+            for idx, seg in enumerate(plan):
+                if gen != self.gen:
+                    return played
+                if seg.kind == "pause":
+                    await asyncio.sleep(seg.ms / 1000)
+                    continue
+                if seg.kind == "sound":
+                    f = voice_dir() / f"{seg.sound}.ogg"
+                    if f.exists():
+                        await self._play_file(f, s)
+                    continue
+                nxt = next((k for k in speech if k > idx), None)    # конвейер: следующая фраза уже синтезируется
+                if nxt is not None and nxt not in tasks:
+                    tasks[nxt] = asyncio.create_task(synth(plan[nxt]))
+                audio = await tasks.pop(idx)
+                if gen != self.gen:
+                    return played
+                if audio:
+                    await self._play_bytes(audio, s, gen)
+                    played = True
+                elif not played:
+                    return False                           # голоса Сары нет — молчим, а не говорим чужим голосом
+        finally:
+            for t in tasks.values():
+                t.cancel()
         return played
-    async def _local(self, text: str, lang: str, emotion: str, speed: float) -> bytes:
+
+    async def _local(self, text: str, lang: str, exaggeration: float = 0.5, speed: float = 1.0, cfg: float = 0.5,
+                     temperature: float = 0.8) -> bytes:
         url = f"http://{paths.HOST}:{paths.PORT_TTS}/tts"
-        exaggeration = {"neutral": 0.45, "happy": 0.7, "warning": 0.6, "sad": 0.35, "excited": 0.85}.get(emotion, 0.5)
         try:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90)) as sess:
                 async with sess.post(url, json={"text": text[:1200], "lang": lang, "exaggeration": exaggeration,
-                                                "speed": speed}) as r:
-                    if r.status == 200:
+                                                "speed": speed, "cfg": cfg, "temperature": temperature}) as r:
+                    if r.status == 200 and r.headers.get("X-Haotica-Sarah", "1") != "0":
                         return await r.read()
         except (aiohttp.ClientError, asyncio.TimeoutError):
             pass
         return b""
 
-    async def _eleven(self, text: str, lang: str) -> bytes:
+    async def _eleven(self, text: str, lang: str, exaggeration: float = 0.5, speed: float = 1.0) -> bytes:
         key = await secrets.get("elevenlabs")
         if not key:
             return b""
@@ -184,7 +205,9 @@ class Voice:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as sess:
                 async with sess.post(url, headers={"xi-api-key": key}, json={
                         "text": text[:1500], "model_id": "eleven_multilingual_v2",
-                        "voice_settings": {"stability": 0.45, "similarity_boost": 0.8}}) as r:
+                        "voice_settings": {"stability": round(max(0.25, 0.7 - exaggeration * 0.5), 2), "similarity_boost": 0.8,
+                                           "style": round(max(0.0, min(0.8, exaggeration - 0.3)), 2),
+                                           "speed": round(max(0.8, min(1.2, speed)), 2)}}) as r:
                     if r.status != 200:
                         return b""
                     pcm = await r.read()

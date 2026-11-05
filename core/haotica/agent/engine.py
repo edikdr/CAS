@@ -541,7 +541,7 @@ class Agent:
         self.hub.publish("message", {"chat": chat, "role": "assistant", "text": final, "final": True, "model": role,
                                      "id": mid, "steps": steps}, keep=False)
         self.state.set("idle", final.splitlines()[0] if final else "")
-        if self.voice and source not in ("cli", "complete") and len(final) < 500:
+        if self.voice and source not in ("cli", "complete") and not final.startswith("⏹"):
             self.bg(self._say(final))
         self.bg(self._maybe_summarize(chat))
         self.bg(self._autotitle(chat))
@@ -612,7 +612,7 @@ class Agent:
 
     async def _say(self, text: str) -> None:
         try:
-            await self.voice.say(re.sub(r"```.*?```", "", text, flags=re.S)[:400])
+            await self.voice.say(text, "warning" if self.state.value == "warning" else "neutral")
         except Exception:  # noqa: BLE001 — нет TTS — молчим
             pass
 

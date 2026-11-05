@@ -22,9 +22,22 @@ REF_TEXT = ("You know, sometimes the hardest part is simply getting started. But
 
 
 def to_wav(samples, sr: int, speed: float = 1.0) -> bytes:
+    """PCM16 WAV: тишина по краям обрезается (паузы задаёт просодия), громкость выравнивается между кусками."""
     import numpy as np
     a = np.asarray(samples, dtype=np.float32).reshape(-1)
-    if abs(speed - 1.0) > 0.03:                      # простое изменение темпа (без смены высоты — у модели)
+    if a.size:
+        env = np.abs(a)
+        idx = np.nonzero(env > 0.012)[0]
+        if idx.size:
+            pad = int(sr * 0.03)
+            a = a[max(0, idx[0] - pad): min(a.size, idx[-1] + pad)]
+        rms = float(np.sqrt(np.mean(a ** 2))) if a.size else 0.0
+        if rms > 1e-4:
+            a = a * min(4.0, 0.075 / rms)                # ~ −20 dBFS RMS, как у реплик Сары
+        peak = float(np.max(np.abs(a))) if a.size else 0.0
+        if peak > 0.97:
+            a = a * (0.97 / peak)
+    if abs(speed - 1.0) > 0.03 and a.size:            # темп без модели — простое передискретизирование (запасной путь)
         idx = np.arange(0, len(a), max(0.5, min(2.0, speed)))
         a = np.interp(idx, np.arange(len(a)), a).astype(np.float32)
     pcm = (np.clip(a, -1, 1) * 32767).astype(np.int16)
@@ -61,17 +74,20 @@ def _device():
 
 class Engine:
     name = ""
+    clone = False                   # говорит голосом Сары (клон по образцу)
     langs = ("ru", "en", "de")
 
     def ready(self) -> bool:
         return True
 
-    def synth(self, text: str, lang: str, speed: float, exaggeration: float) -> bytes:  # pragma: no cover
+    def synth(self, text: str, lang: str, speed: float, exaggeration: float, cfg: float = 0.5,
+              temperature: float = 0.8) -> bytes:  # pragma: no cover
         raise NotImplementedError
 
 
 class Chatterbox(Engine):
     name = "chatterbox"
+    clone = True
 
     def __init__(self) -> None:
         import torch
@@ -82,15 +98,19 @@ class Chatterbox(Engine):
         if ref:
             self.m.prepare_conditionals(ref, exaggeration=0.5)
 
-    def synth(self, text, lang, speed, exaggeration):
+    def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
+        # exaggeration — выразительность интонации; cfg_weight ниже — речь размереннее и чётче;
+        # темп Chatterbox задаётся через cfg (быстрее — выше), без передискретизации
+        cfg = max(0.25, min(0.75, cfg + (speed - 1.0) * 0.8))
         with self.torch.inference_mode():
             wav = self.m.generate(text, language_id=lang if lang in self.langs else "ru", exaggeration=exaggeration,
-                                  cfg_weight=0.5)
-        return to_wav(wav.squeeze().cpu().numpy(), self.m.sr, speed)
+                                  cfg_weight=cfg, temperature=max(0.5, min(1.1, temperature)))
+        return to_wav(wav.squeeze().cpu().numpy(), self.m.sr)
 
 
 class XTTS(Engine):
     name = "xtts"
+    clone = True
 
     def __init__(self) -> None:
         os.environ.setdefault("COQUI_TOS_AGREED", "1")
@@ -98,13 +118,16 @@ class XTTS(Engine):
         self.tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(_device())
         self.ref = reference(22050)
 
-    def synth(self, text, lang, speed, exaggeration):
-        wav = self.tts.tts(text=text, speaker_wav=self.ref, language=lang, speed=max(0.7, min(1.4, speed)))
+    def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
+        wav = self.tts.tts(text=text, speaker_wav=self.ref, language=lang, speed=max(0.7, min(1.4, speed)),
+                           temperature=max(0.3, min(1.0, 0.55 + (exaggeration - 0.5) * 0.6 + (temperature - 0.8) * 0.5)),
+                           enable_text_splitting=False)
         return to_wav(wav, 24000)
 
 
 class Qwen3(Engine):
     name = "qwen3"
+    clone = True
 
     def __init__(self) -> None:
         import torch
@@ -115,15 +138,17 @@ class Qwen3(Engine):
                                                dtype=torch.bfloat16 if dev == "cuda" else torch.float32)
         self.prompt = self.m.create_voice_clone_prompt(ref_audio=reference(24000), ref_text=REF_TEXT)
 
-    def synth(self, text, lang, speed, exaggeration):
+    def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
         with self.torch.inference_mode():
             wavs, sr = self.m.generate_voice_clone(text=text, language=LANG_NAME.get(lang, "Russian"),
-                                                   voice_clone_prompt=self.prompt)
+                                                   voice_clone_prompt=self.prompt,
+                                                   temperature=max(0.5, min(1.1, temperature + (exaggeration - 0.5) * 0.4)))
         return to_wav(wavs[0], sr, speed)
 
 
 class F5(Engine):
     name = "f5"
+    clone = True
 
     def __init__(self) -> None:
         from f5_tts.api import F5TTS
@@ -134,9 +159,9 @@ class F5(Engine):
         self.m = F5TTS(model="F5TTS_v1_Base", ckpt_file=ckpt, vocab_file=vocab, device=_device())
         self.ref = reference(24000)
 
-    def synth(self, text, lang, speed, exaggeration):
+    def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
         wav, sr, _ = self.m.infer(ref_file=self.ref, ref_text=REF_TEXT, gen_text=text, nfe_step=32, speed=speed,
-                                  remove_silence=False)
+                                  cfg_strength=1.6 + exaggeration * 1.4, remove_silence=False)
         return to_wav(wav, sr)
 
 
@@ -159,7 +184,7 @@ class Silero(Engine):
             self.m[lang] = (self.torch.package.PackageImporter(str(p)).load_pickle("tts_models", "model"), spk)
         return self.m[lang]
 
-    def synth(self, text, lang, speed, exaggeration):
+    def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
         model, spk = self._model(lang if lang in self.MODELS else "ru")
         kw = {"put_accent": True, "put_yo": True} if lang == "ru" else {}
         return to_wav(model.apply_tts(text=text, speaker=spk, sample_rate=48000, **kw).numpy(), 48000, speed)
@@ -177,7 +202,7 @@ class Piper(Engine):
     def ready(self) -> bool:
         return any((self.dir / f"{v}.onnx").exists() for v in self.VOICES.values())
 
-    def synth(self, text, lang, speed, exaggeration):
+    def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
         from piper import PiperVoice, SynthesisConfig
         name = self.VOICES.get(lang, self.VOICES["ru"])
         if not (self.dir / f"{name}.onnx").exists():
@@ -191,3 +216,5 @@ class Piper(Engine):
 
 
 ENGINES = {e.name: e for e in (Chatterbox, XTTS, Qwen3, F5, Silero, Piper)}
+# «везде голос Сары»: в авто-режиме — только клоны; Silero/Piper — лишь если выбраны явно
+SARAH_ORDER = ["chatterbox", "xtts", "qwen3", "f5"]

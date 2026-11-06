@@ -7,3 +7,5 @@ node_modules/
 .ruff_cache/
 dist/
 debug.log
+pytest-of-*/
+haotica-test-*/

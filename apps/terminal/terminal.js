@@ -1369,12 +1369,16 @@ function drawVoice() {
   voice.env.forEach((v, i) => { const bh = Math.max(1, v * (h - 2)); g.fillStyle = c; g.globalAlpha = .35 + v * .65; g.fillRect(i * bw + 1, (h - bh) / 2, Math.max(1, bw - 2), bh); });
   g.globalAlpha = 1;
 }
-// волна голоса: 20 кадров/с, пока Сара говорит; в тишине — один раз очистить и не рисовать
-setInterval(() => {
-  voice.env.push(voice.mouth || 0); voice.env.shift(); voice.mouth = (voice.mouth || 0) * 0.85;
-  const live = voice.env.some((v) => v > 0.004);
-  if (live || voice.drawn !== false) { drawVoice(); voice.drawn = live; }
-}, 50);
+// волна голоса: 20 кадров/с на общем такте (в одном кадре с губами аватара), пока Сара говорит;
+// в тишине — один раз очистить и не рисовать
+(function voiceTick() {
+  onBeat(50, () => {
+    voice.env.push(voice.mouth || 0); voice.env.shift(); voice.mouth = (voice.mouth || 0) * 0.85;
+    const live = voice.env.some((v) => v > 0.004);
+    if (live || voice.drawn !== false) { drawVoice(); voice.drawn = live; }
+    voiceTick();
+  });
+})();
 function setHState(s) {
   $("h-state").textContent = (s || "idle").toUpperCase();
   if (state.avatar) state.avatar.setState(s);

@@ -297,7 +297,7 @@ export function createAvatar(host, { size = 260, interactive = true, crt = 0 } =
   }
   // 30 кадров/с хватает для дыхания, моргания и губ; на 165 Гц экране это экономит GPU
   // (в терминале каждый кадр аватара перерисовывает CRT-фильтр)
-  // говорит или двигает губами — 30 кадров/с; в покое (дыхание, моргание) — 8; окно не в фокусе — 2
+  // говорит или двигает губами — 20 кадров/с (в такт с волной голоса, тот же кадр); в покое — 8; без фокуса — 2
   // кадры — по таймеру (не rAF на каждом обновлении экрана: на 165 Гц пустые кадры стоили почти ядро);
   // в покое моменты кадров кратны периоду — общий такт окна: фон и графики попадают в тот же кадр
   const beat = (ms) => ms - (performance.now() % ms) + 1;
@@ -306,7 +306,7 @@ export function createAvatar(host, { size = 260, interactive = true, crt = 0 } =
     clearTimeout(st.timer);
     if (st.dead || document.hidden) return;
     const ui = window.__hyUI, talking = (st.mouth || 0) > 0.02 || st.state === "speaking";
-    st.timer = setTimeout(() => { st.raf = requestAnimationFrame(loop); }, talking ? 32 : beat(ui && !ui.focused ? 500 : 125));
+    st.timer = setTimeout(() => { st.raf = requestAnimationFrame(loop); }, talking ? beat(50) : beat(ui && !ui.focused ? 500 : 125));
   }
   st.raf = requestAnimationFrame(loop);
   const onMove = (e) => {

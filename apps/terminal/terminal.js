@@ -282,7 +282,14 @@ class Pane {
           out: this.term.registerMarker(0), t0: performance.now(), cwd: this.cwd, exec: this.execId || "" };
         this.execId = "";
         this.cur.deco = this.decorate(this.cur, "run", 1);
-      } else if (kind === "D" && this.cur) {
+      } else if (kind === "D" && !this.cur && this.promptMarker && !this.promptMarker.isDisposed) {
+        // оболочка без начала команды (PowerShell без PSReadLine): блок — от прошлого приглашения до этого места
+        const cy = buf.baseY + buf.cursorY, from = this.promptMarker.line;
+        this.cur = { cmd: this.lastCmd, start: this.promptMarker, out: this.term.registerMarker(Math.min(0, from + 1 - cy)),
+          t0: this.execT0 || performance.now(), cwd: this.cwd, exec: this.execId || "" };
+        this.execId = ""; this.execT0 = 0;
+      }
+      if (kind === "D" && this.cur) {
         const b = this.cur;
         this.cur = null;
         b.code = parseInt(arg || "0", 10) || 0;
@@ -1391,7 +1398,8 @@ async function onExec(x) {
   if (!ready || pane.cur) return fail(`вкладка занята: ${pane.cur && pane.cur.cmd ? "выполняется «" + pane.cur.cmd.slice(0, 80) + "»" : "оболочка не вернулась к приглашению"}`);
   if (pane.term.buffer.active.type === "alternate") return fail("во вкладке открыта полноэкранная программа");
   execs.set(x.id, { pane, t0: performance.now() });
-  pane.execId = x.id;
+  pane.execId = x.id; pane.execT0 = performance.now();
+  if (pane.kind !== "cmd") pane.atPrompt = false;           // до следующего приглашения вкладка занята (и без OSC 133 C)
   logLine("haotica", `HAOTICA $ ${x.command.slice(0, 60)}`, "RUN");
   if (state.active !== pane.tab) { pane.tab.activity = true; renderTabs(); }
   pane.input(x.command.replace(/\r?\n/g, " ") + "\r");

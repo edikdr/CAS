@@ -86,6 +86,24 @@ def test_pwsh_integration_under_restricted_policy(monkeypatch):
         proc.kill()
 
 
+def test_pwsh_blocks_without_psreadline(monkeypatch):
+    """Без PSReadLine (PowerShell 7 при Restricted его не грузит) конец команды и её текст — по истории."""
+    monkeypatch.setenv("HAOTICA_PS_NO_READLINE", "1")
+    proc, c = _spawn("pwsh")
+    try:
+        assert c.wait("\x1b]133;A"), repr(c.buf[-400:])
+        proc.write("cmd /c exit 4\r")
+        assert c.wait("\x1b]133;D;4"), "код выхода без PSReadLine: " + repr(c.buf[-400:])
+        import base64
+        assert "\x1b]7777;cmd=" + base64.b64encode(b"cmd /c exit 4").decode() in c.buf, "текст команды из истории"
+        n = c.buf.count("\x1b]133;D")
+        proc.write("\r")                                  # пустой Enter — не команда, блока нет
+        time.sleep(1.5)
+        assert c.buf.count("\x1b]133;D") == n, repr(c.buf[-300:])
+    finally:
+        proc.kill()
+
+
 def test_pwsh_argv_has_no_policy_bypass():
     from haotica.apps import profiles
     for p in profiles.detect():

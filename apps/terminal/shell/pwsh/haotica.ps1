@@ -35,6 +35,20 @@ function global:prompt {
   $ok = $global:?
   $lec = $global:LASTEXITCODE
   $pre = ''
+  # Без PSReadLine (PowerShell 7 при политике Restricted его не загружает) начала команды не видно —
+  # о выполненной команде говорит новая запись истории: тогда текст команды и конец блока пишутся здесь.
+  if ($global:__HyNoReadLine) {
+    $h = Get-History -Count 1
+    $hid = if ($h) { $h.Id } else { 0 }
+    if ($hid -ne $global:__HyHistId) {
+      $global:__HyHistId = $hid
+      if ($h) {
+        $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes([string]$h.CommandLine))
+        $pre += __HyOsc "7777;cmd=$b64"
+        $global:__HyRunning = $true
+      }
+    }
+  }
   if ($global:__HyRunning) {
     $code = 0
     if (-not $ok) {
@@ -42,6 +56,7 @@ function global:prompt {
     } elseif ($lec -is [int] -and $lec -ne 0 -and $lec -ne $global:__HyLecBefore) { $code = $lec }
     $pre += __HyOsc "133;D;$code"
     $global:__HyRunning = $false
+    $global:__HyLecBefore = $lec
   }
   $pre += __HyCwd
   $pre += __HyOsc '133;A'
@@ -53,7 +68,7 @@ function global:prompt {
 
 # После Enter (PSReadLine уже вывел перевод строки): текст команды и начало вывода.
 # Как в VS Code: вызываем исходную PSConsoleHostReadLine (у разных версий PSReadLine разная сигнатура ReadLine).
-if (Test-Path Function:\PSConsoleHostReadLine) {
+if ((Test-Path Function:\PSConsoleHostReadLine) -and -not $env:HAOTICA_PS_NO_READLINE) {
   $global:__HyOrigReadLine = (Get-Item Function:\PSConsoleHostReadLine).ScriptBlock
   function global:PSConsoleHostReadLine {
     $line = -join @($global:__HyOrigReadLine.Invoke())
@@ -66,7 +81,9 @@ if (Test-Path Function:\PSConsoleHostReadLine) {
     $line
   }
 } else {
-  $global:__HyNoReadLine = $true          # без PSReadLine: блоки без текста команды (только коды выхода)
+  $global:__HyNoReadLine = $true          # без PSReadLine: конец команды и её текст — по истории (см. prompt)
+  $h0 = Get-History -Count 1
+  $global:__HyHistId = if ($h0) { $h0.Id } else { 0 }
 }
 
 # Haotica из строки: hy вопрос

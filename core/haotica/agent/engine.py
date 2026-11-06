@@ -20,6 +20,8 @@ from collections import OrderedDict
 from collections.abc import AsyncIterator
 from pathlib import Path
 
+import aiohttp
+
 from .. import config, models, paths, util
 from ..server.hub import Hub
 from . import persona, safety, tools
@@ -570,6 +572,7 @@ class Agent:
         cancel = self.cancels.get(chat)
         recent: list[str] = []
         stopped = False
+        empty_retry = crash_retry = False
         for _round in range(MAX_ROUNDS):
             if cancel and cancel.is_set():
                 stopped = True
@@ -591,6 +594,17 @@ class Agent:
                     elif ev["type"] == "tool_calls":
                         calls = ev["calls"]
             except Exception as e:  # noqa: BLE001
+                if not buf and not crash_retry and isinstance(e, aiohttp.ClientConnectionError):
+                    # процесс модели упал посреди запроса (память, драйвер) — супервизор поднимет его; повторяем один раз,
+                    # а если deep не встаёт — отвечает base
+                    crash_retry = True
+                    log.warning("%s оборвала соединение (%s) — жду перезапуска и повторяю", role, e)
+                    self.state.set("reading")
+                    if await self.llm.use(role, 300):
+                        continue
+                    if role == "deep" and await self.llm.use("base", 300):
+                        role = "base"
+                        continue
                 log.exception("llm")
                 err = f"ошибка модели: {e}"
                 self.state.set("warning", err)
@@ -601,7 +615,11 @@ class Agent:
                 final = (buf + "\n\n" if buf else "") + "⏹ Остановлено."
                 break
             if not calls:
-                final = buf
+                if not buf.strip() and not empty_retry:      # пустой ответ модели — ещё одна попытка, а не «…»
+                    empty_retry = True
+                    log.warning("%s вернула пустой ответ — повторяю", role)
+                    continue
+                final = buf or "Модель вернула пустой ответ — переспроси или попробуй /base."
                 break
             msgs.append({"role": "assistant", "content": buf or None, "tool_calls": [
                 {"id": c["id"], "type": "function", "function": {"name": c["name"], "arguments": c["arguments"] or "{}"}}

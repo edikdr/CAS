@@ -18,6 +18,9 @@ class EventLog:
         self.file = paths.RUNTIME_DIR / "events.json"
         old = util.load_json(self.file, [])
         for e in old[-size:] if isinstance(old, list) else []:
+            last = self.items[-1] if self.items else None
+            if last and last.get("text") == e.get("text") and last.get("kind") == e.get("kind"):
+                self.items.pop()               # старые журналы: подряд одинаковые строки схлопываем в одну
             self.items.append(e)
 
     def add(self, kind: str, text: str, notify: bool = False, title: str = "", sound: str = "") -> dict:
@@ -27,6 +30,9 @@ class EventLog:
             e["sound"] = sound
         if notify and os.name == "nt":         # Windows: уведомление покажет окно терминала (значок в трее)
             e["toast"], e["title"] = True, title or "HAOTICA"
+        last = self.items[-1] if self.items else None
+        if last and last.get("text") == e["text"] and last.get("kind") == kind:
+            self.items.pop()                   # повтор той же строки (CORE // ONLINE на каждом запуске) — одна запись
         self.items.append(e)
         util.write_json(self.file, list(self.items))
         self.hub.publish("events", e, keep=False)

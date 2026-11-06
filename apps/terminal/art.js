@@ -54,7 +54,11 @@ export async function startHandsArt(canvas, { opacity = () => 0.5, font = () => 
   const st = { cells: [], rows: [], cw: 6, ch: 11, fs: 10, w: 0, h: 0, dpr: 1, raf: 0, last: 0, t0: performance.now(), key: "",
     spark: [0, 0], bx: 0, by: 0, bw: 0, bh: 0 };
 
+  let dirty = true;                                   // размер меняется редко — не мерить его каждый кадр
+  const reduceMq = matchMedia("(prefers-reduced-motion: reduce)");
   function layout() {
+    if (!dirty && st.cells.length) return;
+    dirty = false;
     const r = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
     const key = `${Math.round(r.width)}x${Math.round(r.height)}@${dpr}`;
     if (key === st.key || r.width < 40 || r.height < 40) return;
@@ -87,10 +91,16 @@ export async function startHandsArt(canvas, { opacity = () => 0.5, font = () => 
   }
 
   const BUCKETS = [[0.72, "ink"], [0.45, "teal"], [0.22, "violet"], [0, "dim"]];
+  // Кадры — по таймеру, а не requestAnimationFrame на каждом обновлении экрана: пустой rAF на 165 Гц всё равно
+  // гонял весь конвейер отрисовки (≈ ядро процессора в простое). 5 кадров/с — фон за текстом, а не видео;
+  // окно не в фокусе — раз в секунду, свёрнуто — стоп.
+  const gap = () => { const ui = window.__hyUI; return reduceMq.matches ? 400 : (ui && !ui.focused ? 1000 : 200); };
+  function schedule() {
+    clearTimeout(st.timer);
+    if (!document.hidden && !st.stopped) st.timer = setTimeout(() => { st.raf = requestAnimationFrame(frame); }, gap());
+  }
   function frame(now) {
-    st.raf = requestAnimationFrame(frame);
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (now - st.last < (reduce ? 160 : 62)) return;           // ~16 кадров/с
+    schedule();
     st.last = now;
     layout();
     if (!st.cells.length) return;
@@ -159,11 +169,11 @@ export async function startHandsArt(canvas, { opacity = () => 0.5, font = () => 
     g.globalAlpha = 1;
   }
   st.raf = requestAnimationFrame(frame);
-  const onVis = () => { cancelAnimationFrame(st.raf); if (!document.hidden) st.raf = requestAnimationFrame(frame); };
+  const onVis = () => { cancelAnimationFrame(st.raf); clearTimeout(st.timer); if (!document.hidden) st.raf = requestAnimationFrame(frame); };
   document.addEventListener("visibilitychange", onVis);
-  new ResizeObserver(() => { st.key = ""; }).observe(canvas);
+  new ResizeObserver(() => { st.key = ""; dirty = true; }).observe(canvas);
   return {
-    relayout() { st.key = ""; },
-    stop() { cancelAnimationFrame(st.raf); document.removeEventListener("visibilitychange", onVis); g.clearRect(0, 0, canvas.width, canvas.height); },
+    relayout() { st.key = ""; dirty = true; },
+    stop() { st.stopped = true; clearTimeout(st.timer); cancelAnimationFrame(st.raf); document.removeEventListener("visibilitychange", onVis); g.clearRect(0, 0, canvas.width, canvas.height); },
   };
 }

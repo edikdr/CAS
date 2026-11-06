@@ -1194,7 +1194,19 @@ HY.on("metrics", (m) => {
   $("load-val").textContent = `${Math.round(m.cpu || 0)}% · ${Math.round(m.gpu || 0)}%`;
   $("net-val").textContent = `↓ ${HY.fmtBytes((m.net_down_kbs || 0) * 1024)}/s`;
 });
-function cssv(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+// цвета темы — из кэша: getComputedStyle на каждом кадре графиков пересчитывал стили всего окна
+const cssCache = new Map();
+HY.on("theme-applied", () => cssCache.clear());
+function cssv(name) {
+  let v = cssCache.get(name);
+  if (v === undefined) { v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); cssCache.set(name, v); }
+  return v;
+}
+// окно не в фокусе — декоративные анимации реже (терминал при этом работает как обычно)
+const UI = { focused: document.hasFocus() };
+window.addEventListener("focus", () => { UI.focused = true; });
+window.addEventListener("blur", () => { UI.focused = false; });
+window.__hyUI = UI;
 function fitCanvas(c) {
   const r = c.getBoundingClientRect();
   const dpr = devicePixelRatio || 1;
@@ -1202,10 +1214,23 @@ function fitCanvas(c) {
   const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
   return [g, r.width, r.height];
 }
+const gridCache = new Map();
 function grid(g, w, h, step = 12) {
-  g.strokeStyle = cssv("--ink-faint") || "#1E1D1A"; g.lineWidth = 1;
-  for (let x = 0.5; x < w; x += step) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
-  for (let y = 0.5; y < h; y += step) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+  // сетка рисуется один раз на размер и цвет и дальше копируется картинкой (было: десятки stroke на кадр)
+  const col = cssv("--ink-faint") || "#1E1D1A", dpr = devicePixelRatio || 1, key = `${w}x${h}@${dpr}:${col}:${step}`;
+  let c = gridCache.get(key);
+  if (!c) {
+    if (gridCache.size > 8) gridCache.clear();
+    c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(w * dpr)); c.height = Math.max(1, Math.round(h * dpr));
+    const x2 = c.getContext("2d"); x2.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x2.strokeStyle = col; x2.lineWidth = 1; x2.beginPath();
+    for (let x = 0.5; x < w; x += step) { x2.moveTo(x, 0); x2.lineTo(x, h); }
+    for (let y = 0.5; y < h; y += step) { x2.moveTo(0, y); x2.lineTo(w, y); }
+    x2.stroke();
+    gridCache.set(key, c);
+  }
+  g.drawImage(c, 0, 0, w, h);
 }
 function drawCharts() {
   // нагрузка: сглаженная «колоколообразная» площадь CPU и линия GPU
@@ -1257,7 +1282,7 @@ $("globe").innerHTML = `<svg viewBox="0 0 40 40" class="hy-icon" style="width:40
 $("globe").onclick = () => HY.openApp("netrecon");
 if (!FEAT.recon && IS_WIN) $("globe").classList.add("hidden");
 let globeT = 0;
-setInterval(() => { globeT += 0.08; const m = $("globe").querySelector(".gl-m"); if (m) m.setAttribute("rx", Math.abs(Math.cos(globeT)) * 14 + 1); }, 66);
+setInterval(() => { if (document.hidden || $("globe").classList.contains("hidden")) return; globeT += 0.16; const m = $("globe").querySelector(".gl-m"); if (m) m.setAttribute("rx", Math.abs(Math.cos(globeT)) * 14 + 1); }, 132);
 
 // подсказки клавиш (реальные сочетания)
 $("hints").innerHTML = [["CTRL+SHIFT+T", "NEW TAB"], ["ALT+SHIFT++", "SPLIT"], ["CTRL+SHIFT+P", "COMMANDS"], ["CTRL+SHIFT+F", "FIND"],
@@ -1332,7 +1357,12 @@ function drawVoice() {
   voice.env.forEach((v, i) => { const bh = Math.max(1, v * (h - 2)); g.fillStyle = c; g.globalAlpha = .35 + v * .65; g.fillRect(i * bw + 1, (h - bh) / 2, Math.max(1, bw - 2), bh); });
   g.globalAlpha = 1;
 }
-setInterval(() => { voice.env.push(voice.mouth || 0); voice.env.shift(); voice.mouth = (voice.mouth || 0) * 0.85; drawVoice(); }, 50);
+// волна голоса: 20 кадров/с, пока Сара говорит; в тишине — один раз очистить и не рисовать
+setInterval(() => {
+  voice.env.push(voice.mouth || 0); voice.env.shift(); voice.mouth = (voice.mouth || 0) * 0.85;
+  const live = voice.env.some((v) => v > 0.004);
+  if (live || voice.drawn !== false) { drawVoice(); voice.drawn = live; }
+}, 50);
 function setHState(s) {
   $("h-state").textContent = (s || "idle").toUpperCase();
   if (state.avatar) state.avatar.setState(s);
@@ -1618,4 +1648,11 @@ window.addEventListener("beforeunload", saveSession);
 const openWizard = (force) => import("./wizard.js").then(({ runWizard }) => runWizard({ profiles: state.profiles, defaultProfile: state.defaultProfile, force })).catch(() => {});
 if (IS_WIN && HY.bridge && !window.__hyNoWizard) setTimeout(() => openWizard(false), 1200);
 bars(); mini(); drawCharts();
-setInterval(drawCharts, 120);
+// графики: 5 кадров/с в фокусе, раз в секунду (с новыми метриками) — без него; свёрнуто — не рисуем
+let chartsAt = 0;
+setInterval(() => {
+  if (document.hidden) return;
+  const now = performance.now();
+  if (!UI.focused && now - chartsAt < 1000) return;
+  chartsAt = now; drawCharts();
+}, 200);

@@ -153,6 +153,9 @@ def checks() -> list[dict]:
         add("ПРАВА НА ЗАПИСЬ", "ok", str(paths.DATA_DIR.parent))
     except OSError as e:
         add("ПРАВА НА ЗАПИСЬ", "fail", e)
+    flag = paths.STATE_DIR / "gfx-safe"
+    add("ГРАФИКА ОКНА", "warn" if flag.exists() else "ok",
+        f"без видеокарты (медленно): удалите {flag}, чтобы вернуть GPU" if flag.exists() else "видеокарта")
     from . import secrets
     add("КЛЮЧИ", "ok", secrets.backend())
     add("ЖУРНАЛЫ", "ok", str(paths.LOG_DIR))

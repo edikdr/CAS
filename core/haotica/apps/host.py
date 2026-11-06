@@ -38,6 +38,34 @@ EDGES = {
 }
 
 
+def _session_active() -> bool:
+    """Сеанс Windows разблокирован и рабочий стол принимает ввод (при блокировке/заставке снимок окна чёрный)."""
+    if not platform.IS_WINDOWS:
+        return True
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        h = user32.OpenInputDesktop(0, False, 0x0100)      # DESKTOP_SWITCHDESKTOP
+        if not h:
+            return False
+        user32.CloseDesktop(h)
+        return True
+    except (AttributeError, OSError):
+        return True
+
+
+def safe_gfx_flag_active() -> bool:
+    """Флаг «без видеокарты» действует сутки: потом окно снова пробует GPU (настоящая поломка сразу вернёт флаг)."""
+    import time
+    try:
+        if time.time() - SAFE_GFX_FLAG.stat().st_mtime > 86400:
+            SAFE_GFX_FLAG.unlink(missing_ok=True)
+            return False
+        return True
+    except OSError:
+        return False
+
+
 def socket_path(name: str) -> str:
     if platform.IS_WINDOWS:                 # QLocalServer на Windows — именованный канал
         return f"haotica-app-{name}-{os.environ.get('USERNAME', 'user')}"
@@ -321,8 +349,8 @@ class AppWindow(QMainWindow):
         self.setCentralWidget(self.view)
         self._restore_geometry()
         self.page.loadFinished.connect(self._loaded)
-        self.page.renderProcessTerminated.connect(
-            lambda status, code: log.error("процесс отрисовки завершился: %s, код %s", status, code))
+        self.page.renderProcessTerminated.connect(self._render_died)
+        self._crashes: list[float] = []
         self._retry = 0
         self._paint_checked = False
         self.force_close = False
@@ -372,10 +400,35 @@ class AppWindow(QMainWindow):
                           .replace("{ACC}", self.host.accent).replace("{N}", str(self._retry)), QUrl("about:blank"))
         QTimer.singleShot(delay, self.load)
 
-    def _check_paint(self) -> None:
+    def _render_died(self, status, code) -> None:
+        """Процесс отрисовки упал — окно было пустым до перезапуска. Перезагружаем страницу (не чаще 3 раз
+        за 2 минуты); оболочки старой страницы завершаются, вкладки восстанавливаются из сохранённой сессии."""
+        import time
+        log.error("процесс отрисовки завершился: %s, код %s", status, code)
+        if status == QWebEnginePage.RenderProcessTerminationStatus.NormalTerminationStatus or self.force_close:
+            return
+        now = time.monotonic()
+        self._crashes = [t for t in self._crashes if now - t < 120] + [now]
+        if len(self._crashes) > 3:
+            log.error("отрисовка падает снова и снова — без автоперезагрузки")
+            return
+        try:
+            self.host.pty.kill_all()
+        except Exception:  # noqa: BLE001
+            log.exception("оболочки упавшей страницы")
+        QTimer.singleShot(800, self.load)
+
+    def _check_paint(self, attempt: int = 0) -> None:
         """Страница загружена, а на экране одна сплошная заливка — Chromium не может рисовать через видеокарту
-        (несовместимый или только что обновлённый драйвер). Перезапуск окна без GPU, выбор запоминается."""
-        if not self.isVisible() or self.isMinimized():
+        (несовместимый или только что обновлённый драйвер). Перезапуск окна без GPU, выбор запоминается на сутки.
+
+        Ложные срабатывания (было: окно навсегда уходило в отрисовку процессором и «адски лагало») — заблокированный
+        экран, выключенный дисплей, окно за другими окнами — отсекаются: проверка только на видимом окне при
+        разблокированном сеансе и три неудачи подряд с интервалом 5 с."""
+        if not self.isVisible() or self.isMinimized() or not _session_active() or \
+                (self.windowHandle() is not None and not self.windowHandle().isExposed()):
+            if attempt < 12:                       # сеанс заблокирован / окно скрыто — проверим позже
+                QTimer.singleShot(10000, lambda: self._check_paint(attempt + 1))
             return
         img = self.view.grab().toImage()
         if img.isNull() or img.width() < 50 or img.height() < 50:
@@ -384,6 +437,10 @@ class AppWindow(QMainWindow):
                   for x in range(24) for y in range(16)}
         log.info("проверка отрисовки: %d цветов", len(colors))
         if len(colors) > 3:
+            return
+        self._paint_fails = getattr(self, "_paint_fails", 0) + 1
+        if self._paint_fails < 3:
+            QTimer.singleShot(5000, lambda: self._check_paint(attempt + 1))
             return
         log.error("окно не рисуется через видеокарту — перезапуск в безопасном режиме графики")
         try:
@@ -602,7 +659,7 @@ def main(argv: list[str]) -> int:
         print(f"нет приложения «{argv[0]}». Есть: {', '.join(registry.APPS)}")
         return 2
     args = [a for a in argv[1:] if a != "--safe-gfx"]
-    safe = "--safe-gfx" in argv or SAFE_GFX_FLAG.exists() or os.environ.get("HAOTICA_SAFE_GFX") == "1"
+    safe = "--safe-gfx" in argv or safe_gfx_flag_active() or os.environ.get("HAOTICA_SAFE_GFX") == "1"
     if platform.IS_WINDOWS:
         _setup_log(app_def.name)
         log.info("запуск окна %s, безопасная графика: %s", app_def.name, safe)

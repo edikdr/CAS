@@ -38,7 +38,14 @@ def atomic_write(path: Path, data: str | bytes, mode: int = 0o644) -> None:
         with os.fdopen(fd, "wb") as f:
             f.write(raw)
         os.chmod(tmp, mode)
-        os.replace(tmp, path)
+        for i in range(8):
+            try:
+                os.replace(tmp, path)
+                break
+            except PermissionError:        # Windows: файл как раз читают (окно, антивирус) — подождать и повторить
+                if os.name != "nt" or i == 7:
+                    raise
+                time.sleep(0.03 * (i + 1))
     except BaseException:
         try:
             os.unlink(tmp)

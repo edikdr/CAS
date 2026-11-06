@@ -208,3 +208,27 @@ def test_stop_interrupts_turn(env):
         finally:
             await teardown(runners, s)
     run(go())
+
+
+def test_model_crash_mid_request_retried(env):
+    """Процесс модели оборвал соединение до первого слова — Haotica дожидается перезапуска и повторяет, без ошибки."""
+    setup, teardown = env
+
+    async def go():
+        runners, agent, s = await setup()
+        real, n = agent.llm.chat, []
+
+        async def flaky(*a, **k):
+            n.append(1)
+            if len(n) == 1:
+                raise aiohttp.ServerDisconnectedError()
+            async for ev in real(*a, **k):
+                yield ev
+        agent.llm.chat = flaky
+        try:
+            r = await (await s.post(BASE + "/api/chat", json={"text": "привет", "chat": "t4", "wait": True})).json()
+            assert r["ok"] and r.get("text") and "ошибка модели" not in r["text"], r
+            assert len(n) == 2
+        finally:
+            await teardown(runners, s)
+    run(go())

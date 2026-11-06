@@ -113,7 +113,7 @@ export function createAvatar(host, { size = 260, interactive = true, crt = 0 } =
           <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="url(#${id}-white)"/>
           <g class="iris">${img("", e)}</g>
         </g>
-        <g class="blink" style="display:none">
+        <g class="av-blink" style="display:none">
           <path class="lid" fill="${E[s].lid || RIG.colors.skin}"/>
           <path class="band" fill="${RIG.colors.line}"/>
         </g>
@@ -173,7 +173,7 @@ export function createAvatar(host, { size = 260, interactive = true, crt = 0 } =
   const el = {
     head: q(".head"), headwrap: q(".headwrap"), torso: q(".torso"), chest: q(".chest"),
     gears: Object.fromEntries(Object.keys(RIG.gears).map((k) => [k, q(".g-" + k)])),
-    eyes: ["l", "r"].map((s) => ({ s, iris: q(`.eye-${s} .iris`), blink: q(`.eye-${s} .blink`), lid: q(`.eye-${s} .lid`), band: q(`.eye-${s} .band`) })),
+    eyes: ["l", "r"].map((s) => ({ s, iris: q(`.eye-${s} .iris`), blink: q(`.eye-${s} .av-blink`), lid: q(`.eye-${s} .lid`), band: q(`.eye-${s} .band`) })),
     browL: q(".brow-l"), browR: q(".brow-r"), lips: q(".lips"), mouth: q(".mouth"),
     mUpper: q(".m-upper"), mLower: q(".m-lower"), mInner: q(".m-inner"), mTeeth: q(".m-teeth"), mLine: q(".m-line"),
     glints: [q(".glint0"), q(".glint1")], steam: q(".steam"), zz: q(".zz"),
@@ -297,9 +297,14 @@ export function createAvatar(host, { size = 260, interactive = true, crt = 0 } =
   }
   // 30 кадров/с хватает для дыхания, моргания и губ; на 165 Гц экране это экономит GPU
   // (в терминале каждый кадр аватара перерисовывает CRT-фильтр)
+  // говорит или двигает губами — 30 кадров/с; в покое (дыхание, моргание) — 8; окно не в фокусе — 4
+  // кадры — по таймеру (не rAF на каждом обновлении экрана: на 165 Гц пустые кадры стоили почти ядро)
   function loop(now) {
-    if (now - st.frame >= 32) { st.frame = now; apply(now); }
-    st.raf = requestAnimationFrame(loop);
+    st.frame = now; apply(now);
+    clearTimeout(st.timer);
+    if (st.dead || document.hidden) return;
+    const ui = window.__hyUI, talking = (st.mouth || 0) > 0.02 || st.state === "speaking";
+    st.timer = setTimeout(() => { st.raf = requestAnimationFrame(loop); }, talking ? 32 : (ui && !ui.focused ? 250 : 125));
   }
   st.raf = requestAnimationFrame(loop);
   const onMove = (e) => {
@@ -309,7 +314,7 @@ export function createAvatar(host, { size = 260, interactive = true, crt = 0 } =
     st.look = [clamp(dx, -1, 1) * 7, clamp(dy, -1, 1) * 3];
   };
   if (interactive) window.addEventListener("mousemove", onMove);
-  const onVis = () => { if (document.hidden) cancelAnimationFrame(st.raf); else st.raf = requestAnimationFrame(loop); };
+  const onVis = () => { cancelAnimationFrame(st.raf); clearTimeout(st.timer); if (!document.hidden) st.raf = requestAnimationFrame(loop); };
   document.addEventListener("visibilitychange", onVis);
   const wrap = q(".crtwrap"), flt = svg.querySelector(`#${id}-crt`);
   function setCrt(k) {
@@ -330,6 +335,7 @@ export function createAvatar(host, { size = 260, interactive = true, crt = 0 } =
     get state() { return st.state; },
     setMouth(v) { st.mouth = clamp(v || 0, 0, 1); if (st.instant) apply(performance.now()); },
     destroy() {
+      st.dead = true; clearTimeout(st.timer);
       cancelAnimationFrame(st.raf);
       window.removeEventListener("mousemove", onMove);
       document.removeEventListener("visibilitychange", onVis);

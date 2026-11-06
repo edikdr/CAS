@@ -32,6 +32,9 @@ DEEP_HINTS = re.compile(
     r"|implement|миграци|перепиши)", re.IGNORECASE)
 
 
+BACK_TO_DEEP_S = 600                           # deep основная: base (после картинки) держим до 10 мин простоя
+
+
 class LLM:
     def __init__(self) -> None:
         self.session: aiohttp.ClientSession | None = None
@@ -72,6 +75,11 @@ class LLM:
                 self.state[role] = await self.health(role)
             ha = config.load().get("haotica", {})
             idle = float(ha.get("deep_idle_min", 10)) * 60
+            if (ha.get("model_mode", "auto") == "auto" and self.prefer_deep(ha) and self.main == "base" and not self.paused
+                    and not self.switching and self.state["base"] == "ready" and self._deep_ok()
+                    and time.time() - self.last_used["base"] > BACK_TO_DEEP_S):
+                log.info("base простаивает — возвращаюсь на основную deep")
+                asyncio.create_task(self.use("deep"))
             if (ha.get("model_mode", "auto") == "auto" and self.main == "deep" and not self.paused
                     and not self.prefer_deep(ha)                             # deep основная — не гоняем туда-обратно
                     and self.state["deep"] == "ready" and time.time() - self.last_used["deep"] > idle):
@@ -127,6 +135,12 @@ class LLM:
         # Windows: deep (MoE, ~3B активных) отвечает в ~4 раза быстрее base (≈40 против ≈10 ток/с на Radeon 8060S)
         # и сильнее в коде — в режиме «авто» она основная, если скачана и проверена; base — для изображений
         if self.prefer_deep(ha) and self._deep_ok():
+            # только что работала base (например, смотрела картинку) — текст отвечает она же: перезагрузка на deep
+            # стоит 35–45 с, а туда-обратно на каждом сообщении — это и были «лаги». На deep — после простоя
+            # (_watch) или для большой задачи.
+            if (self.main == "base" and self.state.get("base") == "ready"
+                    and time.time() - self.last_used["base"] < BACK_TO_DEEP_S and not DEEP_HINTS.search(text or "")):
+                return "base"
             return "deep"
         base_ctx = min(int(ha.get("context_size", 131072)), 65536)
         if ctx_tokens > base_ctx * 0.75:          # длинный контекст — в deep (у него кэш дешевле)
@@ -257,6 +271,9 @@ class LLM:
                     ev = json.loads(data)
                 except ValueError:
                     continue
+                if ev.get("error"):                  # ошибка посреди потока — раньше молча превращалась в пустое «…»
+                    err = ev["error"]
+                    raise RuntimeError(f"llama-server: {err.get('message', err) if isinstance(err, dict) else err}"[:400])
                 if ev.get("usage"):
                     usage = ev["usage"]
                 if ev.get("timings"):

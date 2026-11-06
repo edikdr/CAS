@@ -154,6 +154,8 @@ class ConPtyProcess:
             pass
         try:
             self.on_exit(code)
+        except RuntimeError as e:          # окно уже закрыто (выход приложения) — сигнал Qt удалён, это не ошибка
+            log.debug("on_exit после закрытия окна: %s", e)
         except Exception:  # noqa: BLE001
             log.exception("on_exit")
 

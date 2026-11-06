@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import shlex
 import time
 from pathlib import Path
@@ -136,11 +137,22 @@ class Tools:
     def cfg(self) -> dict:
         return config.get("haotica", {}) or {}
 
-    def _path(self, p: str) -> Path:
-        ok, why = safety.path_allowed(p, self.cfg().get("folders_allowed", ["~"]), self.cfg().get("folders_denied", []))
+    def _path(self, p: str, cwd: str = "", must_exist: bool = True) -> Path:
+        """Путь из запроса модели: ~, %VAR%, $env:VAR и $HOME раскрываются, относительный — от папки терминала.
+        Несуществующий путь — «не найден» с подсказкой, а не «запрещён»: иначе модель просила владельца менять
+        настройки доступа, хотя просто угадала не то имя пользователя."""
+        s = str(p or "").strip().strip('"').strip("'")
+        s = re.sub(r"(?i)\$env:(\w+)", lambda m: os.environ.get(m.group(1), m.group(0)), s)
+        s = re.sub(r"(?i)\$home\b", lambda m: str(paths.HOME), s)
+        s = os.path.expandvars(os.path.expanduser(s))
+        if s and not os.path.isabs(s) and cwd:
+            s = os.path.join(os.path.expanduser(cwd), s)
+        if must_exist and s and not os.path.exists(s):
+            raise FileNotFoundError(f"{s} (домашняя папка владельца: {paths.HOME})")
+        ok, why = safety.path_allowed(s, self.cfg().get("folders_allowed", ["~"]), self.cfg().get("folders_denied", []))
         if not ok:
             raise PermissionError(why)
-        return Path(os.path.expanduser(p)).resolve()
+        return Path(s).resolve()
 
     def needs_card(self, name: str, args: dict, ctx: dict | None = None) -> tuple[bool, dict]:
         """(нужно ли подтверждение, оценка риска). Опасное — всегда карточкой; закрытые зоны — отказ."""
@@ -188,7 +200,7 @@ class Tools:
 
     # ── файлы ──────────────────────────────────────────────────
     async def t_list_dir(self, a, ctx):
-        p = self._path(a.get("path") or ctx.get("cwd") or "~")
+        p = self._path(a.get("path") or ctx.get("cwd") or "~", ctx.get("cwd", ""))
         items = []
         for e in sorted(os.scandir(p), key=lambda x: (not x.is_dir(), x.name.lower()))[:400]:
             if e.name.startswith(".") and not a.get("show_hidden"):
@@ -202,24 +214,24 @@ class Tools:
         return {"path": str(p), "entries": items, "count": len(items)}
 
     async def t_read_file(self, a, ctx):
-        p = self._path(a["path"] if os.path.isabs(os.path.expanduser(a["path"])) else os.path.join(ctx.get("cwd") or "~", a["path"]))
+        p = self._path(a["path"], ctx.get("cwd") or "~")
         start = max(1, int(a.get("start_line") or 1))
         n = min(800, int(a.get("max_lines") or 300))
         return {"path": str(p), "text": await asyncio.to_thread(_read_lines, p, start, n)}
 
     async def t_search_files(self, a, ctx):
-        root = self._path(a.get("path") or ctx.get("cwd") or "~")
+        root = self._path(a.get("path") or ctx.get("cwd") or "~", ctx.get("cwd", ""))
         r = client.core("GET", f"/api/fs/search?q={_q(a['query'])}&path={_q(str(root))}&content={'1' if a.get('content') else '0'}&limit=60")
         res = (r or {}).get("results", [])
         return {"results": [x.get("path", x) if isinstance(x, dict) and "line" not in x else x for x in res][:60]}
 
     async def t_file_info(self, a, ctx):
-        p = self._path(a["path"])
+        p = self._path(a["path"], ctx.get("cwd", ""))
         r = client.core("GET", f"/api/fs/stat?path={_q(str(p))}")
         return (r or {}).get("entry", {"error": "нет данных"})
 
     async def t_write_file(self, a, ctx):
-        p = self._path(a["path"])
+        p = self._path(a["path"], ctx.get("cwd", ""), must_exist=False)
         p.parent.mkdir(parents=True, exist_ok=True)
         if a.get("append"):
             await asyncio.to_thread(_append, p, a["content"])
@@ -228,7 +240,7 @@ class Tools:
         return {"ok": True, "path": str(p), "bytes": len(a["content"].encode())}
 
     async def t_trash_file(self, a, ctx):
-        p = self._path(a["path"])
+        p = self._path(a["path"], ctx.get("cwd", ""))
         if os.name == "nt":
             from send2trash import send2trash
             await asyncio.to_thread(send2trash, str(p))
@@ -344,7 +356,7 @@ class Tools:
         return r or {"error": "ядро не отвечает"}
 
     async def t_analyze_image(self, a, ctx):
-        p = self._path(a["path"])
+        p = self._path(a["path"], ctx.get("cwd", ""))
         return await self.agent.vision(p, a.get("question") or "Опиши, что на изображении.")
 
     async def t_web_search(self, a, ctx):

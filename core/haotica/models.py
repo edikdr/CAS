@@ -474,8 +474,10 @@ def server_args(role: str, spec: bool = True) -> list[str]:
         draft = m.get("draft")
         if spec and want != "none" and not _nospec_marker(role).exists():
             if draft and want in ("auto", "draft") and (paths.MODELS_DIR / draft["file"]).exists():
+                # n-max 3: замер на Radeon 8060S — код ≈ +60% (13–17 против 10 ток/с), обычный текст — без потерь;
+                # при 7 (предел блока DFlash 8) русский текст замедлялся из-за отброшенных черновиков
                 args += ["-md", str(paths.MODELS_DIR / draft["file"]), "--spec-type", draft["type"],
-                         "--spec-draft-n-max", "15", "-ngld", "all"]
+                         "--spec-draft-n-max", str(int(ha.get("draft_n_max", 3))), "-ngld", "all"]
             elif want in ("auto", "ngram") and role == "deep":
                 args += ["--spec-type", "ngram-mod"]   # повторы в коде: правки и рефакторинг
     elif role == "fast":

@@ -94,7 +94,9 @@ fix, do not repeat the same thing. Changes are confirmed by the owner with a car
 Do not start interactive programs (editors, less, ssh without a command) without asking."""
 
 
-def system_prompt(settings: dict, context: dict, memories: list[str]) -> str:
+def system_prompt(settings: dict, context: dict, memories: list[str], dynamic: bool = True) -> str:
+    """Системная инструкция. dynamic=False — без изменчивой части (её добавляет context_note в конец запроса),
+    чтобы начало промпта не менялось между ходами и llama-server брал его из кэша."""
     ha = settings.get("haotica", {})
     lang = settings.get("locale", {}).get("haotica_language", "ru")
     lang = lang if lang in ("ru", "en") else "ru"
@@ -128,9 +130,23 @@ def system_prompt(settings: dict, context: dict, memories: list[str]) -> str:
         parts.append(" ".join(tone))
     if ha.get("voice", True):
         parts.append(VOICE_RU if lang == "ru" else VOICE_EN)
+    if dynamic:
+        note = context_note(settings, context, memories)
+        if note:
+            parts.append(note)
+    return "\n\n".join(parts)
+
+
+def context_note(settings: dict, context: dict, memories: list[str]) -> str:
+    """Изменчивая часть: время, метрики, папка, воспоминания по теме. Она идёт в конец запроса, а не в системную
+    инструкцию — иначе каждая минута и каждый процент CPU сбрасывали кэш промпта llama-server, и модель заново
+    читала тысячи токенов инструкции и инструментов (десятки секунд до первого слова на base)."""
+    lang = settings.get("locale", {}).get("haotica_language", "ru")
+    lang = lang if lang in ("ru", "en") else "ru"
     now = time.localtime()
     ctx = [f"Сейчас: {time.strftime('%A, %d.%m.%Y %H:%M', now)}" if lang == "ru" else f"Now: {time.strftime('%A %Y-%m-%d %H:%M', now)}",
-           f"Система: {platform.node()}, {platform.system()} {platform.release()}"]
+           f"Система: {platform.node()}, {platform.system()} {platform.release()}, "
+           + ("домашняя папка " if lang == "ru" else "home folder ") + os.path.expanduser("~")]
     m = context.get("metrics") or {}
     if m:
         ctx.append(f"CPU {m.get('cpu', 0):.0f}%, GPU {m.get('gpu', 0)}%, GTT {m.get('gtt_used_gb', 0)}/{m.get('gtt_total_gb', 0)} ГБ, "
@@ -141,11 +157,11 @@ def system_prompt(settings: dict, context: dict, memories: list[str]) -> str:
                    + (f", оболочка {SHELL_NAMES.get(str(context.get('shell')), context.get('shell'))}" if context.get("shell") else ""))
     if context.get("app"):
         ctx.append(("Открыто приложение: " if lang == "ru" else "Active app: ") + context["app"])
-    parts.append("\n".join(ctx))
+    out = "\n".join(ctx)
     if memories:
         head = "Что ты помнишь о владельце:" if lang == "ru" else "What you remember about the owner:"
-        parts.append(head + "\n" + "\n".join(f"- {x}" for x in memories[:12]))
-    return "\n\n".join(parts)
+        out += "\n" + head + "\n" + "\n".join(f"- {x}" for x in memories[:12])
+    return out
 
 
 SHELL_COMPLETE = """You complete a partially typed shell command for the owner's shell (zsh on Arch Linux, or PowerShell/cmd on Windows).

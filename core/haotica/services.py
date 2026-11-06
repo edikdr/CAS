@@ -70,7 +70,9 @@ def _tts_service():
     argv = runtime.argv()
     if not argv:
         return None
-    return supervisor.get().add("tts", argv, env=runtime.env(), port=paths.PORT_TTS)
+    svc = supervisor.get().add("tts", argv, env=runtime.env(), port=paths.PORT_TTS)
+    svc.low_priority = True          # Chatterbox на процессоре занимает все ядра — окно и браузер важнее
+    return svc
 
 
 def _resolve(name: str):

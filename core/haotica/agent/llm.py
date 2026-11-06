@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re
 import time
 from collections.abc import AsyncIterator
@@ -72,13 +73,55 @@ class LLM:
             ha = config.load().get("haotica", {})
             idle = float(ha.get("deep_idle_min", 10)) * 60
             if (ha.get("model_mode", "auto") == "auto" and self.main == "deep" and not self.paused
+                    and not self.prefer_deep(ha)                             # deep основная — не гоняем туда-обратно
                     and self.state["deep"] == "ready" and time.time() - self.last_used["deep"] > idle):
                 log.info("deep простаивает %.0f мин — возвращаюсь на base", idle / 60)
                 asyncio.create_task(self.use("base"))
             await asyncio.sleep(3)
 
     # ── выбор модели ───────────────────────────────────────────
-    def route(self, text: str = "", ctx_tokens: int = 0, source: str = "", want: str = "") -> str:
+    @staticmethod
+    def prefer_deep(ha: dict) -> bool:
+        """deep — основная в «авто»: если так задано (haotica.prefer_deep), а по умолчанию — только на Windows
+        и при ≥ 80 ГиБ ОЗУ. Замер на 56 ГиБ: deep (≈42 ГБ) + голос на процессоре (≈8 ГБ) + браузер оставляли
+        ~1 ГБ свободной памяти — система начинала задыхаться."""
+        if "prefer_deep" in ha:
+            return bool(ha["prefer_deep"])
+        if os.name != "nt":
+            return False
+        try:
+            import psutil
+            return psutil.virtual_memory().total >= 80 * 2 ** 30
+        except ImportError:
+            return False
+
+    def memory_for(self, role: str) -> tuple[bool, str]:
+        """Хватит ли оперативной памяти поднять модель (с учётом той, что выгрузится при переключении)."""
+        try:
+            import psutil
+            st = models.status()
+        except Exception:  # noqa: BLE001
+            return True, ""
+        need = st.get(role, {}).get("size", 0) + 4 * 2 ** 30
+        other = "base" if role == "deep" else "deep"
+        freed = st.get(other, {}).get("size", 0) if self.state.get(other) in ("ready", "loading") else 0
+        have = psutil.virtual_memory().available + freed
+        if have >= need:
+            return True, ""
+        return False, (f"мало оперативной памяти для {role}: нужно ≈{need / 2 ** 30:.0f} ГиБ, свободно "
+                       f"≈{have / 2 ** 30:.0f} ГиБ — закройте тяжёлые программы")
+
+    def _deep_ok(self) -> bool:
+        """deep можно брать: файл целиком и проверен, и она не падала при запуске в этом сеансе."""
+        if "deep" in self.errors:
+            return False
+        try:
+            st = models.status().get("deep", {})
+        except Exception:  # noqa: BLE001
+            return False
+        return bool(st.get("ready") and st.get("verified"))
+
+    def route(self, text: str = "", ctx_tokens: int = 0, source: str = "", want: str = "", images: bool = False) -> str:
         """Какая основная модель нужна для этого хода."""
         ha = config.load().get("haotica", {})
         mode = ha.get("model_mode", "auto")
@@ -86,8 +129,14 @@ class LLM:
             return mode
         if want in MAIN:                          # явная просьба: /deep, /base, «подумай глубоко»
             return want
+        if images:                                # зрение есть только у base
+            return "base"
         if source in ("complete", "terminal_block", "shell"):
-            return "base"                         # короткое терминальное — всегда base
+            return self.main if self.state.get(self.main) == "ready" else "base"   # не перегружать модель ради мелочи
+        # Windows: deep (MoE, ~3B активных) отвечает в ~4 раза быстрее base (≈40 против ≈10 ток/с на Radeon 8060S)
+        # и сильнее в коде — в режиме «авто» она основная, если скачана и проверена; base — для изображений
+        if self.prefer_deep(ha) and self._deep_ok():
+            return "deep"
         base_ctx = min(int(ha.get("context_size", 131072)), 65536)
         if ctx_tokens > base_ctx * 0.75:          # длинный контекст — в deep (у него кэш дешевле)
             return "deep"
@@ -103,6 +152,11 @@ class LLM:
             other = "deep" if role == "base" else "base"
             if self.main == role and await self.health(role) == "ready":
                 return True
+            fits, why = self.memory_for(role)
+            if not fits:                               # не валить систему: остаёмся на текущей модели
+                log.warning(why)
+                self.errors[role] = why
+                return False
             self.switching = role
             try:
                 if await self.health(other) != "offline" or services.supervised():

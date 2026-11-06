@@ -84,6 +84,8 @@ class Metrics:
             d["vram_total_gb"] = round(util.read_int(g / "mem_info_vram_total") / GIB, 2)
         elif self.win_gpu is not None:
             d.update(self.win_gpu.sample())
+            from ..winmetrics import shared_total_gb
+            self.win_gtt_total = max(self.win_gtt_total, shared_total_gb(d.get("gtt_used_gb", 0.0)))
             d["gtt_total_gb"] = self.win_gtt_total
         iface = default_iface()
         d["net_iface"] = iface

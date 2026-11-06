@@ -35,6 +35,10 @@ class GpuCounters:
             return
         try:
             self.pdh = ctypes.WinDLL("pdh.dll")
+            # PDH_STATUS — беззнаковый DWORD: с типом по умолчанию (int) PDH_MORE_DATA приходил отрицательным,
+            # сравнение не срабатывало — и загрузка GPU и общая память в окне всегда были 0
+            for fn in ("PdhOpenQueryW", "PdhAddEnglishCounterW", "PdhCollectQueryData", "PdhGetFormattedCounterArrayW"):
+                getattr(self.pdh, fn).restype = ctypes.c_ulong
             self.query = ctypes.c_void_p()
             if self.pdh.PdhOpenQueryW(None, None, ctypes.byref(self.query)) != 0:
                 return
@@ -84,10 +88,12 @@ class GpuCounters:
             return {}
 
 
-def shared_total_gb() -> float:
-    """Сколько общей памяти может взять видеокарта: на Windows — половина ОЗУ (WDDM)."""
+def shared_total_gb(used: float = 0.0) -> float:
+    """Сколько общей памяти может взять видеокарта. WDDM обещает половину ОЗУ, но драйвер AMD для Ryzen AI Max
+    отдаёт больше (замер: deep занимала 39,6 ГБ «общей» при 56 ГиБ ОЗУ) — поэтому не меньше занятого."""
     try:
         import psutil
-        return round(psutil.virtual_memory().total / 2 / GIB, 1)
+        half = psutil.virtual_memory().total / 2 / GIB
     except ImportError:
         return 0.0
+    return round(max(half, used * 1.05), 1)

@@ -156,6 +156,31 @@ def _runs_code(prog: str, args: list[str]) -> bool:
     return any(a not in info for a in args)
 
 
+_PS_HOST_FLAGS = {"-noprofile", "-nop", "-nologo", "-noninteractive", "-noni", "-mta", "-sta"}
+
+
+def _nested_ps(prog: str, args: list[str]) -> str | None:
+    """`powershell [-NoProfile …] -Command "<текст>"` → текст вложенной команды; None — это не такой вызов
+    (скрипт -File, -EncodedCommand, -ExecutionPolicy и прочее остаются «выполняет код»)."""
+    if prog not in ("powershell", "pwsh"):
+        return None
+    rest = []
+    for i, a in enumerate(args):
+        low = a.lower()
+        if low in _PS_HOST_FLAGS:
+            continue
+        if low in ("-command", "-c", "-com", "-comm", "-comma", "-comman"):
+            rest = args[i + 1:]
+            break
+        return None
+    if not rest:
+        return None
+    text = " ".join(rest).strip()
+    if len(text) > 1 and text[0] == text[-1] and text[0] in "'\"":
+        text = text[1:-1]
+    return text
+
+
 def _ps_name(tok: str) -> str:
     t = tok.lower().strip("&'\"(){}")
     t = t.rsplit("\\", 1)[-1].rsplit("/", 1)[-1]
@@ -179,7 +204,16 @@ def _ps_remove_danger(seg: list[str]) -> str:
 def _classify_windows(cmd: str, shell: str) -> dict | None:
     """Классификация для PowerShell/cmd: None — пусть решает общий (bash) разбор."""
     reasons = [why for rx, why in WIN_DANGER_PATTERNS if re.search(rx, cmd)]
-    segs = _segments(cmd)
+    exprs: list[str] = []
+    if shell == "pwsh":          # операторы с учётом скобок и кавычек, вложенные блоки { … } проверяются тоже
+        segs = []
+        for st in _ps_statements(cmd):
+            if _ps_is_expression(st):
+                exprs.append(st)
+            else:
+                segs.append(_ps_tokens(st))
+    else:
+        segs = _segments(cmd)
     for seg in segs:
         r = _ps_remove_danger(seg) if shell != "cmd" else ""
         if r:
@@ -190,6 +224,12 @@ def _classify_windows(cmd: str, shell: str) -> dict | None:
         return {"level": "write", "reasons": ["запись в файл"]}
     if shell == "pwsh" and re.search(r"(?<![<>&|\d\w])>{1,2}(?![&>])|\b(out-file|set-content|add-content|tee-object)\b", cmd, re.I):
         return {"level": "write", "reasons": ["запись в файл"]}
+    for ex in exprs:             # выражения ($x = …, ключ=значение, if …): команды внутри них тоже считаются
+        bare = re.sub(r"'[^']*'|\"[^\"]*\"", "''", ex)
+        for name in _PS_CMDLET.findall(bare):
+            n = _ps_name(name)
+            if n in PS_WRITE_EXCEPTIONS or (n.split("-", 1)[0] not in PS_READ_VERBS and n not in PS_SAFE_NONVERB):
+                return {"level": "write", "reasons": [f"{name} изменяет систему"]}
     for argv in segs:
         argv = [a for a in argv if a not in ("{", "}", "(", ")")]
         if not argv:
@@ -208,6 +248,13 @@ def _classify_windows(cmd: str, shell: str) -> dict | None:
                     return {"level": "write", "reasons": [f"{argv[0]} с изменяющими командами"]}
             continue
         prog = os.path.basename(name.replace("\\", "/")).removesuffix(".exe")
+        inner = _nested_ps(prog, argv[1:])
+        if inner is not None:                    # powershell -Command "…": судим по самой вложенной команде
+            sub = _classify_windows(inner, "pwsh") if inner.strip() else {"level": "write", "reasons": []}
+            if sub["level"] != "read":
+                return sub if sub["level"] == "danger" else {"level": "write",
+                                                             "reasons": [f"{prog}: " + ", ".join(sub["reasons"])]}
+            continue
         if _runs_code(prog, argv[1:]):
             return {"level": "write", "reasons": [f"{prog} выполняет код"]}
         if prog in READ_ONLY or prog in CMD_READ or name in PS_SAFE_NONVERB:
@@ -220,6 +267,87 @@ def _classify_windows(cmd: str, shell: str) -> dict | None:
             continue
         return {"level": "write", "reasons": [f"{prog} может изменять систему"]}
     return {"level": "read", "reasons": []}
+
+
+PS_FLOW = {"if", "elseif", "else", "foreach", "for", "while", "do", "until", "switch", "try", "catch", "finally",
+           "return", "param", "begin", "process", "end", "trap", "break", "continue", "exit", "throw"}
+_PS_CMDLET = re.compile(r"(?<![\w$.\-`])([A-Za-z]+-[A-Za-z][A-Za-z0-9]*)\b")
+
+
+def _ps_split(s: str) -> tuple[list[str], list[str]]:
+    """PowerShell: (операторы верхнего уровня, содержимое скобок () {} @{} $()). Разделители ; | && || и перевод
+    строки считаются только вне кавычек и скобок — «;» внутри @{n='a';e={…}} не режет команду пополам."""
+    parts, inner, buf = [], [], []
+    depth, q, start, i = 0, "", -1, 0
+    while i < len(s):
+        c = s[i]
+        if q:
+            if c == "`" and q == '"' and i + 1 < len(s):
+                buf.append(c + s[i + 1])
+                i += 2
+                continue
+            if c == q:
+                q = ""
+            buf.append(c)
+        elif c in "'\"":
+            q = c
+            buf.append(c)
+        elif c == "`" and i + 1 < len(s):
+            buf.append(c + s[i + 1])
+            i += 2
+            continue
+        elif c in "({":
+            if depth == 0:
+                start = len("".join(buf)) + 1
+            depth += 1
+            buf.append(c)
+        elif c in ")}":
+            depth = max(0, depth - 1)
+            if depth == 0 and start >= 0:
+                inner.append("".join(buf)[start:])
+                start = -1
+            buf.append(c)
+        elif depth == 0 and (c in ";|\n" or s.startswith("&&", i)):
+            parts.append("".join(buf))
+            buf = []
+            if s.startswith(("&&", "||"), i):
+                i += 1
+        else:
+            buf.append(c)
+        i += 1
+    parts.append("".join(buf))
+    if depth and start >= 0:                       # незакрытая скобка — содержимое всё равно проверяем
+        inner.append("".join(buf)[start:])
+    return [p.strip() for p in parts if p.strip()], [x for x in inner if x.strip()]
+
+
+def _ps_statements(cmd: str, level: int = 0) -> list[str]:
+    """Все операторы команды PowerShell, включая вложенные в скобки и блоки скрипта (рекурсивно)."""
+    top, inner = _ps_split(cmd)
+    out = list(top)
+    if level < 8:
+        for block in inner:
+            out += _ps_statements(block, level + 1)
+    return out
+
+
+def _ps_tokens(stmt: str) -> list[str]:
+    try:
+        return shlex.split(stmt, posix=False)
+    except ValueError:
+        return stmt.split()
+
+
+def _ps_is_expression(stmt: str) -> bool:
+    """Выражение, присваивание, запись хеш-таблицы или управляющая конструкция — не вызов программы."""
+    s = stmt.lstrip()
+    if not s:
+        return True
+    if s[0] in "$([@'\"0123456789!+" or re.match(r"-\d", s):
+        return True
+    if re.match(r"^[\w\-]+\s*=(?!=)", s):          # ключ=значение (@{n='x';e={…}}) или присваивание
+        return True
+    return s.split(None, 1)[0].lower().rstrip("({") in PS_FLOW
 
 
 def _segments(cmd: str) -> list[list[str]]:

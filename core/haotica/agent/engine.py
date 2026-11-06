@@ -159,8 +159,11 @@ class Agent:
             await asyncio.sleep(3)
 
     async def _warmup(self, quick: bool = False) -> None:
-        """Поднять base и fast, когда их файлы скачаны (при старте и после загрузки моделей)."""
-        for role in ("fast", self.llm.main if self.llm.main in models.MAIN_ROLES else "base"):
+        """Поднять основную модель (по режиму: base или deep) и fast, когда их файлы скачаны."""
+        main = self.llm.main
+        if not quick and main == "base" and self.llm.route("", 0, "panel", "") == "deep":
+            main = self.llm.main = "deep"            # в «авто» на Windows основная — deep: сразу её, без base
+        for role in ("fast", main if main in models.MAIN_ROLES else "base"):
             if self.download_state(role) or self.llm.state.get(role) not in ("offline", "sleep"):
                 continue
             if quick and self.llm.state.get(role) == "sleep":
@@ -393,7 +396,9 @@ class Agent:
         ctx = dict(context or {})
         ctx["metrics"] = util.load_json(paths.RUNTIME_DIR / "metrics.json", {}) or {}
         mems = self.memory.recall(text, 8) if s.get("haotica", {}).get("memory", True) else []
-        sys = persona.system_prompt(s, ctx, [safety.redact(m) for m in mems])
+        # начало промпта (инструкция, инструменты, история) не меняется от хода к ходу — llama-server берёт его
+        # из кэша; время, метрики, папка и воспоминания по теме — в конце последнего сообщения
+        sys = persona.system_prompt(s, ctx, [], dynamic=False)
         summ = self.memory.summary(chat)
         if summ:
             sys += "\n\nКонспект раннего разговора:\n" + safety.redact(summ)
@@ -402,7 +407,9 @@ class Agent:
             if h["role"] in ("user", "assistant") and h["content"]:
                 msgs.append({"role": h["role"], "content": safety.redact(h["content"])})
         att_text, images = self._attachments(context or {})
-        user_text = safety.redact(self._with_context(text, context or {}) + att_text)
+        note = persona.context_note(s, ctx, [safety.redact(m) for m in mems])
+        user_text = safety.redact(self._with_context(text, context or {}) + att_text) + \
+            ("\n\n[обстановка — для справки, не отвечай на неё]\n" + safety.redact(note) if note else "")
         if images:                      # изображения — частями сообщения (зрение у base)
             msgs.append({"role": "user", "content": [{"type": "text", "text": user_text}, *images]})
         else:
@@ -501,7 +508,7 @@ class Agent:
         self.memory.chat(chat, source)
         msgs = self.build_messages(chat, text, context)
         ctx_tokens = sum(len(x["content"]) if isinstance(x["content"], str) else 2000 for x in msgs) // 3
-        role = self.llm.route(text, ctx_tokens, source, want)
+        role = self.llm.route(text, ctx_tokens, source, want, images=not isinstance(msgs[-1]["content"], str))
         dl = self.download_state(role)
         if dl and role == "deep" and not self.download_state("base"):
             role, dl = "base", ""
@@ -515,7 +522,9 @@ class Agent:
             self.memory.add(chat, "user", text, {"source": source})
             self.hub.publish("message", {"chat": chat, "role": "user", "text": text, "source": source}, keep=False)
         else:   # build_messages уже содержит вопрос из истории — убираем дубль
-            if len(msgs) >= 2 and msgs[-2].get("role") == "user" and msgs[-2]["content"] == msgs[-1]["content"]:
+            last = msgs[-1]["content"] if isinstance(msgs[-1]["content"], str) else ""
+            if len(msgs) >= 2 and msgs[-2].get("role") == "user" and isinstance(msgs[-2]["content"], str) \
+                    and last.startswith(msgs[-2]["content"]):
                 msgs.pop(-2)
         self.state.set("reading")
         if not await self.llm.use(role, 600):

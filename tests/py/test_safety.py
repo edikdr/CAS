@@ -3,6 +3,18 @@ import pytest
 from haotica.agent import safety
 
 PWSH = [
+    # «;» и «|» внутри @{…} и { … } — не разделители; команды внутри блоков проверяются как отдельные
+    ("Get-PSDrive -Name C | Select-Object Name, Free, @{n='FreeGB';e={$_.Free/1GB}}, @{n='Pct';e={[math]::Round($_.Free/($_.Used+$_.Free)*100,1)}}", "read"),
+    ("Get-ChildItem | Select-Object @{n='x';e={Remove-Item C:\\tmp\\a}}", "write"),
+    ("gci | % { Remove-Item -Recurse $_ }", "danger"), ("$x = Remove-Item a.txt", "write"),
+    ("if (Test-Path x) { Remove-Item x }", "write"), ("& { Remove-Item x }", "write"),
+    ("Get-ChildItem | Where-Object { $_.Length -gt 1MB } | Sort-Object Length", "read"),
+    ("Write-Output 'Remove-Item is a cmdlet'", "read"), ("(Get-ChildItem -File).Count", "read"),
+    # вложенный PowerShell: судим по самой команде; скрипт, закодированная команда, смена политики — «выполняет код»
+    ('powershell -Command "Get-ChildItem -File | Measure-Object | Select-Object -ExpandProperty Count"', "read"),
+    ('powershell -NoProfile -Command "Remove-Item a.txt"', "write"), ('pwsh -c "Remove-Item -Recurse C:\\x"', "danger"),
+    ("powershell -File x.ps1", "write"), ("powershell -EncodedCommand ZQBjAGgAbwA=", "write"),
+    ('powershell -ExecutionPolicy Bypass -Command "Get-Date"', "write"),
     ("Get-ChildItem -Force", "read"), ("Get-Process | Sort-Object CPU -Descending", "read"), ("git status", "read"),
     ("Set-Location C:\\proj", "read"), ("Remove-Item a.txt", "write"), ("mkdir build", "write"),
     ("npm install", "write"), ("python -m pytest", "write"), ("git clone https://github.com/x/y", "write"),

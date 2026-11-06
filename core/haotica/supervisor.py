@@ -140,6 +140,7 @@ class Service:
     on_exit: object = None           # колбэк (service, code) — например, откат без драфта у llama-server
     log_file: Path | None = None
     error: str = ""                  # почему служба остановлена без перезапуска (для интерфейса)
+    low_priority: bool = False       # фоновая тяжёлая работа (синтез речи на CPU) не должна тормозить окно
 
     def running(self) -> bool:
         return self.proc is not None and self.proc.poll() is None
@@ -177,9 +178,12 @@ class Supervisor:
         logf.write(f"\n── {time.strftime('%Y-%m-%d %H:%M:%S')} start: {' '.join(_short(a) for a in svc.argv)}\n".encode())
         kw: dict = {}
         if IS_WINDOWS:
-            kw["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            kw["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | getattr(subprocess, "CREATE_NO_WINDOW", 0) | \
+                (getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0x4000) if svc.low_priority else 0)
         else:
             kw["start_new_session"] = True
+            if svc.low_priority:
+                kw["preexec_fn"] = lambda: os.nice(10)
         # stderr процесса уже идёт в этот журнал — сам процесс второй раз в файл не пишет (иначе строки перемешиваются)
         env = {**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8", "HAOTICA_LOG_TO_STDERR": "1", **svc.env}
         svc.proc = subprocess.Popen(svc.argv, stdin=subprocess.DEVNULL, stdout=logf, stderr=subprocess.STDOUT,

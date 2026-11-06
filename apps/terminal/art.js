@@ -3,7 +3,7 @@
 // каждая строка рук — бегущая строка кода (свой темп и направление), символы ещё и «кипят» —
 // часть ежекадрово подменяется; цвета — из палитры терминала (ярче там, где рука плотнее).
 // Между указательными пальцами — искра, к ней от плеч катятся волны «данных».
-// Рисуется на canvas под xterm (у терминала прозрачный фон), ~16 кадров/с, на паузе вне экрана.
+// Рисуется на canvas под xterm (у терминала прозрачный фон), 4 кадра/с на общем такте окна, на паузе вне экрана.
 
 const CODE = [
   "def apply(self, keys): targets |= {'runtime'}", "hl.config({ decoration = { screen_shader = s.crt } })",
@@ -92,12 +92,14 @@ export async function startHandsArt(canvas, { opacity = () => 0.5, font = () => 
 
   const BUCKETS = [[0.72, "ink"], [0.45, "teal"], [0.22, "violet"], [0, "dim"]];
   // Кадры — по таймеру, а не requestAnimationFrame на каждом обновлении экрана: пустой rAF на 165 Гц всё равно
-  // гонял весь конвейер отрисовки (≈ ядро процессора в простое). 5 кадров/с — фон за текстом, а не видео;
-  // окно не в фокусе — раз в секунду, свёрнуто — стоп.
-  const gap = () => { const ui = window.__hyUI; return reduceMq.matches ? 400 : (ui && !ui.focused ? 1000 : 200); };
+  // гонял весь конвейер отрисовки (≈ ядро процессора в простое). 4 кадра/с — фон за текстом, а не видео;
+  // окно не в фокусе — раз в секунду, свёрнуто — стоп. Моменты кадров кратны периоду (общий такт окна):
+  // фон обновляется в том же кадре, что аватар и графики, а не отдельным.
+  const gap = () => { const ui = window.__hyUI; return reduceMq.matches ? 500 : (ui && !ui.focused ? 1000 : 250); };
+  const beat = (ms) => ms - (performance.now() % ms) + 1;
   function schedule() {
     clearTimeout(st.timer);
-    if (!document.hidden && !st.stopped) st.timer = setTimeout(() => { st.raf = requestAnimationFrame(frame); }, gap());
+    if (!document.hidden && !st.stopped) st.timer = setTimeout(() => { st.raf = requestAnimationFrame(frame); }, beat(gap()));
   }
   function frame(now) {
     schedule();

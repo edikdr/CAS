@@ -235,6 +235,7 @@ export const HY = {
     app.prepend(bar);
     this.edges();
     app.classList.add("hy-boot");
+    setTimeout(() => app.classList.remove("hy-boot"), 2500);   // после включения — без заполненной анимации у корня
     return bar;
   },
   // края окна для изменения размера (если приложение рисует свой заголовок)

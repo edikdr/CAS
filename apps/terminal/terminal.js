@@ -63,6 +63,13 @@ const FEAT = HY.boot.features || {};
 document.body.classList.toggle("is-win", IS_WIN);
 HY.edges();
 document.querySelector(".hy-app").classList.add("hy-boot");
+// анимация включения закончилась — снять класс: заполненная анимация фильтра держала у корня окна свой слой
+setTimeout(() => document.querySelector(".hy-app").classList.remove("hy-boot"), 2500);
+// общий такт украшений: таймеры аватара, фона, графиков, часов и метрик срабатывают в одни и те же моменты
+// (кратные периоду от общего начала отсчёта), и Chromium собирает их изменения в один кадр. Раньше каждый
+// таймер давал свой кадр — до ~20 кадров/с в простое, и на каждый окно перерисовывалось целиком.
+const beat = (ms) => ms - (performance.now() % ms) + 1;
+const onBeat = (ms, fn) => setTimeout(() => requestAnimationFrame(fn), beat(ms));
 $("winbtns").append(
   el("button.winbtn", { title: HY.t("cloud") + "  /key", onclick: () => openCloud() }, icon("cloud", 14)),
   el("button.winbtn", { title: HY.t("palette") + "  Ctrl+Shift+P", onclick: () => palette() }, icon("search", 14)),
@@ -1141,7 +1148,7 @@ function clock() {
   $("date").textContent = `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
   $("time").textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
-setInterval(clock, 1000); clock();
+(function clockTick() { clock(); onBeat(1000, clockTick); })();
 
 // ── полосы-статы, мини-блок, графики (общий сервис метрик) ──────
 const VITALS = [
@@ -1190,10 +1197,15 @@ HY.on("metrics", (m) => {
   state.metrics = m;
   push(state.hist.cpu, m.cpu || 0); push(state.hist.gpu, m.gpu || 0); push(state.hist.gtt, m.gtt_used_gb || 0);
   push(state.hist.tps, m.llm_tps || 0); push(state.hist.net, m.net_down_kbs || 0); push(state.hist.up, m.net_up_kbs || 0);
-  bars(); mini(); drawCharts();
+  state.metricsDue = true;            // нарисуются на ближайшем такте вместе с остальным
+});
+function renderMetrics() {
+  const m = state.metrics;
+  state.metricsDue = false;
+  bars(); mini();
   $("load-val").textContent = `${Math.round(m.cpu || 0)}% · ${Math.round(m.gpu || 0)}%`;
   $("net-val").textContent = `↓ ${HY.fmtBytes((m.net_down_kbs || 0) * 1024)}/s`;
-});
+}
 // цвета темы — из кэша: getComputedStyle на каждом кадре графиков пересчитывал стили всего окна
 const cssCache = new Map();
 HY.on("theme-applied", () => cssCache.clear());
@@ -1648,11 +1660,10 @@ window.addEventListener("beforeunload", saveSession);
 const openWizard = (force) => import("./wizard.js").then(({ runWizard }) => runWizard({ profiles: state.profiles, defaultProfile: state.defaultProfile, force })).catch(() => {});
 if (IS_WIN && HY.bridge && !window.__hyNoWizard) setTimeout(() => openWizard(false), 1200);
 bars(); mini(); drawCharts();
-// графики: 5 кадров/с в фокусе, раз в секунду (с новыми метриками) — без него; свёрнуто — не рисуем
-let chartsAt = 0;
-setInterval(() => {
-  if (document.hidden) return;
-  const now = performance.now();
-  if (!UI.focused && now - chartsAt < 1000) return;
-  chartsAt = now; drawCharts();
-}, 200);
+// графики и метрики — на общем такте: 4 кадра/с в фокусе, 1 — без фокуса; свёрнуто — не рисуем
+(function chartsTick() {
+  onBeat(UI.focused ? 250 : 1000, () => {
+    if (!document.hidden) { if (state.metricsDue) renderMetrics(); drawCharts(); }
+    chartsTick();
+  });
+})();

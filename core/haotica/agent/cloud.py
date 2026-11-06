@@ -30,6 +30,22 @@ def _day() -> str:
     return time.strftime("%Y-%m-%d")
 
 
+def _parse_json_answer(text: str) -> dict:
+    """Ответ помощника в JSON (иногда — в ```json … ``` или обрезанный): достать answer, не отдавая модели мусор."""
+    t = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", text or "", flags=re.S)
+    try:
+        return json.loads(re.search(r"\{.*\}", t, re.S).group(0))
+    except (AttributeError, ValueError):
+        m = re.search(r'"answer"\s*:\s*"((?:[^"\\]|\\.)*)', t, re.S)
+        if m:
+            try:
+                ans = json.loads('"' + m.group(1) + '"')
+            except ValueError:
+                ans = m.group(1)
+            return {"answer": ans, "facts": [], "confidence": 0.5}
+        return {"answer": t.strip(), "facts": [], "confidence": 0.5}
+
+
 class Cloud:
     def __init__(self, hub) -> None:
         self.hub = hub
@@ -205,16 +221,13 @@ class Cloud:
             {"role": "system", "content": "Search the web and answer the task. Reply as JSON: "
              '{"answer": str, "facts": [{"claim": str, "url": str}], "confidence": 0..1, "gaps": str}. '
              "Answer in the language of the task."},
-            {"role": "user", "content": clean}], max_tokens=900, kind="helper", note="web",
+            {"role": "user", "content": clean}], max_tokens=1500, kind="helper", note="web",
             extra={"plugins": [{"id": "web", "max_results": 5}]})
         if not a.get("ok"):
             return {"ok": False, "error": a.get("error", "помощник недоступен")}
         if a.get("refused"):
             return {"ok": False, "refused": True, "error": "помощник отказался отвечать — продолжаю локально"}
-        try:
-            parsed = json.loads(re.search(r"\{.*\}", a["text"], re.S).group(0))
-        except (AttributeError, ValueError):
-            parsed = {"answer": a["text"], "facts": [], "confidence": 0.5}
+        parsed = _parse_json_answer(a["text"])
         return {"ok": True, "answer": parsed.get("answer", ""), "facts": parsed.get("facts", []),
                 "confidence": parsed.get("confidence"), "gaps": parsed.get("gaps", ""),
                 "sources": a.get("citations", []), "models": [model], "cost": a.get("cost", 0)}

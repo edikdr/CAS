@@ -105,3 +105,11 @@ def test_pause_scale():
     f = sum(s.ms for s in full if s.kind == "pause")
     s = sum(s.ms for s in short if s.kind == "pause")
     assert 0 < s <= f * 0.31
+
+
+def test_parse_helper_answer_variants():
+    from haotica.agent.cloud import _parse_json_answer
+    assert _parse_json_answer('{"answer": "3.15.2", "facts": []}')["answer"] == "3.15.2"
+    assert _parse_json_answer('```json\n{"answer": "да", "facts": []}\n```')["answer"] == "да"
+    cut = '```json\n{\n  "answer": "Последняя версия — **3.15.2** (python.org).\nЕщё'
+    assert _parse_json_answer(cut)["answer"].startswith("Последняя версия — **3.15.2**")

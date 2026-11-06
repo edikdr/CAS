@@ -472,6 +472,8 @@ class Agent:
                 if p.is_dir():
                     names = sorted(x.name + ("/" if x.is_dir() else "") for x in list(p.iterdir())[:300])
                     parts.append(f"Папка {p}:\n" + "\n".join(names[:200]))
+                elif p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp") and not ha.get("vision", True):
+                    parts.append(f"[изображение {p.name}: зрение выключено (Настройки → Haotica → Зрение), посмотреть не могу]")
                 elif p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp") and p.stat().st_size < 12 * 2 ** 20:
                     mime = mimetypes.guess_type(str(p))[0] or "image/png"
                     images.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,"

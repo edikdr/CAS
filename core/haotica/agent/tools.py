@@ -114,6 +114,8 @@ def schemas(mode: str, terminal: bool = False) -> list[dict]:
     if mode == "observer":
         return [s for s in SCHEMAS if s["function"]["name"] in READ_ONLY | {"remember", "recall", "suggest_command", "notify"}]
     skip = {"run_command"} if terminal else {"terminal_run", "terminal_poll", "terminal_read"}
+    if not (config.get("haotica", {}) or {}).get("vision", True):
+        skip = skip | {"analyze_image"}            # зрение выключено владельцем — экономия ~1 ГБ памяти
     return [s for s in SCHEMAS if s["function"]["name"] not in skip]
 
 
@@ -129,6 +131,12 @@ def _read_lines(p, start: int, n: int) -> str:
             out.append(f"{i:5d}  {line.rstrip()}")
             size += len(line)
     return "\n".join(out)
+
+
+async def _core(*a, **k):
+    """Запрос к ядру в отдельном потоке: синхронный вызов из инструмента держал весь цикл агента
+    (поиск файлов — до 10 с, сканирование сети — до 4 минут), и Haotica «замирала»."""
+    return await asyncio.to_thread(client.core, *a, **k)
 
 
 def _append(p, text: str) -> None:
@@ -270,13 +278,13 @@ class Tools:
 
     async def t_search_files(self, a, ctx):
         root = self._path(a.get("path") or ctx.get("cwd") or "~", ctx.get("cwd", ""))
-        r = client.core("GET", f"/api/fs/search?q={_q(a['query'])}&path={_q(str(root))}&content={'1' if a.get('content') else '0'}&limit=60")
+        r = await _core("GET", f"/api/fs/search?q={_q(a['query'])}&path={_q(str(root))}&content={'1' if a.get('content') else '0'}&limit=60")
         res = (r or {}).get("results", [])
         return {"results": [x.get("path", x) if isinstance(x, dict) and "line" not in x else x for x in res][:60]}
 
     async def t_file_info(self, a, ctx):
         p = self._path(a["path"], ctx.get("cwd", ""))
-        r = client.core("GET", f"/api/fs/stat?path={_q(str(p))}")
+        r = await _core("GET", f"/api/fs/stat?path={_q(str(p))}")
         return (r or {}).get("entry", {"error": "нет данных"})
 
     async def t_write_file(self, a, ctx):
@@ -330,7 +338,7 @@ class Tools:
         return {k: m.get(k) for k in keys if k in m}
 
     async def t_processes(self, a, ctx):
-        r = client.core("GET", f"/api/sys/procs?sort={a.get('sort', 'cpu')}")
+        r = await _core("GET", f"/api/sys/procs?sort={a.get('sort', 'cpu')}")
         lim = min(25, int(a.get("limit") or 10))
         return {"processes": [{k: p[k] for k in ("pid", "name", "cpu", "mem_mb", "user")} for p in (r or {}).get("procs", [])[:lim]]}
 
@@ -368,7 +376,7 @@ class Tools:
         return {"key": a["key"], "value": config.get(a["key"])}
 
     async def t_set_setting(self, a, ctx):
-        r = client.core("POST", "/api/settings", {"changes": {a["key"]: a["value"]}, "source": "haotica"})
+        r = await _core("POST", "/api/settings", {"changes": {a["key"]: a["value"]}, "source": "haotica"})
         return r or {"error": "ядро не отвечает"}
 
     async def t_open_app(self, a, ctx):
@@ -386,18 +394,18 @@ class Tools:
     # ── сеть и роутер ──────────────────────────────────────────
     async def t_network_devices(self, a, ctx):
         if a.get("rescan"):
-            client.core("POST", "/api/recon/scan", {}, timeout=240)
-        r = client.core("GET", "/api/recon") or {}
+            await _core("POST", "/api/recon/scan", {}, timeout=240)
+        r = await _core("GET", "/api/recon") or {}
         devs = [{k: d.get(k) for k in ("ip", "mac", "vendor", "hostname", "type", "known", "label", "last_seen", "os")}
                 for d in r.get("devices", [])]
         return {"subnet": r.get("subnet"), "gateway": r.get("gateway"), "devices": devs, "router": r.get("router", {})}
 
     async def t_probe_device(self, a, ctx):
-        r = client.core("POST", "/api/recon/probe", {"ip": a["ip"]}, timeout=240)
+        r = await _core("POST", "/api/recon/probe", {"ip": a["ip"]}, timeout=240)
         return r or {"error": "ядро не отвечает"}
 
     async def t_wifi_networks(self, a, ctx):
-        r = client.core("GET", "/api/wifi?rescan=1", timeout=30) or {}
+        r = await _core("GET", "/api/wifi?rescan=1", timeout=30) or {}
         return {"radio": r.get("radio"), "networks": r.get("networks", [])[:25]}
 
     async def t_router_status(self, a, ctx):
@@ -421,14 +429,16 @@ class Tools:
         import datetime as dt
         now = dt.datetime.now(dt.timezone.utc).astimezone().replace(tzinfo=None)   # местное время
         to = now + dt.timedelta(days=min(60, int(a.get("days") or 7)))
-        r = client.core("GET", f"/api/calendar?from={now.isoformat(timespec='minutes')}&to={to.isoformat(timespec='minutes')}") or {}
+        r = await _core("GET", f"/api/calendar?from={now.isoformat(timespec='minutes')}&to={to.isoformat(timespec='minutes')}") or {}
         return {"events": [{k: e[k] for k in ("summary", "start", "end", "location", "allday")} for e in r.get("events", [])[:40]]}
 
     async def t_add_calendar_event(self, a, ctx):
-        r = client.core("POST", "/api/calendar", {k: v for k, v in a.items() if v not in (None, "")})
+        r = await _core("POST", "/api/calendar", {k: v for k, v in a.items() if v not in (None, "")})
         return r or {"error": "ядро не отвечает"}
 
     async def t_analyze_image(self, a, ctx):
+        if not self.cfg().get("vision", True):
+            return {"error": "зрение выключено (Настройки → Haotica → Зрение)"}
         p = self._path(a["path"], ctx.get("cwd", ""))
         return await self.agent.vision(p, a.get("question") or "Опиши, что на изображении.")
 

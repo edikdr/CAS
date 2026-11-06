@@ -498,7 +498,8 @@ def server_args(role: str, spec: bool = True) -> list[str]:
         # на Windows (общая память с системой) — всегда: q8-кэш вдвое меньше f16, на качество почти не влияет
         if ctx > 65536 or role == "deep" or os.name == "nt":
             args += ["--cache-type-k", "q8_0", "--cache-type-v", "q8_0"]
-        if m.get("mmproj") and (paths.MODELS_DIR / m["mmproj"]["file"]).exists():
+        # зрение (проектор картинок, ~1 ГБ памяти) — по настройке haotica.vision
+        if ha.get("vision", True) and m.get("mmproj") and (paths.MODELS_DIR / m["mmproj"]["file"]).exists():
             args += ["--mmproj", str(paths.MODELS_DIR / m["mmproj"]["file"])]
         want = str(ha.get("speculative", "auto"))
         draft = m.get("draft")

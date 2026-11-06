@@ -104,9 +104,20 @@ class LLM:
             return True, ""
         need = st.get(role, {}).get("size", 0) + 4 * 2 ** 30
         other = "base" if role == "deep" else "deep"
-        # выгружаемая модель отдаёт не только файл, но и кэш контекста с буферами — тот же запас, что закладываем выше
-        # (раньше считался только файл: base держит ≈ 28 ГБ, а «освободится» выходило 22 — deep не проходила)
-        freed = st.get(other, {}).get("size", 0) + 4 * 2 ** 30 if self.state.get(other) in ("ready", "loading") else 0
+        # выгружаемая модель отдаёт всё, что держит её процесс (файл, кэш контекста, буферы и память видеокарты —
+        # на Radeon 8060S это та же оперативная память). Раньше считалось по размеру файла: base держит ≈ 28 ГБ,
+        # а «освободится» выходило 22–25 — deep отклонялась при «нужно 40, свободно 39»
+        freed = 0
+        if self.state.get(other) in ("ready", "loading"):
+            freed = st.get(other, {}).get("size", 0) + 4 * 2 ** 30
+            try:
+                from .. import supervisor
+                svc = supervisor.get().services.get(f"llm-{other}")
+                if svc and svc.running():
+                    mi = psutil.Process(svc.proc.pid).memory_info()
+                    freed = max(freed, getattr(mi, "private", 0) or mi.rss)
+            except Exception:  # noqa: BLE001
+                pass
         have = psutil.virtual_memory().available + freed
         if have >= need:
             return True, ""

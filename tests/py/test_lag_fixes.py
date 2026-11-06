@@ -118,3 +118,15 @@ def test_base_context_capped(monkeypatch, tmp_path):
     assert a[a.index("-c") + 1] == "65536"
     a = models.server_args("deep")
     assert a[a.index("-c") + 1] == "131072"
+
+
+def test_file_search_skips_service_dirs_and_stops_in_time(tmp_path):
+    """Поиск файлов не лезет в AppData/.git/node_modules и укладывается в отведённое время."""
+    import time
+    from haotica.server import routes_fs
+    for d in ("AppData/Local/x", ".git/objects", "node_modules/pkg", "work/src"):
+        (tmp_path / d).mkdir(parents=True)
+        (tmp_path / d / "target.txt").write_text("x")
+    found = [e.path for e in routes_fs._walk_files(tmp_path, time.monotonic() + 5) if e.name == "target.txt"]
+    assert found == [str(tmp_path / "work" / "src" / "target.txt")]
+    assert list(routes_fs._walk_files(tmp_path, time.monotonic() - 1)) == []      # время вышло — сразу стоп

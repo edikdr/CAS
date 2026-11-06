@@ -11,6 +11,7 @@ import mimetypes
 import os
 import shutil
 import stat
+import time
 import urllib.parse
 from pathlib import Path
 
@@ -407,6 +408,40 @@ def trash_list() -> list[dict]:
     return out
 
 
+
+SEARCH_SECONDS = 8.0          # поиск файлов дольше — отдаём найденное с пометкой partial
+# служебные папки: в них не ищем (сотни тысяч файлов, а нужное владельцу там почти не бывает)
+SKIP_DIRS = {".git", ".hg", ".svn", "node_modules", "__pycache__", ".venv", "venv", "site-packages", ".tox", ".mypy_cache",
+             ".cache", ".npm", ".cargo", ".rustup", ".gradle", ".m2", "appdata", "$recycle.bin", "system volume information",
+             "windows", "program files", "program files (x86)", "programdata"}
+
+
+def _walk_files(root: Path, deadline: float, dirs_too: bool = False):
+    """Обход папки без рекурсии и без служебных папок; останавливается по времени. Отдаёт os.DirEntry."""
+    stack = [str(root)]
+    while stack:
+        if time.monotonic() > deadline:
+            return
+        d = stack.pop()
+        try:
+            it = os.scandir(d)
+        except OSError:
+            continue
+        with it:
+            for e in it:
+                try:
+                    is_dir = e.is_dir(follow_symlinks=False)
+                except OSError:
+                    continue
+                if is_dir:
+                    if e.name.lower() in SKIP_DIRS:
+                        continue
+                    stack.append(e.path)
+                    if dirs_too:
+                        yield e
+                else:
+                    yield e
+
 def setup(app: web.Application) -> None:
     r = app.router
     core = app["core"]
@@ -427,9 +462,12 @@ def setup(app: web.Application) -> None:
         if not p.is_dir():
             return json_err("это не папка", 404)
         show_hidden = req.query.get("hidden") == "1"
+        def listing() -> list[dict]:      # в потоке: большая папка (тысячи файлов, у каждого stat) не держит цикл ядра
+            with os.scandir(p) as it:
+                return [x for x in (entry(Path(e.path)) for e in it if show_hidden or not e.name.startswith("."))
+                        if show_hidden or not (x.get("hidden") or x.get("system"))]
         try:
-            items = [x for x in (entry(Path(e.path)) for e in os.scandir(p) if show_hidden or not e.name.startswith("."))
-                     if show_hidden or not (x.get("hidden") or x.get("system"))]
+            items = await asyncio.to_thread(listing)
         except PermissionError:
             return json_err("нет доступа", 403)
         except OSError as e:
@@ -706,15 +744,17 @@ def setup(app: web.Application) -> None:
                 if len(res) >= limit:
                     break
             return json_ok({"results": res})
+        deadline = time.monotonic() + SEARCH_SECONDS
         if req.query.get("content") == "1":            # без ripgrep: медленнее, но работает везде
-            def grep() -> list[dict]:
+            def grep() -> tuple[list[dict], bool]:
                 res, ql = [], q.lower()
-                for f in root.rglob("*"):
+                for e in _walk_files(root, deadline):
                     if len(res) >= limit:
-                        break
-                    if not f.is_file() or category(f) not in ("code", "doc", "other") or f.stat().st_size > 4 * 2 ** 20:
-                        continue
+                        return res, False
+                    f = Path(e.path)
                     try:
+                        if category(f) not in ("code", "doc", "other") or e.stat().st_size > 4 * 2 ** 20:
+                            continue
                         with open(f, encoding="utf-8", errors="ignore") as fh:
                             for i, line in enumerate(fh, 1):
                                 if ql in line.lower():
@@ -722,21 +762,28 @@ def setup(app: web.Application) -> None:
                                     break
                     except OSError:
                         continue
-                return res
-            return json_ok({"results": await asyncio.to_thread(grep)})
+                return res, time.monotonic() > deadline
+            res, partial = await asyncio.to_thread(grep)
+            return json_ok({"results": res, **({"partial": True} if partial else {})})
         tool = util.which("fd") or util.which("fdfind")
+        partial = False
         if tool:
             rc, out, _ = await util.arun([tool, "-i", "--max-results", str(limit), q, str(root)], 20)
             files = out.splitlines()
         else:
-            files = []
-            ql = q.lower()
-            for f in root.rglob("*"):                    # без учёта регистра (на Windows так и ждут)
-                if ql in f.name.lower():
-                    files.append(str(f))
-                    if len(files) >= limit:
-                        break
-        return json_ok({"results": [entry(Path(f)) for f in files]})
+            # Windows без fd: обход в потоке (раньше rglob шёл прямо в цикле ядра — поиск от домашней папки по AppData
+            # и моделям вешал ядро на минуты: окно без данных, настройки и переключение моделей не отвечали)
+            def names() -> tuple[list[str], bool]:
+                out, ql = [], q.lower()
+                for e in _walk_files(root, deadline, dirs_too=True):
+                    if ql in e.name.lower():
+                        out.append(e.path)
+                        if len(out) >= limit:
+                            return out, False
+                return out, time.monotonic() > deadline
+            files, partial = await asyncio.to_thread(names)
+        items = await asyncio.to_thread(lambda: [entry(Path(f)) for f in files])
+        return json_ok({"results": items, **({"partial": True} if partial else {})})
 
     async def paste_image(req):
         """Картинка из буфера (вставка в чат Haotica) → файл во вложениях, чтобы прикрепить его к сообщению."""

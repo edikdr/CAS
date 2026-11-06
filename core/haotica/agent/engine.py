@@ -596,6 +596,7 @@ class Agent:
         except (TypeError, ValueError):
             max_rounds = MAX_ROUNDS
         wrap = False                     # последний раунд: без инструментов, только итог
+        speak_early = bool(self.voice) and source not in ("cli", "complete")
         for _round in range(max_rounds + 1):
             if cancel and cancel.is_set():
                 stopped = True
@@ -615,6 +616,8 @@ class Agent:
                         if not buf:
                             self.state.set("speaking")
                         buf += ev["text"]
+                        if speak_early and any(ch in ev["text"] for ch in ".!?…\n"):
+                            self.voice.prefetch(_strip_think(buf))
                         self.hub.publish("message", {"chat": chat, "role": "assistant", "delta": ev["text"]}, keep=False)
                         yield {"type": "delta", "text": ev["text"]}
                     elif ev["type"] == "tool_calls":
@@ -640,6 +643,8 @@ class Agent:
             if stopped:
                 final = (buf + "\n\n" if buf else "") + "⏹ Остановлено."
                 break
+            if calls and speak_early and not wrap:
+                self.voice.cancel_prefetch()     # это был не ответ, а шаг с инструментами — заготовки не нужны
             if wrap:
                 calls = []                       # итоговый раунд: вызовы инструментов (если модель всё же их дала) не выполняем
             if not calls:

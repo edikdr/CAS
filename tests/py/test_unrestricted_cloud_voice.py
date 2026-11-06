@@ -113,3 +113,44 @@ def test_parse_helper_answer_variants():
     assert _parse_json_answer('```json\n{"answer": "да", "facts": []}\n```')["answer"] == "да"
     cut = '```json\n{\n  "answer": "Последняя версия — **3.15.2** (python.org).\nЕщё'
     assert _parse_json_answer(cut)["answer"].startswith("Последняя версия — **3.15.2**")
+
+
+def test_voice_prefetch_reused_by_say(monkeypatch):
+    """Пока модель пишет — готовые фразы синтезируются заранее; озвучка ответа берёт их, а не синтезирует снова."""
+    from haotica import config
+    from haotica.agent import voice as V
+
+    class Hub:
+        def publish(self, *a, **k):
+            pass
+
+    class State:
+        value = "idle"
+
+        def set(self, *a, **k):
+            pass
+    monkeypatch.setattr(config, "load", lambda: {"haotica": {"voice": True, "voice_backend": "local"},
+                                                 "sound": {"voice_lines": True}, "locale": {"haotica_language": "ru"}})
+    v = V.Voice(Hub(), State())
+    calls: list[str] = []
+
+    async def fake_local(text, *a, **k):
+        calls.append(text)
+        await asyncio.sleep(0.01)
+        return _wav(0.05)
+
+    async def fake_play(data, s, gen=None):
+        pass
+    monkeypatch.setattr(v, "_local", fake_local)
+    monkeypatch.setattr(v, "_play_bytes", fake_play)
+    full = "Первая фраза готова. Вторая тоже готова. Третья пишется"
+
+    async def go():
+        v.prefetch("Первая фраза готова. Вторая тоже готова. Тре")
+        await asyncio.sleep(0.1)
+        early = list(calls)
+        ok = await v.say(full)
+        return early, ok
+    early, ok = asyncio.new_event_loop().run_until_complete(go())
+    assert ok and len(early) == 2, early
+    assert len(calls) == len(set(calls)), f"фраза синтезирована дважды: {calls}"

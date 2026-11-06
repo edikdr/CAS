@@ -133,6 +133,9 @@ class Voice:
         self.gen = 0                                     # поколение речи: stop() его увеличивает
         self._win_playing = False
         self.rtf = 4.0                                   # во сколько раз синтез дольше звучания (уточняется по ходу)
+        # заготовки: фразы ответа, озвученные, пока модель ещё пишет остальное (ключ — фраза и её параметры)
+        self._pre: dict[tuple, asyncio.Task] = {}
+        self._synth_lock = asyncio.Lock()                # синтез по одной фразе за раз, в порядке текста
 
     def enabled(self, s: dict) -> bool:
         ha = s.get("haotica", {})
@@ -157,6 +160,51 @@ class Voice:
         await self._play_file(f, s)
         return True
 
+    def _plan(self, s: dict, text: str, emotion: str = "neutral"):
+        from ..tts import prosody
+        ha = s.get("haotica", {})
+        lang = s.get("locale", {}).get("haotica_language", "")
+        speed = float(ha.get("voice_speed", 1.0))
+        mood = {"warning": "warning", "happy": "happy"}.get(emotion, "neutral")
+        # вслух — начало ответа (до конца фразы), остальное в чате (настройка haotica.voice_max_chars)
+        max_chars = int(ha.get("voice_max_chars", 600) or 600)
+        return prosody.plan(text, lang if lang in ("ru", "en", "de") else "", speed, mood, max_chars=max(120, max_chars),
+                            pause_scale=float(ha.get("voice_pause_scale", 0.35))), max(120, max_chars)
+
+    @staticmethod
+    def _key(seg) -> tuple:
+        return (seg.text, seg.lang, round(seg.exaggeration, 3), round(seg.speed, 3), round(seg.cfg, 3), round(seg.temperature, 3))
+
+    async def _synth_local(self, seg) -> bytes:
+        async with self._synth_lock:
+            return await self._local(seg.text, seg.lang, seg.exaggeration, seg.speed, seg.cfg, seg.temperature)
+
+    def prefetch(self, text_so_far: str) -> None:
+        """Модель ещё пишет ответ — озвучить уже законченные фразы заранее. Раньше синтез начинался только после
+        всего текста, и после ответа была длинная пауза (синтез на процессоре в 2–3 раза дольше звучания)."""
+        try:
+            s = config.load()
+            if not self.enabled(s) or s.get("haotica", {}).get("voice_backend", "local") not in ("local", "auto"):
+                return
+            from ..tts import prosody
+            if not prosody.speakable(text_so_far):
+                return
+            plan, max_chars = self._plan(s, text_so_far)
+            if len(text_so_far) > max_chars:
+                return                                   # дальше — «остальное в чате», план у готового текста другой
+            speech = [x for x in plan if x.kind == "speech"][:-1]   # последняя фраза ещё может дописываться
+            for seg in speech[:6]:
+                k = self._key(seg)
+                if k not in self._pre:
+                    self._pre[k] = asyncio.create_task(self._synth_local(seg))
+        except Exception:  # noqa: BLE001 — заготовка не обязательна
+            log.debug("prefetch", exc_info=True)
+
+    def cancel_prefetch(self) -> None:
+        for t in self._pre.values():
+            t.cancel()
+        self._pre.clear()
+
     async def say(self, text: str, emotion: str = "neutral") -> bool:
         """Сказать ответ голосом Сары по плану просодии: фразы с интонацией и темпом, паузы, записанные эмоции.
 
@@ -169,31 +217,37 @@ class Voice:
         from ..tts import prosody
         if not prosody.speakable(text):
             return False
-        await self.stop()                                 # новая реплика глушит старую
+        await self.stop(keep_prefetch=True)               # новая реплика глушит старую (заготовки этого ответа — нет)
         gen = self.gen
         backend = s.get("haotica", {}).get("voice_backend", "local")
-        lang = s.get("locale", {}).get("haotica_language", "")
-        speed = float(s.get("haotica", {}).get("voice_speed", 1.0))
-        mood = {"warning": "warning", "happy": "happy"}.get(emotion, "neutral")
-        # вслух — начало ответа (до конца фразы), остальное в чате: синтез на процессоре идёт ~4× дольше звучания,
-        # и 900 символов занимали все ядра на минуты (настройка haotica.voice_max_chars)
         ha = s.get("haotica", {})
-        max_chars = int(ha.get("voice_max_chars", 600) or 600)
-        plan = prosody.plan(text, lang if lang in ("ru", "en", "de") else "", speed, mood, max_chars=max(120, max_chars),
-                            pause_scale=float(ha.get("voice_pause_scale", 0.35)))
+        plan, _max = self._plan(s, text, emotion)
         speech = [i for i, x in enumerate(plan) if x.kind == "speech"]
         if not speech:
+            self.cancel_prefetch()
             return False
+        pre, self._pre = self._pre, {}                    # заготовки — этому ответу; лишние отменим в конце
 
         async def synth(seg) -> bytes:
             audio = b""
             if backend in ("local", "auto"):
-                audio = await self._local(seg.text, seg.lang, seg.exaggeration, seg.speed, seg.cfg, seg.temperature)
+                t = pre.pop(self._key(seg), None)
+                if t is not None:
+                    try:
+                        audio = await t
+                    except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                        audio = b""
+                if not audio:
+                    audio = await self._synth_local(seg)
             if not audio and backend in ("elevenlabs", "local", "auto"):
                 audio = await self._eleven(seg.text, seg.lang, seg.exaggeration, seg.speed)
             return audio
         if ha.get("voice_flow", "continuous") != "fast":
-            return await self._say_continuous(plan, synth, s, gen)
+            try:
+                return await self._say_continuous(plan, synth, s, gen)
+            finally:
+                for t in pre.values():
+                    t.cancel()
         tasks: dict[int, asyncio.Task] = {speech[0]: asyncio.create_task(synth(plan[speech[0]]))}
         played = False
         try:
@@ -399,9 +453,11 @@ class Voice:
             if delay > 0:
                 await asyncio.sleep(delay)
 
-    async def stop(self) -> None:
+    async def stop(self, keep_prefetch: bool = False) -> None:
         """Заглушить речь сейчас же и отменить оставшиеся предложения."""
         self.gen += 1
+        if not keep_prefetch:
+            self.cancel_prefetch()
         if os.name == "nt" and self._win_playing:
             import winsound
             try:

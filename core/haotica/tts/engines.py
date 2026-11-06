@@ -195,6 +195,34 @@ def _fix_early_stop() -> None:
     cls._hy_patched = True
 
 
+_VOWELS = "аеёиоуыэюяАЕЁИОУЫЭЮЯ"
+
+
+def _russian_stress() -> bool:
+    """Ударения для русского: Chatterbox ждёт их как знак U+0301 после гласной, а его модуль ударений
+    (russian_text_stresser) не ставится из PyPI — без него «читал плохо». Берём расстановщик Silero
+    (пакет silero-stress, ставится с голосом): его «+» перед ударной гласной превращаем в U+0301."""
+    import re
+    try:
+        from silero_stress import load_accentor
+        from chatterbox.models.tokenizers import tokenizer as tk
+    except ImportError:
+        return False
+    acc = load_accentor()
+    plus = re.compile(r"\+([" + _VOWELS + r"])")
+
+    def add(text: str) -> str:
+        try:
+            out = acc(text)
+        except Exception:  # noqa: BLE001 — не вышло — читаем без ударений, как раньше
+            return text
+        if not isinstance(out, str):
+            return text
+        return plus.sub(lambda m: m.group(1) + "\u0301", out)
+    tk.add_russian_stress = add
+    return True
+
+
 class Chatterbox(Engine):
     name = "chatterbox"
     clone = True
@@ -204,13 +232,21 @@ class Chatterbox(Engine):
         from chatterbox.mtl_tts import ChatterboxMultilingualTTS
         self.torch = torch
         dev = _device()
-        if dev == "cpu":                    # на процессоре — все логические ядра: замер на Ryzen AI Max — ~25% быстрее
-            torch.set_num_threads(max(1, os.cpu_count() or 1))
+        if dev == "cpu":
+            # 2/3 логических ядер (haotica.voice_threads): на всех 24 синтез быстрее лишь на ~10%, но пока Haotica
+            # говорила — минуту и больше — процессор был занят целиком и окно с остальными программами дёргалось
+            n = int(_setting("haotica.voice_threads", 0) or 0) or max(4, (os.cpu_count() or 8) * 2 // 3)
+            torch.set_num_threads(max(1, min(n, os.cpu_count() or n)))
         self.m = ChatterboxMultilingualTTS.from_pretrained(device=dev)
         try:
             _fix_early_stop()
         except Exception as e:  # noqa: BLE001 — другая версия Chatterbox: работаем как есть
             log.warning("исправление обрыва речи не применено: %s", e)
+        try:
+            log.info("ударения в русском: %s", "silero-stress" if _russian_stress()
+                     else "нет (переустановите голос: haotica voice install chatterbox)")
+        except Exception as e:  # noqa: BLE001
+            log.warning("ударения не подключены: %s", e)
         self.pitch = voice_pitch()
         # качество/скорость на процессоре (haotica.voice_quality). Замер на Ryzen AI Max+ 392, 24 потока:
         #   best     — fp32, 10 шагов декодера: синтез ≈ 3,5× дольше звучания;
@@ -248,7 +284,10 @@ class Chatterbox(Engine):
         tt = torch.cat([tt, tt], dim=0)                                     # две копии — для CFG
         tt = F.pad(F.pad(tt, (1, 0), value=m.t3.hp.start_text_token), (0, 1), value=m.t3.hp.stop_text_token)
         with torch.inference_mode():
-            st = m.t3.inference(t3_cond=cond, text_tokens=tt, max_new_tokens=1000,
+            # предел длины по тексту: ~25 речевых токенов в секунду, ~13 знаков в секунду, двойной запас — модель
+            # иногда «разговаривалась» и выдавала до 30 с звука на короткую фразу, занимая процессор
+            cap = int(min(1000, 60 + len(text) * 5))
+            st = m.t3.inference(t3_cond=cond, text_tokens=tt, max_new_tokens=cap,
                                 temperature=max(0.5, min(1.1, temperature)), cfg_weight=cfg,
                                 repetition_penalty=2.0, min_p=0.05, top_p=1.0)
             st = drop_invalid_tokens(st[0]).to(m.device)

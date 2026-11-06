@@ -84,7 +84,9 @@ PACKAGES = {
     "silero": ["torch", "omegaconf", "scipy"],
     # ≥0.1.7: зависит от spacy-pkuseg (есть колёса для Windows); без версии uv брал 0.1.3 с pkuseg,
     # который на Windows собирается из исходников и падает без компилятора C
-    "chatterbox": ["chatterbox-tts>=0.1.7", "setuptools<81"],
+    # silero-stress — ударения в русском тексте (без них Chatterbox читал «как попало»: его собственный модуль
+    # ударений не публикуется на PyPI); зависит только от torch
+    "chatterbox": ["chatterbox-tts>=0.1.7", "setuptools<81", "silero-stress>=1.5"],
     "xtts": ["coqui-tts[codec]", "six", "torch", "torchaudio"],
     "qwen3": ["qwen-tts", "torch", "torchaudio"],
     "f5": ["f5-tts", "torch", "torchaudio"],

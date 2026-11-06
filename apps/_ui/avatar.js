@@ -310,8 +310,14 @@ export function createAvatar(host, { size = 260, interactive = true, crt = 0 } =
     st.timer = setTimeout(() => { st.raf = requestAnimationFrame(loop); }, talking ? beat(TICK) : beat(ui && !ui.focused ? TICK * 12 : TICK * 2));
   }
   st.raf = requestAnimationFrame(loop);
+  // положение аватара — из кэша (обновляется при изменении размеров): getBoundingClientRect на каждое движение
+  // мыши заставлял браузер пересчитывать вёрстку окна десятки раз в секунду
+  let rect = null;
+  const ro = new ResizeObserver(() => { rect = null; });
+  ro.observe(svg);
+  window.addEventListener("scroll", () => { rect = null; }, true);
   const onMove = (e) => {
-    const r = svg.getBoundingClientRect();
+    const r = rect || (rect = svg.getBoundingClientRect());
     const dx = (e.clientX - (r.left + r.width / 2)) / Math.max(200, innerWidth / 2);
     const dy = (e.clientY - (r.top + r.height * 0.42)) / Math.max(200, innerHeight / 2);
     st.look = [clamp(dx, -1, 1) * 7, clamp(dy, -1, 1) * 3];
@@ -342,6 +348,7 @@ export function createAvatar(host, { size = 260, interactive = true, crt = 0 } =
       cancelAnimationFrame(st.raf);
       window.removeEventListener("mousemove", onMove);
       document.removeEventListener("visibilitychange", onVis);
+      ro.disconnect();
       host.innerHTML = "";
     },
   };

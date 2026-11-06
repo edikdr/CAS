@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 
 from . import util
 from .platform import IS_WINDOWS
@@ -94,6 +95,34 @@ async def clear(name: str) -> bool:
         return await asyncio.to_thread(_kr_del, name)
     rc, _, _ = await util.arun(["secret-tool", "clear", *_attrs(name)], 10)
     return rc == 0
+
+
+def env_key(*names: str) -> str:
+    """Ключ из переменной окружения процесса, а на Windows — и из пользовательских/системных переменных реестра
+    (заданных уже после запуска Haotica). Значение не логируется и не пишется в файлы."""
+    for n in names:
+        v = os.environ.get(n, "").strip()
+        if v:
+            return v
+    if IS_WINDOWS:
+        try:
+            import winreg
+            for root, sub in ((winreg.HKEY_CURRENT_USER, "Environment"),
+                              (winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")):
+                try:
+                    with winreg.OpenKey(root, sub) as k:
+                        for n in names:
+                            try:
+                                v = str(winreg.QueryValueEx(k, n)[0]).strip()
+                            except OSError:
+                                continue
+                            if v:
+                                return v
+                except OSError:
+                    continue
+        except ImportError:
+            pass
+    return ""
 
 
 def backend() -> str:

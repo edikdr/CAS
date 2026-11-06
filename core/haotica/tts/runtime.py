@@ -35,8 +35,12 @@ def installed() -> str:
 
 
 def env() -> dict:
-    return {"PYTHONPATH": str(paths.LIB_DIR), "HAOTICA_DEV_ROOT": os.environ.get("HAOTICA_DEV_ROOT", "")} \
-        if os.environ.get("HAOTICA_DEV_ROOT") else {"PYTHONPATH": str(paths.LIB_DIR)}
+    e = {"PYTHONPATH": str(paths.LIB_DIR)}
+    if os.environ.get("HAOTICA_DEV_ROOT"):
+        e["HAOTICA_DEV_ROOT"] = os.environ["HAOTICA_DEV_ROOT"]
+    if installed():                 # веса уже скачаны при установке: без похода в сеть служба стартует быстрее
+        e.update({"HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1", "HF_HUB_DISABLE_TELEMETRY": "1"})
+    return e
 
 
 # ── haotica voice install <движок> ───────────────────────────────

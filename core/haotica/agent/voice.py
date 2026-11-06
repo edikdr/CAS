@@ -87,6 +87,36 @@ def scale_wav(data: bytes, gain: float) -> bytes:
         return data
 
 
+def _pcm(data: bytes, sr: int):
+    """WAV → моно int16 нужной частоты (numpy) или None."""
+    try:
+        import numpy as np
+        with wave.open(io.BytesIO(data)) as w:
+            rate, ch, width = w.getframerate(), w.getnchannels(), w.getsampwidth()
+            raw = w.readframes(w.getnframes())
+        if width != 2:
+            return None
+        a = np.frombuffer(raw, dtype=np.int16)
+        if ch > 1:
+            a = a.reshape(-1, ch).mean(axis=1).astype(np.int16)
+        if rate != sr:
+            from .. import audio
+            a = (np.clip(audio.resample(a.astype(np.float32) / 32768, rate, sr), -1, 1) * 32767).astype(np.int16)
+        return a
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _wav(a, sr: int) -> bytes:
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(a.tobytes())
+    return buf.getvalue()
+
+
 class Voice:
     """Речь Haotica: по предложениям (первое звучит, пока синтезируется второе), с прерыванием.
 
@@ -99,6 +129,7 @@ class Voice:
         self.playing: asyncio.subprocess.Process | None = None
         self.gen = 0                                     # поколение речи: stop() его увеличивает
         self._win_playing = False
+        self.rtf = 4.0                                   # во сколько раз синтез дольше звучания (уточняется по ходу)
 
     def enabled(self, s: dict) -> bool:
         ha = s.get("haotica", {})
@@ -143,8 +174,10 @@ class Voice:
         mood = {"warning": "warning", "happy": "happy"}.get(emotion, "neutral")
         # вслух — начало ответа (до конца фразы), остальное в чате: синтез на процессоре идёт ~4× дольше звучания,
         # и 900 символов занимали все ядра на минуты (настройка haotica.voice_max_chars)
-        max_chars = int(s.get("haotica", {}).get("voice_max_chars", 320) or 320)
-        plan = prosody.plan(text, lang if lang in ("ru", "en", "de") else "", speed, mood, max_chars=max(120, max_chars))
+        ha = s.get("haotica", {})
+        max_chars = int(ha.get("voice_max_chars", 320) or 320)
+        plan = prosody.plan(text, lang if lang in ("ru", "en", "de") else "", speed, mood, max_chars=max(120, max_chars),
+                            pause_scale=float(ha.get("voice_pause_scale", 0.35)))
         speech = [i for i, x in enumerate(plan) if x.kind == "speech"]
         if not speech:
             return False
@@ -156,6 +189,8 @@ class Voice:
             if not audio and backend in ("elevenlabs", "local", "auto"):
                 audio = await self._eleven(seg.text, seg.lang, seg.exaggeration, seg.speed)
             return audio
+        if ha.get("voice_flow", "continuous") != "fast":
+            return await self._say_continuous(plan, synth, s, gen)
         tasks: dict[int, asyncio.Task] = {speech[0]: asyncio.create_task(synth(plan[speech[0]]))}
         played = False
         try:
@@ -185,6 +220,86 @@ class Voice:
             for t in tasks.values():
                 t.cancel()
         return played
+
+    async def _say_continuous(self, plan, synth, s: dict, gen: int) -> bool:
+        """Речь без разрывов: фразы и паузы синтезируются по порядку и склеиваются; звук начинается, когда
+        накопленного хватает, чтобы синтез оставшегося успел до конца звучания (скорость синтеза запоминается).
+        Дальше всё, что готово, играется одним куском — между фразами нет пауз на ожидание синтеза."""
+        import numpy as np
+        SR = 24000
+        q: asyncio.Queue = asyncio.Queue()
+        stat = {"audio": 0.0, "synth": 0.0, "chars": 0, "ok": True}
+        total_chars = sum(len(x.text) for x in plan if x.kind == "speech") or 1
+
+        async def producer() -> None:
+            first = True
+            try:
+                for seg in plan:
+                    if gen != self.gen:
+                        return
+                    if seg.kind == "pause":
+                        await q.put(np.zeros(int(SR * seg.ms / 1000), np.int16))
+                        continue
+                    if seg.kind == "sound":
+                        f = voice_dir() / f"{seg.sound}.ogg"
+                        if f.exists():
+                            from .. import audio
+                            arr = _pcm(await asyncio.to_thread(audio.to_wav, f, SR, seg.ms / 1000 if seg.ms else 0), SR)
+                            if arr is not None:
+                                await q.put(arr)
+                        continue
+                    t0 = time.monotonic()
+                    data = await synth(seg)
+                    arr = _pcm(data, SR) if data else None
+                    if arr is None:
+                        if first:                   # голоса Сары нет — молчим, а не говорим чужим голосом
+                            stat["ok"] = False
+                            return
+                        continue
+                    first = False
+                    stat["synth"] += time.monotonic() - t0
+                    stat["audio"] += len(arr) / SR
+                    stat["chars"] += len(seg.text)
+                    await q.put(arr)
+            finally:
+                await q.put(None)
+
+        task = asyncio.create_task(producer())
+        buf: list = []
+        done = started = played = False
+        try:
+            while True:
+                while not q.empty():
+                    item = q.get_nowait()
+                    if item is None:
+                        done = True
+                    else:
+                        buf.append(item)
+                if gen != self.gen:
+                    return played
+                if not buf and done:
+                    break
+                if not started and buf and not done:
+                    rtf = stat["synth"] / stat["audio"] if stat["audio"] else self.rtf
+                    per_char = stat["audio"] / stat["chars"] if stat["chars"] else 1 / 13
+                    left = (total_chars - stat["chars"]) * per_char * rtf      # сколько ещё синтезировать, с
+                    if sum(len(a) for a in buf) / SR >= left * 1.1:
+                        started = True
+                if (started or done) and buf:
+                    data, buf = np.concatenate(buf), []
+                    await self._play_bytes(_wav(data, SR), s, gen)
+                    played = True
+                    continue
+                item = await q.get()
+                if item is None:
+                    done = True
+                else:
+                    buf.append(item)
+        finally:
+            task.cancel()
+            if stat["audio"] > 1:
+                self.rtf = 0.6 * self.rtf + 0.4 * (stat["synth"] / stat["audio"])   # помним скорость синтеза
+        return played and stat["ok"]
 
     async def _local(self, text: str, lang: str, exaggeration: float = 0.5, speed: float = 1.0, cfg: float = 0.5,
                      temperature: float = 0.8) -> bytes:

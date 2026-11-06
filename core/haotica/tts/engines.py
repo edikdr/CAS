@@ -132,6 +132,14 @@ def _decode_ref(src: Path, dst: Path, sr: int, seconds: float) -> bool:
     return False
 
 
+def _setting(key: str, default):
+    try:
+        from .. import config
+        return config.get(key, default)
+    except Exception:  # noqa: BLE001
+        return default
+
+
 def voice_pitch() -> float:
     """haotica.voice_pitch — подъём тона Сары в полутонах (0 — как в образце)."""
     try:
@@ -172,25 +180,50 @@ class Chatterbox(Engine):
             torch.set_num_threads(max(1, os.cpu_count() or 1))
         self.m = ChatterboxMultilingualTTS.from_pretrained(device=dev)
         self.pitch = voice_pitch()
+        # качество/скорость на процессоре (haotica.voice_quality). Замер на Ryzen AI Max+ 392, 24 потока:
+        #   best     — fp32, 10 шагов декодера: синтез ≈ 3,5× дольше звучания;
+        #   balanced — T3 (токены речи) в bf16, 8 шагов: ≈ 2,6×, T3 в памяти вдвое меньше, звук почти не меняется;
+        #   fast     — bf16, 6 шагов: ≈ 2,2×.
+        q = _setting("haotica.voice_quality", "balanced")
+        self.steps = {"best": 10, "balanced": 8, "fast": 6}.get(q, 8)
+        self.dtype = torch.float32
+        if dev == "cpu" and q in ("balanced", "fast"):
+            self.m.t3.to(torch.bfloat16)
+            self.dtype = torch.bfloat16
         self.conds = {}                       # язык → условия клона: свой образец Сары на каждый язык
         for key in ("ru", "en"):
             ref = reference(24000, lang=key, pitch=self.pitch)
             if ref:
                 self.m.prepare_conditionals(ref, exaggeration=0.5)
                 self.conds[key] = self.m.conds
-        self.voice_id = f"sarah-ru-en-p{self.pitch:+.2f}"
+        self.voice_id = f"sarah-ru-en-p{self.pitch:+.2f}-{q}"
 
     def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
         # exaggeration — выразительность интонации; cfg_weight ниже — речь размереннее и чётче;
         # темп Chatterbox задаётся через cfg (быстрее — выше), без передискретизации
-        c = self.conds.get("ru" if lang == "ru" else "en")
-        if c is not None:
-            self.m.conds = c
+        torch = self.torch
+        import torch.nn.functional as F
+        from chatterbox.models.s3tokenizer import drop_invalid_tokens
+        from chatterbox.models.t3.modules.cond_enc import T3Cond
+        from chatterbox.mtl_tts import punc_norm
+        m = self.m
+        c = self.conds.get("ru" if lang == "ru" else "en") or m.conds
         cfg = max(0.25, min(0.75, cfg + (speed - 1.0) * 0.8))
-        with self.torch.inference_mode():
-            wav = self.m.generate(text, language_id=lang if lang in self.langs else "ru", exaggeration=exaggeration,
-                                  cfg_weight=cfg, temperature=max(0.5, min(1.1, temperature)))
-        return to_wav(wav.squeeze().cpu().numpy(), self.m.sr)
+        # как ChatterboxMultilingualTTS.generate, но с типом T3 и числом шагов декодера из настроек
+        cond = T3Cond(speaker_emb=c.t3.speaker_emb, cond_prompt_speech_tokens=c.t3.cond_prompt_speech_tokens,
+                      emotion_adv=exaggeration * torch.ones(1, 1, 1)).to(device=m.device, dtype=self.dtype)
+        tt = m.tokenizer.text_to_tokens(punc_norm(text), language_id=lang if lang in self.langs else "ru").to(m.device)
+        tt = torch.cat([tt, tt], dim=0)                                     # две копии — для CFG
+        tt = F.pad(F.pad(tt, (1, 0), value=m.t3.hp.start_text_token), (0, 1), value=m.t3.hp.stop_text_token)
+        with torch.inference_mode():
+            st = m.t3.inference(t3_cond=cond, text_tokens=tt, max_new_tokens=1000,
+                                temperature=max(0.5, min(1.1, temperature)), cfg_weight=cfg,
+                                repetition_penalty=2.0, min_p=0.05, top_p=1.0)
+            st = drop_invalid_tokens(st[0]).to(m.device)
+            wav, _ = m.s3gen.inference(speech_tokens=st, ref_dict=c.gen, n_cfm_timesteps=self.steps)
+            wav = wav.squeeze(0).detach().float().cpu().numpy()
+            wav = m.watermarker.apply_watermark(wav, sample_rate=m.sr)
+        return to_wav(wav, m.sr)
 
 
 class XTTS(Engine):

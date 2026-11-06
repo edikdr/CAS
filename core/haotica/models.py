@@ -27,6 +27,7 @@ HF = "https://huggingface.co/{repo}/resolve/main/{file}?download=true"
 #   deep — Qwen3-Coder-Next 80B-A3B (IQ4): длинные и глубокие задачи, код, большие контексты.
 #   fast — крошечная модель для подсказок прямо в строке терминала (всегда рядом, ~1 ГБ).
 _QWEN38 = "unsloth/Qwen3.8-27B-GGUF"
+_RANA = "abliterant/Qwen3.8-27B-RANA-abliterated-GGUF"
 _QWEN38_EXTRA = {
     "mmproj": {"repo": "ggml-org/Qwen3.8-27B-GGUF", "file": "mmproj-Qwen3.8-27B-Q8_0.gguf", "size": 629247008,
                "sha256": "2e968a6af97ce35d8971890b257b9b7edabf20ad91450501fa53162a19ee33eb"},
@@ -44,6 +45,13 @@ CATALOG: dict[str, list[dict]] = {
         {"id": "qwen3.8-27b-ud-iq4xs", "label": "Qwen3.8-27B · UD-IQ4_XS (легче)", "repo": _QWEN38,
          "file": "Qwen3.8-27B-UD-IQ4_XS.gguf", "size": 14252845984,
          "sha256": "40fac4050e940397dbf13087afd50f4734a11805bf9d65ef8ddd7483470e6199", "ctx_max": 262144, **_QWEN38_EXTRA},
+        # без отказов (abliterated): тот же Qwen3.8-27B с удалённым «направлением отказа»; зрение — его же mmproj
+        {"id": "qwen3.8-27b-rana-abl-q5km", "label": "Qwen3.8-27B RANA abliterated · Q5_K_M (без отказов)",
+         "repo": _RANA, "file": "Qwen3.8-27B-RANA-abliterated-Q5_K_M.gguf", "size": 19231100032,
+         "sha256": "e0168d24324c9771043735ec32e84a1dc441fb7876091fabbe678e734461555d", "ctx_max": 262144,
+         "mmproj": {"repo": _RANA, "file": "mmproj-Qwen3.8-27B-RANA-abliterated-F16.gguf", "size": 927607328,
+                    "sha256": "aa995ddf715e6f7e818f90a5b2c64daa57991286317437af44f1b5c52cac56ac"},
+         "draft": _QWEN38_EXTRA["draft"]},
     ],
     "deep": [
         {"id": "qwen3-coder-next-iq4xs", "label": "Qwen3-Coder-Next 80B-A3B · IQ4_XS", "repo": "unsloth/Qwen3-Coder-Next-GGUF",
@@ -392,10 +400,17 @@ def _shrink_file(role: str) -> Path:
 
 
 def _ctx_shrink(role: str) -> int:
-    """Контекст, который поместился после нехватки памяти (0 — ограничения нет)."""
+    """Контекст, который поместился после нехватки памяти (0 — ограничения нет). Отметка действует сутки и только
+    для того же файла модели: разовая нехватка (память ещё не освободилась) не урезает контекст навсегда."""
+    import time
+    f = _shrink_file(role)
     try:
-        return int(_shrink_file(role).read_text(encoding="utf-8").split()[0])
-    except (OSError, ValueError, IndexError):
+        parts = f.read_text(encoding="utf-8").split()
+        if time.time() - f.stat().st_mtime > 86400 or (len(parts) > 1 and parts[1] != load_manifest()["models"][role]["file"]):
+            f.unlink(missing_ok=True)
+            return 0
+        return int(parts[0])
+    except (OSError, ValueError, IndexError, KeyError):
         return 0
 
 
@@ -423,7 +438,8 @@ def on_start_failure(role: str, log_tail: str) -> str:
         nxt = max(16384, cur // 2)
         if cur <= 16384:
             return "oom-final"
-        _shrink_file(role).write_text(f"{nxt} — не хватило памяти видеокарты при {cur}\n", encoding="utf-8")
+        _shrink_file(role).write_text(f"{nxt} {load_manifest()['models'][role]['file']} — не хватило памяти "
+                                      f"видеокарты при {cur}\n", encoding="utf-8")
         return "oom"
     if why == "spec":
         _nospec_marker(role).write_text("llama-server не принял драфт\n", encoding="utf-8")
@@ -466,7 +482,8 @@ def server_args(role: str, spec: bool = True) -> list[str]:
         args += ["-c", str(ctx), "-np", slots, "--kv-unified", "-b", "2048", "-ub", "512", "--cache-reuse", "256"]
         # 8-битный кэш: у Qwen3.8-27B 16 слоёв полного внимания (~64 КБ на токен в f16) — с 64K;
         # deep (~40 ГиБ весов) — всегда: на Windows f16-кэш 128K уже не помещался рядом с быстрой моделью
-        if ctx > 65536 or role == "deep":
+        # на Windows (общая память с системой) — всегда: q8-кэш вдвое меньше f16, на качество почти не влияет
+        if ctx > 65536 or role == "deep" or os.name == "nt":
             args += ["--cache-type-k", "q8_0", "--cache-type-v", "q8_0"]
         if m.get("mmproj") and (paths.MODELS_DIR / m["mmproj"]["file"]).exists():
             args += ["--mmproj", str(paths.MODELS_DIR / m["mmproj"]["file"])]

@@ -563,7 +563,7 @@ class Agent:
                 self.state.set("warning", err)
                 yield {"type": "error", "error": err}
                 return
-        mode = config.get("haotica.mode", "copilot")
+        mode = "agent" if config.get("haotica.unrestricted") else config.get("haotica.mode", "copilot")
         schemas = tools.schemas(mode, terminal=self.hub_has_exec_listener()) if config.get("haotica.enabled", True) else None
         think = role == "base" and (len(text) > 400 or bool(re.search(r"(?i)подумай|почему|объясни|think", text)))
         final, used, steps = "", [], []
@@ -757,19 +757,26 @@ class Agent:
 
     async def cloud_request(self, question: str, why: str, effort: str, ctx: dict) -> dict:
         c = self.cloud.cfg()
-        if not c.get("enabled") or not c.get("model"):
-            return {"error": "облако выключено или модель не выбрана (Настройки → Haotica → Облако)"}
+        if not self.cloud.key:
+            await self.cloud.load_key()
+        model = c.get("model") or c.get("helper_careful") or c.get("helper_fast")
+        if not self.cloud.key:
+            return {"error": "нет ключа OpenRouter: Настройки → Haotica → Облако (или переменная OPENROUTER_API_KEY)"}
+        if c.get("enabled", True) is False or not model:
+            return {"error": "облако выключено владельцем или модель не выбрана (Настройки → Haotica → Облако)"}
         b = self.cloud.budget()
         if b["day"] >= float(b["limit_day"]) or b["month"] >= float(b["limit_month"]):
             return {"error": "облачный бюджет исчерпан"}
-        q = safety.redact(question)
-        r = await self.cloud.chat(c["model"], [{"role": "user", "content": q}], effort or c.get("effort", ""),
+        # только короткий обезличенный вопрос — без истории чата, путей, имён, адресов и секретов
+        q, removed = safety.brief_check(question)
+        r = await self.cloud.chat(model, [{"role": "system", "content": "Answer concisely and precisely."},
+                                          {"role": "user", "content": q}], effort or c.get("effort", ""),
                                   max_tokens=2000, kind="cloud", note=why)
         if not r.get("ok"):
             return {"error": r.get("error", "облако недоступно")}
         if r.get("refused"):
             return {"refused": True, "note": "облако отказалось отвечать; не переформулируй запрос, продолжай сама"}
-        return {"answer": r["text"], "cost": r.get("cost")}
+        return {"answer": r["text"], "cost": r.get("cost"), "model": model, **({"removed": removed} if removed else {})}
 
     # ── подсказки в терминале и разбор ошибок ──────────────────
     async def complete_shell(self, prefix: str, cwd: str) -> str:

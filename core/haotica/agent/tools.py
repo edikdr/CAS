@@ -70,7 +70,9 @@ SCHEMAS = [
         {"path": S, "question": S}, ["path"]),
     _fn("web_search", "Поиск и разбор ПУБЛИЧНОЙ информации в интернете через помощников. В задаче не должно быть "
         "ничего личного: только что найти, ограничения и формат.", {"task": S, "careful": B}, ["task"]),
-    _fn("cloud_ask", "Спросить облачную модель (второе мнение). Нужен запрос разрешения у владельца.",
+    _fn("cloud_ask", "Спросить облачную модель OpenRouter (второе мнение, свежие знания, сложный код). Отправляй "
+        "КОРОТКИЙ самодостаточный вопрос без личных данных и без пересказа разговора — только то, что нужно узнать; "
+        "пути, имена, адреса и секреты всё равно вычищаются. С личными данными — спросит владельца.",
         {"question": S, "why": S, "effort": S}, ["question", "why"]),
     _fn("remember", "Запомнить факт о владельце (предпочтения, проекты, привычки).", {"fact": S}, ["fact"]),
     _fn("recall", "Вспомнить, что известно по теме.", {"query": S}, ["query"]),
@@ -159,6 +161,22 @@ class Tools:
         ha = self.cfg()
         mode, autonomy = ha.get("mode", "copilot"), ha.get("autonomy", "readonly")
         ctx = ctx or {}
+        if name == "cloud_ask":
+            # облаку уходит только короткий обезличенный вопрос (brief_check убирает пути, имена, адреса, секреты);
+            # если убирать было нечего — без карточки, как у помощников поиска
+            _clean, removed = safety.brief_check(str(args.get("question", "")))
+            if not removed or ha.get("unrestricted"):
+                return False, {"level": "cloud", "reasons": [f"убрано: {', '.join(removed)}"] if removed else []}
+            return True, {"level": "cloud", "reasons": ["в вопросе личные данные: " + ", ".join(removed)]}
+        if ha.get("unrestricted"):
+            # режим владельца «без ограничений»: всё выполняется без карточек, в том числе опасное;
+            # закрытые зоны (банковский профиль, хранилище паролей, токен HAOTICA) остаются закрытыми
+            if name in ("run_command", "terminal_run"):
+                cmd = str(args.get("command", ""))
+                shell = "cmd" if name == "run_command" and os.name == "nt" else str(ctx.get("shell") or "")
+                risk = safety.classify(cmd, shell)
+                return (risk["level"] == "denied"), risk
+            return False, {"level": "write", "reasons": []}
         if name in ("run_command", "terminal_run"):
             cmd = str(args.get("command", ""))
             shell = str(ctx.get("shell") or "")

@@ -82,18 +82,9 @@ class LLM:
     # ── выбор модели ───────────────────────────────────────────
     @staticmethod
     def prefer_deep(ha: dict) -> bool:
-        """deep — основная в «авто»: если так задано (haotica.prefer_deep), а по умолчанию — только на Windows
-        и при ≥ 80 ГиБ ОЗУ. Замер на 56 ГиБ: deep (≈42 ГБ) + голос на процессоре (≈8 ГБ) + браузер оставляли
-        ~1 ГБ свободной памяти — система начинала задыхаться."""
-        if "prefer_deep" in ha:
-            return bool(ha["prefer_deep"])
-        if os.name != "nt":
-            return False
-        try:
-            import psutil
-            return psutil.virtual_memory().total >= 80 * 2 ** 30
-        except ImportError:
-            return False
+        """deep — основная в «авто», если владелец включил haotica.prefer_deep (Настройки → «Deep (80B) — основная»).
+        По умолчанию выключено: на 56 ГиБ deep (≈40 ГБ) + голос на процессоре + браузер оставляли ~1 ГБ."""
+        return bool(ha.get("prefer_deep", False))
 
     def memory_for(self, role: str) -> tuple[bool, str]:
         """Хватит ли оперативной памяти поднять модель (с учётом той, что выгрузится при переключении)."""
@@ -153,10 +144,13 @@ class LLM:
             if self.main == role and await self.health(role) == "ready":
                 return True
             fits, why = self.memory_for(role)
-            if not fits:                               # не валить систему: остаёмся на текущей модели
+            explicit = config.get("haotica.model_mode", "auto") == role or self.prefer_deep(config.get("haotica", {}) or {})
+            if not fits and not explicit:              # «авто» не валит систему; явный выбор владельца — пробуем
                 log.warning(why)
                 self.errors[role] = why
                 return False
+            if not fits:
+                log.warning("%s — запускаю по выбору владельца", why)
             self.switching = role
             try:
                 if await self.health(other) != "offline" or services.supervised():

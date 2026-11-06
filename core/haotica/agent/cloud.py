@@ -38,8 +38,21 @@ class Cloud:
         self.key = ""
 
     async def load_key(self) -> str:
+        """Ключ из хранилища (Credential Manager); если там пусто — из переменной окружения OPENROUTER_API_KEY
+        (в том числе заданной для пользователя позже запуска), и тогда он переносится в хранилище."""
         self.key = await secrets.get("openrouter")
+        if not self.key:
+            env = secrets.env_key("OPENROUTER_API_KEY", "OPENROUTER_KEY", "OPEN_ROUTER_API_KEY")
+            if env:
+                self.key = env
+                if await secrets.store("openrouter", env):
+                    log.info("ключ OpenRouter взят из переменной окружения и сохранён в хранилище")
         return self.key
+
+    def available(self) -> bool:
+        """Облако можно использовать: есть ключ и модель (выключатель cloud.enabled — явный запрет владельца)."""
+        c = self.cfg()
+        return bool(self.key) and c.get("enabled", True) is not False and bool(c.get("model") or c.get("helper_fast"))
 
     def cfg(self) -> dict:
         return config.get("cloud", {}) or {}
@@ -157,16 +170,19 @@ class Cloud:
 
     # ── запросы ────────────────────────────────────────────────
     async def chat(self, model: str, messages: list[dict], effort: str = "", max_tokens: int = 2000,
-                   kind: str = "cloud", note: str = "") -> dict:
-        body: dict = {"model": model, "messages": messages, "max_tokens": max_tokens, "usage": {"include": True}}
+                   kind: str = "cloud", note: str = "", extra: dict | None = None) -> dict:
+        body: dict = {"model": model, "messages": messages, "max_tokens": max_tokens, "usage": {"include": True},
+                      **(extra or {})}
         if effort and effort != "off":
             body["reasoning"] = {"effort": effort} if not effort.isdigit() else {"max_tokens": int(effort)}
         t0 = time.time()
         st, d = await self._req("POST", "/chat/completions", body, timeout=180)
         usage = d.get("usage") or {}
-        text = ""
+        text, notes = "", []
         if st == 200:
-            text = ((d.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+            msg = (d.get("choices") or [{}])[0].get("message") or {}
+            text = msg.get("content") or ""
+            notes = [a.get("url_citation", {}) for a in (msg.get("annotations") or []) if a.get("type") == "url_citation"]
         cost = float(usage.get("cost") or 0)
         sent = json.dumps(messages, ensure_ascii=False)
         self._write({"ts": int(t0), "day": _day(), "kind": kind, "model": model, "effort": effort, "status": st,
@@ -177,7 +193,31 @@ class Cloud:
         if st != 200:
             err = d.get("error")
             return {"ok": False, "status": st, "error": err.get("message") if isinstance(err, dict) else str(err)}
-        return {"ok": True, "text": text, "cost": cost, "usage": usage, "refused": safety.looks_like_refusal(text)}
+        return {"ok": True, "text": text, "cost": cost, "usage": usage, "refused": safety.looks_like_refusal(text),
+                "citations": [{"title": c.get("title", ""), "url": c.get("url", "")} for c in notes if c.get("url")]}
+
+    async def web_answer(self, clean: str, careful: bool) -> dict:
+        """Поиск без SearXNG (Windows): модель OpenRouter со встроенным веб-поиском (plugins: web). Уходит только
+        обезличенный бриф; ответ — с источниками."""
+        c = self.cfg()
+        model = (c.get("helper_careful") if careful else c.get("helper_fast")) or c.get("model", "")
+        a = await self.chat(model, [
+            {"role": "system", "content": "Search the web and answer the task. Reply as JSON: "
+             '{"answer": str, "facts": [{"claim": str, "url": str}], "confidence": 0..1, "gaps": str}. '
+             "Answer in the language of the task."},
+            {"role": "user", "content": clean}], max_tokens=900, kind="helper", note="web",
+            extra={"plugins": [{"id": "web", "max_results": 5}]})
+        if not a.get("ok"):
+            return {"ok": False, "error": a.get("error", "помощник недоступен")}
+        if a.get("refused"):
+            return {"ok": False, "refused": True, "error": "помощник отказался отвечать — продолжаю локально"}
+        try:
+            parsed = json.loads(re.search(r"\{.*\}", a["text"], re.S).group(0))
+        except (AttributeError, ValueError):
+            parsed = {"answer": a["text"], "facts": [], "confidence": 0.5}
+        return {"ok": True, "answer": parsed.get("answer", ""), "facts": parsed.get("facts", []),
+                "confidence": parsed.get("confidence"), "gaps": parsed.get("gaps", ""),
+                "sources": a.get("citations", []), "models": [model], "cost": a.get("cost", 0)}
 
     # ── помощники: поиск и разбор публичной информации без разрешения ──
     async def assist(self, brief: str, careful: bool = False, max_pages: int = 5) -> dict:
@@ -195,6 +235,10 @@ class Cloud:
         self.assist_active += 1
         self.hub.publish("assist", {"active": self.assist_active, "budget": self.budget()})
         try:
+            # без локального SearXNG (Windows) или по настройке — поиск силами OpenRouter
+            if c.get("search_backend") == "openrouter" or not await self.search.available():
+                res = await self.web_answer(clean, careful)
+                return {**res, "removed": removed} if res.get("ok") else res
             # 1) запросы для поиска — быстрая модель
             q = await self.chat(fast, [
                 {"role": "system", "content": "Return 2-4 web search queries for the task as a JSON array of strings. No prose."},

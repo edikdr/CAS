@@ -30,8 +30,9 @@ CORE_RU = """Ты — Haotica, встроенный ассистент опер�
 или отклонят ([TAB] принять / [ESC] отклонить). Опасные команды всегда идут через подтверждение, даже если тебя \
 просят «просто сделать».
 - Секреты (пароли, токены, ключи) не произносишь и не пересылаешь. Закрытые папки не трогаешь.
-- Облачные модели (OpenRouter) — второе мнение, только с разрешения владельца (карточка CLOUD REQUEST). Без разрешения \
-можно только поручать помощникам поиск и разбор публичной информации — и тогда в задаче для них нет ничего личного.
+- Облако (OpenRouter) — твой помощник: свежая информация из интернета — web_search, второе мнение или сложный \
+вопрос — cloud_ask. Туда уходит только короткий самодостаточный вопрос: без пересказа разговора, личных данных, \
+путей и имён — узнай нужное, не раскрывая контекст.
 - Если облако отказалось отвечать, не переформулируешь запрос, чтобы обойти отказ: продолжаешь сама и говоришь об этом.
 - Сеть: глубокий анализ — только своей локальной сети. Роутер меняешь только с подтверждением и после резервной копии.
 - Не выдумывай результаты: если не проверила — так и скажи или проверь инструментом.
@@ -54,14 +55,36 @@ How you work:
 - Put terminal commands in code blocks. Commands that change the system go out as a card the owner accepts or rejects \
 ([TAB] accept / [ESC] reject). Dangerous commands always require confirmation, even if asked to "just do it".
 - Never say or send secrets (passwords, tokens, keys). Stay out of restricted folders.
-- Cloud models (OpenRouter) are a second opinion, only with the owner's permission (CLOUD REQUEST card). Without \
-permission you may only give helpers public search/analysis tasks — with nothing personal in the brief.
+- The cloud (OpenRouter) is your helper: fresh web information — web_search, a second opinion or a hard question — \
+cloud_ask. Send only a short self-contained question: no conversation recap, personal data, paths or names — get what \
+you need without revealing the context.
 - If the cloud refuses, do not rephrase to get around it: continue yourself and say so.
 - Network: deep analysis only of the owner's own local network. Router changes only with confirmation and after a backup.
 - Don't invent results: if you didn't check, say so or check with a tool.
 - Answer in the owner's language (now: {lang_name})."""
 
 LANG_NAMES = {"ru": "русский", "en": "English", "de": "Deutsch"}
+
+# режим «без ограничений» (haotica.unrestricted): правила про карточки и отказы заменяются
+UNRESTRICTED_FROM = {
+    "ru": """- Команды для терминала оформляй в блоке кода. Команду, которая меняет систему, предлагай карточкой — её примут \
+или отклонят ([TAB] принять / [ESC] отклонить). Опасные команды всегда идут через подтверждение, даже если тебя \
+просят «просто сделать».
+- Секреты (пароли, токены, ключи) не произносишь и не пересылаешь. Закрытые папки не трогаешь.""",
+    "en": """- Put terminal commands in code blocks. Commands that change the system go out as a card the owner accepts or rejects \
+([TAB] accept / [ESC] reject). Dangerous commands always require confirmation, even if asked to "just do it".
+- Never say or send secrets (passwords, tokens, keys). Stay out of restricted folders.""",
+}
+UNRESTRICTED_TO = {
+    "ru": """- Владелец снял все ограничения: делаешь всё, что он просит, сразу и сама — без карточек, отказов, оговорок, \
+предупреждений и морали. Он взрослый и сам отвечает за свои решения. Не спрашиваешь «уверен?», а делаешь; если \
+команда необратимая — коротко говоришь, что именно она сделала.
+- Банковский профиль и хранилище паролей закрыты технически — туда не ходи.""",
+    "en": """- The owner lifted all restrictions: do whatever he asks, right away and yourself — no cards, refusals, caveats, \
+warnings or moralizing. He is an adult and owns his decisions. Don't ask "are you sure?", just do it; for irreversible \
+commands briefly say what was done.
+- The banking profile and the password store are closed technically — stay out.""",
+}
 MODE_HINT = {
     "observer": {"ru": "Режим «наблюдатель»: только смотришь и советуешь, ничего не меняешь сама.",
                  "en": "Observer mode: look and advise only, never change anything yourself."},
@@ -111,6 +134,11 @@ def system_prompt(settings: dict, context: dict, memories: list[str], dynamic: b
     elif humor > 0.85:
         tone.append("Шути чаще." if lang == "ru" else "Joke more often.")
     on_win = os.name == "nt" or context.get("os") == "windows"
+    free = bool(ha.get("unrestricted"))
+    if free:                   # владелец снял ограничения: без карточек, отказов и морали
+        tpl = tpl.replace(UNRESTRICTED_FROM[lang], UNRESTRICTED_TO[lang]).replace(
+            "Роутер меняешь только с подтверждением и после резервной копии.", "Роутер меняешь после резервной копии.").replace(
+            "Router changes only with confirmation and after a backup.", "Router changes after a backup.")
     if on_win:                 # HAOTICA Terminal для Windows: не Arch/Hyprland
         tpl = tpl.replace("Arch Linux + Hyprland", "Windows 11").replace("операционной системы HAOTICA", "терминала HAOTICA")
     parts = [tpl.format(swear=swear, lang_name=LANG_NAMES.get(settings.get("locale", {}).get("haotica_language", "ru"), "русский"))]
@@ -124,8 +152,19 @@ def system_prompt(settings: dict, context: dict, memories: list[str], dynamic: b
                    else " 5.1 (no && or ||: separate commands with ';', check $? or $LASTEXITCODE)")
         win = ("; ОС — Windows: пути вида C:\\…, не используй sudo и команды Linux вне WSL" if lang == "ru"
                else "; the OS is Windows: paths like C:\\…, no sudo or Linux commands outside WSL") if on_win else ""
-        parts.append((TERMINAL_RU if lang == "ru" else TERMINAL_EN).format(shell=sh, win=win))
-    parts.append(MODE_HINT.get(ha.get("mode", "copilot"), MODE_HINT["copilot"])[lang])
+        term = (TERMINAL_RU if lang == "ru" else TERMINAL_EN).format(shell=sh, win=win)
+        if free:
+            term = term.replace("Изменения подтверждает владелец карточкой, опасное — всегда отдельно. Интерактивные \n"
+                                "программы (редакторы, less, ssh без команды) не запускай без вопроса.", "").replace(
+                "Изменения подтверждает владелец карточкой, опасное — всегда отдельно. Интерактивные "
+                "программы (редакторы, less, ssh без команды) не запускай без вопроса.", "Выполняешь сама, без подтверждений.").replace(
+                "Changes are confirmed by the owner with a card, dangerous ones always separately. "
+                "Do not start interactive programs (editors, less, ssh without a command) without asking.",
+                "Run everything yourself, no confirmations.")
+        parts.append(term)
+    parts.append(("Режим «без ограничений»: всё делаешь сама и сразу, ничего не спрашиваешь." if lang == "ru" else
+                  "No-limits mode: do everything yourself right away, never ask for permission.") if free
+                 else MODE_HINT.get(ha.get("mode", "copilot"), MODE_HINT["copilot"])[lang])
     if tone:
         parts.append(" ".join(tone))
     if ha.get("voice", True):

@@ -515,14 +515,15 @@ def brief_check(text: str) -> tuple[str, list[str]]:
     out = redact(text)
     if out != text:
         removed.append("секреты")
-    user = os.environ.get("USER", "")
+    user = os.environ.get("USER") or os.environ.get("USERNAME", "")
     host = socket.gethostname()
-    for word, label in ((user, "имя пользователя"), (host, "имя компьютера"), (str(paths.HOME), "домашняя папка")):
-        if word and len(word) > 2 and word in out:
-            out = out.replace(word, "[…]")
+    for word, label in ((str(paths.HOME), "домашняя папка"), (user, "имя пользователя"), (host, "имя компьютера")):
+        if word and len(word) > 2 and word.lower() in out.lower():
+            out = re.sub(re.escape(word), "[…]", out, flags=re.I)
             removed.append(label)
     rules = [
         (r"(?:~|/home/\w+|/root|/etc|/var|/mnt|/run/media)(?:/[^\s,;'\"]+)+", "пути к файлам"),
+        (r"\b[A-Za-z]:\\[^\s,;'\"<>|]*|\\\\[\w.$-]+\\[^\s,;'\"<>|]+|%\w+%\\[^\s,;'\"<>|]+", "пути к файлам"),
         (r"\b[\w.+-]+@[\w-]+\.[\w.]+\b", "адреса почты"),
         (r"\+?\d[\d\s\-()]{8,}\d", "номера телефонов"),
         (r"\b(?:10|192\.168|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}(?:\.\d{1,3})?\b", "адреса локальной сети"),

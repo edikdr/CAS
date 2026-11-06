@@ -143,7 +143,20 @@ def _voice(sent: str, base_speed: float, mood: str, lang: str) -> Segment:
                    speed=round(max(0.8, min(1.25, speed * base_speed)), 3), temperature=temp, tags=tags)
 
 
-def plan(text: str, lang: str = "", base_speed: float = 1.0, mood: str = "neutral", max_chars: int = 900) -> list[Segment]:
+def plan(text: str, lang: str = "", base_speed: float = 1.0, mood: str = "neutral", max_chars: int = 900,
+         pause_scale: float = 1.0) -> list[Segment]:
+    """pause_scale — множитель всех пауз (haotica.voice_pause_scale): 1 — естественные, 0 — фразы подряд."""
+    out = _plan(text, lang, base_speed, mood, max_chars)
+    k = max(0.0, min(1.5, float(pause_scale)))
+    if k != 1.0:
+        out = [s for s in out if s.kind != "pause" or int(s.ms * k) >= 20]
+        for s in out:
+            if s.kind == "pause":
+                s.ms = int(s.ms * k)
+    return out
+
+
+def _plan(text: str, lang: str, base_speed: float, mood: str, max_chars: int) -> list[Segment]:
     t = for_speech(text)
     if len(t) > max_chars:                                          # длинный ответ: читаем начало до конца фразы
         cut = max(t.rfind(". ", 0, max_chars), t.rfind("! ", 0, max_chars), t.rfind("? ", 0, max_chars))

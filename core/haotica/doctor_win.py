@@ -114,9 +114,16 @@ def checks() -> list[dict]:
                 continue
             ok, info = _integration(p["id"])
             add(f"БЛОКИ · {p['name']}", "ok" if ok else "fail", info)
-    for name, port in (("ЯДРО", paths.PORT_CORE), ("HAOTICA", paths.PORT_HAOTICA), ("МОДЕЛЬ FAST", paths.PORT_LLM_FAST),
+    # быстрой модели в Windows нет; base и deep в памяти по одной — выгруженная из пары не ошибка
+    main_up = {r: _port(p) for r, p in (("base", paths.PORT_LLM_BASE), ("deep", paths.PORT_LLM_DEEP))}
+    for name, port in (("ЯДРО", paths.PORT_CORE), ("HAOTICA", paths.PORT_HAOTICA),
                        ("МОДЕЛЬ BASE", paths.PORT_LLM_BASE), ("МОДЕЛЬ DEEP", paths.PORT_LLM_DEEP), ("РЕЧЬ", paths.PORT_TTS)):
         up = _port(port)
+        role = name.split()[-1].lower() if name.startswith("МОДЕЛЬ") else ""
+        other = {"base": "deep", "deep": "base"}.get(role, "")
+        if not up and other and main_up.get(other):
+            add(f"ПОРТ {name}", "ok", f"{port} выгружена — работает {other} (вместе в память не помещаются)")
+            continue
         add(f"ПОРТ {name}", "ok" if up else ("fail" if port in (paths.PORT_CORE,) else "warn"), f"{port} {'слушает' if up else 'нет'}")
     from . import models
     exe = models.llama_server()

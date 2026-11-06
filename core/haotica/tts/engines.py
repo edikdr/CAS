@@ -18,7 +18,7 @@ from .. import paths
 
 log = logging.getLogger("haotica.tts")
 LANG_NAME = {"ru": "Russian", "en": "English", "de": "German"}
-PITCH_DEFAULT = 1.0
+PITCH_DEFAULT = -2.5          # ≈ 210 Гц на выходе Chatterbox: взрослый мягкий голос (+1 → ~257 Гц, «детский»)
 REF_TEXT = ("You know, sometimes the hardest part is simply getting started. But once you take that first step, "
             "everything becomes much easier. Let's try it together.")
 

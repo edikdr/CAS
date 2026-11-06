@@ -169,9 +169,31 @@ class Agent:
             if quick and self.llm.state.get(role) == "sleep":
                 continue                      # выгружена намеренно (deep ⇄ base) — не трогаем
             try:
-                self.bg(self.llm.ensure(role, 600)) if quick else await self.llm.ensure(role, 600)
+                if quick:
+                    self.bg(self.llm.ensure(role, 600))
+                elif await self.llm.ensure(role, 600) and role in models.MAIN_ROLES:
+                    self.bg(self._prefill(role))
             except Exception:  # noqa: BLE001
                 log.warning("%s не поднялась", role)
+
+    async def _prefill(self, role: str) -> None:
+        """Прогреть кэш промпта: системная инструкция и описания инструментов (~3,5 тыс. токенов, ~20 с на base)
+        считаются сразу после загрузки модели, а не на первом вопросе владельца."""
+        try:
+            await asyncio.sleep(4)                      # окно терминала успевает подписаться на exec
+            from ..apps import profiles
+            pr = profiles.detect()
+            dp = next((p for p in pr if p["id"] == profiles.default_id(pr)), {}) if pr else {}
+            ctx = {"source": "terminal", "shell": dp.get("kind", ""), "shell_name": dp.get("name", ""),
+                   "os": "windows" if os.name == "nt" else "linux"}
+            sys_msg = self.build_messages("__prefill__", ".", ctx)[0]
+            schemas = tools.schemas(config.get("haotica.mode", "copilot"), terminal=self.hub_has_exec_listener())
+            t0 = time.time()
+            async for _ev in self.llm.chat([sys_msg, {"role": "user", "content": "."}], schemas, role, max_tokens=1):
+                pass
+            log.info("кэш промпта %s прогрет за %.1f с", role, time.time() - t0)
+        except Exception as e:  # noqa: BLE001 — не вышло — первый вопрос просто будет дольше
+            log.info("прогрев кэша %s: %s", role, e)
 
     def _game_on(self) -> bool:
         m = util.load_json(paths.RUNTIME_DIR / "metrics.json", {}) or {}

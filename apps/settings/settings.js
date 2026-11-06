@@ -350,7 +350,8 @@ const PAGES = {
         [["auto", "Авто"], ["chatterbox", "Chatterbox"], ["xtts", "XTTS"], ["qwen3", "Qwen3-TTS"], ["f5", "F5"]]),
       field("Облачный голос", "Запасной вариант, если локальный синтез недоступен", elevenKeyRow()),
       range("haotica.voice_speed", "Скорость речи", null, { min: 0.7, max: 1.4, step: 0.05, fmt: (v) => v.toFixed(2) + "×" }),
-      range("haotica.voice_pitch", "Тон голоса", "Полутоны относительно образца Сары; применяется после «Перезапустить голос»", { min: -2, max: 3, step: 0.25, fmt: (v) => (v > 0 ? "+" : "") + v.toFixed(2) }),
+      num("haotica.voice_max_chars", "Читать вслух, символов", "Начало ответа до конца фразы; остальное — в чате", { min: 120, max: 2000, step: 20 }),
+      range("haotica.voice_pitch", "Тон голоса", "Полутоны относительно образца Сары; применяется после «Перезапустить голос»", { min: -4, max: 3, step: 0.25, fmt: (v) => (v > 0 ? "+" : "") + v.toFixed(2) }),
       el("div.s-actions",
         el("button.hy-btn.small", { onclick: async () => {
           HY.toast("Говорю…");

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from pathlib import Path
 
 from .. import config, helper, paths, theme, util
@@ -111,11 +112,17 @@ class Applier:
             self._assets_task.cancel()
 
         async def job() -> None:
-            from ..cli import build_assets
             p = theme.current_palette(s)
-            await asyncio.to_thread(build_assets, p, s)
-            ap = s.get("appearance", {})
-            await self.core.hypr.hyprctl("setcursor", ap.get("cursor_theme", "HAOTICA"), str(ap.get("cursor_size", 24)))
+            # иконки, курсор и обои — для рабочего стола HAOTICA OS (Hyprland); в терминале Windows они не нужны:
+            # раньше их рендер грузил процессор при каждой смене палитры и падал (нет исходника статуи, симлинк)
+            if os.name != "nt":
+                from ..cli import build_assets
+                try:
+                    await asyncio.to_thread(build_assets, p, s)
+                except Exception:  # noqa: BLE001
+                    log.exception("пересборка иконок и обоев")
+                ap = s.get("appearance", {})
+                await self.core.hypr.hyprctl("setcursor", ap.get("cursor_theme", "HAOTICA"), str(ap.get("cursor_size", 24)))
             self.core.publish_theme()
             self.core.events.add("ok", f"PALETTE // {p.name} APPLIED")
 

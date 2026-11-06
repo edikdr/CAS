@@ -43,7 +43,20 @@ class Session(QObject):
         self.t0 = time.monotonic()
         log.info("оболочка %s: %s (cwd %s)", self.profile["id"],
                  [a if len(a) <= 200 else a[:40] + f"…({len(a)} симв.)" for a in argv], cwd)
-        return ConPtyProcess(argv, env, cwd, self.size[0], self.size[1], self._data.emit, self._exit.emit)
+        return ConPtyProcess(argv, env, cwd, self.size[0], self.size[1], self._emit_data, self._emit_exit)
+
+    # поток чтения может закончиться уже после закрытия окна, когда объект Qt удалён — это не ошибка
+    def _emit_data(self, text: str) -> None:
+        try:
+            self._data.emit(text)
+        except RuntimeError:
+            pass
+
+    def _emit_exit(self, code: int) -> None:
+        try:
+            self._exit.emit(code)
+        except RuntimeError:
+            pass
 
     def _fallback(self, code: int) -> bool:
         """Оболочка упала сразу при старте (до 5 с, не 0) — пробуем следующий профиль, чтобы терминал не был мёртвым."""

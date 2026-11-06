@@ -53,7 +53,7 @@ llama.cpp и окружение речи `%LOCALAPPDATA%\Haotica\opt`. Все с
 
 Везде — голос Сары: локальный клон по образцу. По-русски — по её русским репликам (`assets/sounds/voice/ref_sarah_ru.ogg`,
 без английского акцента), по-английски и по-немецки — `ref_sarah_1.mp3`. Тон — «Настройки → Голос → Тон голоса»
-(`haotica.voice_pitch`, полутоны; по умолчанию +1, чуть выше образца), применяется после «Перезапустить голос».
+(`haotica.voice_pitch`, полутоны; по умолчанию −2,5 — взрослый мягкий голос ≈ 210 Гц; выше 0 звучит по-детски), применяется после «Перезапустить голос».
 Свой образец: `%LOCALAPPDATA%\Haotica\data\voice\sarah_ru.wav` (или `sarah.wav`). По умолчанию Chatterbox
 Multilingual (`haotica voice install chatterbox`), дальше по порядку Qwen3-TTS, F5, XTTS; запасной — ElevenLabs Sarah
 (ключ в Настройках). Чужими голосами (Piper, Silero) Haotica не говорит, если их не выбрать явно.

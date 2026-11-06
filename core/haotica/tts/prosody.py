@@ -147,7 +147,7 @@ def plan(text: str, lang: str = "", base_speed: float = 1.0, mood: str = "neutra
     t = for_speech(text)
     if len(t) > max_chars:                                          # длинный ответ: читаем начало до конца фразы
         cut = max(t.rfind(". ", 0, max_chars), t.rfind("! ", 0, max_chars), t.rfind("? ", 0, max_chars))
-        t = t[: cut + 1 if cut > 200 else max_chars] + " Остальное — в чате."
+        t = t[: cut + 1 if cut > max_chars // 3 else max_chars] + " Остальное — в чате."
     segs: list[Segment] = []
     pars = [p for p in re.split(r"\n\s*\n", t) if p.strip()]
     for pi, par in enumerate(pars):

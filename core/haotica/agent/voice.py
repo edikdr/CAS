@@ -141,7 +141,10 @@ class Voice:
         lang = s.get("locale", {}).get("haotica_language", "")
         speed = float(s.get("haotica", {}).get("voice_speed", 1.0))
         mood = {"warning": "warning", "happy": "happy"}.get(emotion, "neutral")
-        plan = prosody.plan(text, lang if lang in ("ru", "en", "de") else "", speed, mood)
+        # вслух — начало ответа (до конца фразы), остальное в чате: синтез на процессоре идёт ~4× дольше звучания,
+        # и 900 символов занимали все ядра на минуты (настройка haotica.voice_max_chars)
+        max_chars = int(s.get("haotica", {}).get("voice_max_chars", 320) or 320)
+        plan = prosody.plan(text, lang if lang in ("ru", "en", "de") else "", speed, mood, max_chars=max(120, max_chars))
         speech = [i for i, x in enumerate(plan) if x.kind == "speech"]
         if not speech:
             return False

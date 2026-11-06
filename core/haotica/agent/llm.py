@@ -285,7 +285,7 @@ class LLM:
                             c["id"] = tc["id"]
         if calls:
             yield {"type": "tool_calls", "calls": [calls[i] for i in sorted(calls)]}
-        if timings.get("predicted_per_second"):
+        if timings.get("predicted_per_second") and int(timings.get("predicted_n") or 0) >= 8:   # не по 1–2 токенам
             self.tps = round(float(timings["predicted_per_second"]), 1)
         yield {"type": "done", "usage": usage, "tps": self.tps, "timings": timings}
 

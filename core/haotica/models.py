@@ -68,6 +68,9 @@ CATALOG: dict[str, list[dict]] = {
     ],
 }
 EXTRAS = ("mmproj", "draft")
+# fast (Qwen3-1.7B) дописывает команды только в zsh HAOTICA OS; в терминале Windows от неё оставались лишь названия
+# чатов, а держала она ~1,5 ГБ памяти и место на диске — здесь её нет (названия даёт основная модель)
+ROLES = tuple(r for r in CATALOG if not (os.name == "nt" and r == "fast"))
 MAIN_ROLES = ("base", "deep")
 PORTS = {"base": paths.PORT_LLM_BASE, "fast": paths.PORT_LLM_FAST, "deep": paths.PORT_LLM_DEEP}
 # рекомендованные выборки (карточки моделей): Qwen3.8 — без «мыслей» / с «мыслями», Coder-Next — одна
@@ -95,6 +98,8 @@ def load_manifest() -> dict:
     have = m.get("models", {}) if isinstance(m.get("models"), dict) else {}
     out = {}
     for role, variants in CATALOG.items():
+        if os.name == "nt" and role == "fast":     # см. ROLES
+            continue
         cur = have.get(role) or {}
         pick = next((v for v in variants if v["id"] == cur.get("id")), variants[0])
         out[role] = dict(pick)
@@ -472,8 +477,10 @@ def server_args(role: str, spec: bool = True) -> list[str]:
     if "presence_penalty" in smp:
         args += ["--presence-penalty", str(smp["presence_penalty"])]
     if role in MAIN_ROLES:
-        ctx = int(ha.get("context_size", 131072))
+        ctx = int(ha.get("context_size", 65536))
         ctx = max(4096, min(ctx, m.get("ctx_max", 262144)))
+        if role == "base":
+            ctx = min(ctx, 65536)                  # base отвечает в окне ≤ 64K (см. LLM.route) — больше KV держать незачем
         shrink = _ctx_shrink(role)                 # после нехватки памяти при запуске — контекст меньше
         if shrink:
             ctx = max(16384, min(ctx, shrink))

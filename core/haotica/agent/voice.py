@@ -22,6 +22,9 @@ EMOTION_EXPR = {"scream": "warning", "laugh": "happy", "giggle": "happy", "joy":
                 "psst": "idle", "tsk": "idle"}
 
 
+START_LEAD_S = 3.0      # речь начинается не позже, чем накоплено столько секунд звука
+
+
 def voice_dir() -> Path:
     for d in (paths.SHARE / "sounds/haotica-voice", paths.ASSETS / "sounds/voice"):
         if d.is_dir():
@@ -175,7 +178,7 @@ class Voice:
         # вслух — начало ответа (до конца фразы), остальное в чате: синтез на процессоре идёт ~4× дольше звучания,
         # и 900 символов занимали все ядра на минуты (настройка haotica.voice_max_chars)
         ha = s.get("haotica", {})
-        max_chars = int(ha.get("voice_max_chars", 320) or 320)
+        max_chars = int(ha.get("voice_max_chars", 600) or 600)
         plan = prosody.plan(text, lang if lang in ("ru", "en", "de") else "", speed, mood, max_chars=max(120, max_chars),
                             pause_scale=float(ha.get("voice_pause_scale", 0.35)))
         speech = [i for i, x in enumerate(plan) if x.kind == "speech"]
@@ -283,7 +286,9 @@ class Voice:
                     rtf = stat["synth"] / stat["audio"] if stat["audio"] else self.rtf
                     per_char = stat["audio"] / stat["chars"] if stat["chars"] else 1 / 13
                     left = (total_chars - stat["chars"]) * per_char * rtf      # сколько ещё синтезировать, с
-                    if sum(len(a) for a in buf) / SR >= left * 1.1:
+                    # запас на весь остаток — без разрывов; но не ждать больше 3 с звука: длинный ответ на CPU
+                    # иначе молчал десятки секунд (синтез ~2× медленнее звучания), догоняем по ходу
+                    if sum(len(a) for a in buf) / SR >= min(left * 1.1, START_LEAD_S):
                         started = True
                 if (started or done) and buf:
                     data, buf = np.concatenate(buf), []

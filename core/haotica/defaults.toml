@@ -150,9 +150,9 @@ voice_backend = "local"    # local (свой синтез, при сбое Eleve
 tts_engine = "auto"        # auto (Chatterbox с голосом Сары, иначе Piper), chatterbox, piper
 voice_speed = 1.0
 voice_pause_scale = 0.35    # паузы между фразами: 1 — естественные, 0 — подряд
-voice_quality = "balanced"  # голос на CPU: best (fp32, 10 шагов), balanced (bf16, 8 — почти без потерь), fast (bf16, 6)
+voice_quality = "fast"      # голос на CPU: best (fp32, 10 шагов), balanced (bf16, 8), fast (bf16, 6 — быстрее, почти без потерь)
 voice_flow = "continuous"   # continuous — речь без разрывов (начинает, когда хватит запаса), fast — сразу, с паузами на синтез
-voice_max_chars = 320      # сколько читать вслух (до конца фразы); остальное — в чате. Синтез на CPU ~4× дольше звучания
+voice_max_chars = 600      # сколько читать вслух (до конца фразы); остальное — в чате. Синтез на CPU ~2,2× дольше звучания
 voice_pitch = 0.0          # тон Сары, полутоны относительно образца: 0 — как у Сары ElevenLabs (≈ 240 Гц); ниже — глубже, но меньше похоже
 memory = true
 avatar = "auto"            # auto (Live2D, если есть модель), svg
@@ -161,10 +161,11 @@ folders_denied = ["~/.ssh", "~/.gnupg", "~/.local/share/keyrings"]
 model_mode = "auto"        # auto — Haotica сама выбирает модель; base — всегда Qwen3.8-27B; deep — всегда Coder-Next
 deep_idle_min = 10         # после глубокой задачи вернуться на base через N минут простоя
 prefer_deep = false        # deep (80B MoE) — основная в «авто»: ~40 ток/с против ~10 у base, но ≈ 40 ГБ памяти
+max_steps = 40            # шагов инструментов за ход; на последнем модель подводит итог вместо «слишком много шагов»
 draft_n_max = 3            # драфт DFlash у base: 3 — замер на Radeon 8060S
 gpu_reserve_mib = 3072     # запас памяти видеокарты для --fit (быстрая модель, окно)
 speculative = "auto"       # auto (DFlash-драфт у base, n-граммы у deep), draft, ngram, none
-context_size = 65536       # 32768, 65536, 131072, 262144 (максимум моделей); 64K — меньше памяти, для терминала хватает
+context_size = 65536       # окно контекста моделей; base всё равно ограничивается 64K, deep берёт столько же (меньше KV-кэш)
 
 [cloud]
 enabled = true             # облако — когда есть ключ OpenRouter; false — явный запрет

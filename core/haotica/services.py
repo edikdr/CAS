@@ -72,6 +72,7 @@ def _tts_service():
         return None
     svc = supervisor.get().add("tts", argv, env=runtime.env(), port=paths.PORT_TTS)
     svc.low_priority = True          # Chatterbox на процессоре занимает все ядра — окно и браузер важнее
+    svc.before_restart = lambda s: runtime.python()      # перед повтором — проверить и починить Python окружения
     return svc
 
 

@@ -58,7 +58,11 @@ SCHEMAS = [
         {"tab": {"type": "string", "enum": ["active", "haotica"]}, "lines": {"type": "integer", "description": "строк (до 400)"}}),
     _fn("suggest_command", "Предложить команду владельцу в терминал (вставляется в строку, не выполняется).",
         {"command": S, "reason": S}, ["command", "reason"]),
-    _fn("write_file", "Записать файл (покажется владельцу на подтверждение).", {"path": S, "content": S, "append": B}, ["path", "content"]),
+    _fn("write_file", "Записать файл целиком (покажется владельцу на подтверждение; старая версия сохраняется в копию). "
+        "Чтобы поменять часть существующего файла — edit_file.", {"path": S, "content": S, "append": B}, ["path", "content"]),
+    _fn("edit_file", "Поменять часть существующего текстового файла: old — точный фрагмент из файла (с отступами, "
+        "встречается ровно один раз; иначе добавь соседние строки), new — чем заменить. Старая версия сохраняется в копию.",
+        {"path": S, "old": S, "new": S}, ["path", "old", "new"]),
     _fn("trash_file", "Переместить файл в корзину (с подтверждением).", {"path": S, "reason": S}, ["path"]),
     _fn("get_setting", "Прочитать настройку системы (например appearance.ui_scale).", {"key": S}, ["key"]),
     _fn("set_setting", "Изменить настройку системы (например appearance.profile = \"SPACE\").", {"key": S, "value": {}, "reason": S}, ["key", "value"]),
@@ -130,6 +134,33 @@ def _read_lines(p, start: int, n: int) -> str:
 def _append(p, text: str) -> None:
     with open(p, "a", encoding="utf-8") as f:
         f.write(text)
+
+
+BACKUP_DAYS = 5          # копии файлов перед правкой Haotica (как в Wave Terminal): хранятся 5 дней
+
+
+def backup_file(p: Path) -> str:
+    """Копия существующего файла перед перезаписью или правкой: data/file-backups/ГГГГ-ММ-ДД/имя.ЧЧММСС.bak
+    (+ .json с исходным путём). Старше BACKUP_DAYS — удаляются. Возвращает путь копии или ''."""
+    import hashlib
+    import shutil
+    if not p.is_file():
+        return ""
+    root = paths.DATA_DIR / "file-backups"
+    day = root / time.strftime("%Y-%m-%d")
+    day.mkdir(parents=True, exist_ok=True)
+    tag = hashlib.sha256(str(p.parent).encode("utf-8", "replace")).hexdigest()[:8]
+    dst = day / f"{p.name}.{tag}.{time.strftime('%H%M%S')}.bak"
+    shutil.copy2(p, dst)
+    util.write_json(dst.with_suffix(".json"), {"path": str(p), "time": int(time.time()), "size": p.stat().st_size})
+    cutoff = time.time() - BACKUP_DAYS * 86400
+    for d in root.iterdir():
+        try:
+            if d.is_dir() and d.stat().st_mtime < cutoff:
+                shutil.rmtree(d, ignore_errors=True)
+        except OSError:
+            pass
+    return str(dst)
 
 
 class Tools:
@@ -251,11 +282,35 @@ class Tools:
     async def t_write_file(self, a, ctx):
         p = self._path(a["path"], ctx.get("cwd", ""), must_exist=False)
         p.parent.mkdir(parents=True, exist_ok=True)
+        bak = await asyncio.to_thread(backup_file, p)
         if a.get("append"):
             await asyncio.to_thread(_append, p, a["content"])
         else:
             util.atomic_write(p, a["content"])
-        return {"ok": True, "path": str(p), "bytes": len(a["content"].encode())}
+        return {"ok": True, "path": str(p), "bytes": len(a["content"].encode()), **({"backup": bak} if bak else {})}
+
+    async def t_edit_file(self, a, ctx):
+        p = self._path(a["path"], ctx.get("cwd", ""))
+        old, new = str(a.get("old", "")), str(a.get("new", ""))
+        if not old:
+            return {"error": "old пустой — для нового файла используй write_file"}
+        try:
+            raw = await asyncio.to_thread(p.read_bytes)
+        except OSError as e:
+            return {"error": f"не прочитать: {e}"}
+        if b"\0" in raw[:8192]:
+            return {"error": "файл не текстовый"}
+        text = raw.decode("utf-8", errors="replace")
+        if "\r\n" in text and "\r\n" not in old:      # модель пишет \n, а файл с переводами строк Windows
+            old, new = old.replace("\n", "\r\n"), new.replace("\n", "\r\n")
+        n = text.count(old)
+        if n != 1:
+            return {"error": "фрагмент не найден — сначала read_file и скопируй точно" if n == 0
+                    else f"фрагмент встречается {n} раз — добавь соседние строки, чтобы он был один"}
+        bak = await asyncio.to_thread(backup_file, p)
+        util.atomic_write(p, text.replace(old, new, 1))
+        line = text[:text.index(old)].count("\n") + 1
+        return {"ok": True, "path": str(p), "line": line, "backup": bak}
 
     async def t_trash_file(self, a, ctx):
         p = self._path(a["path"], ctx.get("cwd", ""))
@@ -404,6 +459,8 @@ def describe(name: str, args: dict) -> str:
         return str(args.get("command", ""))
     if name == "write_file":
         return f"Записать {args.get('path')} ({len(str(args.get('content', '')))} символов)"
+    if name == "edit_file":
+        return f"Править {args.get('path')}: {len(str(args.get('old', '')))} → {len(str(args.get('new', '')))} символов"
     if name == "trash_file":
         return f"В корзину: {args.get('path')}"
     if name == "set_setting":

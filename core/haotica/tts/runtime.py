@@ -14,7 +14,42 @@ from .. import paths
 def python() -> Path | None:
     venv = Path(os.environ.get("HAOTICA_TTS_VENV", paths.OPT / "tts-venv"))
     exe = venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    if exe.exists():
+        repair_home(venv)
     return exe if exe.exists() else None
+
+
+def repair_home(venv: Path) -> bool:
+    """Окружение голоса ссылается на Python от uv (`home` в pyvenv.cfg). Когда uv обновляет Python
+    (например, установщик другого проекта), папка cpython-3.11-… на время или навсегда пропадает —
+    служба голоса падала с «uv trampoline failed to spawn Python» каждые 16 секунд. Если папки нет —
+    берём соседнюю установку той же версии (cpython-3.11.N-…) и переписываем путь."""
+    cfg = venv / "pyvenv.cfg"
+    try:
+        text = cfg.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    import re
+    m = re.search(r"(?m)^home\s*=\s*(.+?)\s*$", text)
+    v = re.search(r"(?m)^version_info\s*=\s*(\d+\.\d+)", text)
+    if not m or not v:
+        return False
+    home = Path(m.group(1))
+    exe = "python.exe" if os.name == "nt" else "bin/python3"
+    if (home / exe).exists() or not home.parent.is_dir():
+        return False
+    ver = v.group(1)
+    cands = sorted((p for p in home.parent.glob(f"cpython-{ver}*") if (p / exe).exists()),
+                   key=lambda p: [int(x) if x.isdigit() else 0 for x in re.split(r"[.-]", p.name)[1:4]], reverse=True)
+    if not cands:
+        return False
+    try:
+        cfg.write_text(text.replace(m.group(0), f"home = {cands[0]}"), encoding="utf-8")
+    except OSError:
+        return False
+    import logging
+    logging.getLogger("haotica.tts").warning("окружение голоса: Python %s пропал, теперь %s", home, cands[0])
+    return True
 
 
 def argv() -> list[str]:

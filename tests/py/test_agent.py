@@ -232,3 +232,27 @@ def test_model_crash_mid_request_retried(env):
         finally:
             await teardown(runners, s)
     run(go())
+
+
+def test_step_limit_ends_with_summary(env):
+    """Шаги кончились — модель подводит итог (последний раунд без инструментов), а не «слишком много шагов»."""
+    from haotica import config
+    setup, teardown = env
+
+    async def go():
+        runners, agent, s = await setup()
+        config.set_many({"haotica.max_steps": 4, "haotica.unrestricted": True})
+        log: list = []
+        term = asyncio.create_task(_terminal(s, log))
+        try:
+            await asyncio.sleep(0.3)
+            r = await (await s.post(BASE + "/api/chat", json={
+                "text": "[[chain:echo 1;;echo 2;;echo 3;;echo 4;;echo 5;;echo 6]]", "chat": "t5", "wait": True})).json()
+            assert r["ok"], r
+            assert "Слишком много шагов" not in r["text"] and "Шаги на этот ход закончились" in r["text"], r["text"]
+            assert sum(1 for ev, _ in log if ev == "exec") == 4
+        finally:
+            term.cancel()
+            config.set_many({"haotica.max_steps": 40, "haotica.unrestricted": False})
+            await teardown(runners, s)
+    run(go())

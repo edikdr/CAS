@@ -167,6 +167,34 @@ class Engine:
         raise NotImplementedError
 
 
+def _fix_early_stop() -> None:
+    """Chatterbox 0.1.7 обрывает речь на ДВУХ одинаковых речевых токенах подряд (протяжный звук, пауза) — посреди
+    фразы, проверка «фраза закончена» у них закомментирована: из предложения звучали первые слова. Оставляем
+    их проверки по выравниванию (хвост, повтор текста), а застреванием считаем только 10 одинаковых токенов подряд
+    (0,4 с одного и того же звука)."""
+    import torch
+    from chatterbox.models.t3.inference import alignment_stream_analyzer as asa
+    cls = asa.AlignmentStreamAnalyzer
+    if getattr(cls, "_hy_patched", False):
+        return
+    orig = cls.step
+
+    def step(self, logits, next_token=None):
+        logits = orig(self, logits, None)          # без токена их счётчик повторов пуст и не срабатывает
+        if next_token is not None:
+            t = int(next_token.view(-1)[0].item()) if isinstance(next_token, torch.Tensor) else int(next_token)
+            h = self.__dict__.setdefault("_hy_tokens", [])
+            h.append(t)
+            del h[:-12]
+            if len(h) >= 10 and len(set(h[-10:])) == 1:
+                log.warning("речь застряла на одном звуке — конец фразы")
+                logits = -(2 ** 15) * torch.ones_like(logits)
+                logits[..., self.eos_idx] = 2 ** 15
+        return logits
+    cls.step = step
+    cls._hy_patched = True
+
+
 class Chatterbox(Engine):
     name = "chatterbox"
     clone = True
@@ -179,6 +207,10 @@ class Chatterbox(Engine):
         if dev == "cpu":                    # на процессоре — все логические ядра: замер на Ryzen AI Max — ~25% быстрее
             torch.set_num_threads(max(1, os.cpu_count() or 1))
         self.m = ChatterboxMultilingualTTS.from_pretrained(device=dev)
+        try:
+            _fix_early_stop()
+        except Exception as e:  # noqa: BLE001 — другая версия Chatterbox: работаем как есть
+            log.warning("исправление обрыва речи не применено: %s", e)
         self.pitch = voice_pitch()
         # качество/скорость на процессоре (haotica.voice_quality). Замер на Ryzen AI Max+ 392, 24 потока:
         #   best     — fp32, 10 шагов декодера: синтез ≈ 3,5× дольше звучания;

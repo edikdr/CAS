@@ -339,7 +339,7 @@ test("мастер первого запуска: шаги, выбор обол�
   assert((await p.locator(".wz-chk").innerText()).includes("ОБОЛОЧКИ"), "проверка системы");
   await p.locator(".wz >> text=ДАЛЕЕ").click();
   await p.locator(".wz-model").first().waitFor();
-  assert(await p.locator(".wz-model").count() === 3, "три модели");
+  assert(await p.locator(".wz-model").count() === 2, "две модели: base и deep (fast в Windows нет)");
   await p.locator(".wz >> text=ДАЛЕЕ").click();
   await p.locator(".wz-prof >> text=Командная строка").click();
   await p.waitForTimeout(400);

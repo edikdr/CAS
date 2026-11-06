@@ -262,8 +262,14 @@ def setup(app: web.Application) -> None:
         role = str(d.get("role") or d.get("use") or "")
         if role not in models.MAIN_ROLES:
             return err("role: base или deep")
+        # выбор кнопкой — выбор владельца: запоминаем его в «Выбор модели». Раньше режим оставался base,
+        # и первое же сообщение выгружало только что загруженную deep (≈ 25 с загрузки впустую)
+        from .. import config
+        if config.get("haotica.model_mode", "auto") != role:
+            await asyncio.to_thread(client.core, "POST", "/api/settings",
+                                    {"changes": {"haotica.model_mode": role}, "source": "haotica"})
         A(r).bg(A(r).llm.use(role, 600))
-        return ok({"switching": role})
+        return ok({"switching": role, "model_mode": role})
 
     R.add_get("/api/status", status)
     R.add_get("/api/stream", stream)

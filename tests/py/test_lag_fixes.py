@@ -1,5 +1,6 @@
 """Журнал событий без повторов, запись файла при занятом приёмнике, повтор запроса после падения модели."""
 import os
+from pathlib import Path
 
 import pytest
 
@@ -43,3 +44,77 @@ def test_atomic_write_retries_when_busy(tmp_path, monkeypatch):
     assert len(calls) == 3
     assert not [p for p in tmp_path.iterdir() if p.name.startswith(".m.json.")]
 
+
+
+
+def test_step_signature_ignores_waits_and_spacing():
+    from haotica.agent.engine import _step_sig
+    a = {"name": "terminal_run", "arguments": '{"command": "Start-Sleep 15; curl.exe -s --max-time 60 https://x"}'}
+    b = {"name": "terminal_run", "arguments": '{"command":"Start-Sleep -Seconds 30;  curl.exe -s --max-time 120 https://x"}'}
+    c = {"name": "terminal_run", "arguments": '{"command": "curl.exe -s https://y"}'}
+    assert _step_sig(a) == _step_sig(b) != _step_sig(c)
+
+
+def test_edit_file_backup_and_crlf(tmp_path, monkeypatch):
+    import asyncio
+    from haotica import config
+    from haotica.agent import tools
+    monkeypatch.setattr(paths, "DATA_DIR", tmp_path / "data")
+    f = tmp_path / "a.ps1"
+    f.write_bytes(b"line1\r\nWrite-Host 'old'\r\nline3\r\n")
+    t = tools.Tools(None)
+    monkeypatch.setattr(t, "cfg", lambda: {"folders_allowed": [str(tmp_path)], "folders_denied": []})
+    r = asyncio.run(t.t_edit_file({"path": str(f), "old": "Write-Host 'old'\nline3", "new": "Write-Host 'new'\nline3"}, {}))
+    assert r.get("ok") and r["line"] == 2, r
+    assert f.read_bytes() == b"line1\r\nWrite-Host 'new'\r\nline3\r\n"
+    assert open(r["backup"], "rb").read() == b"line1\r\nWrite-Host 'old'\r\nline3\r\n"
+    r = asyncio.run(t.t_edit_file({"path": str(f), "old": "line", "new": "x"}, {}))
+    assert "встречается" in r["error"]
+    r = asyncio.run(t.t_write_file({"path": str(f), "content": "fresh"}, {}))
+    assert r["ok"] and r["backup"] and f.read_text() == "fresh"
+    assert config is not None
+
+
+def test_tts_venv_home_repair(tmp_path):
+    from haotica.tts import runtime
+    base = tmp_path / "py"
+    (base / "cpython-3.11.18-windows-x86_64-none").mkdir(parents=True)
+    exe = "python.exe" if os.name == "nt" else "bin/python3"
+    (base / "cpython-3.11.18-windows-x86_64-none" / exe).parent.mkdir(parents=True, exist_ok=True)
+    (base / "cpython-3.11.18-windows-x86_64-none" / exe).write_text("x")
+    v = tmp_path / "venv"
+    v.mkdir()
+    (v / "pyvenv.cfg").write_text(f"home = {base / 'cpython-3.11-windows-x86_64-none'}\nversion_info = 3.11.18\n", encoding="utf-8")
+    assert runtime.repair_home(v)
+    assert "cpython-3.11.18" in (v / "pyvenv.cfg").read_text(encoding="utf-8")
+    assert not runtime.repair_home(v)            # второй раз чинить нечего
+
+
+def test_supervisor_backoff_grows_and_reports(tmp_path):
+    from haotica import supervisor
+    log = tmp_path / "x.log"
+    log.write_text("── start\nerror: uv trampoline failed to spawn Python child process\n", encoding="utf-8")
+    assert "uv trampoline" in supervisor._tail_reason(log)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="fast убрана только в Windows")
+def test_no_fast_model_on_windows():
+    from haotica import models
+    assert "fast" not in models.ROLES and "fast" not in models.load_manifest()["models"]
+    assert "fast" not in models.status()
+
+
+def test_base_context_capped(monkeypatch, tmp_path):
+    from haotica import config, models
+    gguf = tmp_path / "m.gguf"
+    gguf.write_bytes(b"GGUF")
+    monkeypatch.setattr(models, "llama_server", lambda: Path("llama-server"))
+    monkeypatch.setattr(models, "model_file", lambda m: gguf)
+    monkeypatch.setattr(models, "_ctx_shrink", lambda role: 0)
+    real = config.load()
+    real.setdefault("haotica", {})["context_size"] = 131072
+    monkeypatch.setattr(config, "load", lambda: real)
+    a = models.server_args("base")
+    assert a[a.index("-c") + 1] == "65536"
+    a = models.server_args("deep")
+    assert a[a.index("-c") + 1] == "131072"

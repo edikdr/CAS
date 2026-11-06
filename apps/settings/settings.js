@@ -283,7 +283,7 @@ const PAGES = {
       const r = await HY.haotica("GET", "/api/llm/status").catch(() => null);
       llm.replaceChildren();
       if (!r || !r.ok) return llm.append(note(IS_WIN ? "Служба Haotica не отвечает (журнал: %LOCALAPPDATA%\\Haotica\\logs\\agent.log)" : "Служба Haotica не отвечает (systemctl --user status haotica-agent)", "s-err"));
-      for (const role of ["base", "deep", "fast"]) {
+      for (const role of ["base", "deep", "fast"].filter((x) => x !== "fast" || (r.labels || {}).fast)) {
         const why = (r.errors || {})[role];
         llm.append(el("div.s-row", { title: why || "" }, el("b", role.toUpperCase()), el("span.nm", (r.labels || {})[role] || ""), pill(r.state[role]),
           role !== "fast" ? el("button.hy-btn.small" + (r.main === role ? ".primary" : ""), { onclick: async () => {

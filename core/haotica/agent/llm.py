@@ -32,6 +32,7 @@ DEEP_HINTS = re.compile(
     r"|implement|миграци|перепиши)", re.IGNORECASE)
 
 
+BASE_CTX_CAP = 65536                           # base отвечает в этом окне; запускать сервер на большем — лишний KV-кэш
 BACK_TO_DEEP_S = 600                           # deep основная: base (после картинки) держим до 10 мин простоя
 
 
@@ -103,7 +104,9 @@ class LLM:
             return True, ""
         need = st.get(role, {}).get("size", 0) + 4 * 2 ** 30
         other = "base" if role == "deep" else "deep"
-        freed = st.get(other, {}).get("size", 0) if self.state.get(other) in ("ready", "loading") else 0
+        # выгружаемая модель отдаёт не только файл, но и кэш контекста с буферами — тот же запас, что закладываем выше
+        # (раньше считался только файл: base держит ≈ 28 ГБ, а «освободится» выходило 22 — deep не проходила)
+        freed = st.get(other, {}).get("size", 0) + 4 * 2 ** 30 if self.state.get(other) in ("ready", "loading") else 0
         have = psutil.virtual_memory().available + freed
         if have >= need:
             return True, ""
@@ -142,7 +145,7 @@ class LLM:
                     and time.time() - self.last_used["base"] < BACK_TO_DEEP_S and not DEEP_HINTS.search(text or "")):
                 return "base"
             return "deep"
-        base_ctx = min(int(ha.get("context_size", 131072)), 65536)
+        base_ctx = min(int(ha.get("context_size", 65536)), BASE_CTX_CAP)
         if ctx_tokens > base_ctx * 0.75:          # длинный контекст — в deep (у него кэш дешевле)
             return "deep"
         if text and (DEEP_HINTS.search(text) or text.count("\n") > 120 or len(text) > 12000):

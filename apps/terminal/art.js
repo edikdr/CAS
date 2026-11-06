@@ -59,7 +59,9 @@ export async function startHandsArt(canvas, { opacity = () => 0.5, font = () => 
   function layout() {
     if (!dirty && st.cells.length) return;
     dirty = false;
-    const r = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+    // фон за текстом (прозрачность ~22%) — в разрешении 1×: на экране ×1,65 пикселей было в 2,7 раза больше,
+    // а разницы под текстом не видно; каждый кадр фона стоил ~30% ядра
+    const r = canvas.getBoundingClientRect(), dpr = Math.min(1, devicePixelRatio || 1);
     const key = `${Math.round(r.width)}x${Math.round(r.height)}@${dpr}`;
     if (key === st.key || r.width < 40 || r.height < 40) return;
     st.key = key; st.dpr = dpr; st.w = r.width; st.h = r.height;

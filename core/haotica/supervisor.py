@@ -141,6 +141,7 @@ class Service:
     log_file: Path | None = None
     error: str = ""                  # почему служба остановлена без перезапуска (для интерфейса)
     low_priority: bool = False       # фоновая тяжёлая работа (синтез речи на CPU) не должна тормозить окно
+    before_restart: object = None    # колбэк (service) перед повторным запуском — починить окружение
 
     def running(self) -> bool:
         return self.proc is not None and self.proc.poll() is None
@@ -271,8 +272,8 @@ class Supervisor:
                         continue
                     code = svc.proc.poll()
                     if code is None:
-                        if time.time() - svc.started > 60:
-                            svc.failures = 0
+                        if time.time() - svc.started > 60 and svc.failures:
+                            svc.failures, svc.error = 0, ""
                         continue
                     if svc.next_try == 0:
                         log.warning("%s завершился с кодом %s", svc.name, code)
@@ -285,7 +286,17 @@ class Supervisor:
                             svc.wanted = False
                             continue
                         svc.failures += 1
-                        svc.next_try = time.time() + min(30.0, 2 ** min(svc.failures, 5) * 0.5)
+                        # до 8 неудач подряд — быстро (до 16 с), дальше пауза растёт до 5 минут, а причина видна в окне:
+                        # раньше сломанная служба перезапускалась каждые 16 секунд часами
+                        delay = 2 ** min(svc.failures, 5) * 0.5 if svc.failures <= 8 else min(300.0, 30.0 * (svc.failures - 7))
+                        svc.next_try = time.time() + delay
+                        if svc.failures >= 3:
+                            svc.error = _tail_reason(svc.log_file) or f"падает при запуске (код {code})"
+                        if callable(svc.before_restart):
+                            try:
+                                svc.before_restart(svc)
+                            except Exception:  # noqa: BLE001
+                                log.exception("before_restart %s", svc.name)
                     if svc.wanted and time.time() >= svc.next_try:
                         svc.next_try = 0
                         try:
@@ -293,6 +304,22 @@ class Supervisor:
                         except OSError as e:
                             log.warning("%s: перезапуск не удался: %s", svc.name, e)
                             svc.next_try = time.time() + 30
+
+
+def _tail_reason(log_file: Path | None) -> str:
+    """Последняя содержательная строка журнала службы — почему она не запускается."""
+    try:
+        with open(log_file, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - 4000))
+            lines = f.read().decode("utf-8", "replace").splitlines()
+    except (OSError, TypeError):
+        return ""
+    for ln in reversed(lines):
+        ln = ln.strip()
+        if ln and not ln.startswith("──") and "Warning" not in ln and not ln.startswith("from "):
+            return ln[:200]
+    return ""
 
 
 _SUP: Supervisor | None = None

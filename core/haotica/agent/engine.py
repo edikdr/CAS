@@ -30,7 +30,11 @@ from .llm import LLM
 from .memory import Memory
 
 log = logging.getLogger("haotica.engine")
-MAX_ROUNDS = 12                 # шагов инструментов за ход (цепочка команд в терминале)
+MAX_ROUNDS = 40                 # шагов инструментов за ход (haotica.max_steps): скачать-распаковать-проверить — это 10+
+WRAP_UP = ("(система) Шаги на этот ход закончились. Инструменты больше не вызывай. Коротко ответь владельцу: "
+           "что сделано, что не получилось и почему, что предлагаешь сделать дальше.")
+LOOP_NOTE = ("(система) Ты повторяешь почти один и тот же шаг, а результат не меняется. Не повторяй его: "
+             "смени подход или остановись и объясни владельцу, что мешает.")
 EXEC_TIMEOUT = 120              # сек ожидания команды в терминале по умолчанию; дольше — «запустить и опрашивать»
 OUTPUT_LIMIT = 12_000           # символов вывода команды, которые уходят модели
 HISTORY_TURNS = 40
@@ -39,6 +43,14 @@ KEEP_AFTER_SUMMARY = 16
 CARD_TIMEOUT = 600
 STATE_FILE = "haotica.json"
 WANT_RX = re.compile(r"^\s*/(deep|base)\b\s*", re.I)
+
+
+def _step_sig(c: dict) -> str:
+    """Подпись шага для поиска зацикливания: «почти одинаковые» команды (пробелы, кавычки, паузы, тайм-ауты) — одна."""
+    a = c.get("arguments") or ""
+    a = re.sub(r"(?i)(start-sleep\s+(-seconds\s+)?\d+;?|--max-time\s+\d+|-timeoutsec\s+\d+)", "", a)
+    a = re.sub(r"[\s\"'`]+", "", a).lower()
+    return c["name"] + ":" + a[:300]
 
 
 class State:
@@ -165,7 +177,7 @@ class Agent:
         main = self.llm.main
         if not quick and main == "base" and self.llm.route("", 0, "panel", "") == "deep":
             main = self.llm.main = "deep"            # в «авто» на Windows основная — deep: сразу её, без base
-        for role in ("fast", main if main in models.MAIN_ROLES else "base"):
+        for role in (*(r for r in ("fast",) if r in models.ROLES), main if main in models.MAIN_ROLES else "base"):
             if self.download_state(role) or self.llm.state.get(role) not in ("offline", "sleep"):
                 continue
             if quick and self.llm.state.get(role) == "sleep":
@@ -228,6 +240,9 @@ class Agent:
                 "plan": name == "terminal_run" and risk.get("level") != "danger"}
         if name == "write_file":
             card["preview"] = str(args.get("content", ""))[:2000]
+        if name == "edit_file":
+            card["preview"] = "− " + str(args.get("old", ""))[:900] + "\n\n+ " + str(args.get("new", ""))[:900]
+            card["args"] = {"path": args.get("path")}
         if name == "cloud_ask":
             card["question"] = safety.redact(str(args.get("question", "")))
             card["model"] = self.cloud.cfg().get("model", "")
@@ -571,17 +586,26 @@ class Agent:
         final, used, steps = "", [], []
         cancel = self.cancels.get(chat)
         recent: list[str] = []
+        results: list[str] = []          # шаг + начало результата: повтор без изменений — признак зацикливания
         stopped = False
         empty_retry = crash_retry = False
-        for _round in range(MAX_ROUNDS):
+        try:
+            max_rounds = max(4, min(200, int(config.get("haotica.max_steps", MAX_ROUNDS) or MAX_ROUNDS)))
+        except (TypeError, ValueError):
+            max_rounds = MAX_ROUNDS
+        wrap = False                     # последний раунд: без инструментов, только итог
+        for _round in range(max_rounds + 1):
             if cancel and cancel.is_set():
                 stopped = True
                 break
+            if _round == max_rounds and not wrap:
+                wrap = True
+                msgs.append({"role": "user", "content": WRAP_UP})
             self.state.set("thinking")
             buf, calls = "", []
             try:
-                async for ev in self.llm.chat(msgs, schemas, role, max_tokens=4096 if role == "deep" else 2048,
-                                              think=think):
+                async for ev in self.llm.chat(msgs, None if wrap else schemas, role,
+                                              max_tokens=4096 if role == "deep" else 2048, think=think):
                     if cancel and cancel.is_set():
                         stopped = True
                         break
@@ -614,6 +638,8 @@ class Agent:
             if stopped:
                 final = (buf + "\n\n" if buf else "") + "⏹ Остановлено."
                 break
+            if wrap:
+                calls = []                       # итоговый раунд: вызовы инструментов (если модель всё же их дала) не выполняем
             if not calls:
                 if not buf.strip() and not empty_retry:      # пустой ответ модели — ещё одна попытка, а не «…»
                     empty_retry = True
@@ -629,12 +655,13 @@ class Agent:
                     res = {"error": "владелец остановил"}
                     stopped = True
                 else:
-                    sig = c["name"] + (c.get("arguments") or "")
+                    sig = _step_sig(c)
                     recent.append(sig)
                     if recent[-3:].count(sig) == 3:          # одно и то же трижды подряд — зацикливание
                         res = {"error": "зацикливание: этот шаг уже был трижды подряд, остановись и объясни владельцу"}
                     else:
                         res = await self._call_tool(c, chat, source, context)
+                        results.append(f"{sig} => {str(res)[:400]}")
                 used.append(c["name"])
                 step = self._step(c, res)
                 steps.append(step)
@@ -646,8 +673,16 @@ class Agent:
             if stopped:
                 final = "⏹ Остановлено."
                 break
+            # почти тот же шаг с тем же результатом: 3 раза за последние 10 — подсказка сменить подход, 5 — итог
+            last = results[-10:]
+            worst = max((last.count(x) for x in set(last)), default=0)
+            if worst >= 5 and not wrap:
+                wrap = True
+                msgs.append({"role": "user", "content": WRAP_UP})
+            elif worst >= 3 and msgs[-1].get("content") != LOOP_NOTE:
+                msgs.append({"role": "user", "content": LOOP_NOTE})
         else:
-            final = final or "Слишком много шагов подряд — остановилась. Уточни задачу."
+            final = final or "Шаги закончились, а модель не подвела итог. Напиши, что сделать дальше."
         final = final.strip() or "…"
         mid = self.memory.add(chat, "assistant", final, {"role": role, "tools": used, "steps": steps})
         self.hub.publish("message", {"chat": chat, "role": "assistant", "text": final, "final": True, "model": role,
@@ -679,18 +714,27 @@ class Agent:
         return st
 
     async def _autotitle(self, chat: str) -> None:
-        """Название чата быстрой моделью после первого ответа (если человек не назвал его сам)."""
+        """Название чата после первого ответа (если человек не назвал его сам): fast (HAOTICA OS) или base во втором
+        слоте; у deep слот один — запрос названия стёр бы кэш разговора, поэтому там — начало первого вопроса."""
         c = self.memory.get_chat(chat)
-        if not c or c.get("titled") or self.llm.state.get("fast") != "ready":
+        if not c or c.get("titled"):
             return
         hist = self.memory.history(chat, 4)
         if not hist:
             return
-        dump = "\n".join(f"{h['role']}: {h['content'][:300]}" for h in hist)
-        t = await self.llm.complete([
-            {"role": "system", "content": "Придумай название чата: 2–5 слов, без кавычек и точки. Только название."},
-            {"role": "user", "content": safety.redact(dump)}], role="fast", max_tokens=16, timeout=6)
-        t = _strip_think(t).strip().strip('"«»').splitlines()[0][:60] if t else ""
+        role = next((r for r in ("fast", "base") if r in models.ROLES and self.llm.state.get(r) == "ready"
+                     and (r == "fast" or self.llm.main == "base")), "")
+        t = ""
+        if role:
+            dump = "\n".join(f"{h['role']}: {h['content'][:300]}" for h in hist)
+            t = await self.llm.complete([
+                {"role": "system", "content": "Придумай название чата: 2–5 слов, без кавычек и точки. Только название."},
+                {"role": "user", "content": safety.redact(dump)}], role=role, max_tokens=16, timeout=8)
+            t = _strip_think(t).strip().strip('"«»').splitlines()[0][:60] if t and t.strip() else ""
+        if not t:                              # без модели — первые слова вопроса
+            first = next((h["content"] for h in hist if h["role"] == "user" and isinstance(h["content"], str)), "")
+            words = " ".join(safety.redact(first).split()).split(" ")
+            t = " ".join(words[:6])[:60].rstrip(".,:;!?") if words and words[0] else ""
         if t:
             self.memory.update_chat(chat, title=t, auto=True)
             self.hub.publish("message", {"chat": chat, "role": "title", "title": t}, keep=False)

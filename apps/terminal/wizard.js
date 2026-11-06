@@ -25,8 +25,8 @@ const CSS = `
 .wz-foot .grow { flex: 1; }
 .wz-prof { display: flex; flex-wrap: wrap; gap: 6px; }
 ` + keyfieldCss;
+// FAST (подсказки в zsh HAOTICA OS) в Windows не нужна — здесь её нет
 const ROLES = [
-  ["fast", "FAST", "подсказки в строке и названия чатов", true],
   ["base", "BASE", "терминал, команды, зрение — основная", true],
   ["deep", "DEEP", "большие задачи и код (по желанию; меняется с base)", false],
 ];

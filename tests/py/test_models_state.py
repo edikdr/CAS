@@ -7,26 +7,26 @@ import pytest
 
 @pytest.fixture()
 def one_model(tmp_path, monkeypatch):
-    """Каталог с одной ролью «fast» из маленького файла во временной папке моделей."""
+    """Каталог с одной ролью «base» из маленького файла во временной папке моделей."""
     from haotica import models, paths
     monkeypatch.setattr(paths, "MODELS_DIR", tmp_path)
     data = os.urandom(4096)
     entry = {"id": "t", "label": "T", "repo": "x/y", "file": "t.gguf", "size": len(data),
              "sha256": hashlib.sha256(data).hexdigest(), "ctx_max": 8192}
-    monkeypatch.setattr(models, "CATALOG", {"fast": [entry]})
+    monkeypatch.setattr(models, "CATALOG", {"base": [entry]})
     return models, tmp_path, data
 
 
 def test_ready_requires_checksum(one_model):
     models, d, data = one_model
-    assert models.status()["fast"]["state"] == "missing"
+    assert models.status()["base"]["state"] == "missing"
     (d / "t.gguf").write_bytes(data[:100])
-    assert models.status()["fast"]["state"] == "missing" or not models.status()["fast"]["ready"]
+    assert models.status()["base"]["state"] == "missing" or not models.status()["base"]["ready"]
     (d / "t.gguf").write_bytes(data)
-    st = models.status()["fast"]
+    st = models.status()["base"]
     assert st["ready"] and not st["verified"] and st["state"] == "unverified", st
     assert models.verify(only_unchecked=True, progress=False) == 0
-    st = models.status()["fast"]
+    st = models.status()["base"]
     assert st["verified"] and st["state"] == "verified", st
 
 
@@ -34,7 +34,7 @@ def test_corrupt_file_is_not_ready_and_removed(one_model):
     models, d, data = one_model
     (d / "t.gguf").write_bytes(bytes(len(data)))         # нужный размер, но не то содержимое
     assert models.verify(progress=False) == 1
-    st = models.status()["fast"]
+    st = models.status()["base"]
     assert not st["ready"] and not (d / "t.gguf").exists(), "испорченный файл не должен считаться готовым"
 
 

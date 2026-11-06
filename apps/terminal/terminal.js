@@ -70,6 +70,7 @@ setTimeout(() => document.querySelector(".hy-app").classList.remove("hy-boot"), 
 // таймер давал свой кадр — до ~20 кадров/с в простое, и на каждый окно перерисовывалось целиком.
 const beat = (ms) => ms - (performance.now() % ms) + 1;
 const onBeat = (ms, fn) => setTimeout(() => requestAnimationFrame(fn), beat(ms));
+const TICK = 1000 / 24;                // шаг такта: губы и волна — 24 кадра/с, аватар 12, фон и графики 6
 $("winbtns").append(
   el("button.winbtn", { title: HY.t("cloud") + "  /key", onclick: () => openCloud() }, icon("cloud", 14)),
   el("button.winbtn", { title: HY.t("palette") + "  Ctrl+Shift+P", onclick: () => palette() }, icon("search", 14)),
@@ -1372,7 +1373,7 @@ function drawVoice() {
 // волна голоса: 20 кадров/с на общем такте (в одном кадре с губами аватара), пока Сара говорит;
 // в тишине — один раз очистить и не рисовать
 (function voiceTick() {
-  onBeat(50, () => {
+  onBeat(TICK, () => {
     voice.env.push(voice.mouth || 0); voice.env.shift(); voice.mouth = (voice.mouth || 0) * 0.85;
     const live = voice.env.some((v) => v > 0.004);
     if (live || voice.drawn !== false) { drawVoice(); voice.drawn = live; }
@@ -1666,7 +1667,7 @@ if (IS_WIN && HY.bridge && !window.__hyNoWizard) setTimeout(() => openWizard(fal
 bars(); mini(); drawCharts();
 // графики и метрики — на общем такте: 4 кадра/с в фокусе, 1 — без фокуса; свёрнуто — не рисуем
 (function chartsTick() {
-  onBeat(UI.focused ? 250 : 1000, () => {
+  onBeat(UI.focused ? TICK * 4 : TICK * 24, () => {
     if (!document.hidden) { if (state.metricsDue) renderMetrics(); drawCharts(); }
     chartsTick();
   });

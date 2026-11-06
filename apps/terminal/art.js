@@ -97,7 +97,8 @@ export async function startHandsArt(canvas, { opacity = () => 0.5, font = () => 
   // гонял весь конвейер отрисовки (≈ ядро процессора в простое). 4 кадра/с — фон за текстом, а не видео;
   // окно не в фокусе — раз в секунду, свёрнуто — стоп. Моменты кадров кратны периоду (общий такт окна):
   // фон обновляется в том же кадре, что аватар и графики, а не отдельным.
-  const gap = () => { const ui = window.__hyUI; return reduceMq.matches ? 500 : (ui && !ui.focused ? 1000 : 250); };
+  const gap = () => { const ui = window.__hyUI; const T = 1000 / 24;   // кратно общему такту окна
+    return reduceMq.matches ? T * 12 : (ui && !ui.focused ? T * 24 : T * 4); };
   const beat = (ms) => ms - (performance.now() % ms) + 1;
   function schedule() {
     clearTimeout(st.timer);

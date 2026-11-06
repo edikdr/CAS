@@ -77,9 +77,8 @@ def reference(sr: int = 24000, seconds: float = 12.5, lang: str = "en", pitch: f
         return str(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     plain = out.with_suffix(".src.wav")
-    r = subprocess.run(["ffmpeg", "-v", "quiet", "-y", "-i", str(src), "-ac", "1", "-ar", str(sr), "-t", str(seconds),
-                        str(plain)], check=False, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-    if r.returncode != 0:
+    if not _decode_ref(src, plain, sr, seconds):
+        log.warning("образец голоса %s не прочитан — без него будет чужой голос", src)
         return None
     if abs(pitch) < 0.05:
         plain.replace(out)
@@ -91,6 +90,9 @@ def reference(sr: int = 24000, seconds: float = 12.5, lang: str = "en", pitch: f
         sf.write(str(out), librosa.effects.pitch_shift(y, sr=sr, n_steps=pitch), sr)
     except Exception as e:  # noqa: BLE001 — запасной путь: ffmpeg (тон и форманты вместе)
         log.info("librosa недоступна (%s): тон через ffmpeg", e)
+        if not util_which("ffmpeg"):
+            plain.replace(out)                        # без librosa и ffmpeg — образец без сдвига тона
+            return str(out)
         k = 2 ** (pitch / 12)
         r = subprocess.run(["ffmpeg", "-v", "quiet", "-y", "-i", str(plain), "-af",
                             f"asetrate={sr * k:.0f},aresample={sr},atempo={1 / k:.5f}", str(out)], check=False,
@@ -99,6 +101,35 @@ def reference(sr: int = 24000, seconds: float = 12.5, lang: str = "en", pitch: f
             plain.replace(out)
     plain.unlink(missing_ok=True)
     return str(out)
+
+
+def util_which(name: str) -> bool:
+    import shutil
+    return bool(shutil.which(name))
+
+
+def _decode_ref(src: Path, dst: Path, sr: int, seconds: float) -> bool:
+    """Образец (OGG/MP3) → WAV моно sr: ffmpeg, если есть; иначе librosa (soxr, качественно) или soundfile+numpy.
+    На Windows ffmpeg обычно нет — раньше из-за этого клон Сары молча становился чужим голосом."""
+    if util_which("ffmpeg"):
+        r = subprocess.run(["ffmpeg", "-v", "quiet", "-y", "-i", str(src), "-ac", "1", "-ar", str(sr), "-t", str(seconds),
+                            str(dst)], check=False, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if r.returncode == 0 and dst.exists():
+            return True
+    try:
+        import librosa
+        import soundfile as sf
+        y, _ = librosa.load(str(src), sr=sr, mono=True, duration=seconds)
+        sf.write(str(dst), y, sr, subtype="PCM_16")
+        return True
+    except Exception as e:  # noqa: BLE001
+        log.info("librosa не прочитала %s: %s", src.name, e)
+    from .. import audio
+    data = audio.to_wav(src, sr, seconds, fade_s=0)
+    if data:
+        dst.write_bytes(data)
+        return True
+    return False
 
 
 def voice_pitch() -> float:

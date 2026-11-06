@@ -284,12 +284,14 @@ const PAGES = {
       llm.replaceChildren();
       if (!r || !r.ok) return llm.append(note(IS_WIN ? "Служба Haotica не отвечает (журнал: %LOCALAPPDATA%\\Haotica\\logs\\agent.log)" : "Служба Haotica не отвечает (systemctl --user status haotica-agent)", "s-err"));
       for (const role of ["base", "deep", "fast"]) {
-        llm.append(el("div.s-row", el("b", role.toUpperCase()), el("span.nm", (r.labels || {})[role] || ""), pill(r.state[role]),
+        const why = (r.errors || {})[role];
+        llm.append(el("div.s-row", { title: why || "" }, el("b", role.toUpperCase()), el("span.nm", (r.labels || {})[role] || ""), pill(r.state[role]),
           role !== "fast" ? el("button.hy-btn.small" + (r.main === role ? ".primary" : ""), { onclick: async () => {
             await HY.haotica("POST", "/api/llm/use", { role }); HY.toast(`Переключаюсь на ${role}…`); setTimeout(loadLlm, 1500);
           } }, r.main === role ? "АКТИВНА" : "ЗАГРУЗИТЬ") : null));
       }
       llm.append(note(`Скорость: ${r.tps || 0} ток/с${r.switching ? " · переключение → " + r.switching : ""}${r.paused ? " · режим «Игра»" : ""}`));
+      for (const [role, why] of Object.entries(r.errors || {})) llm.append(note(`${role.toUpperCase()} не запустилась: ${why}`, "s-err"));
     };
     const loadModels = async () => {
       const r = await HY.haotica("GET", "/api/models").catch(() => null) || await HY.get("/api/models");
@@ -300,7 +302,8 @@ const PAGES = {
         const meter = el("div.hy-meter", el("i", { style: { "--p": (f * 100).toFixed(1) + "%" } }));
         mods.append(el("div.s-row", el("b", role.toUpperCase()), el("span.nm", m.label), meter,
           el("span.meta", `${(m.have / 1e9).toFixed(1)}/${(m.size / 1e9).toFixed(1)} ГБ`),
-          m.ready ? el("span.s-pill.ready", "ГОТОВА") : el("button.hy-btn.small", { onclick: async () => {
+          m.ready ? el("span.s-pill" + (m.verified ? ".ready" : ""), { title: m.verified ? "SHA-256 совпала" : "файл целиком, SHA-256 ещё проверяется" },
+            m.verified ? "ГОТОВА" : "ПРОВЕРКА") : el("button.hy-btn.small", { onclick: async () => {
             await HY.haotica("POST", "/api/models/download", { role }); HY.toast("Загрузка начата в фоне");
           } }, f > 0 ? "ДОКАЧАТЬ" : "СКАЧАТЬ")));
       }
@@ -354,7 +357,13 @@ const PAGES = {
           const r = await HY.haotica("POST", "/api/voice/test", {}).catch(() => null);
           HY.toast(r && r.played ? `Голос: ${r.engine || "?"}` : "Голос не прозвучал: служба haotica-tts не запущена и нет ключа ElevenLabs", r && r.played ? "" : "err", [], 7000);
         } }, icon("volume", 14), " Проверить голос"),
-        el("button.hy-btn.small", { onclick: () => HY.haotica("POST", "/api/voice/restart", {}).then((x) => HY.toast(x && x.ok ? "Служба голоса перезапущена (модель грузится до минуты)" : (x && x.error) || "Ошибка", x && x.ok ? "" : "err")) }, icon("reboot", 14), " Перезапустить голос")),
+        el("button.hy-btn.small", { onclick: () => HY.haotica("POST", "/api/voice/restart", {}).then((x) => HY.toast(x && x.ok ? "Служба голоса перезапущена (модель грузится до минуты)" : (x && x.error) || "Ошибка", x && x.ok ? "" : "err")) }, icon("reboot", 14), " Перезапустить голос"),
+        el("button.hy-btn.small", { title: "uv, PyTorch и веса модели — в фоне, ~4 ГБ", onclick: async () => {
+          const want = (HY.settings.haotica || {}).tts_engine;
+          const engine = ["chatterbox", "xtts", "qwen3", "f5"].includes(want) ? want : "chatterbox";
+          const x = await HY.haotica("POST", "/api/voice/install", { engine });
+          HY.toast(x && x.ok ? `Ставлю голос (${engine}) в фоне — служба речи поднимется сама` : (x && x.error) || "Ошибка", x && x.ok ? "" : "err", [], 7000);
+        } }, icon("download", 14), " Поставить голос")),
       text("haotica.folders_allowed", "Доступ к папкам", "Через запятую", { list: true }),
       text("haotica.folders_denied", "Закрытые папки", "~/.ssh, ключи и банковский профиль закрыты всегда", { list: true }),
       h2("Облако (OpenRouter)"),

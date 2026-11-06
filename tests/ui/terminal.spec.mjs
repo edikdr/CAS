@@ -345,6 +345,10 @@ test("мастер первого запуска: шаги, выбор обол�
   await p.waitForTimeout(400);
   const s = await (await fetch(CORE + "/api/settings", { headers: { "X-Haotica-Token": token } })).json();
   assert(s.settings.terminal.default_profile === "cmd", "профиль по умолчанию сохранён");
+  await p.locator(".wz >> text=ДАЛЕЕ").click();
+  await p.locator(".wz-body h2", { hasText: "ГОЛОС САРЫ" }).waitFor({ timeout: 5000 });
+  assert((await p.locator(".wz-body").innerText()).includes("СЛУЖБА РЕЧИ"), "шаг голоса: состояние службы речи");
+  assert(await p.locator(".wz-body input[type=checkbox]").isChecked(), "голос ставится сам (галочка по умолчанию)");
   await p.locator(".wz >> text=ПОЗЖЕ").click();
   await p.waitForTimeout(300);
   assert(await p.locator(".wz").count() === 0, "закрыт");

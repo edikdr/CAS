@@ -25,14 +25,43 @@ def _llm_service(role: str):
     argv = models.server_args(role)
 
     def on_exit(svc, code: int) -> None:
-        # драфт (спекулятивное декодирование) не поддержан сборкой llama.cpp — запуск без него
-        if code != 0 and "--spec-type" in svc.argv and time.time() - svc.started < 90:
-            paths.STATE_DIR.mkdir(parents=True, exist_ok=True)
-            (paths.STATE_DIR / f"llm-{role}.nospec").write_text(f"llama-server: код {code} с драфтом\n",
-                                                                 encoding="utf-8")
-            svc.argv = models.server_args(role, spec=False)
-            log.info("llm-%s: перезапуск без драфта", role)
+        """Упал при запуске: по журналу — нехватка памяти (контекст меньше), драфт (без него), испорченный файл.
+        Безнадёжный случай — без бесконечных перезапусков, причина видна в интерфейсе."""
+        if code == 0 or time.time() - svc.started > 180:
+            return
+        why = models.on_start_failure(role, _tail(svc.log_file))
+        if why in ("oom", "spec"):
+            svc.argv = models.server_args(role)
+            svc.error = ""
+            log.info("llm-%s: %s — перезапуск с %s", role, why,
+                     "меньшим контекстом" if why == "oom" else "без драфта")
+        elif why == "oom-final":
+            svc.wanted, svc.error = False, "не хватает памяти видеокарты даже с контекстом 16K — закройте тяжёлые " \
+                                           "программы или выберите вариант модели легче (Настройки → Модели)"
+        elif why == "file":
+            svc.wanted, svc.error = False, "файл модели повреждён — haotica models verify, затем download"
+        elif svc.failures >= 4:
+            svc.wanted, svc.error = False, f"llama-server падает при запуске (код {code}), журнал: {svc.log_file}"
     return sup.add(f"llm-{role}", argv, port=models.PORTS[role], on_exit=on_exit)
+
+
+def _tail(p, n: int = 16384) -> str:
+    try:
+        with open(p, "rb") as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - n))
+            return f.read().decode("utf-8", "replace")
+    except OSError:
+        return ""
+
+
+def error(name: str) -> str:
+    """Последняя причина, по которой служба не поднялась (для сообщения владельцу)."""
+    if not supervised():
+        return ""
+    from . import supervisor
+    svc = supervisor.get().services.get(name)
+    return getattr(svc, "error", "") if svc else ""
 
 
 def _tts_service():

@@ -363,6 +363,59 @@ def setup(app: web.Application) -> None:
         return ok({"started": started}) if started else err(e or "служба голоса не установлена")
     R.add_post("/api/voice/restart", voice_restart)
 
+    async def voice_status(r):
+        """Голос для мастера и Настроек: поставлен ли движок, идёт ли установка (и её шаг), отвечает ли служба."""
+        from ..tts import runtime
+        health = {}
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=2)) as sess, \
+                    sess.get(f"http://{paths.HOST}:{paths.PORT_TTS}/health") as h:
+                health = await h.json(content_type=None)
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError):
+            pass
+        inst = {}
+        if services.supervised():
+            from .. import supervisor
+            inst = supervisor.get().status().get("voice-install", {})
+        step = ""
+        try:
+            tail = (paths.LOG_DIR / "voice-install.log").read_text(encoding="utf-8", errors="replace").splitlines()[-40:]
+            step = next((ln.strip() for ln in reversed(tail) if ln.strip().startswith(("шаг", "✓", "✗", "↓"))), "")
+        except OSError:
+            pass
+        svc = services.status().get("tts", {})
+        return ok({"installed": runtime.installed(), "installing": inst.get("state") == "active", "step": step,
+                   "engine": health.get("engine", ""), "sarah": bool(health.get("sarah")), "ready": bool(health.get("ok")),
+                   "service": svc.get("state", "")})
+
+    async def voice_install(r):
+        d = await _body(r)
+        engine = str(d.get("engine") or "chatterbox")
+        from ..tts import runtime
+        if engine not in runtime.PACKAGES:
+            return err("неизвестный движок")
+        if not services.supervised():
+            util.spawn(["haotica", "voice", "install", engine])
+            return ok({"started": engine})
+        from .. import supervisor
+        sup = supervisor.get()
+
+        def done(_svc, code: int) -> None:         # поставилось — служба речи поднимается сама
+            if code == 0:
+                try:
+                    if services._tts_service():
+                        sup.stop("tts", 10)
+                        sup.start("tts")
+                except Exception:  # noqa: BLE001
+                    log.exception("запуск службы речи после установки")
+        sup.add("voice-install", [*supervisor.python_argv("haotica.cli"), "voice", "install", engine], restart=False,
+                on_exit=done)
+        sup.start("voice-install")
+        return ok({"started": engine})
+
+    R.add_get("/api/voice/status", voice_status)
+    R.add_post("/api/voice/install", voice_install)
+
     async def voice_stop(r):
         if A(r).voice:
             await A(r).voice.stop()
@@ -397,6 +450,16 @@ def create_app(agent: Agent | None = None) -> web.Application:
                                 restart=False)
                         sup.start(f"models-{role}")
                     log.info("продолжаю загрузку моделей: %s", ", ".join(left))
+                # целые по размеру, но не проверенные файлы (старые установки, ручное копирование) — сверить SHA-256
+                # в фоне: испорченный файл удалится и скачается заново, а не будет «готовым», который не грузится
+                unchecked = [r for r, st in models.status().items() if st.get("state") == "unverified"]
+                if unchecked:
+                    from .. import supervisor
+                    sup = supervisor.get()
+                    sup.add("models-verify", [*supervisor.python_argv("haotica.cli"), "models", "verify", "--missing"],
+                            restart=False)
+                    sup.start("models-verify")
+                    log.info("проверяю SHA-256 моделей: %s", ", ".join(unchecked))
             except Exception:  # noqa: BLE001
                 log.exception("докачка моделей")
 

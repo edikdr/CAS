@@ -31,6 +31,44 @@ def _gpu_devices(exe) -> list[str]:
     return [ln.strip() for ln in out if ":" in ln and any(k in ln for k in ("Vulkan", "ROCm", "HIP", "Radeon", "AMD", "NVIDIA", "Intel"))]
 
 
+def _integration(profile_id: str, timeout: float = 20.0) -> tuple[bool, str]:
+    """Оболочка как во вкладке (с интеграцией HAOTICA): приходит ли OSC 133 A (приглашение) и D (конец команды)."""
+    import threading
+    import time
+    from .apps import profiles
+    from .apps.conpty import ConPtyProcess
+    argv, env, cwd, _p = profiles.build(profile_id, "", "doctor")
+    buf: list[str] = []
+    lock = threading.Lock()
+    proc = None
+
+    def data(s: str) -> None:
+        with lock:
+            buf.append(s)
+        if "\x1b[6n" in s and proc is not None:          # как терминал: ответить на запрос позиции курсора
+            proc.write("\x1b[1;1R")
+    t0 = time.monotonic()
+    proc = ConPtyProcess(argv, env, cwd, 120, 30, data, lambda _c: None)
+
+    def wait(needle: str, until: float) -> bool:
+        while time.monotonic() < until:
+            with lock:
+                if needle in "".join(buf):
+                    return True
+            time.sleep(0.05)
+        return False
+    try:
+        if not wait("\x1b]133;A", t0 + timeout):
+            return False, "нет приглашения с OSC 133 — Haotica не сможет выполнять команды в этой оболочке"
+        dt = time.monotonic() - t0
+        proc.write("cmd /c exit 7\r")
+        if not wait("\x1b]133;D;7", time.monotonic() + timeout):
+            return False, "нет кода выхода (OSC 133 D)"
+        return True, f"приглашение за {dt:.1f} с, коды выхода видны"
+    finally:
+        proc.kill()
+
+
 def checks() -> list[dict]:
     res: list[dict] = []
 
@@ -71,6 +109,11 @@ def checks() -> list[dict]:
                     "запускается" if ok else f"код {hexcode(code)} · {p['exe']} · {out.strip()[:120]!r}")
             except Exception as e:  # noqa: BLE001
                 add(f"СТАРТ · {p['name']}", "fail", f"{type(e).__name__}: {e} · {p['exe']}")
+        for p in pr:                              # блоки команд: без них Haotica не видит, когда команда закончилась
+            if p["kind"] != "pwsh":
+                continue
+            ok, info = _integration(p["id"])
+            add(f"БЛОКИ · {p['name']}", "ok" if ok else "fail", info)
     for name, port in (("ЯДРО", paths.PORT_CORE), ("HAOTICA", paths.PORT_HAOTICA), ("МОДЕЛЬ FAST", paths.PORT_LLM_FAST),
                        ("МОДЕЛЬ BASE", paths.PORT_LLM_BASE), ("МОДЕЛЬ DEEP", paths.PORT_LLM_DEEP), ("РЕЧЬ", paths.PORT_TTS)):
         up = _port(port)
@@ -89,12 +132,16 @@ def checks() -> list[dict]:
     try:
         for role, m in models.status().items():
             pct = int(100 * m["have"] / max(1, m["size"]))
-            add(f"МОДЕЛЬ {role}", "ok" if m["ready"] else "warn",
-                m["label"] if m["ready"] else (f"загрузка {pct}%" if m["have"] else "не скачана"))
+            add(f"МОДЕЛЬ {role}", "ok" if m.get("verified") else "warn",
+                m["label"] + ("" if m.get("verified") else " · SHA-256 не проверена: haotica models verify --missing")
+                if m["ready"] else (f"загрузка {pct}%" if m["have"] else "не скачана"))
     except Exception as e:  # noqa: BLE001
         add("МОДЕЛИ", "warn", e)
     from .tts import runtime
-    add("СЛУЖБА РЕЧИ", "ok" if runtime.python() else "warn", str(runtime.python() or "не установлена: haotica voice install"))
+    eng = runtime.installed()
+    add("СЛУЖБА РЕЧИ", "ok" if eng else "warn",
+        f"{eng} · {runtime.python()}" if eng else ("установка не закончена: haotica voice install chatterbox" if runtime.python()
+                                                  else "не установлена: haotica voice install chatterbox"))
     du = shutil.disk_usage(paths.DATA_DIR if paths.DATA_DIR.exists() else paths.HOME)
     free = du.free / 1e9
     add("ДИСК", "ok" if free > 60 else ("warn" if free > 20 else "fail"), f"свободно {free:.0f} ГБ (base ≈ 19 ГБ, deep ≈ 45 ГБ)")

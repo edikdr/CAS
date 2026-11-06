@@ -32,8 +32,11 @@ const ROLES = [
 ];
 
 export async function runWizard({ profiles = [], defaultProfile = "", force = false } = {}) {
-  const doc = await HY.get("/api/doctor");
-  if (!force && doc && doc.wizard_done) return;
+  // при каждом запуске окна — только отметка (полная диагностика запускает оболочки и llama-server — это секунды)
+  const wz0 = await HY.get("/api/wizard");
+  if (!force && wz0 && wz0.wizard_done) return;
+  let docCache = null;
+  const doctor = async () => (docCache ||= await HY.get("/api/doctor"));
   if (!document.getElementById("wz-css")) { const st = el("style", CSS); st.id = "wz-css"; document.head.append(st); }
   const steps = ["Система", "Модели", "Оболочка", "Голос", "Ключи"];
   let step = 0;
@@ -47,7 +50,19 @@ export async function runWizard({ profiles = [], defaultProfile = "", force = fa
   const root = el("div.wz-back", wz);
   document.body.append(root);
   let timer = null;
-  const finish = async () => { clearInterval(timer); await HY.post("/api/wizard/done", {}); root.remove(); };
+  let wantVoice = true;                         // голос Сары ставится сам (снять галочку — не ставить)
+  // служба речи: если не поставлена — ставим в фоне (uv, PyTorch CPU, веса Chatterbox), терминал ждать не нужно
+  const ensureVoice = async () => {
+    if (!wantVoice) return null;
+    const v = await HY.haotica("GET", "/api/voice/status");
+    if (v && v.ok !== false && !v.installed && !v.installing) await HY.haotica("POST", "/api/voice/install", { engine: "chatterbox" });
+    return v;
+  };
+  const finish = async () => {
+    clearInterval(timer); root.remove();
+    await HY.post("/api/wizard/done", {});
+    ensureVoice().catch(() => {});              // установка голоса — в фоне, окно не ждёт
+  };
 
   async function go(n) {
     clearInterval(timer);
@@ -58,13 +73,16 @@ export async function runWizard({ profiles = [], defaultProfile = "", force = fa
     next.textContent = step === steps.length - 1 ? "ГОТОВО" : "ДАЛЕЕ";
     body.replaceChildren();
     if (step === 0) {
-      const d = await HY.get("/api/doctor");
+      body.append(el("p", "Проверяю систему…"));
+      const d = await doctor();
+      if (step !== 0) return;
+      body.replaceChildren();
       body.append(el("h2", "ПРОВЕРКА СИСТЕМЫ"), el("p", "Видеокарта, llama.cpp, оболочки, диск. Предупреждения не мешают работе терминала — Haotica включится, когда будут модели."),
         el("div.wz-chk", ((d && d.checks) || []).flatMap((c) => [el("span", c.name), el("span." + c.status, c.status.toUpperCase()), el("span", c.info)])));
     } else if (step === 1) {
       const m = await HY.get("/api/models");
       const list = (m && m.models) || {};
-      const free = ((await HY.get("/api/doctor")) || {}).checks?.find((c) => c.name === "ДИСК")?.info || "";
+      const free = ((await doctor()) || {}).checks?.find((c) => c.name === "ДИСК")?.info || "";
       const status = el("p", "");
       const render = () => {
         const need = [...pick].reduce((a, r) => a + Math.max(0, ((list[r] || {}).size || 0) - ((list[r] || {}).have || 0)), 0);
@@ -75,7 +93,7 @@ export async function runWizard({ profiles = [], defaultProfile = "", force = fa
           const x = list[role] || {};
           const row = el("div.wz-model" + (pick.has(role) ? ".on" : ""), { onclick: () => { pick.has(role) ? pick.delete(role) : pick.add(role); row.classList.toggle("on"); box.checked = pick.has(role); render(); } },
             el("input", { type: "checkbox", checked: pick.has(role), tabindex: -1 }), el("b", tag), el("div", x.label || role, el("small", what)),
-            el("span.sz", x.ready ? "ГОТОВА" : x.have ? `${Math.floor(100 * x.have / Math.max(1, x.size))}%` : HY.fmtBytes(x.size || 0)));
+            el("span.sz", x.verified ? "ГОТОВА" : x.ready ? "ПРОВЕРКА SHA-256" : x.have ? `${Math.floor(100 * x.have / Math.max(1, x.size))}%` : HY.fmtBytes(x.size || 0)));
           const box = row.querySelector("input");
           return row;
         }), status,
@@ -93,11 +111,29 @@ export async function runWizard({ profiles = [], defaultProfile = "", force = fa
           await HY.setting("terminal.default_profile", p.id);
         } }, p.name))));
     } else if (step === 3) {
-      body.append(el("h2", "ГОЛОС САРЫ"), el("p", "Локальная модель речи выбирается слепым прослушиванием (samples/tts). Если службы речи ещё нет — Haotica отвечает текстом."),
-        el("div.s-actions", el("button.hy-btn", { onclick: async () => {
-          const r = await HY.haotica("POST", "/api/voice/test", {});
-          HY.toast(r && r.played ? `Голос: ${r.engine || "?"}` : "Голос не прозвучал: служба речи не установлена (haotica voice install)", r && r.played ? "" : "err", [], 6000);
-        } }, icon("volume", 14), " ПРОВЕРИТЬ ГОЛОС")));
+      const line = el("div.wz-chk", el("span", "СЛУЖБА РЕЧИ"), el("span.warn", "…"), el("span", "проверяю"));
+      const [, badge, info] = line.children;
+      const test = el("button.hy-btn", { disabled: true, onclick: async () => {
+        const r = await HY.haotica("POST", "/api/voice/test", {});
+        HY.toast(r && r.played ? `Голос: ${r.engine || "?"}` : "Голос не прозвучал — служба речи ещё грузит модель, попробуйте через минуту", r && r.played ? "" : "err", [], 6000);
+      } }, icon("volume", 14), " ПРОВЕРИТЬ ГОЛОС");
+      const auto = el("label.wz-model.on", { style: { gridTemplateColumns: "22px 1fr" } },
+        el("input", { type: "checkbox", checked: wantVoice, onchange: (e) => { wantVoice = e.target.checked; if (wantVoice) poll(true); } }),
+        el("div", "Поставить голос Сары сейчас", el("small", "Chatterbox Multilingual — клон голоса Сары по её записям; ~4 ГБ (PyTorch и веса), " +
+          "ставится в фоне, терминал работает сразу. Нужен uv — поставится сам через winget.")));
+      const poll = async (start) => {
+        const v = start ? await ensureVoice() : await HY.haotica("GET", "/api/voice/status");
+        if (!v || v.ok === false) { badge.className = "warn"; badge.textContent = "WARN"; info.textContent = "Haotica ещё не запущена"; return; }
+        const s = start ? await HY.haotica("GET", "/api/voice/status") : v;
+        if (s.ready) { badge.className = "ok"; badge.textContent = "OK"; info.textContent = `${s.engine}${s.sarah ? " · голос Сары" : ""}`; test.disabled = false; }
+        else if (s.installing || (start && wantVoice && !s.installed)) { badge.className = "warn"; badge.textContent = "…"; info.textContent = "ставится: " + (s.step || "начинаю"); }
+        else if (s.installed) { badge.className = "warn"; badge.textContent = "…"; info.textContent = `${s.installed} поставлен, служба загружает модель (до минуты)`; test.disabled = false; }
+        else { badge.className = "warn"; badge.textContent = "НЕТ"; info.textContent = "не поставлена — Haotica отвечает текстом"; }
+      };
+      body.append(el("h2", "ГОЛОС САРЫ"), el("p", "Haotica говорит голосом Сары — локально, без интернета. Пока служба речи ставится, Haotica отвечает текстом."),
+        auto, line, el("div.s-actions", test));
+      poll(true);
+      timer = setInterval(() => poll(false), 2500);
     } else if (step === 4) {
       body.append(el("h2", "КЛЮЧИ (НЕОБЯЗАТЕЛЬНО)"), el("p", "Облачная модель — только второе мнение и поиск публичной информации; всё локальное идёт карточкой. Ключ хранится в Диспетчере учётных данных Windows."),
         cloudKeyRow());

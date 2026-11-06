@@ -222,12 +222,8 @@ class Voice:
         return buf.getvalue()
 
     async def _play_file(self, f: Path, s: dict, max_s: float = 0) -> None:
-        data = b""
-        if f.suffix == ".ogg" and util.which("ffmpeg"):
-            cut = ["-t", f"{max_s:.2f}", "-af", f"afade=t=out:st={max(0, max_s - 0.4):.2f}:d=0.4"] if max_s else []
-            proc = await asyncio.create_subprocess_exec("ffmpeg", "-v", "quiet", "-i", str(f), *cut, "-f", "wav", "-ac", "1",
-                                                        "-ar", "24000", "-", stdout=asyncio.subprocess.PIPE)
-            data, _ = await proc.communicate()
+        from .. import audio                              # OGG без ffmpeg (Windows): soundfile + numpy
+        data = await asyncio.to_thread(audio.to_wav, f, 24000, max_s)
         if data:
             await self._play_bytes(data, s)
         elif os.name != "nt":

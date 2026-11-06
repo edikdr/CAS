@@ -97,12 +97,16 @@ def create_app(core) -> web.Application:
         from .. import doctor_win
         return json_ok({"checks": await _a.to_thread(doctor_win.checks), "wizard_done": (paths.STATE_DIR / "wizard.done").exists()})
 
+    async def wizard_get(_r):                 # дёшево: окно при каждом запуске спрашивает только это
+        return json_ok({"wizard_done": (paths.STATE_DIR / "wizard.done").exists()})
+
     async def wizard_done(_r):
         paths.STATE_DIR.mkdir(parents=True, exist_ok=True)
         (paths.STATE_DIR / "wizard.done").write_text("1", encoding="utf-8")
         return json_ok()
     app.router.add_get("/api/doctor", doctor_get)
     app.router.add_post("/api/wizard/done", wizard_done)
+    app.router.add_get("/api/wizard", wizard_get)
     apps_root = paths.APPS_DIR
     app.router.add_get("/ui/{path:.*}", _static("/ui", apps_root / "_ui"))
     app.router.add_get("/apps/{path:.*}", _static("/apps", apps_root))

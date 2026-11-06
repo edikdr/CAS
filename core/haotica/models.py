@@ -201,15 +201,90 @@ def _fetch(url: str, dst: Path, size: int, sha256: str, stall: int = 60, tries: 
         part.unlink(missing_ok=True)
         return False
     part.replace(dst)
+    mark(dst.name, True)
     print(f"  ✓ {dst.name}", flush=True)
     return True
+
+
+# ── проверка SHA-256: «готова» = файл целиком и сумма сошлась ─────────────
+def _marks_path() -> Path:
+    return paths.MODELS_DIR / "verified.json"
+
+
+def marks() -> dict:
+    return util.load_json(_marks_path(), {}) or {}
+
+
+def mark(file: str, ok: bool) -> None:
+    """Запомнить результат проверки файла (вместе с размером и временем — изменённый файл проверяется заново)."""
+    f = paths.MODELS_DIR / file
+    try:
+        st = f.stat()
+    except OSError:
+        return
+    m = marks()
+    m[file] = {"ok": bool(ok), "size": st.st_size, "mtime": int(st.st_mtime)}
+    util.write_json(_marks_path(), m)
+
+
+def checked(file: str) -> bool | None:
+    """True — сумма сошлась, False — не сошлась, None — не проверялся (или файл с тех пор менялся)."""
+    f = paths.MODELS_DIR / file
+    rec = marks().get(file)
+    try:
+        st = f.stat()
+    except OSError:
+        return None
+    if not rec or rec.get("size") != st.st_size or rec.get("mtime") != int(st.st_mtime):
+        return None
+    return bool(rec.get("ok"))
+
+
+def files_of(entry: dict) -> list[tuple[str, int, str]]:
+    """(файл, размер, sha256) роли — основной и дополнительные (зрение, драфт)."""
+    return [(entry["file"], entry["size"], entry["sha256"])] + \
+        [(entry[k]["file"], entry[k]["size"], entry[k]["sha256"]) for k in EXTRAS if entry.get(k)]
+
+
+def verify(only_unchecked: bool = False, progress: bool = True) -> int:
+    """Проверить SHA-256 файлов моделей. Несовпадение — испорченный файл удаляется и скачается заново.
+    Возвращает число испорченных файлов."""
+    bad = 0
+    for role, e in load_manifest()["models"].items():
+        for name, size, sha in files_of(e):
+            f = paths.MODELS_DIR / name
+            if not f.exists() or f.stat().st_size != size:
+                continue
+            if only_unchecked and checked(name) is not None:
+                continue
+            ok = _sha256(f, progress) == sha
+            mark(name, ok)
+            print(f"  {'✓' if ok else '✗'} {role}: {name}", flush=True)
+            if not ok:
+                bad += 1
+                try:
+                    f.unlink(missing_ok=True)
+                    print("    сумма не совпала — испорченный файл удалён, будет скачан заново", flush=True)
+                except OSError:                     # занят llama-server: помечен испорченным, удалится при загрузке
+                    print("    сумма не совпала — файл помечен испорченным (занят, удалю при загрузке)", flush=True)
+    return bad
 
 
 def download_file(repo: str, file: str, size: int, sha256: str) -> bool:
     dst = paths.MODELS_DIR / file
     paths.MODELS_DIR.mkdir(parents=True, exist_ok=True)
     if dst.exists() and dst.stat().st_size == size and not (paths.MODELS_DIR / f"{file}.aria2").exists():
-        return True
+        if checked(file) is None:                    # целый по размеру, но не проверен — проверяем сейчас
+            ok = _sha256(dst, True) == sha256
+            mark(file, ok)
+            if ok:
+                return True
+            print(f"  ✗ {file}: сумма не совпала — качаю заново", flush=True)
+            dst.unlink(missing_ok=True)
+        elif checked(file):
+            return True
+        else:
+            dst.unlink(missing_ok=True)                 # испорчен (проверка не прошла) — качаем заново
     free = shutil.disk_usage(paths.MODELS_DIR).free
     have = max((p.stat().st_size for p in (dst, part_file(file)) if p.exists()), default=0)
     need = size - have
@@ -234,7 +309,10 @@ def download_file(repo: str, file: str, size: int, sha256: str) -> bool:
     print(f"  ↓ {file} ({size / 1e9:.1f} ГБ)")
     if subprocess.run(cmd, check=False).returncode != 0:
         return False
-    return dst.exists() and dst.stat().st_size == size
+    ok = dst.exists() and dst.stat().st_size == size
+    if ok:
+        mark(file, True)                             # aria2c сам сверил SHA-256 (--checksum)
+    return ok
 
 
 def unfinished() -> list[str]:
@@ -262,20 +340,27 @@ def download(roles: list[str] | None = None) -> bool:
 
 
 def status() -> dict:
+    """ready — все файлы роли на месте целиком и не помечены испорченными; verified — SHA-256 всех сошлась
+    (пока проверка не прошла, модель «готова, проверяется»); state — коротко для интерфейса."""
     m = load_manifest()
     out = {}
     for role, e in m["models"].items():
-        files = [(e["file"], e["size"])] + [(e[k]["file"], e[k]["size"]) for k in EXTRAS if e.get(k)]
+        files = [(name, sz) for name, sz, _sha in files_of(e)]
         size = sum(sz for _, sz in files)
         have = 0
-        ready = True
+        ready = verified = True
         for name, sz in files:
             f = paths.MODELS_DIR / name
             pf = part_file(name)
             got = min(sz, f.stat().st_size) if f.exists() else (min(sz, pf.stat().st_size) if pf.exists() else 0)
             have += got
-            ready &= f.exists() and got == sz and not (paths.MODELS_DIR / f"{name}.aria2").exists()
+            whole = f.exists() and got == sz and not (paths.MODELS_DIR / f"{name}.aria2").exists()
+            c = checked(name) if whole else None
+            ready &= whole and c is not False
+            verified &= whole and c is True
+        state = "verified" if verified else ("unverified" if ready else ("partial" if have else "missing"))
         out[role] = {"label": e["label"], "file": str(model_file(e)), "size": size, "have": have, "ready": ready,
+                     "verified": verified, "state": state,
                      "role": role, "vision": bool(e.get("mmproj")), "draft": (e.get("draft") or {}).get("type", ""),
                      "variants": [{"id": v["id"], "label": v["label"], "size": v["size"]} for v in CATALOG.get(role, [])],
                      "id": e["id"]}
@@ -302,6 +387,49 @@ def _nospec_marker(role: str) -> Path:
     return paths.STATE_DIR / f"llm-{role}.nospec"
 
 
+def _shrink_file(role: str) -> Path:
+    return paths.STATE_DIR / f"llm-{role}.ctx"
+
+
+def _ctx_shrink(role: str) -> int:
+    """Контекст, который поместился после нехватки памяти (0 — ограничения нет)."""
+    try:
+        return int(_shrink_file(role).read_text(encoding="utf-8").split()[0])
+    except (OSError, ValueError, IndexError):
+        return 0
+
+
+def failure_reason(log_tail: str) -> str:
+    """Почему llama-server не стартовал — по хвосту его журнала: 'oom', 'spec', 'file' или ''."""
+    t = log_tail.lower()
+    if any(k in t for k in ("outofdevicememory", "out of memory", "failed to allocate", "unable to allocate",
+                            "erroroutofhostmemory")):
+        return "oom"
+    if any(k in t for k in ("not within the file bounds", "failed to read magic", "invalid magic", "gguf_init_from_file",
+                            "corrupted", "tensor data is not")):
+        return "file"
+    if any(k in t for k in ("draft", "speculative", "spec-type", "spec_type")):
+        return "spec"
+    return ""
+
+
+def on_start_failure(role: str, log_tail: str) -> str:
+    """Запуск упал в первые секунды: что поменять перед следующей попыткой. Нехватка памяти — контекст вдвое
+    меньше (до 16K); сбой драфта — без него. Раньше любая ошибка считалась «драфт не поддержан»."""
+    why = failure_reason(log_tail)
+    paths.STATE_DIR.mkdir(parents=True, exist_ok=True)
+    if why == "oom":
+        cur = _ctx_shrink(role) or int(config.get("haotica.context_size", 131072))
+        nxt = max(16384, cur // 2)
+        if cur <= 16384:
+            return "oom-final"
+        _shrink_file(role).write_text(f"{nxt} — не хватило памяти видеокарты при {cur}\n", encoding="utf-8")
+        return "oom"
+    if why == "spec":
+        _nospec_marker(role).write_text("llama-server не принял драфт\n", encoding="utf-8")
+    return why
+
+
 def server_args(role: str, spec: bool = True) -> list[str]:
     """Параметры llama-server под Strix Halo (Vulkan, общая память)."""
     m = load_manifest()["models"][role]
@@ -313,8 +441,15 @@ def server_args(role: str, spec: bool = True) -> list[str]:
     f = model_file(m)
     if not f.exists():
         raise SystemExit(f"модель не загружена: {f} (haotica models download {role})")
-    args = [str(exe), "-m", str(f), "--host", paths.HOST, "--port", str(PORTS[role]), "-ngl", "999",
+    args = [str(exe), "-m", str(f), "--host", paths.HOST, "--port", str(PORTS[role]),
             "--jinja", "--metrics", "--no-webui", "--flash-attn", "on", "-t", str(max(4, (os.cpu_count() or 16) // 2))]
+    if os.name == "nt" and role in MAIN_ROLES:
+        # Windows (Vulkan, общая память): видеокарте реально доступно меньше, чем она сообщает. --fit сам
+        # переносит часть слоёв на процессор, если не хватает, и оставляет запас (быстрая модель, окно, система).
+        # Раньше было -ngl 999: deep (80B, ~40 ГиБ) падала на выделении кэша и перезапускалась по кругу.
+        args += ["--fit", "on", "--fit-target", str(int(ha.get("gpu_reserve_mib", 3072)))]
+    else:
+        args += ["-ngl", "999"]
     smp = SAMPLING.get(role, {})
     args += ["--temp", str(smp.get("temperature", 0.7)), "--top-p", str(smp.get("top_p", 0.9)),
              "--top-k", str(smp.get("top_k", 20)), "--min-p", str(smp.get("min_p", 0.0))]
@@ -323,10 +458,15 @@ def server_args(role: str, spec: bool = True) -> list[str]:
     if role in MAIN_ROLES:
         ctx = int(ha.get("context_size", 131072))
         ctx = max(4096, min(ctx, m.get("ctx_max", 262144)))
-        args += ["-c", str(ctx), "-np", "2", "--kv-unified", "-b", "2048", "-ub", "512", "--cache-reuse", "256"]
+        shrink = _ctx_shrink(role)                 # после нехватки памяти при запуске — контекст меньше
+        if shrink:
+            ctx = max(16384, min(ctx, shrink))
+        # deep — одна длинная задача за раз: один слот (весь контекст ей); base — два (терминал + чат)
+        slots = "1" if role == "deep" else "2"
+        args += ["-c", str(ctx), "-np", slots, "--kv-unified", "-b", "2048", "-ub", "512", "--cache-reuse", "256"]
         # 8-битный кэш: у Qwen3.8-27B 16 слоёв полного внимания (~64 КБ на токен в f16) — с 64K;
-        # у Coder-Next их 12 и по 2 головы (~24 КБ на токен) — только на 256K
-        if ctx > (65536 if role == "base" else 131072):
+        # deep (~40 ГиБ весов) — всегда: на Windows f16-кэш 128K уже не помещался рядом с быстрой моделью
+        if ctx > 65536 or role == "deep":
             args += ["--cache-type-k", "q8_0", "--cache-type-v", "q8_0"]
         if m.get("mmproj") and (paths.MODELS_DIR / m["mmproj"]["file"]).exists():
             args += ["--mmproj", str(paths.MODELS_DIR / m["mmproj"]["file"])]
@@ -347,21 +487,16 @@ def server_args(role: str, spec: bool = True) -> list[str]:
 def _cli(a: argparse.Namespace) -> int:
     if a.action == "status":
         for role, st in status().items():
-            mark = "✓" if st["ready"] else ("…" if st["have"] else "✗")
-            print(f"  {mark} {role:<7} {st['label']}  {st['have'] / 1e9:.1f}/{st['size'] / 1e9:.1f} ГБ")
+            sign = {"verified": "✓", "unverified": "?", "partial": "…"}.get(st["state"], "✗")
+            note = {"unverified": " (SHA-256 не проверена: haotica models verify)"}.get(st["state"], "")
+            print(f"  {sign} {role:<7} {st['label']}  {st['have'] / 1e9:.1f}/{st['size'] / 1e9:.1f} ГБ{note}")
         exe = llama_server()
         print(f"  {'✓' if exe else '✗'} llama-server {exe or '— не установлен'}")
         return 0
     if a.action == "download":
         return 0 if download(a.args or None) else 1
-    if a.action == "verify":
-        bad = 0
-        for role, e in load_manifest()["models"].items():
-            f = model_file(e)
-            ok = f.exists() and _sha256(f, True) == e["sha256"]
-            print(f"  {'✓' if ok else '✗'} {role}: {f.name}")
-            bad += 0 if ok else 1
-        return 1 if bad else 0
+    if a.action == "verify":                    # haotica models verify [--missing]: только непроверенные
+        return 1 if verify(only_unchecked=bool(getattr(a, "missing", False)) or "missing" in a.args) else 0
     if a.action == "use" and len(a.args) == 2:
         role, vid = a.args
         v = next((x for x in CATALOG.get(role, []) if x["id"] == vid), None)
@@ -392,6 +527,7 @@ def register(sub) -> None:
     p = sub.add_parser("models", help="модели Haotica")
     p.add_argument("action", choices=["status", "download", "verify", "use", "remove", "args"])
     p.add_argument("args", nargs="*")
+    p.add_argument("--missing", dest="missing", action="store_true", help="verify: только непроверенные")
     p.set_defaults(fn=_cli)
 
 

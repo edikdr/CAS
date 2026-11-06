@@ -42,6 +42,7 @@ class LLM:
         self.paused = False                     # режим «Игра»: основные модели выгружены
         self._starting: dict[str, asyncio.Task] = {}
         self._switch_lock = asyncio.Lock()
+        self.errors: dict[str, str] = {}              # роль → почему не запустилась (показывается владельцу)
 
     async def start(self) -> None:
         self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=None, sock_connect=3))
@@ -124,10 +125,12 @@ class LLM:
             return await self._starting[role]
 
         async def boot() -> bool:
+            self.errors.pop(role, None)
             started, err = await services.start(f"llm-{role}")
             if not started and await self.health(role) == "offline":
                 log.warning("не удалось запустить %s: %s", role, err[:200])
                 self.state[role] = "error"
+                self.errors[role] = err[:300]
                 return False
             t0 = time.time()
             while time.time() - t0 < timeout:
@@ -135,7 +138,14 @@ class LLM:
                 self.state[role] = st if st != "offline" else "loading"
                 if st == "ready":
                     return True
+                why = services.error(f"llm-{role}")
+                if why:                                 # супервизор сдался (память, файл) — не ждём 10 минут
+                    log.warning("%s не поднялась: %s", role, why)
+                    self.state[role] = "error"
+                    self.errors[role] = why
+                    return False
                 await asyncio.sleep(1.5)
+            self.errors[role] = f"не ответила за {int(timeout)} с"
             return False
         self._starting[role] = asyncio.create_task(boot())
         return await self._starting[role]
@@ -157,7 +167,7 @@ class LLM:
     def status(self) -> dict:
         m = models.load_manifest()["models"]
         return {"main": self.main, "switching": self.switching, "paused": self.paused, "state": dict(self.state),
-                "tps": self.tps, "labels": {r: m[r]["label"] for r in m}}
+                "tps": self.tps, "labels": {r: m[r]["label"] for r in m}, "errors": dict(self.errors)}
 
     # ── генерация ──────────────────────────────────────────────
     async def chat(self, messages: list[dict], tools: list[dict] | None = None, role: str = "",

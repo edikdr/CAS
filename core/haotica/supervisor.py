@@ -139,6 +139,7 @@ class Service:
     next_try: float = 0.0
     on_exit: object = None           # колбэк (service, code) — например, откат без драфта у llama-server
     log_file: Path | None = None
+    error: str = ""                  # почему служба остановлена без перезапуска (для интерфейса)
 
     def running(self) -> bool:
         return self.proc is not None and self.proc.poll() is None

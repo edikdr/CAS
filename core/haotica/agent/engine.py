@@ -12,6 +12,7 @@ import base64
 import json
 import logging
 import mimetypes
+import os
 import re
 import time
 import uuid
@@ -120,6 +121,18 @@ class Agent:
         self.bg(self.cloud.load_key())
         if config.get("haotica.enabled", True) and not self._game_on():
             self.bg(self._warmup())
+        self.bg(self._voice_up())
+
+    async def _voice_up(self) -> None:
+        """Windows: служба речи поднимается вместе с Haotica, если голос поставлен и включён (раньше — только
+        кнопкой «Перезапустить голос», и Сара молчала после каждого запуска)."""
+        from .. import services
+        from ..tts import runtime
+        if not services.supervised() or not runtime.installed() or not config.get("haotica.voice", True):
+            return
+        started, e = await services.start("tts")
+        if not started:
+            log.warning("служба речи не запустилась: %s", e)
 
     async def stop(self) -> None:
         for c in list(self.cards.values()):
@@ -506,10 +519,19 @@ class Agent:
                 msgs.pop(-2)
         self.state.set("reading")
         if not await self.llm.use(role, 600):
-            err = f"модель {role} не запустилась (journalctl --user -u haotica-llm-{role})"
-            self.state.set("warning", err)
-            yield {"type": "error", "error": err}
-            return
+            why = self.llm.errors.get(role, "")
+            where = (f"журнал {paths.LOG_DIR / f'llm-{role}.log'}" if os.name == "nt"
+                     else f"journalctl --user -u haotica-llm-{role}")
+            err = f"модель {role} не запустилась: {why or where}"
+            if role == "deep" and await self.llm.use("base", 600):    # deep не поднялась — отвечает base
+                note = f"_({err}; отвечает base)_\n\n"
+                self.hub.publish("message", {"chat": chat, "role": "assistant", "delta": note}, keep=False)
+                yield {"type": "delta", "text": note}
+                role = "base"
+            else:
+                self.state.set("warning", err)
+                yield {"type": "error", "error": err}
+                return
         mode = config.get("haotica.mode", "copilot")
         schemas = tools.schemas(mode, terminal=self.hub_has_exec_listener()) if config.get("haotica.enabled", True) else None
         think = role == "base" and (len(text) > 400 or bool(re.search(r"(?i)подумай|почему|объясни|think", text)))

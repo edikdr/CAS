@@ -79,9 +79,14 @@ def test_pwsh_integration_under_restricted_policy(monkeypatch):
     proc, c = _spawn("pwsh")
     try:
         assert c.wait("\x1b]133;A"), "при Restricted нет OSC 133 A: " + repr(c.buf[-400:])
+        n = c.buf.count("\x1b]133;D")
         proc.write("Get-ExecutionPolicy\r")
-        assert c.wait("\x1b]133;D;0"), repr(c.buf[-400:])
-        assert "Restricted" in c.buf, "политика запуска не должна меняться: " + repr(c.buf[-400:])
+        assert c.wait("Restricted"), "политика запуска не должна меняться: " + repr(c.buf[-400:])
+        t0 = time.time()
+        while c.buf.count("\x1b]133;D;0") <= n and time.time() - t0 < 20:
+            time.sleep(0.1)
+        assert c.buf.count("\x1b]133;D;0") > n, "конец команды (OSC 133 D): " + repr(c.buf[-400:])
+        assert "7777;cmd=" + __import__("base64").b64encode(b"Get-ExecutionPolicy").decode() in c.buf
     finally:
         proc.kill()
 
@@ -177,4 +182,4 @@ def test_shells_start_as_in_window():
     for prof in profiles.detect():
         if prof["kind"] in ("pwsh", "cmd"):
             r = ptyprobe.check(prof["id"])
-            assert r["ok"], r
+            assert r["ok"], f"{prof['id']}: {r.get('why')} · {r.get('out')!r}"

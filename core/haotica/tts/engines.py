@@ -167,7 +167,10 @@ class Chatterbox(Engine):
         import torch
         from chatterbox.mtl_tts import ChatterboxMultilingualTTS
         self.torch = torch
-        self.m = ChatterboxMultilingualTTS.from_pretrained(device=_device())
+        dev = _device()
+        if dev == "cpu":                    # на процессоре — все логические ядра: замер на Ryzen AI Max — ~25% быстрее
+            torch.set_num_threads(max(1, os.cpu_count() or 1))
+        self.m = ChatterboxMultilingualTTS.from_pretrained(device=dev)
         self.pitch = voice_pitch()
         self.conds = {}                       # язык → условия клона: свой образец Сары на каждый язык
         for key in ("ru", "en"):

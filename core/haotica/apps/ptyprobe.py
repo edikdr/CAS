@@ -12,7 +12,7 @@ from . import profiles
 from .conpty import ConPtyProcess, hexcode
 
 
-def check(profile_id: str, wait: float = 6.0, backend: str = "") -> dict:
+def check(profile_id: str, wait: float = 15.0, backend: str = "") -> dict:
     argv, env, cwd, prof = profiles.build(profile_id, "", "probe")
     chunks: list[str] = []
     exited: list[int] = []
@@ -31,7 +31,7 @@ def check(profile_id: str, wait: float = 6.0, backend: str = "") -> dict:
         return res
     p.write("echo haotica-ok\r")
     t1 = time.monotonic()
-    while time.monotonic() - t1 < 6 and "haotica-ok" not in "".join(chunks)[-400:].replace("echo haotica-ok", "") \
+    while time.monotonic() - t1 < 12 and "haotica-ok" not in "".join(chunks)[-400:].replace("echo haotica-ok", "") \
             and not ev.is_set():
         time.sleep(0.1)
     out = "".join(chunks)

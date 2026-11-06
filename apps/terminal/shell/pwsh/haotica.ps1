@@ -40,7 +40,9 @@ function global:prompt {
   if ($global:__HyNoReadLine) {
     $h = Get-History -Count 1
     $hid = if ($h) { $h.Id } else { 0 }
-    if ($hid -ne $global:__HyHistId) {
+    if ($global:__HyHistId -lt 0) {
+      $global:__HyHistId = $hid           # первое приглашение: в истории — сама команда запуска, это не блок
+    } elseif ($hid -ne $global:__HyHistId) {
       $global:__HyHistId = $hid
       if ($h) {
         $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes([string]$h.CommandLine))
@@ -82,8 +84,7 @@ if ((Test-Path Function:\PSConsoleHostReadLine) -and -not $env:HAOTICA_PS_NO_REA
   }
 } else {
   $global:__HyNoReadLine = $true          # без PSReadLine: конец команды и её текст — по истории (см. prompt)
-  $h0 = Get-History -Count 1
-  $global:__HyHistId = if ($h0) { $h0.Id } else { 0 }
+  $global:__HyHistId = -1
 }
 
 # Haotica из строки: hy вопрос

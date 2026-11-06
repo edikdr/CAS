@@ -339,6 +339,12 @@ class AppWindow(QMainWindow):
                 "sep": os.sep, "features": platform.features(), "safe_gfx": bool(self.host.safe_gfx)}
 
     def load(self) -> None:
+        # ядро стартует параллельно с окном (QtWebEngine поднимается ~1 с): страницу грузим, как только оно слушает
+        if (platform.IS_WINDOWS or os.environ.get("HAOTICA_SUPERVISE") == "1") and \
+                getattr(self, "_wait_core", 0) < 160 and not supervisor.port_open(paths.PORT_CORE, timeout=0.05):
+            self._wait_core = getattr(self, "_wait_core", 0) + 1
+            QTimer.singleShot(40, self.load)
+            return
         q = urllib.parse.quote(json.dumps(self.args))
         self.view.load(QUrl(f"{ORIGIN}/apps/{self.app.name}/index.html#args={q}"))
 
@@ -620,7 +626,7 @@ def main(argv: list[str]) -> int:
     elif app_def.multi and forward_to_running(app_def.name, args or ["--new-tab"]):
         return 0                          # окно уже открыто: новая вкладка в нём
     if platform.IS_WINDOWS or os.environ.get("HAOTICA_SUPERVISE") == "1":
-        supervisor.ensure_backend(wait=6.0)
+        supervisor.ensure_backend(wait=0)      # не ждём: окно создаётся, пока ядро запускается (см. AppWindow.load)
     if platform.IS_WINDOWS:
         try:
             import ctypes

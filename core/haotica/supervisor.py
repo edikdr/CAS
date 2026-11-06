@@ -310,7 +310,8 @@ def ensure_backend(wait: float = 6.0, with_agent: bool = True) -> Supervisor | N
     need = [("core", "haotica.server", paths.PORT_CORE)]
     if with_agent:
         need.append(("agent", "haotica.agent", paths.PORT_HAOTICA))
-    missing = [x for x in need if not port_open(x[2])]
+    # закрытый порт на Windows «думает» весь тайм-аут (повторы SYN): 0,3 с × 2 службы стояли в начале запуска окна
+    missing = [x for x in need if not port_open(x[2], timeout=0.05)]
     if not missing:
         return None
     sup = get()

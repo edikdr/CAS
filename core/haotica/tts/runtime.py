@@ -132,7 +132,10 @@ def ensure_uv() -> str:
 
 # движок → как заранее скачать веса (чтобы первая фраза не ждала гигабайты с Hugging Face)
 WARMUP = {
-    "chatterbox": "from chatterbox.mtl_tts import ChatterboxMultilingualTTS as M; M.from_pretrained(device='cpu'); print('ok')",
+    # плюс быстрый декодер звука из Chatterbox Turbo (тот же автор, ~1 ГБ): 2 шага вместо 6, голос тот же
+    "chatterbox": "from chatterbox.mtl_tts import ChatterboxMultilingualTTS as M; M.from_pretrained(device='cpu'); "
+                  "from huggingface_hub import hf_hub_download as d; d('ResembleAI/chatterbox-turbo', "
+                  "'s3gen_meanflow.safetensors'); print('ok')",
 }
 
 

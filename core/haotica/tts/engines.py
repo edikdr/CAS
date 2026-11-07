@@ -195,6 +195,78 @@ def _fix_early_stop() -> None:
     cls._hy_patched = True
 
 
+def _fast_t3(tfmr) -> None:
+    """Две потери скорости T3 (Chatterbox 0.1.7 + transformers 5):
+    1. Анализатор выравнивания на КАЖДУЮ фразу вешает 3 перехватчика на слои внимания и не снимает их —
+       за разговор их сотни, каждый токен речи вызывал их все, синтез замедлялся с каждой фразой.
+    2. Ради весов внимания трёх голов он переключал ВСЕ 30 слоёв на медленное «eager»-внимание.
+    Здесь: прошлые перехватчики снимаются, все слои считают быстрым sdpa, а три нужных слоя — sdpa плюс веса
+    внимания отдельно (с той же причинной маской), их и читает анализатор."""
+    import copy
+    import torch
+    from chatterbox.models.t3.inference import alignment_stream_analyzer as asa
+    from chatterbox.models.t3.inference.t3_hf_backend import T3HuggingfaceBackend
+    from transformers import AttentionInterface
+    from transformers.integrations.sdpa_attention import sdpa_attention_forward
+    from transformers.models.llama.modeling_llama import repeat_kv
+
+    cls = asa.AlignmentStreamAnalyzer
+    if getattr(cls, "_hy_fast", False):
+        return
+
+    def spy_attention(module, query, key, value, attention_mask, scaling=None, dropout=0.0, **kw):
+        out, _ = sdpa_attention_forward(module, query, key, value, attention_mask, scaling=scaling,
+                                        dropout=dropout, **kw)
+        w = torch.matmul(query, repeat_kv(key, module.num_key_value_groups).transpose(2, 3)) * (
+            scaling if scaling is not None else query.shape[-1] ** -0.5)
+        q_len, k_len = w.shape[-2], w.shape[-1]
+        if q_len > 1:                                     # первый проход: причинная маска, как у eager
+            keep = torch.ones(q_len, k_len, dtype=torch.bool, device=w.device).tril(k_len - q_len)
+            w = w.masked_fill(~keep, float("-inf"))
+        return out, torch.softmax(w.float(), dim=-1)
+    AttentionInterface.register("haotica_spy", spy_attention)
+
+    spied = sorted({li for li, _ in asa.LLAMA_ALIGNED_HEADS})
+    for li in spied:
+        attn = tfmr.layers[li].self_attn
+        c = copy.copy(attn.config)                        # своя копия настроек — только у этих трёх слоёв
+        c._attn_implementation = "haotica_spy"
+        attn.config = c
+    handles: list = []
+
+    orig_spy = cls._add_attention_spy
+
+    def add_spy(self, tfmr_, buffer_idx, layer_idx, head_idx):
+        layer = tfmr_.layers[layer_idx].self_attn
+        before = set(layer._forward_hooks)
+        orig_spy(self, tfmr_, buffer_idx, layer_idx, head_idx)
+        handles.extend((layer, k) for k in set(layer._forward_hooks) - before)
+
+    orig_init = cls.__init__
+
+    def init(self, tfmr_, *a, **k):
+        for layer, key in handles:                        # перехватчики прошлой фразы
+            layer._forward_hooks.pop(key, None)
+        handles.clear()
+        orig_init(self, tfmr_, *a, **k)
+        cfg = getattr(tfmr_, "config", None)
+        if cfg is not None:                               # анализатор переключил всё на eager — вернуть sdpa
+            cfg.output_attentions = False
+            cfg._attn_implementation = "sdpa"
+
+    orig_fwd = T3HuggingfaceBackend.forward
+
+    def forward(self, inputs_embeds, past_key_values=None, use_cache=True, output_attentions=False,
+                output_hidden_states=True, return_dict=True):
+        # веса внимания всех слоёв не нужны: три нужных слоя отдают их сами
+        return orig_fwd(self, inputs_embeds, past_key_values, use_cache, False, output_hidden_states, return_dict)
+
+    cls._add_attention_spy = add_spy
+    cls.__init__ = init
+    T3HuggingfaceBackend.forward = forward
+    cls._hy_fast = True
+
+
 _VOWELS = "аеёиоуыэюяАЕЁИОУЫЭЮЯ"
 
 
@@ -243,6 +315,10 @@ class Chatterbox(Engine):
         except Exception as e:  # noqa: BLE001 — другая версия Chatterbox: работаем как есть
             log.warning("исправление обрыва речи не применено: %s", e)
         try:
+            _fast_t3(self.m.t3.tfmr)
+        except Exception as e:  # noqa: BLE001 — другая версия: работаем медленнее, но работаем
+            log.warning("быстрое внимание T3 не подключено: %s", e)
+        try:
             log.info("ударения в русском: %s", "silero-stress" if _russian_stress()
                      else "нет (переустановите голос: haotica voice install chatterbox)")
         except Exception as e:  # noqa: BLE001
@@ -258,15 +334,55 @@ class Chatterbox(Engine):
         if dev == "cpu" and q in ("balanced", "fast"):
             self.m.t3.to(torch.bfloat16)
             self.dtype = torch.bfloat16
+        self.q = q
+        self.turbo = False                    # декодер звука Turbo (2 шага) вместо обычного (6–10 шагов)
+        self._pending = None                  # декодер Turbo докачался в фоне — подменить перед следующей фразой
+        want = str(_setting("haotica.voice_decoder", "turbo")) == "turbo"
+        s3 = self._turbo_decoder(download=False) if want else None
+        if s3 is not None:
+            self.m.s3gen, self.turbo = s3, True
+        elif want:
+            import threading                  # первый запуск после обновления: качаем ~1 ГБ, пока говорим по-старому
+            threading.Thread(target=self._fetch_turbo, daemon=True, name="turbo-decoder").start()
+        self._prepare()
+
+    def _prepare(self) -> None:
         self.conds = {}                       # язык → условия клона: свой образец Сары на каждый язык
         for key in ("ru", "en"):
             ref = reference(24000, lang=key, pitch=self.pitch)
             if ref:
                 self.m.prepare_conditionals(ref, exaggeration=0.5)
                 self.conds[key] = self.m.conds
-        self.voice_id = f"sarah-ru-en-p{self.pitch:+.2f}-{q}"
+        self.voice_id = f"sarah-ru-en-p{self.pitch:+.2f}-{self.q}" + ("-turbo" if self.turbo else "")
+        log.info("декодер звука: %s", "Turbo, 2 шага" if self.turbo else f"обычный, {self.steps} шагов")
+
+    @staticmethod
+    def _turbo_decoder(download: bool):
+        """Декодер звука из Chatterbox Turbo (meanflow): те же речевые токены, 2 шага вместо 6 — на фразе
+        ~1,5 с вместо ~7 с, сходство с образцом Сары не хуже (замер CAMPPlus: 0,86 против 0,83 по-русски)."""
+        try:
+            from chatterbox.models.s3gen import S3Gen
+            from huggingface_hub import hf_hub_download
+            from safetensors.torch import load_file
+            path = hf_hub_download("ResembleAI/chatterbox-turbo", "s3gen_meanflow.safetensors",
+                                   local_files_only=not download)
+            s3 = S3Gen(meanflow=True)
+            s3.load_state_dict(load_file(path), strict=True)
+            return s3.to(_device()).eval()
+        except Exception as e:  # noqa: BLE001 — нет файла или другая версия Chatterbox: обычный декодер
+            if download:
+                log.warning("декодер Turbo не загружен: %s", e)
+            return None
+
+    def _fetch_turbo(self) -> None:
+        s3 = self._turbo_decoder(download=True)
+        if s3 is not None:
+            self._pending = s3
 
     def synth(self, text, lang, speed, exaggeration, cfg=0.5, temperature=0.8):
+        if self._pending is not None:         # в потоке синтеза: между фразами, не посреди
+            self.m.s3gen, self._pending, self.turbo = self._pending, None, True
+            self._prepare()
         # exaggeration — выразительность интонации; cfg_weight ниже — речь размереннее и чётче;
         # темп Chatterbox задаётся через cfg (быстрее — выше), без передискретизации
         torch = self.torch
@@ -291,7 +407,12 @@ class Chatterbox(Engine):
                                 temperature=max(0.5, min(1.1, temperature)), cfg_weight=cfg,
                                 repetition_penalty=2.0, min_p=0.05, top_p=1.0)
             st = drop_invalid_tokens(st[0]).to(m.device)
-            wav, _ = m.s3gen.inference(speech_tokens=st, ref_dict=c.gen, n_cfm_timesteps=self.steps)
+            steps = self.steps
+            if self.turbo:                    # как в Chatterbox Turbo: 3 токена тишины в конце — хвост не обрезается
+                from chatterbox.models.s3gen.const import S3GEN_SIL
+                st = torch.cat([st, torch.full((3,), S3GEN_SIL, dtype=st.dtype, device=st.device)])
+                steps = 2
+            wav, _ = m.s3gen.inference(speech_tokens=st, ref_dict=c.gen, n_cfm_timesteps=steps)
             wav = wav.squeeze(0).detach().float().cpu().numpy()
             wav = m.watermarker.apply_watermark(wav, sample_rate=m.sr)
         return to_wav(wav, m.sr)

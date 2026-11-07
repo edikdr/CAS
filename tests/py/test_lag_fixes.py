@@ -130,3 +130,12 @@ def test_file_search_skips_service_dirs_and_stops_in_time(tmp_path):
     found = [e.path for e in routes_fs._walk_files(tmp_path, time.monotonic() + 5) if e.name == "target.txt"]
     assert found == [str(tmp_path / "work" / "src" / "target.txt")]
     assert list(routes_fs._walk_files(tmp_path, time.monotonic() - 1)) == []      # время вышло — сразу стоп
+
+
+def test_voice_turbo_decoder_installed_and_default():
+    """Быстрый декодер звука: включён по умолчанию и скачивается вместе с голосом (иначе — докачка при запуске)."""
+    import tomllib
+    from haotica.tts import runtime
+    d = tomllib.loads((Path(__file__).parents[2] / "core/haotica/defaults.toml").read_text(encoding="utf-8"))
+    assert d["haotica"]["voice_decoder"] == "turbo"
+    assert "s3gen_meanflow.safetensors" in runtime.WARMUP["chatterbox"]

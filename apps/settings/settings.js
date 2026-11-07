@@ -354,6 +354,7 @@ const PAGES = {
       field("Облачный голос", "Запасной вариант, если локальный синтез недоступен", elevenKeyRow()),
       range("haotica.voice_speed", "Скорость речи", null, { min: 0.7, max: 1.4, step: 0.05, fmt: (v) => v.toFixed(2) + "×" }),
       seg("haotica.voice_quality", "Качество голоса", "Синтез на процессоре: «лучше» — медленнее, «быстро» — чуть проще звук", [["best", "Лучше"], ["balanced", "Баланс"], ["fast", "Быстро"]]),
+      seg("haotica.voice_decoder", "Декодер звука", "Turbo — 2 шага вместо 6: синтез заметно быстрее, голос тот же", [["turbo", "Turbo"], ["standard", "Обычный"]]),
       seg("haotica.voice_flow", "Речь", "Без пауз — начинает, когда синтез успевает до конца; сразу — быстрее начинает, но с паузами", [["continuous", "Без пауз"], ["fast", "Сразу"]]),
       range("haotica.voice_pause_scale", "Паузы между фразами", null, { min: 0, max: 1, step: 0.05, fmt: (v) => Math.round(v * 100) + "%" }),
       num("haotica.voice_max_chars", "Читать вслух, символов", "Начало ответа до конца фразы; остальное — в чате", { min: 120, max: 2000, step: 20 }),

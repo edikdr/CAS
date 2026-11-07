@@ -35,6 +35,7 @@ WRAP_UP = ("(система) Шаги на этот ход закончилис�
            "что сделано, что не получилось и почему, что предлагаешь сделать дальше.")
 LOOP_NOTE = ("(система) Ты повторяешь почти один и тот же шаг, а результат не меняется. Не повторяй его: "
              "смени подход или остановись и объясни владельцу, что мешает.")
+VOICE_HOLD_S = 180              # «озвучить» при выключенном голосе: служба речи живёт столько после чтения
 EXEC_TIMEOUT = 120              # сек ожидания команды в терминале по умолчанию; дольше — «запустить и опрашивать»
 OUTPUT_LIMIT = 12_000           # символов вывода команды, которые уходят модели
 HISTORY_TURNS = 40
@@ -110,6 +111,7 @@ class Agent:
         self.state = State(self)
         self.tools = tools.Tools(self)
         self.voice = None
+        self.voice_hold = 0.0            # до этого времени служба речи нужна, даже если голос выключен
         self.cards: dict[str, dict] = {}
         self.busy = False
         self._turn_lock = asyncio.Lock()
@@ -148,6 +150,57 @@ class Agent:
         if not started:
             log.warning("служба речи не запустилась: %s", e)
 
+    def _tts_state(self) -> str:
+        from .. import services
+        if not services.supervised():
+            return ""
+        return services.status().get("tts", {}).get("state", "missing")
+
+    async def voice_power(self, on: bool) -> None:
+        """Голос выключен — служба речи останавливается и модель синтеза (~5 ГБ) уходит из памяти;
+        включён — поднимается снова (загрузка ~1 мин)."""
+        from .. import services
+        if on:
+            await self._voice_up()
+            return
+        self.voice_hold = 0.0
+        if self.voice:
+            await self.voice.stop()
+        if self._tts_state() in ("active", "failed"):
+            await services.stop("tts")
+            log.info("голос выключен — служба речи остановлена, модель выгружена")
+
+    async def voice_once(self, text: str) -> bool:
+        """«Озвучить» у сообщения при выключенном голосе: поднять службу на время (потом _voice_sync выгрузит её
+        через VOICE_HOLD_S простоя), дождаться её готовности и прочитать."""
+        from .. import services
+        from ..tts import runtime
+        self.voice_hold = time.time() + VOICE_HOLD_S + len(text) / 5
+        if services.supervised() and runtime.installed() and self._tts_state() != "active":
+            started, e = await services.start("tts")
+            if not started:
+                log.warning("служба речи не запустилась: %s", e)
+                return False
+            for _ in range(180):                     # модель грузится ~1 мин
+                if await self.voice.tts_ready():
+                    break
+                await asyncio.sleep(1)
+        self.voice_hold = time.time() + VOICE_HOLD_S + len(text) / 5
+        return await self.voice.say(text, force=True)
+
+    async def _voice_sync(self) -> None:
+        """Голос выключили в Настройках (не из чата) — тоже выгрузить; включили — поднять."""
+        from .. import services
+        from ..tts import runtime
+        if not services.supervised() or not runtime.installed():
+            return
+        want = bool(config.get("haotica.voice", True)) or time.time() < self.voice_hold
+        st = self._tts_state()
+        if not want and st in ("active", "failed"):
+            await self.voice_power(False)
+        elif want and st in ("missing", "inactive") and config.get("haotica.voice", True):
+            await self._voice_up()
+
     async def stop(self) -> None:
         for c in list(self.cards.values()):
             if not c["future"].done():
@@ -168,6 +221,8 @@ class Agent:
                 n += 1
                 if n % 10 == 0 and config.get("haotica.enabled", True) and not self.llm.paused and not self._game_on():
                     await self._warmup(quick=True)
+                if n % 5 == 0:
+                    await self._voice_sync()
             except Exception:  # noqa: BLE001
                 log.exception("state")
             await asyncio.sleep(3)
@@ -327,7 +382,9 @@ class Agent:
                 self.hub.publish("exec_cancel", {"id": eid}, keep=False)
                 return {"exec_id": eid, "status": "cancelled", "note": "владелец остановил"}
             return {"exec_id": eid, "status": "running",
-                    "note": f"команда выполняется дольше {timeout} с; проверь позже инструментом terminal_poll"}
+                    "note": f"команда выполняется дольше {timeout} с и продолжает идти в своей вкладке. Дождаться — "
+                            "terminal_poll, прервать — terminal_interrupt. Новые команды пойдут в свободную вкладку "
+                            "HAOTICA; эту же команду заново не запускай"}
         return self._exec_result(eid, fut.result())
 
     def hub_has_exec_listener(self) -> bool:
@@ -378,6 +435,27 @@ class Agent:
                 "running": safety.redact(str(r.get("running", "")))[:200], "screen": screen, "blocks": blocks,
                 "tabs": [str(t)[:40] for t in (r.get("tabs") or [])[:20]]}
 
+    async def terminal_interrupt(self, args: dict, ctx: dict) -> dict:
+        """terminal_interrupt: Ctrl+C командам Haotica, которые заняли вкладки (зависли, ждут ввода, сыплют вывод);
+        force — вкладку, которая так и не вернулась к приглашению, закрыть (только свои вкладки HAOTICA)."""
+        if not self.hub_has_exec_listener():
+            return {"error": "терминал HAOTICA не открыт"}
+        eid = uuid.uuid4().hex[:12]
+        fut: asyncio.Future = asyncio.get_running_loop().create_future()
+        self.execs[eid] = fut
+        self.exec_meta[eid] = {"id": eid, "kind": "interrupt", "win": ctx.get("win", ""), "ts": time.time()}
+        self.hub.publish("term_interrupt", {"id": eid, "win": ctx.get("win", ""), "force": bool(args.get("force"))},
+                         keep=False)
+        try:
+            r = await asyncio.wait_for(asyncio.shield(fut), 15)
+        except asyncio.TimeoutError:
+            return {"error": "терминал не ответил"}
+        finally:
+            self.execs.pop(eid, None)
+            self.exec_meta.pop(eid, None)
+        out = {k: r.get(k) for k in ("interrupted", "still_busy", "closed", "note", "error") if r.get(k)}
+        return out or {"note": "занятых вкладок HAOTICA нет"}
+
     def _exec_result(self, eid: str, r: dict) -> dict:
         out = safety.redact(str(r.get("output_tail", "") or ""))
         if len(out) > OUTPUT_LIMIT:
@@ -386,8 +464,15 @@ class Agent:
             out = "[полноэкранная программа: вывод не передаётся]"
         res = {"exec_id": eid, "exit": r.get("exit"), "duration_ms": r.get("duration"), "cwd": r.get("cwd", ""),
                "output_tail": out}
+        if r.get("tab"):
+            res["tab"] = str(r["tab"])[:40]
+        if r.get("flood"):
+            res["output_tail"] = out[-1500:]
+            r = {**r, "error": "вывод больше 2 МБ (похоже, двоичный файл или бесконечный поток) — команда прервана "
+                               "Ctrl+C. Не выводи такое в терминал: скачивай в файл (-OutFile / curl -o), смотри "
+                               "размер и тип (Get-Item), читай текст частями (Get-Content -TotalCount)"}
         if r.get("error"):
-            res["error"] = str(r["error"])[:300]
+            res["error"] = str(r["error"])[:400]
         meta = self.exec_meta.get(eid, {})
         self._journal({"ts": int(time.time()), "chat": meta.get("chat"), "command": meta.get("command"),
                        "exit": res.get("exit"), "ms": res.get("duration_ms"), "cwd": res.get("cwd"),

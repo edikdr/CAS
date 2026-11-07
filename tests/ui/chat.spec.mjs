@@ -103,6 +103,28 @@ test("опасная команда не выполняется без подт�
   await p.waitForTimeout(1500);
   assert(!(await allWrites(p)).includes("Remove-Item"), "Remove-Item не дошёл до PTY");
 });
+test("голос: выключить прямо в чате и озвучить отдельное сообщение", "T-20", async (p) => {
+  await ask(p, "привет, голос");
+  await p.waitForFunction(() => [...document.querySelectorAll("#chat .hc-msg.assistant .bub")].some((b) => b.textContent.includes("Принято: привет")), null, { timeout: 15000 });
+  const getVoice = async () => {
+    const r = await fetch(CORE + "/api/settings", { headers: { "X-Haotica-Token": token() } });
+    return ((await r.json()).settings.haotica || {}).voice;
+  };
+  const btn = p.locator("#chat .hc-head button[title^='Голос']");
+  await btn.click();
+  await p.waitForTimeout(500);
+  assert(await getVoice() === false, "голос выключен в настройках");
+  assert((await btn.getAttribute("title")).includes("выключен"), "кнопка показывает «выключен»");
+  await ask(p, "/voice");
+  await p.waitForTimeout(500);
+  assert(await getVoice() === true, "/voice включает голос обратно");
+  const msg = p.locator("#chat .hc-msg.assistant").last();
+  await msg.hover();
+  await msg.locator(".hc-say").click();
+  await p.waitForFunction(() => !!document.querySelector("#chat .hc-msg.assistant.speaking"), null, { timeout: 5000 });
+  await msg.locator(".hc-say").click();
+  assert(await p.locator("#chat .hc-msg.assistant.speaking").count() === 0, "повторный клик — стоп");
+});
 test("стоп прерывает ответ", "T-20 T-34", async (p) => {
   await ask(p, "[[slow]] " + "слово ".repeat(80));
   await p.locator("#chat .hc-msg.assistant").last().waitFor({ timeout: 10000 });

@@ -41,6 +41,9 @@ const CSS = `
 .hc-tools { position: absolute; right: 2px; top: -2px; display: none; gap: 2px; }
 .hc-msg:hover .hc-tools { display: flex; }
 .hc-tools .hy-btn.icon { width: 20px; height: 20px; background: var(--bg1); }
+.hc-msg.speaking .hc-tools { display: flex; }
+.hc-msg.speaking .hc-say { color: var(--teal); }
+.hc-head .hy-btn.off { opacity: .55; }
 .hc-step { font: 11px var(--font-term); margin: 3px 0 3px 8px; padding: 2px 6px; border-left: 2px solid var(--line-hi); color: var(--dim);
   display: flex; gap: 6px; align-items: baseline; overflow: hidden; }
 .hc-step .c { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
@@ -116,7 +119,11 @@ export class ChatView {
     this.ctx = el("span.hc-ctx", { title: "Примерный размер контекста чата" }, "");
     const btn = (ic, title, fn) => el("button.hy-btn.ghost.icon.small", { title, onclick: fn }, icon(ic, 13));
     this.keys = el("div.hc-keys.hidden");
-    this.head = el("div.hc-head", this.title, this.badge, this.ctx,
+    this.voiceBtn = btn("volume", "Голос", () => this.toggleVoice());
+    this.syncVoice(true);
+    HY.get("/api/settings").then((st) => { if (st && st.settings) this.syncVoice(((st.settings.haotica || {}).voice) !== false); });
+    HY.on("settings-applied", (s) => { if (s && s.haotica && "voice" in s.haotica) this.syncVoice(s.haotica.voice !== false); });
+    this.head = el("div.hc-head", this.title, this.badge, this.ctx, this.voiceBtn,
       btn("plus", "Новый чат  /new", () => this.newChat()), btn("clock", "История", () => this.drawer()),
       btn("key", "Облачная модель и ключ", () => this.toggleKeys()),
       this.o.onExpand ? btn("layout", "Развернуть", () => this.o.onExpand(this.chat)) : null);
@@ -152,6 +159,34 @@ export class ChatView {
       if (e.key === "Tab" && c.dataset.risk !== "danger") { e.preventDefault(); e.stopPropagation(); c.accept(); }
       if (e.key === "Escape" && !(e.target === this.ta && !this.busy)) { e.preventDefault(); e.stopPropagation(); c.reject(); }
     }, true);
+  }
+
+  // ── голос: автоозвучка ответов вкл/выкл (haotica.voice) и «озвучить» у отдельного сообщения ──
+  syncVoice(on) {
+    this.voiceOn = on;
+    this.voiceBtn.replaceChildren(icon(on ? "volume" : "mute", 13));
+    this.voiceBtn.title = on ? "Голос включён — клик: выключить (/voice)" : "Голос выключен — клик: включить (/voice)";
+    this.voiceBtn.classList.toggle("off", !on);
+  }
+  async toggleVoice() {
+    const on = !this.voiceOn;
+    this.syncVoice(on);
+    // агент сохраняет настройку и выгружает модель синтеза из памяти (или загружает её снова, ~1 мин)
+    const r = await HY.haotica("POST", "/api/voice/power", { on });
+    if (!r || !r.ok) { this.syncVoice(!on); HY.toast("Голос: " + ((r && r.error) || "настройка не сохранилась"), "error"); return; }
+    HY.toast(on ? "Голос включён — модель загружается (~1 мин)" : "Голос выключен, модель выгружена из памяти", "ok");
+  }
+  async speak(n) {
+    const text = (n.raw ?? n.body.innerText ?? "").trim();
+    if (!text) return;
+    if (n.classList.contains("speaking")) { n.classList.remove("speaking"); HY.haotica("POST", "/api/voice/stop"); return; }
+    for (const x of this.feed.querySelectorAll(".hc-msg.speaking")) x.classList.remove("speaking");
+    n.classList.add("speaking");
+    const r = await HY.haotica("POST", "/api/voice/say", { text });
+    if (!r || !r.ok) { n.classList.remove("speaking"); HY.toast((r && r.error) || "голос недоступен", "error"); return; }
+    if (r.loading) HY.toast("Загружаю голос (~1 мин), потом прочитаю", "ok");
+    clearTimeout(n.speakTimer);                      // подсветка кнопки — примерно на время чтения (~13 знаков в секунду)
+    n.speakTimer = setTimeout(() => n.classList.remove("speaking"), Math.min(600000, (r.loading ? 64000 : 4000) + text.length * 90));
   }
 
   autosize() { this.ta.style.height = "auto"; this.ta.style.height = Math.min(140, this.ta.scrollHeight) + "px"; }
@@ -253,12 +288,15 @@ export class ChatView {
     const body = el("div.bub");
     this.renderText(body, m.content || "");
     const steps = ((m.extra || {}).steps || []).map((s) => this.stepNode(s));
+    let n;
     const tools = el("div.hc-tools",
-      el("button.hy-btn.ghost.icon.small", { title: "Копировать", onclick: () => this.copy(m.content || "") }, icon("clipboard", 11)),
+      role === "assistant" ? el("button.hy-btn.ghost.icon.small.hc-say", { title: "Озвучить (ещё раз — остановить)", onclick: () => this.speak(n) }, icon("volume", 11)) : null,
+      el("button.hy-btn.ghost.icon.small", { title: "Копировать", onclick: () => this.copy(n.raw ?? m.content ?? "") }, icon("clipboard", 11)),
       role === "assistant" ? el("button.hy-btn.ghost.icon.small", { title: "Повторить ответ", onclick: () => this.retry() }, icon("reboot", 11)) : null);
-    const n = el("div.hc-msg." + role, { "data-id": m.id || "" }, el("div.who", role === "user" ? null : "HAOTICA", el("time", tm), role === "user" ? "ВЫ" : null),
+    n = el("div.hc-msg." + role, { "data-id": m.id || "" }, el("div.who", role === "user" ? null : "HAOTICA", el("time", tm), role === "user" ? "ВЫ" : null),
       ...steps, body, tools);
     n.body = body;
+    n.raw = m.content || "";
     return n;
   }
   stepNode(s) {
@@ -349,6 +387,7 @@ export class ChatView {
     if (text === "/new") return this.newChat();
     if (text === "/clear") { await HY.haotica("POST", "/api/clear", { chat: this.chat }); return this.open(this.chat); }
     if (text === "/key") return this.focusKey();
+    if (text === "/voice" || text === "/голос" || text === "/mute") return this.toggleVoice();
     const files = this.attach.splice(0); this.renderAtt();
     if (!text && files.length) text = "Посмотри вложения.";
     const cleanNew = this.feed.querySelector(".hc-day:only-child");
@@ -389,7 +428,7 @@ export class ChatView {
           let d; try { d = JSON.parse(data); } catch (e) { continue; }
           if (ev === "delta") { acc += d.text; const n = ensureMsg(); n.body.textContent = acc; this.toEnd(); }
           else if (ev === "step") { const n = ensureMsg(); n.insertBefore(this.stepNode(d.step), n.body); this.toEnd(); }
-          else if (ev === "done") { const n = ensureMsg(); this.renderText(n.body, d.text); n.dataset.id = d.id || ""; this.liveChars = d.text.length; this.updateCtx([]); }
+          else if (ev === "done") { const n = ensureMsg(); n.raw = d.text; this.renderText(n.body, d.text); n.dataset.id = d.id || ""; this.liveChars = d.text.length; this.updateCtx([]); }
           else if (ev === "error") { const n = ensureMsg(); n.body.replaceChildren(el("span", { style: { color: "var(--coral)" } }, d.error)); }
         }
       }

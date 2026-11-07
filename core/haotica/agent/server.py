@@ -427,6 +427,32 @@ def setup(app: web.Application) -> None:
             await A(r).voice.stop()
         return ok()
     R.add_post("/api/voice/stop", voice_stop)
+
+    async def voice_say(r):
+        """Кнопка «озвучить» у сообщения в чате: прочитать его целиком голосом Сары (новая речь глушит старую)."""
+        d = await _body(r)
+        a = A(r)
+        text = str(d.get("text") or "").strip()
+        if not text:
+            return err("пустой текст")
+        if not a.voice:
+            return err("голос недоступен")
+        loaded = await a.voice.tts_ready()
+        a.bg(a.voice_once(text[:8000]))
+        return ok({"started": True, "loading": not loaded})
+    R.add_post("/api/voice/say", voice_say)
+
+    async def voice_power(r):
+        """Кнопка голоса в чате: вкл/выкл автоозвучки; выключение выгружает модель синтеза из памяти."""
+        d = await _body(r)
+        on = bool(d.get("on"))
+        res = await asyncio.to_thread(client.core, "POST", "/api/settings",
+                                      {"changes": {"haotica.voice": on}, "source": "chat"})
+        if not res or not res.get("ok"):
+            return err("настройка не сохранилась")
+        A(r).bg(A(r).voice_power(on))
+        return ok({"on": on})
+    R.add_post("/api/voice/power", voice_power)
     R.add_route("OPTIONS", "/{tail:.*}", lambda r: web.Response(status=204))
 
 

@@ -160,14 +160,14 @@ class Voice:
         await self._play_file(f, s)
         return True
 
-    def _plan(self, s: dict, text: str, emotion: str = "neutral"):
+    def _plan(self, s: dict, text: str, emotion: str = "neutral", limit: int = 0):
         from ..tts import prosody
         ha = s.get("haotica", {})
         lang = s.get("locale", {}).get("haotica_language", "")
         speed = float(ha.get("voice_speed", 1.0))
         mood = {"warning": "warning", "happy": "happy"}.get(emotion, "neutral")
         # вслух — начало ответа (до конца фразы), остальное в чате (настройка haotica.voice_max_chars)
-        max_chars = int(ha.get("voice_max_chars", 600) or 600)
+        max_chars = limit or int(ha.get("voice_max_chars", 600) or 600)
         return prosody.plan(text, lang if lang in ("ru", "en", "de") else "", speed, mood, max_chars=max(120, max_chars),
                             pause_scale=float(ha.get("voice_pause_scale", 0.35))), max(120, max_chars)
 
@@ -205,14 +205,15 @@ class Voice:
             t.cancel()
         self._pre.clear()
 
-    async def say(self, text: str, emotion: str = "neutral") -> bool:
+    async def say(self, text: str, emotion: str = "neutral", force: bool = False) -> bool:
         """Сказать ответ голосом Сары по плану просодии: фразы с интонацией и темпом, паузы, записанные эмоции.
 
         Пока звучит фраза, синтезируется следующая. Любая новая реплика, ввод владельца или «стоп» — stop().
         Голос — только Сара: локальный клон, при сбое — ElevenLabs Sarah; чужих голосов нет.
         """
         s = config.load()
-        if not self.enabled(s) or not text.strip():
+        # force — владелец сам нажал «озвучить» у сообщения: читаем целиком, даже если автоозвучка выключена
+        if not (force or self.enabled(s)) or not text.strip():
             return False
         from ..tts import prosody
         if not prosody.speakable(text):
@@ -221,7 +222,7 @@ class Voice:
         gen = self.gen
         backend = s.get("haotica", {}).get("voice_backend", "local")
         ha = s.get("haotica", {})
-        plan, _max = self._plan(s, text, emotion)
+        plan, _max = self._plan(s, text, emotion, limit=8000 if force else 0)
         speech = [i for i, x in enumerate(plan) if x.kind == "speech"]
         if not speech:
             self.cancel_prefetch()
@@ -359,6 +360,14 @@ class Voice:
             if stat["audio"] > 1:
                 self.rtf = 0.6 * self.rtf + 0.4 * (stat["synth"] / stat["audio"])   # помним скорость синтеза
         return played and stat["ok"]
+
+    async def tts_ready(self) -> bool:
+        """Служба речи отвечает и модель загружена."""
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=2)) as sess,                     sess.get(f"http://{paths.HOST}:{paths.PORT_TTS}/health") as r:
+                return bool((await r.json(content_type=None)).get("ok"))
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError, OSError):
+            return False
 
     async def _local(self, text: str, lang: str, exaggeration: float = 0.5, speed: float = 1.0, cfg: float = 0.5,
                      temperature: float = 0.8) -> bytes:

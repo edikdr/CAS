@@ -48,11 +48,15 @@ SCHEMAS = [
         {"command": S, "cwd": S, "reason": S}, ["command", "reason"]),
     _fn("terminal_run", "Выполнить команду в настоящей вкладке терминала HAOTICA (владелец видит её и вывод). Возвращает "
         "код выхода, папку и хвост вывода. По одной команде на шаг; команды — для текущей оболочки. Изменения "
-        "подтверждает владелец, опасные — всегда отдельно.",
+        "подтверждает владелец, опасные — всегда отдельно. Не выводи в терминал двоичные файлы и большие ответы "
+        "(Get-Content файла .exe/.zip, .Content у скачивания): скачивай с -OutFile, вывод больше 2 МБ прерывается.",
         {"command": S, "reason": S, "tab": {"type": "string", "enum": ["haotica", "active"]},
          "timeout": {"type": "integer", "description": "секунд ждать (по умолчанию 120); дольше — terminal_poll"}},
         ["command", "reason"]),
     _fn("terminal_poll", "Дождаться долгой команды, запущенной terminal_run (по exec_id).", {"exec_id": S}, ["exec_id"]),
+    _fn("terminal_interrupt", "Прервать (Ctrl+C) свои команды, занявшие вкладки HAOTICA: зависла, ждёт ввода, сыплет "
+        "вывод, «вкладка занята». force=true — вкладку, которая так и не освободилась, закрыть.",
+        {"force": B, "reason": S}, ["reason"]),
     _fn("terminal_read", "Посмотреть на терминал: последние строки экрана, недавние команды с кодами выхода, папку и "
         "оболочку. Используй, когда владелец говорит «посмотри», «что за ошибка», «что там в терминале».",
         {"tab": {"type": "string", "enum": ["active", "haotica"]}, "lines": {"type": "integer", "description": "строк (до 400)"}}),
@@ -87,6 +91,8 @@ NAMES = {s["function"]["name"] for s in SCHEMAS}
 READ_ONLY = {"list_dir", "read_file", "search_files", "file_info", "system_status", "processes", "network_devices",
              "wifi_networks", "router_status", "get_setting", "calendar_list", "recall", "analyze_image", "web_search",
              "probe_device", "terminal_poll", "terminal_read"}
+# свои команды Haotica прерывать можно без карточки: Ctrl+C ничего не меняет в системе
+SELF_CONTROL = {"terminal_interrupt"}
 SAFE_ACTIONS = {"open_app", "remember", "forget", "notify", "suggest_command", "set_setting", "add_calendar_event"}
 
 
@@ -123,7 +129,7 @@ def schemas(mode: str, terminal: bool = False) -> list[dict]:
     """terminal — открыт терминал HAOTICA: команды идут в него (terminal_run), фоновый run_command не нужен."""
     if mode == "observer":
         return [s for s in SCHEMAS if s["function"]["name"] in READ_ONLY | {"remember", "recall", "suggest_command", "notify"}]
-    skip = {"run_command"} if terminal else {"terminal_run", "terminal_poll", "terminal_read"}
+    skip = {"run_command"} if terminal else {"terminal_run", "terminal_poll", "terminal_read", "terminal_interrupt"}
     if not (config.get("haotica", {}) or {}).get("vision", True) or not vision_ready():
         skip = skip | {"analyze_image"}            # зрение выключено владельцем или нет проектора — ~1 ГБ памяти
     return [s for s in SCHEMAS if s["function"]["name"] not in skip]
@@ -241,6 +247,8 @@ class Tools:
             return True, risk
         if name in READ_ONLY:
             return False, {"level": "read", "reasons": []}
+        if name in SELF_CONTROL:
+            return False, {"level": "write", "reasons": []}
         if name == "suggest_command":
             return True, safety.classify(str(args.get("command", "")), str(ctx.get("shell") or ""))
         if name in SAFE_ACTIONS and mode == "agent" and autonomy == "safe":
@@ -378,6 +386,9 @@ class Tools:
 
     async def t_terminal_read(self, a, ctx):
         return await self.agent.terminal_read(a, ctx)
+
+    async def t_terminal_interrupt(self, a, ctx):
+        return await self.agent.terminal_interrupt(a, ctx)
 
     async def t_suggest_command(self, a, ctx):
         return {"ok": True, "note": "команда вставлена в строку терминала; владелец решит, запускать ли её"}

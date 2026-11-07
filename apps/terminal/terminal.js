@@ -581,6 +581,11 @@ if (HY.bridge) {
   HY.bridge.ptyData.connect((sid, data) => {
     const p = sessions.get(sid);
     if (!p) return;
+    if (p.hexec && !p.hexec.flood && (p.hexec.bytes += data.length) > HEXEC_FLOOD) {
+      p.hexec.flood = true;                                   // двоичный файл или бесконечный поток — Ctrl+C
+      HY.bridge.ptyWrite(sid, "\x03");
+      logLine("error", "HAOTICA: вывод больше 2 МБ — команда прервана", "STOP");
+    }
     p.term.write(data, () => HY.bridge.ptyAck(sid, data.length));
     if (state.active !== p.tab && !p.tab.activity) { p.tab.activity = true; renderTabs(); }
   });
@@ -1416,15 +1421,43 @@ async function ask(text, context = {}) {
 
 // ── Haotica выполняет команды в настоящей вкладке (W3, terminal_run) ─────────
 const execs = new Map();       // exec_id → { pane, t0 }
-function haoticaPane(where) {
-  if (where === "active" && cur()) return cur();
-  let t = state.tabs.find((x) => x.name === "HAOTICA");
-  if (!t) {
-    const back = state.active;
-    t = newTab({ cwd: cur() ? cur().cwd : "", name: "HAOTICA" });
-    t.name = "HAOTICA"; renderTabs();
-    if (back && back !== t) activate(back);                  // не уводим фокус владельца из его вкладки
+const HEXEC_FLOOD = 2 * 1024 * 1024;   // столько вывода от одной команды Haotica — и Ctrl+C
+const HTABS_MAX = 3;                   // своих вкладок HAOTICA не больше
+const isHTab = (t) => t.name === "HAOTICA" || /^HAOTICA \d+$/.test(t.name || "");
+// вкладка свободна для команды: стоит на приглашении, ничего не выполняет, не полноэкранная программа
+const paneFree = (p) => p && p.sid && !p.exited && p.atPrompt && !p.cur && !p.hexec && p.term.buffer.active.type !== "alternate";
+const paneStarting = (p) => p && !p.exited && !p.integrated && !p.cur && !p.hexec && performance.now() - (p.born || 0) < 20000;
+function busyWhat(p) {
+  if (p.hexec) return "«" + (p.hexec.cmd || "команда").slice(0, 60) + "»";
+  if (p.cur && p.cur.cmd) return "«" + p.cur.cmd.slice(0, 60) + "»";
+  return p.term.buffer.active.type === "alternate" ? "полноэкранная программа" : "оболочка не вернулась к приглашению";
+}
+// Куда идёт команда Haotica: в текущую вкладку (если так настроено и она свободна) или в свою вкладку HAOTICA.
+// Своя занята долгой или зависшей командой — в свободную соседнюю «HAOTICA 2», «HAOTICA 3», а не отказ:
+// раньше модель получала «вкладка занята» и повторяла одно и то же, пока ход не кончался.
+async function haoticaPane(where) {
+  // только что кончившаяся команда: блок закрыт, а приглашение ещё не пришло — подождать его, а не открывать вкладку
+  const settling = (p) => p && p.sid && !p.exited && !p.atPrompt && !p.cur && !p.hexec && p.integrated;
+  if (where === "active" && cur()) {
+    if (settling(cur())) await cur().waitPrompt(3000);
+    if (paneFree(cur()) || paneStarting(cur())) return cur();
   }
+  let mine = state.tabs.filter(isHTab);
+  if (!mine.some((t) => paneFree(t.pane))) {
+    const s = mine.find((t) => settling(t.pane));
+    if (s) await s.pane.waitPrompt(3000);
+    mine = state.tabs.filter(isHTab);
+  }
+  const free = mine.find((t) => paneFree(t.pane)) || mine.find((t) => paneStarting(t.pane));
+  if (free) return free.pane;
+  if (mine.length >= HTABS_MAX) return null;
+  const names = new Set(mine.map((t) => t.name));
+  let name = "HAOTICA";
+  for (let i = 2; names.has(name); i++) name = "HAOTICA " + i;
+  const back = state.active;
+  const t = newTab({ cwd: cur() ? cur().cwd : "", name });
+  t.name = name; t.pane.born = performance.now(); renderTabs();
+  if (back && back !== t) activate(back);                    // не уводим фокус владельца из его вкладки
   return t.pane;
 }
 // Команду выполняет одно окно: то, из которого спросили, — сразу; остальные — только если оно не взялось (закрыто).
@@ -1435,16 +1468,22 @@ async function claim(x) {
 }
 async function onExec(x) {
   if (!(await claim(x))) return;
-  const pane = haoticaPane(x.tab === "active" ? "active" : "haotica");
+  const pane = await haoticaPane(x.tab === "active" ? "active" : "haotica");
   const fail = (error, exit = -2) => HY.haotica("POST", "/api/terminal/result", { exec_id: x.id, exit, error, duration: 0, cwd: pane ? pane.cwd : "" });
-  if (!pane) return fail("нет вкладки");
+  if (!pane) {
+    const busy = state.tabs.filter(isHTab).map((t) => `${t.name}: ${busyWhat(t.pane)}`).join("; ");
+    return fail(`все вкладки HAOTICA заняты (${busy}). Дождись terminal_poll или прерви terminal_interrupt — ` +
+      "ту же команду заново не запускай");
+  }
   const ready = await pane.waitPrompt(20000);
   if (!ready && !pane.integrated)
     return fail(`интеграция оболочки (${pane.profile.name || pane.kind}) не загрузилась: терминал не видит конца команд. ` +
       "Открой вкладку PowerShell или cmd и проверь haotica doctor");
-  if (!ready || pane.cur) return fail(`вкладка занята: ${pane.cur && pane.cur.cmd ? "выполняется «" + pane.cur.cmd.slice(0, 80) + "»" : "оболочка не вернулась к приглашению"}`);
+  if (!ready || pane.cur || pane.hexec) return fail(`вкладка занята: ${busyWhat(pane)}. Прерви её terminal_interrupt ` +
+    "или дождись terminal_poll — ту же команду заново не запускай");
   if (pane.term.buffer.active.type === "alternate") return fail("во вкладке открыта полноэкранная программа");
   execs.set(x.id, { pane, t0: performance.now() });
+  pane.hexec = { id: x.id, cmd: x.command, bytes: 0, flood: false };
   pane.execId = x.id; pane.execT0 = performance.now();
   if (pane.kind !== "cmd") pane.atPrompt = false;           // до следующего приглашения вкладка занята (и без OSC 133 C)
   logLine("haotica", `HAOTICA $ ${x.command.slice(0, 60)}`, "RUN");
@@ -1456,17 +1495,48 @@ async function onExec(x) {
     await pane.waitPrompt(Math.max(5000, (x.timeout || 120) * 1000));
     const fake = { out: start, start, end: pane.term.registerMarker(0) };
     execs.delete(x.id);
+    const flood = !!(pane.hexec && pane.hexec.flood);
+    if (pane.hexec && pane.hexec.id === x.id) pane.hexec = null;
     HY.haotica("POST", "/api/terminal/result", { exec_id: x.id, exit: null, duration: Math.round(performance.now() - t0),
-      cwd: pane.cwd, output_tail: pane.output(fake, 300).slice(-12000), note: "cmd: код выхода недоступен" });
+      cwd: pane.cwd, output_tail: pane.output(fake, 300).slice(-12000), note: "cmd: код выхода недоступен",
+      tab: pane.tab.name || "", flood });
   }
 }
 HY.on("block", ({ pane, block }) => {
+  const flood = !!(pane.hexec && pane.hexec.flood);
+  if (pane.hexec && (!block.exec || pane.hexec.id === block.exec)) pane.hexec = null;   // команда кончилась — вкладка свободна
   if (!block.exec || !execs.has(block.exec)) return;
   execs.delete(block.exec);
   logLine(block.code ? "error" : "ok", `HAOTICA EXIT ${block.code} // ${block.cmd.slice(0, 40)}`, block.code ? "FAIL" : "OK");
   HY.haotica("POST", "/api/terminal/result", { exec_id: block.exec, exit: block.code, duration: Math.round(block.ms), cwd: block.cwd || pane.cwd,
-    output_tail: block.alt ? "" : pane.output(block, 300).slice(-12000), alt: !!block.alt });
+    output_tail: block.alt ? "" : pane.output(block, 300).slice(-12000), alt: !!block.alt, tab: pane.tab.name || "", flood });
 });
+// terminal_interrupt: Ctrl+C командам Haotica в её вкладках (и в текущей — только если там команда Haotica);
+// не помогло дважды — с force вкладку HAOTICA закрываем (оболочка завершается), ждущие команды получают ответ
+async function onTermInterrupt(x) {
+  if (!(await claim(x))) return;
+  const reply = (d) => HY.haotica("POST", "/api/terminal/result", { exec_id: x.id, ...d });
+  const panes = new Set(state.tabs.filter(isHTab).map((t) => t.pane).filter((p) => p.sid && !paneFree(p)));
+  if (cur() && cur().hexec) panes.add(cur());
+  const done = [], stuck = [], closed = [];
+  // ждущим этих вкладок командам — ответ сразу (если блок с кодом выхода уже пришёл, их тут нет)
+  const settle = (p, exit, error) => {
+    for (const [id, e] of execs) if (e.pane === p) { execs.delete(id);
+      HY.haotica("POST", "/api/terminal/result", { exec_id: id, exit, error, duration: Math.round(performance.now() - e.t0), cwd: p.cwd }); }
+  };
+  for (const p of panes) {
+    const name = p.tab.name || shortTitle(p.tab), what = busyWhat(p);
+    for (let i = 0; i < 2 && !paneFree(p); i++) { HY.bridge.ptyWrite(p.sid, "\x03"); await p.waitPrompt(3000); }
+    if (paneFree(p) || p.atPrompt) { p.hexec = null; settle(p, 130, "прервано (Ctrl+C)"); done.push(`${name}: ${what}`); continue; }
+    if (x.force && isHTab(p.tab)) {
+      settle(p, -3, "вкладка закрыта: команда не прерывалась");
+      closed.push(name); closeTab(p.tab, false); continue;
+    }
+    stuck.push(`${name}: ${what}`);
+  }
+  reply({ interrupted: done, still_busy: stuck, closed,
+    note: stuck.length ? "не прервалось — terminal_interrupt с force=true закроет вкладку" : "" });
+}
 // Haotica смотрит на терминал: последние строки экрана и блоки команд (вывод вычищается от секретов в агенте)
 async function onTermRead(x) {
   if (!(await claim(x))) return;
@@ -1483,10 +1553,11 @@ async function onTermRead(x) {
     tab: pane.tab.name || shortTitle(pane.tab), running: pane.cur ? pane.cur.cmd || "команда" : "",
     alt: buf.type === "alternate", tabs: state.tabs.map((t) => t.name || shortTitle(t)) });
 }
-HY.stream(["exec", "exec_cancel", "term_read"], {
+HY.stream(["exec", "exec_cancel", "term_read", "term_interrupt"], {
   exec: (x) => onExec(x),
   exec_cancel: (x) => { const e = execs.get(x.id); if (e && e.pane.sid) HY.bridge.ptyWrite(e.pane.sid, "\x03"); },
   term_read: (x) => onTermRead(x),
+  term_interrupt: (x) => onTermInterrupt(x),
 }, HY.haoticaUrl);
 
 window.addEventListener("message", (e) => {

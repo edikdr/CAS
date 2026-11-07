@@ -139,3 +139,46 @@ def test_voice_turbo_decoder_installed_and_default():
     d = tomllib.loads((Path(__file__).parents[2] / "core/haotica/defaults.toml").read_text(encoding="utf-8"))
     assert d["haotica"]["voice_decoder"] == "turbo"
     assert "s3gen_meanflow.safetensors" in runtime.WARMUP["chatterbox"]
+
+
+def test_terminal_interrupt_tool_no_card_and_flood_message(monkeypatch):
+    """Занятая вкладка: модель может прервать свою команду без карточки; поток двоичного вывода — понятная ошибка."""
+    from haotica import config
+    from haotica.agent import tools
+    from haotica.agent.engine import Agent
+    monkeypatch.setattr(config, "get", lambda k, d=None, **kw: {"mode": "agent", "autonomy": "none"} if k == "haotica" else d)
+    names = {s["function"]["name"] for s in tools.schemas("agent", terminal=True)}
+    assert "terminal_interrupt" in names
+    assert "terminal_interrupt" not in {s["function"]["name"] for s in tools.schemas("agent", terminal=False)}
+    need, _ = tools.Tools(None).needs_card("terminal_interrupt", {"reason": "зависло"})
+    assert not need
+    a = Agent()
+    res = a._exec_result("x1", {"exit": 1, "output_tail": "MZ\x00" * 5000, "flood": True, "tab": "HAOTICA 2"})
+    assert "2 МБ" in res["error"] and "-OutFile" in res["error"]
+    assert res["tab"] == "HAOTICA 2" and len(res["output_tail"]) <= 1500
+
+
+def test_voice_off_unloads_tts(monkeypatch):
+    """Голос выключили — служба речи останавливается (модель уходит из памяти); «озвучить» держит её недолго."""
+    import asyncio
+    from haotica import services
+    from haotica.agent import engine
+    from haotica.agent.engine import Agent
+    calls = []
+    monkeypatch.setattr(services, "supervised", lambda: True)
+    monkeypatch.setattr(services, "status", lambda: {"tts": {"state": "active"}})
+
+    async def stop(name):
+        calls.append(("stop", name))
+    monkeypatch.setattr(services, "stop", stop)
+    from haotica.tts import runtime
+    monkeypatch.setattr(runtime, "installed", lambda: "chatterbox")
+    monkeypatch.setattr(engine.config, "get", lambda k, d=None, **kw: False if k == "haotica.voice" else d)
+    a = Agent()
+    a.voice = None
+    asyncio.run(a._voice_sync())
+    assert calls == [("stop", "tts")]
+    calls.clear()
+    a.voice_hold = __import__("time").time() + 60       # только что нажали «озвучить» — не выгружать
+    asyncio.run(a._voice_sync())
+    assert calls == []

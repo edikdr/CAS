@@ -811,13 +811,17 @@ class Agent:
             return {"error": "изображение слишком большое (>12 МБ)"}
         st = models.status().get("base", {})
         if not st.get("vision"):
-            return {"error": "у основной модели нет зрения"}
+            return {"error": "зрение выключено: Настройки → Haotica → Зрение, затем скачать проектор картинок "
+                             "(haotica models download base)"}
+        if self.llm.main != "base":
+            # deep картинки не видит: переключаемся на base (это 20–40 с), а не отказываем
+            if not await self.llm.use("base", 600):
+                return {"error": "зрение есть только у base, а переключиться на неё не удалось: "
+                                 + (self.llm.errors.get("base", "") or "смотри журнал llm-base")}
         mime = mimetypes.guess_type(str(path))[0] or "image/png"
         data = base64.b64encode(await asyncio.to_thread(path.read_bytes)).decode()
         msgs = [{"role": "user", "content": [{"type": "text", "text": question},
                                              {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{data}"}}]}]
-        if self.llm.main != "base":
-            return {"error": "зрение есть только у base; сейчас загружена deep"}
         text = ""
         async for ev in self.llm.chat(msgs, None, "base", max_tokens=800):
             if ev["type"] == "delta":

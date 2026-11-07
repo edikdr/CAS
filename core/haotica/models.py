@@ -374,7 +374,9 @@ def status() -> dict:
         state = "verified" if verified else ("unverified" if ready else ("partial" if have else "missing"))
         out[role] = {"label": e["label"], "file": str(model_file(e)), "size": size, "have": have, "ready": ready,
                      "verified": verified, "state": state,
-                     "role": role, "vision": bool(e.get("mmproj")), "draft": (e.get("draft") or {}).get("type", ""),
+                     # зрение есть, только если проектор картинок реально скачан: иначе llama-server его не загрузит
+                     "vision": bool(e.get("mmproj")) and (paths.MODELS_DIR / e["mmproj"]["file"]).exists(),
+                     "draft": (e.get("draft") or {}).get("type", ""),
                      "variants": [{"id": v["id"], "label": v["label"], "size": v["size"]} for v in CATALOG.get(role, [])],
                      "id": e["id"]}
     return out

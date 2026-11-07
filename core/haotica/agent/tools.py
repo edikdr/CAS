@@ -109,13 +109,23 @@ def interactive(cmd: str) -> bool:
     return prog in INTERACTIVE
 
 
+def vision_ready() -> bool:
+    """Проектор картинок скачан: без файла llama-server зрение не загрузит, и разбор картинки был бы обманом."""
+    try:
+        from .. import models
+        e = models.load_manifest()["models"].get("base") or {}
+        return bool(e.get("mmproj")) and (paths.MODELS_DIR / e["mmproj"]["file"]).exists()
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def schemas(mode: str, terminal: bool = False) -> list[dict]:
     """terminal — открыт терминал HAOTICA: команды идут в него (terminal_run), фоновый run_command не нужен."""
     if mode == "observer":
         return [s for s in SCHEMAS if s["function"]["name"] in READ_ONLY | {"remember", "recall", "suggest_command", "notify"}]
     skip = {"run_command"} if terminal else {"terminal_run", "terminal_poll", "terminal_read"}
-    if not (config.get("haotica", {}) or {}).get("vision", True):
-        skip = skip | {"analyze_image"}            # зрение выключено владельцем — экономия ~1 ГБ памяти
+    if not (config.get("haotica", {}) or {}).get("vision", True) or not vision_ready():
+        skip = skip | {"analyze_image"}            # зрение выключено владельцем или нет проектора — ~1 ГБ памяти
     return [s for s in SCHEMAS if s["function"]["name"] not in skip]
 
 

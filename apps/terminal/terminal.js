@@ -225,6 +225,17 @@ class Pane {
 
   flushPending() { if (this.pending && this.sid) { const c = this.pending; this.pending = ""; HY.bridge.ptyWrite(this.sid, c + "\r"); } }
   dims() { try { this.fit.fit(); } catch (e) { /* окно ещё не видно */ } return { cols: this.term.cols || 100, rows: this.term.rows || 30 }; }
+  // недописанная строка владельца после приглашения (B): в такую вкладку Haotica команду не вписывает
+  draft() {
+    const a = this.inputAt, buf = this.term.buffer.active;
+    if (!this.atPrompt || !a || a.m.isDisposed || a.m.line < 0) return "";
+    let s = "";
+    for (let y = a.m.line; y < Math.min(buf.length, a.m.line + 12); y++) {
+      const ln = buf.getLine(y);
+      if (ln) s += ln.translateToString(true, y === a.m.line ? a.col : 0);
+    }
+    return s.trim();
+  }
   input(text) { if (this.sid) HY.bridge.ptyWrite(this.sid, text); else if (window.__hyDevWrite) window.__hyDevWrite(this, text); this.term.focus(); }
   insertPaths(list) { this.input(list.map((p) => quoteFor(this.kind, p)).join(" ") + " "); }
   info() { return new Promise((res) => (this.sid && HY.bridge && HY.bridge.ptyInfo) ? HY.bridge.ptyInfo(this.sid, (j) => { try { res(JSON.parse(j)); } catch (e) { res({}); } }) : res({})); }
@@ -284,6 +295,9 @@ class Pane {
         this.atPrompt = true;
         if (this.pending) setTimeout(() => this.flushPending(), 30);
         if (this.waiters) for (const w of this.waiters.splice(0)) w();
+      } else if (kind === "B") {                              // конец приглашения: дальше — то, что набирает владелец
+        if (this.inputAt) this.inputAt.m.dispose();
+        this.inputAt = { m: this.term.registerMarker(0), col: buf.cursorX };
       } else if (kind === "C") {
         this.atPrompt = false;
         this.cur = { cmd: this.lastCmd, start: this.promptMarker || this.term.registerMarker(0),
@@ -1425,7 +1439,8 @@ const HEXEC_FLOOD = 2 * 1024 * 1024;   // столько вывода от од�
 const HTABS_MAX = 3;                   // своих вкладок HAOTICA не больше
 const isHTab = (t) => t.name === "HAOTICA" || /^HAOTICA \d+$/.test(t.name || "");
 // вкладка свободна для команды: стоит на приглашении, ничего не выполняет, не полноэкранная программа
-const paneFree = (p) => p && p.sid && !p.exited && p.atPrompt && !p.cur && !p.hexec && p.term.buffer.active.type !== "alternate";
+const paneFree = (p) => p && p.sid && !p.exited && p.atPrompt && !p.cur && !p.hexec && p.term.buffer.active.type !== "alternate" &&
+  !p.draft();
 const paneStarting = (p) => p && !p.exited && !p.integrated && !p.cur && !p.hexec && performance.now() - (p.born || 0) < 20000;
 function busyWhat(p) {
   if (p.hexec) return "«" + (p.hexec.cmd || "команда").slice(0, 60) + "»";
@@ -1479,6 +1494,7 @@ async function onExec(x) {
   if (!ready && !pane.integrated)
     return fail(`интеграция оболочки (${pane.profile.name || pane.kind}) не загрузилась: терминал не видит конца команд. ` +
       "Открой вкладку PowerShell или cmd и проверь haotica doctor");
+  if (ready && pane.draft()) return fail("во вкладке недописанная строка владельца — её не трогаю");
   if (!ready || pane.cur || pane.hexec) return fail(`вкладка занята: ${busyWhat(pane)}. Прерви её terminal_interrupt ` +
     "или дождись terminal_poll — ту же команду заново не запускай");
   if (pane.term.buffer.active.type === "alternate") return fail("во вкладке открыта полноэкранная программа");

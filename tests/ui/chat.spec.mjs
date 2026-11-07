@@ -91,6 +91,23 @@ test("цепочка команд в отдельной вкладке HAOTICA �
   assert(await p.evaluate(() => window.__hyterm.tabs.indexOf(window.__hyterm.active)) === 0, "фокус остался во вкладке владельца");
   assert((await p.locator("#p-log").innerText()).includes("HAOTICA $"), "журнал шагов");
 });
+test("команда не вписывается в недописанную строку владельца", "T-30", async (p) => {
+  const set = (v) => fetch(CORE + "/api/settings", { method: "POST", headers: { "X-Haotica-Token": token(), "Content-Type": "application/json" },
+    body: JSON.stringify({ changes: { "terminal.haotica_tab": v } }) });
+  await set("active");
+  await p.waitForTimeout(300);
+  await p.evaluate(() => window.hy.ptyWrite(window.__hyterm.tabs[0].pane.sid, "черновик.exe"));
+  await p.waitForTimeout(200);
+  const done = () => p.evaluate(() => [...document.querySelectorAll("#chat .hc-msg.assistant .bub")].filter((b) => b.textContent.includes("Цепочка выполнена")).length);
+  const before = await done();
+  await ask(p, "[[chain:Get-ChildItem]]");
+  await p.waitForFunction((n) => [...document.querySelectorAll("#chat .hc-msg.assistant .bub")].filter((b) => b.textContent.includes("Цепочка выполнена")).length > n, before, { timeout: 30000 });
+  await set("separate");
+  const w = await allWrites(p);
+  assert(!w.includes("черновик.exeGet-ChildItem"), "команда склеилась с черновиком владельца");
+  assert(w.includes("Get-ChildItem\r"), "команда выполнена");
+  assert(await p.evaluate(() => window.__hyterm.tabs.some((t) => t.name === "HAOTICA")), "ушла во вкладку HAOTICA");
+});
 test("опасная команда не выполняется без подтверждения", "T-31 T-32", async (p) => {
   await ask(p, "[[danger]]");
   const card = p.locator("#chat .hc-card.danger:not(.done)");
